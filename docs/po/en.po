@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T23:19:08+09:00\n"
+"POT-Creation-Date: 2026-11-22T00:50:32+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -3411,17 +3411,6 @@ msgstr ""
 "its tables, columns, unique constraints and indexes, and how the tables "
 "relate. It is for people who change the SQL and for people who open a "
 "[backup](run.md#back-up-the-db) with `sqlite3` to look into it."
-
-#: src/db.md
-msgid ""
-"**表の形は API の仕様に入らない**: 呼ぶ側が頼ってよいのは [API の仕様]"
-"(api.md) だけで、写しの中の表の形は入らない。写しを読む script は、版が変わる"
-"と壊れうる。"
-msgstr ""
-"**The table layout is not part of the API specification**: Callers may rely "
-"only on the [API specification](api.md); the layout of the tables inside a "
-"backup is not part of it. A script that reads a backup may break when the "
-"version changes."
 
 #: src/db.md
 msgid ""
