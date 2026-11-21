@@ -1,4 +1,4 @@
-//! JSON の口: 置く・探す・消す・DB の写し。
+//! JSON の API: 置く・探す・消す・DB の写し。
 
 use crate::db::{Filter, NewPage, PageMeta, PutError, Target};
 use crate::{AppState, error, internal, text};

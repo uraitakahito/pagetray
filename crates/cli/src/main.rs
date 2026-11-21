@@ -1,7 +1,7 @@
 //! pagetray: ページの置き場（pagetray-server）を、端末から操作する CLI。
-//! 口の約束は docs/src/api.md。置き場に認証は無く、相手はこの Mac の中（127.0.0.1）の置き場だけ。
+//! API の仕様は docs/src/api.md。置き場に認証は無く、相手はこの Mac の中（127.0.0.1）の置き場だけ。
 //!
-//! 終わりの code: 0 できた・1 置き場が断った・2 使い方の誤り・3 置き場が応えない・4 口の版が合わない。
+//! 終わりの code: 0 できた・1 置き場が断った・2 使い方の誤り・3 置き場が応えない・4 API の版が合わない。
 
 mod client;
 mod output;
@@ -41,7 +41,7 @@ enum Command {
     Browse(BrowseArgs),
     /// DB の写し（SQLite の file 1 つ）を取る
     Backup(BackupArgs),
-    /// 置き場の口を直に呼ぶ（命令がまだ無い口にも届く）
+    /// 置き場の API を直に呼ぶ（命令がまだ無いエンドポイントにも届く）
     Api(ApiArgs),
     /// shell の補完の script を出す
     Completion {
@@ -162,7 +162,7 @@ fn status(client: &Client, args: &StatusArgs) -> Result<Vec<u8>, Failure> {
         }))
     } else {
         format!(
-            "置き場: {}（生きている）\nサーバーの版: {}\n口の版: {}（この pagetray が話せる版と合っている）\npagetray の版: {cli}\n",
+            "置き場: {}（生きている）\nサーバーの版: {}\nAPI の版: {}（この pagetray が話せる版と合っている）\npagetray の版: {cli}\n",
             client.base, server.version, server.api
         )
     };
@@ -202,7 +202,7 @@ fn backup(client: &Client, args: &BackupArgs) -> Result<Vec<u8>, Failure> {
     }
 }
 
-/// 口を直に呼び、答えの本文をそのまま出す。2xx でなければ、本文を出した上で code 1。
+/// API を直に呼び、答えの本文をそのまま出す。2xx でなければ、本文を出した上で code 1。
 fn api(client: &Client, args: &ApiArgs) -> Result<Vec<u8>, Failure> {
     if !args.path.starts_with('/') {
         return Err(Failure::usage(format!(

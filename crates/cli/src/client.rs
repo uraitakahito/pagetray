@@ -1,4 +1,4 @@
-//! 置き場に HTTP で頼む。どの答えでも口の版（header `Pagetray-Api`）を見て、話せる版と違えば答えを使わずに止まる。
+//! 置き場に HTTP で頼む。どの答えでも API の版（header `Pagetray-Api`）を見て、話せる版と違えば答えを使わずに止まる。
 
 use pagetray_api::{API_HEADER, API_VERSION};
 use std::time::Duration;
@@ -10,7 +10,7 @@ pub const REFUSED: u8 = 1;
 pub const USAGE: u8 = 2;
 /// 終わりの code: 置き場が応えない。
 pub const DOWN: u8 = 3;
-/// 終わりの code: 口の版が合わない。
+/// 終わりの code: API の版が合わない。
 pub const API: u8 = 4;
 
 /// ふだんの命令が、置き場の答えを待つ時間。
@@ -111,14 +111,14 @@ impl Client {
             }
             e => Failure::new(DOWN, format!("置き場（{}）が応えない: {e}", self.base)),
         })?;
-        // header が無い答えは、口の版ができる前の置き場の物。形は口の版 1 と同じなので通す。
+        // header が無い答えは、API の版ができる前の置き場の物。形は API の版 1 と同じなので通す。
         if let Some(theirs) = response.headers().get(API_HEADER) {
             let theirs = theirs.to_str().unwrap_or("?");
             if theirs != API_VERSION.to_string() {
                 return Err(Failure::new(
                     API,
                     format!(
-                        "置き場（{}）の口の版は {theirs} で、この pagetray（{}）が話せるのは {API_VERSION}。pagetray か置き場のどちらかを上げて、版を合わせる",
+                        "置き場（{}）の API の版は {theirs} で、この pagetray（{}）が話せるのは {API_VERSION}。pagetray か置き場のどちらかを上げて、版を合わせる",
                         self.base,
                         env!("CARGO_PKG_VERSION")
                     ),
@@ -168,7 +168,7 @@ impl Reply {
         serde_json::from_slice(&self.bytes()?).map_err(|e| {
             Failure::new(
                 DOWN,
-                format!("置き場の答えが、口の約束の形でない（置き場の URL が違う？）: {e}"),
+                format!("置き場の答えが、API の仕様の形でない（置き場の URL が違う？）: {e}"),
             )
         })
     }
