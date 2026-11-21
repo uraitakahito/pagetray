@@ -1,11 +1,11 @@
-//! pagetray の口の約束（docs/api.md）のうち、サーバーと CLI が共に使う物。
+//! pagetray の口の約束（docs/src/api.md）のうち、サーバーと CLI が共に使う物。
 //! 口の版・header の名・引数の字の決まり・ページの path の形・ページの記録の型を、1 か所に置く。
-//! ここを変える時は、docs/api.md の「口の版を上げる時・上げない時」を先に見る。
+//! ここを変える時は、docs/src/api.md の「口の版を上げる時・上げない時」を先に見る。
 
 use serde::{Deserialize, Serialize};
 
 /// 口の版。口の形（URL・引数の名・答えの JSON の欄・code の意味）を、前からある呼ぶ側が困る形に変えた時だけ上げる
-/// （決まりは docs/api.md）。
+/// （決まりは docs/src/api.md）。
 pub const API_VERSION: u32 = 1;
 /// どの答えにも付く、口の版の header の名（小文字）。
 pub const API_HEADER: &str = "pagetray-api";

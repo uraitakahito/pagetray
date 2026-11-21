@@ -16,7 +16,7 @@ use axum::routing::get;
 use axum::{Json, Router};
 use serde_json::json;
 
-/// 口の版（決まりは docs/api.md。値は、CLI と共に使う crates/api にある）。
+/// 口の版（決まりは docs/src/api.md。値は、CLI と共に使う crates/api にある）。
 pub use pagetray_api::API_VERSION;
 /// どの答えにも付く、口の版の header。
 pub const API_HEADER: HeaderName = HeaderName::from_static(pagetray_api::API_HEADER);

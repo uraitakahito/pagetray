@@ -1,0 +1,94 @@
+name: docs
+
+# docs/ の本（mdBook）を作り、GitHub Pages（https://uraitakahito.github.io/pagetray/）に出す。
+#   - PR・main への push: 作れるかを見るだけ（job docs）。出さない。
+#   - release の tag（v*）の push・手動の起動: 作った物を Pages に出す（job deploy）。
+#     だから公開の本は、release した版の物になる。github-pages の環境は、v* の tag からの deploy だけを許す
+#     （出し直す時は gh workflow run docs.yml --ref v<版>）。
+# path で絞らない: job docs は main を守る ruleset の必須の check にする物で、絞ると、
+# docs を触らない PR で結果が出ず、merge できなくなる。
+# image を出す release.yml とは別に動く。こちらが落ちても image は出る。
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # 道具の版。上げる時は、release の file（linux x86_64）の SHA-256 も一緒に上げ、
+  # docs/src/development.md の「この本を直す」の命令も合わせる。
+  MDBOOK_VERSION: 0.5.4
+  MDBOOK_SHA256: 3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7
+  MDBOOK_MERMAID_VERSION: 0.17.1
+  MDBOOK_MERMAID_SHA256: 9afcfa5b8463afe606d48595a7ae338564302903e626ea5b6edb8007d29393a5
+  PAGEFIND_VERSION: 1.6.0
+  PAGEFIND_SHA256: 20a992fd64af2ee4fbf39b99245a1135303b6813f79af7ac72a5e27247919b07
+  # mdbook-i18n-helpers は binary が配られていないので、commit を名指して build する。
+  # 公開済みの 0.4.0 は、訳した本で囲み（> [!WARNING] など）を崩す。直し（#344）を含む版が出たら、版の名指しに替える。
+  I18N_HELPERS_REV: b202ae5b952e8f5fd3df72021af6f8c94463636e
+
+# action は commit の SHA で固定する（tag は後から中身が替わりうる）。
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: mdbook・mdbook-mermaid・pagefind を入れる（版と checksum を固定）
+        run: |
+          mkdir -p "$HOME/docs-tools/bin"
+          fetch() { # <URL> <SHA-256>
+            curl -fsSL -o "$RUNNER_TEMP/tool.tar.gz" "$1"
+            echo "$2  $RUNNER_TEMP/tool.tar.gz" | sha256sum -c -
+            tar -xzf "$RUNNER_TEMP/tool.tar.gz" -C "$HOME/docs-tools/bin"
+          }
+          fetch "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VERSION}/mdbook-v${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" "$MDBOOK_SHA256"
+          fetch "https://github.com/badboy/mdbook-mermaid/releases/download/v${MDBOOK_MERMAID_VERSION}/mdbook-mermaid-v${MDBOOK_MERMAID_VERSION}-x86_64-unknown-linux-gnu.tar.gz" "$MDBOOK_MERMAID_SHA256"
+          fetch "https://github.com/CloudCannon/pagefind/releases/download/v${PAGEFIND_VERSION}/pagefind_extended-v${PAGEFIND_VERSION}-x86_64-unknown-linux-musl.tar.gz" "$PAGEFIND_SHA256"
+          echo "$HOME/docs-tools/bin" >> "$GITHUB_PATH"
+      - name: mdbook-i18n-helpers の cache
+        id: i18n
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/docs-tools/i18n
+          key: mdbook-i18n-helpers-${{ runner.os }}-${{ runner.arch }}-${{ env.I18N_HELPERS_REV }}
+      - name: mdbook-i18n-helpers を build する（cache に無い時だけ）
+        if: steps.i18n.outputs.cache-hit != 'true'
+        # repo の外で打つ（中で打つと、rust-toolchain.toml の版を入れに行く）。
+        working-directory: ${{ runner.temp }}
+        run: |
+          cargo install mdbook-i18n-helpers --locked \
+            --git https://github.com/google/mdbook-i18n-helpers --rev "$I18N_HELPERS_REV" \
+            --root "$HOME/docs-tools/i18n"
+      - run: echo "$HOME/docs-tools/i18n/bin" >> "$GITHUB_PATH"
+      - name: 本を作る（日本語・英語・検索の索引）
+        run: ci/docs-build.sh
+      - if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: docs/book
+
+  deploy:
+    # 出すのは、release の tag か手動の起動の時だけ。
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    needs: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    # Pages の deploy を 1 つずつ流す。途中で止めない。
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

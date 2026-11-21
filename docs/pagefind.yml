@@ -1,0 +1,10 @@
+# 検索（Pagefind）の索引。ci/docs-build.sh が、docs/ の中で pagefind を起こす。
+# 日本語（/）と英語（/en/）を 1 度に索引にする。引く時は、開いているページの lang の索引が使われる。
+site: book
+# 本文だけを索引にする（上の帯の題「pagetray」を、結果の題にしないため）。
+root_selector: main
+# 図の原文（Mermaid の字）は入れない。
+exclude_selectors:
+  - ".mermaid"
+# 印刷用のページ（全部の章が 1 枚に入っている）・目次だけのページ・404 は、ci/docs-build.sh が
+# 索引を作る間だけ脇へ除ける（Pagefind の glob は「これ以外」を書けない）。
