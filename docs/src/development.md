@@ -14,7 +14,7 @@
 | `crates/api/` | API の仕様のうち、サーバーと CLI が共に使う物（API の版・header の名・引数の字の決まり・path の形・ページと file の記録の型・受ける file の種類） |
 | `crates/cli/` | CLI（binary の名は `pagetray`）。置き場の API を HTTP で呼ぶ。試験は、同じ commit のサーバーを起こして打つ |
 | `e2e/` | 一覧の UI と、この本を、本物の browser で見る試験（Playwright・TypeScript）。image にも CLI にも入らない。流し方は下の「一覧の UI の試験」と「この本を直す」の「本の試験」 |
-| `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる） |
+| `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる）。できる表は [DB の作り](db.md) |
 | `.sqlx/` | SQL の検査用の file（commit する） |
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
 | `ci/` | 出す image と、release に付ける CLI に、入ってよい物だけが入っているか・動くかを見る script と、その決まり。この本を build する script（`ci/docs-build.sh`）もここ |
@@ -45,6 +45,7 @@ API の形（URL・引数の名・JSON の欄）を変える時は、先に [API
   ```
 
 - **当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えている。表を変える時は `migrations/` に次の番号の file を足し、`tests/migrations.rs` の一覧に 1 行足す（前からある行が変わると、試験が落ちる）。
+- **表を変えたら、章も直す**: 表・列・型・空を許すか・主キーと一意と索引を変えたら、同じ PR で [DB の作り](db.md) と、表を足したなら [用語集](glossary.md) も直す。`tests/schema_doc.rs` が、移行を当てた DB と章を突き合わせ、食い違えば落ちる。
 - **版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、`CHANGELOG.md` に、API の版が変わったかを書く。
 - **crate を上げる**: `.cargo/config.toml` の `global-min-publish-age` が、公開から 2 日たっていない版を選ばせない（Cargo 1.100 から）。上げる時は `cargo update` → 試験 → PR。`cargo install` はこの決まりを見ないので、道具は版を書いて入れる。
 - **弱点と license の見張り**: workflow の `advisories` が `cargo deny check advisories licenses`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の crate が入ると落ちる。
@@ -106,5 +107,5 @@ python3 -m http.server -d docs/book
 - **章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章は `docs/src/cli.md`（「使う」の節の、動かす と API の仕様 の間）。
 - **repo の file を指す link**: 本の外の file（`CHANGELOG.md` など）は、GitHub の URL で書く。章どうしは、`run.md` のように file の名で書く。
 - **本の試験**: `e2e/docs-tests/` の試験（Playwright）が、作った本を本物の browser で開き、どの章も開いて console に誤りが無いこと・図が描けること・検索の枠が開いて日本語と英語の語が当たること・言葉の切り替えで同じ章へ移ることを見る。`ci/docs-build.sh` の後に、`e2e/` で `pnpm test:docs` を打つ（道具の入れ方は上の「一覧の UI の試験」と同じ）。CI では job `docs` が流す。章を足したら、`e2e/docs-tests/docs.spec.ts` の章の一覧にも足す（目次と合わないと落ちる）。
-- **図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通る。描けるかは、本の試験が見る。
+- **図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通る。描けるかは、本の試験が見る（図のある章は `docs.spec.ts` の `FIGURES` に並べる。図を足した章は、そこにも足す）。
 - **検索と言葉の切り替え**: `docs/theme/site.js` は、mdBook の画面の `#mdbook-menu-bar` と `path_to_root` に頼っている。mdBook を上げても検索の枠が開くこと・言葉が切り替わることは、本の試験が見る。
