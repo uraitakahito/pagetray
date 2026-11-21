@@ -1,0 +1,29 @@
+# pagetray の本（mdBook）。原文は日本語（src/）。英語は po/en.po の訳から作る（mdbook-i18n-helpers）。
+# 作るのは ci/docs-build.sh。直し方は src/development.md の「この本を直す」。
+[book]
+title = "pagetray"
+description = "ページ（HTML）の置き場のサーバー"
+language = "ja"
+src = "src"
+
+[build]
+build-dir = "book"
+
+# po/<言葉>.po の訳を当てる。訳の無い所は原文のまま出る。
+[preprocessor.gettext]
+after = ["links"]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output.html]
+git-repository-url = "https://github.com/uraitakahito/pagetray"
+edit-url-template = "https://github.com/uraitakahito/pagetray/edit/main/docs/{path}"
+site-url = "/pagetray/"
+additional-js = ["mermaid.min.js", "mermaid-init.js", "theme/site.js"]
+additional-css = ["theme/site.css"]
+
+# 組み込みの検索は、日本語の語が引けない（英語の語の切り方しか持たない）。
+# 代わりに Pagefind の索引を作り（pagefind.yml）、theme/site.js が検索の枠を出す。
+[output.html.search]
+enable = false

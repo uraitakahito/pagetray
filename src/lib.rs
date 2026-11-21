@@ -17,7 +17,7 @@ use axum::{Json, Router};
 use serde_json::json;
 
 /// 口の版。口の形（URL・引数の名・答えの JSON の欄・code の意味）を、前からある呼ぶ側が困る形に変えた時だけ上げる
-/// （決まりは docs/api.md）。
+/// （決まりは docs/src/api.md）。
 pub const API_VERSION: u32 = 1;
 /// どの答えにも付く、口の版の header。
 pub const API_HEADER: HeaderName = HeaderName::from_static("pagetray-api");

@@ -1,6 +1,6 @@
 # 変えたこと
 
-版ごとに、口の版（[docs/api.md](docs/api.md)）が変わったかを書く。
+版ごとに、口の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
 ## 0.2.0
 
