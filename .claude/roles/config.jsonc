@@ -4,7 +4,7 @@
   "tracker": "jira",
   "infra": {
     // ページの置き場（pagetray の container と、DB を置く volume）。止めると担当はページを置けず、
-    // volume を消すと置かれたページの記録が消える。起こし方は README の「動かす」。
+    // volume を消すと置かれたページの記録が消える。起こし方は docs の「動かす」（docs/src/run.md。https://uraitakahito.github.io/pagetray/run.html）。
     "pagetray": {
       "guard": "tpm",
       "match": [
