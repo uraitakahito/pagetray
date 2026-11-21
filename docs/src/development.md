@@ -12,6 +12,7 @@
 | `src/text.rs` | HTML から題と検索用の字を取り出す |
 | `crates/api/` | API の仕様のうち、サーバーと CLI が共に使う物（API の版・header の名・引数の字の決まり・path の形・ページの記録の型） |
 | `crates/cli/` | CLI（binary の名は `pagetray`）。置き場の API を HTTP で呼ぶ。試験は、同じ commit のサーバーを起こして打つ |
+| `e2e/` | 一覧の UI を、本物の browser で見る試験（Playwright・TypeScript）。image にも CLI にも入らない。流し方は下の「一覧の UI の試験」 |
 | `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる） |
 | `.sqlx/` | SQL の検査用の file（commit する） |
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
@@ -48,6 +49,24 @@ API の形（URL・引数の名・JSON の欄）を変える時は、先に [API
 - **弱点と license の見張り**: workflow の `advisories` が `cargo deny check advisories licenses`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の crate が入ると落ちる。
 - **workflow の action**: commit の SHA で固定する（tag は後から中身が替わりうる）。
 - **main を守る決まり**: GitHub の ruleset「main: CI が通らないと merge できない」（Settings → Rules → Rulesets）が、`main` への変更に、CI の `test`・`image`・`advisories`・`docs`・`cli` の 5 つが通っていることを求める。PR は、5 つが通るまで merge できない。repo の admin は、この決まりを bypass できるので、`main` への直の push は通る（GitHub の必須の check には「PR だけに効かせる」選び方が無いので、直の push を通すには bypass になる）。admin は、わざと選べば（画面の bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge できてしまうので、使わない。workflow の job の名を変えたら、ruleset の check の名も合わせて直す（合わないと、PR がいつまでも merge できない）。
+
+## 一覧の UI の試験
+
+一覧の UI は、HTML の字を `tests/ui.rs` が見て、browser でしか見えない物（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るのはこの folder の中だけで、image にも CLI にも入らない。
+
+```sh
+cargo build --bin pagetray-server
+cd e2e
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium      # 初めの 1 度だけ。試験用の Chromium を入れる
+pnpm test
+PAGETRAY_E2E_CHANNEL=chrome pnpm test      # この機械の Chrome を使う（Chromium を入れなくてよい）
+```
+
+- **CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを見てから足す）。
+- **試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の `place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠）は `helpers.ts` の関数で選ぶ。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を使う。新着の印を見る試験は、`openLive` で開いてから置く（知らせにつながる前に置いたページの知らせは届かない）。大きな file は試験の中で作り、repo に置かない。
+- **template を変えた時**: `templates/index.html` を変えたら、この試験も流す。試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`、`#fresh`、`li[data-path]`、絞り込みの列の見出しの字など）を変える時は、同じ PR で `helpers.ts` も直す。
+- **Node の依存**: 依存は `@playwright/test` の 1 つで、版は `package.json` にそのまま書く（`^` を付けない）。`pnpm-lock.yaml` を commit し、CI は `--frozen-lockfile` で入れる。`pnpm-workspace.yaml` の `minimumReleaseAge` が、公開から 2 日たっていない版を入れさせない。弱点は、workflow の `advisories` が `pnpm audit` で、PR ごとと週に 1 度見る。版は手で上げる（Playwright を上げると browser も替わるので、試験が通るのを見る）。`package.json` の版を書き替え、`pnpm install` → 試験 → PR。
 
 ## この本を直す
 

@@ -4,3 +4,7 @@
 *.db-wal
 /docs/book
 /docs/po/messages.pot
+# 一覧の UI の試験（e2e/）が作る物。
+/e2e/node_modules
+/e2e/test-results
+/e2e/playwright-report
