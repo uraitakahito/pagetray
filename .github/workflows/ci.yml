@@ -85,6 +85,8 @@ jobs:
         run: ci/check-cli.sh target/release/pagetray
       - name: その binary を、同じ commit のサーバーに向けて打つ
         run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli
+      - name: release に付ける tar を作れるか（中身の一覧と持ち主も見る。作った tar は捨てる）
+        run: ci/pack-cli.sh target/release/pagetray v0.0.0-ci "$RUNNER_TEMP/out"
   advisories:
     runs-on: ubuntu-latest
     steps:

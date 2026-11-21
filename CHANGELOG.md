@@ -2,12 +2,13 @@
 
 版ごとに、口の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
-## 次の版（まだ出していない）
+## 0.3.0
 
 口の版: 1（変わらない。呼ぶ側は変えなくてよい）
 
 - CLI（`pagetray`）を足した。置き場を端末から操作する。命令は `status`・`page list`・`page view`・`page put`・`page delete`・`page watch`・`browse`・`backup`・`api`・`completion`。
   - `page delete` は、まず消す物を一覧で出し、`--yes` を付けた時だけ消す。環境変数 `PAGETRAY_NO_DELETE` が付いていれば、消す命令（`api` の `DELETE` も）は何もせずに止まる。
+  - release に、macOS（arm64）用の binary（`pagetray-v0.3.0-aarch64-apple-darwin.tar.gz`）と checksum が付く。image と同じ走査を通った物だけが付く。使い方は docs の「CLI」。
 - サーバーの binary の名を `pagetray` から `pagetray-server` に替えた（`pagetray` の名は、人が打つ CLI が使う）。
   - image の中の file は `/pagetray-server` と空の `/data`。`ENTRYPOINT` も替えたので、`container run` の 1 行は変わらない。
   - 口・環境変数（`PAGETRAY_DB`・`PAGETRAY_LISTEN`）・起きた時の 1 行（`pagetray <版> listen=… db=…`）は変わらない。
