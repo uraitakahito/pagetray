@@ -85,13 +85,15 @@ iframe{width:100%;height:100%;border:0;background:#fff}
   // 未読: 初めて開いた時より後に置かれ、まだ右の枠に出していないページ。browser が覚える。
   try {
     const store = localStorage;
-    const since = store.getItem("pagestore.since") || new Date().toISOString();
-    store.setItem("pagestore.since", since);
-    const seen = new Set(JSON.parse(store.getItem("pagestore.seen") || "[]"));
+    // 前の名（pagestore.*）で覚えた印も読む（名を替えた時に、未読の印を失わない）。
+    const kept = (name) => store.getItem(`pagetray.${name}`) || store.getItem(`pagestore.${name}`);
+    const since = kept("since") || new Date().toISOString();
+    store.setItem("pagetray.since", since);
+    const seen = new Set(JSON.parse(kept("seen") || "[]"));
     const open = document.body.dataset.open;
     if (open && !seen.has(open)) {
       seen.add(open);
-      store.setItem("pagestore.seen", JSON.stringify([...seen].slice(-5000)));
+      store.setItem("pagetray.seen", JSON.stringify([...seen].slice(-5000)));
     }
     for (const li of document.querySelectorAll("li[data-path]")) {
       if (li.dataset.at > since && !seen.has(li.dataset.path)) li.classList.add("unread");

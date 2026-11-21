@@ -1,2 +1,2 @@
 d ./data
-f ./pagestore
+f ./pagetray
