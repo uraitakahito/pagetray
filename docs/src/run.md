@@ -38,9 +38,17 @@ container run -d --name pagetray \
 
 1. `container list` で `pagetray` が `running`。
 2. `lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と `127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。
-3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `ok` を返し、`curl -s http://127.0.0.1:8801/api/version` が、起こした版と `"api":1` を返す。browser で `http://127.0.0.1:8801/` が一覧を出す。
+3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `ok` を返し、`curl -s http://127.0.0.1:8801/api/version` が、起こした版と `"api":1` を返す。
 4. `container logs pagetray` の頭に `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` が出ている。
 5. `container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
+6. 一覧の UI を、読むだけの試験で見る（試験のある 0.3.2 から）。本物の browser（この Mac の Chrome）で開き、一覧が出て API の答えと合うこと・新着の知らせにつながること・絞れること・選んだページが本文の枠に出ること・console に誤りが無いことを見る。置き場には何も書かない。pagetray の checkout のある folder で、起こした版の試験を取り出して流す（Node と pnpm が要る。[開発](development.md) の「一覧の UI の試験」）。checkout が無ければ、browser で `http://127.0.0.1:8801/` を開き、一覧が出るのを見る。
+
+   ```sh
+   git -C pagetray fetch --tags
+   git -C pagetray worktree add --detach "$PWD/pagetray-smoke" v<version>
+   (cd pagetray-smoke/e2e && pnpm install --frozen-lockfile && PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test)
+   git -C pagetray worktree remove "$PWD/pagetray-smoke"
+   ```
 
 ## DB の写しを取る
 

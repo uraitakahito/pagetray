@@ -64,6 +64,7 @@ PAGETRAY_E2E_CHANNEL=chrome pnpm test      # この機械の Chrome を使う（
 ```
 
 - **CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを見てから足す）。
+- **読むだけの試験**: 題に `@smoke` が付いた試験（`e2e/tests/smoke.spec.ts`）は、何も置かず、何が置かれていても通る物だけを見る。`PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test` と打つと、サーバーを起こさず、動いている置き場に向けて、この試験だけが流れる（置く試験は、設定が流させない）。版を上げた後の確かめに使う（[動かす](run.md#確かめる) の「確かめる」）。
 - **試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の `place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠）は `helpers.ts` の関数で選ぶ。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を使う。新着の印を見る試験は、`openLive` で開いてから置く（知らせにつながる前に置いたページの知らせは届かない）。大きな file は試験の中で作り、repo に置かない。
 - **template を変えた時**: `templates/index.html` を変えたら、この試験も流す。試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`、`#fresh`、`li[data-path]`、絞り込みの列の見出しの字など）を変える時は、同じ PR で `helpers.ts` も直す。
 - **Node の依存**: 依存は `@playwright/test` の 1 つで、版は `package.json` にそのまま書く（`^` を付けない）。`pnpm-lock.yaml` を commit し、CI は `--frozen-lockfile` で入れる。`pnpm-workspace.yaml` の `minimumReleaseAge` が、公開から 2 日たっていない版を入れさせない。弱点は、workflow の `advisories` が `pnpm audit` で、PR ごとと週に 1 度見る。版は手で上げる（Playwright を上げると browser も替わるので、試験が通るのを見る）。`package.json` の版を書き替え、`pnpm install` → 試験 → PR。
