@@ -7,6 +7,8 @@ use axum::body::{Body, Bytes};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+pub use pagetray_api::{is_name, is_segment, page_path};
+use pagetray_api::{is_timestamp, is_workspace};
 use serde::{Deserialize, Serialize};
 use tokio_util::io::ReaderStream;
 
@@ -38,10 +40,6 @@ impl From<PageMeta> for Page {
         let path = page_path(&meta.project, &meta.key, &meta.kind, meta.n);
         Self { meta, path }
     }
-}
-
-pub fn page_path(project: &str, key: &str, kind: &str, n: i64) -> String {
-    format!("/{project}/{key}/{kind}-{n}.html")
 }
 
 pub async fn put(
@@ -235,102 +233,5 @@ pub async fn backup(State(state): State<AppState>) -> Response {
         )
             .into_response(),
         Err(e) => internal(e),
-    }
-}
-
-/// URL の 1 段になる字（project・key）。project は tpm の状態の folder の名（project の path から作る）なので、
-/// folder の名の長さの上限（255 字）まで受ける。
-pub fn is_segment(s: &str) -> bool {
-    (1..=255).contains(&s.len())
-        && s != "."
-        && s != ".."
-        && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'))
-}
-
-/// 種類と役割の名の形。名の一覧は持たない。
-pub fn is_name(s: &str) -> bool {
-    (1..=32).contains(&s.len())
-        && s.as_bytes()[0].is_ascii_lowercase()
-        && s.bytes()
-            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
-}
-
-fn is_workspace(s: &str) -> bool {
-    s.len() <= 64
-        && s.bytes()
-            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b':' | b'.' | b'_' | b'-'))
-}
-
-/// `2026-01-02T03:04:05Z` か、秒の小数（3 桁まで）が付いた形。字の順が時刻の順になる形だけを受ける。
-fn is_timestamp(s: &str) -> bool {
-    let b = s.as_bytes();
-    let shape = |pattern: &str| {
-        b.len() == pattern.len()
-            && pattern.bytes().zip(b).all(|(p, c)| match p {
-                b'0' => c.is_ascii_digit(),
-                _ => p == *c,
-            })
-    };
-    shape("0000-00-00T00:00:00Z")
-        || shape("0000-00-00T00:00:00.0Z")
-        || shape("0000-00-00T00:00:00.00Z")
-        || shape("0000-00-00T00:00:00.000Z")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn names_are_lowercase_words() {
-        for ok in ["brief", "issue", "software-engineer", "a1"] {
-            assert!(is_name(ok), "{ok}");
-        }
-        for ng in ["", "Brief", "1a", "-a", "a_b", "a b", &"a".repeat(33)] {
-            assert!(!is_name(ng), "{ng}");
-        }
-    }
-
-    #[test]
-    fn segments_cannot_escape_the_path() {
-        for ok in [
-            "-Users-me-projects-skills",
-            "SKILLS-14",
-            "t-d7hb",
-            "a.b_c",
-            &"a".repeat(255),
-        ] {
-            assert!(is_segment(ok), "{ok}");
-        }
-        for ng in ["", ".", "..", "a/b", "a b", "鍵", &"a".repeat(256)] {
-            assert!(!is_segment(ng), "{ng}");
-        }
-    }
-
-    #[test]
-    fn workspaces_may_be_empty() {
-        assert!(is_workspace(""));
-        assert!(is_workspace("workspace:1000090098"));
-        assert!(!is_workspace("a b"));
-    }
-
-    #[test]
-    fn timestamps_are_utc_iso() {
-        for ok in [
-            "2026-11-21T04:45:22Z",
-            "2026-11-21T04:45:22.4Z",
-            "2026-11-21T04:45:22.472Z",
-        ] {
-            assert!(is_timestamp(ok), "{ok}");
-        }
-        for ng in [
-            "2026-11-21 04:45:22",
-            "2026-11-21T04:45:22+09:00",
-            "2026-11-21T04:45:22.4721Z",
-            "",
-        ] {
-            assert!(!is_timestamp(ng), "{ng}");
-        }
     }
 }

@@ -35,6 +35,35 @@ async fn numbers_start_at_one_and_follow_per_kind() {
     );
 }
 
+/// 置く・探すの答えが、呼ぶ側（CLI）の読む型（crates/api の PageRecord）で読めるか。
+/// 欄を消す・名や型を変えると、ここが落ちる（口の版を上げる変更。docs/api.md）。
+#[tokio::test]
+async fn answers_parse_as_the_shared_page_record() {
+    use pagetray_api::PageRecord;
+    let s = Server::start().await;
+    let (_, placed) = s
+        .put(&format!("{SE}&kind=plan"), &html("計画", "本文"))
+        .await;
+    let placed: PageRecord = serde_json::from_value(placed).unwrap();
+    assert_eq!(placed.path, "/p/SKILLS-14/plan-1.html");
+    assert_eq!(
+        placed.url.as_deref(),
+        Some("http://127.0.0.1:8801/p/SKILLS-14/plan-1.html")
+    );
+
+    let listed = s.json("/api/pages?project=p").await;
+    let listed: Vec<PageRecord> = serde_json::from_value(listed["pages"].clone()).unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].url, None);
+    assert_eq!(
+        PageRecord {
+            url: None,
+            ..placed
+        },
+        listed[0]
+    );
+}
+
 #[tokio::test]
 async fn fifty_parallel_puts_get_fifty_distinct_numbers_without_gaps() {
     let s = Server::start().await;

@@ -10,6 +10,7 @@
 !Cargo.toml
 !Cargo.lock
 !build.rs
+!crates
 !rust-toolchain.toml
 # 通した folder の中でも、DB は入れない。
 **/*.db
