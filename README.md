@@ -106,7 +106,7 @@ image は public で、だれでも pull して中を見られる。**出すの�
 
 ## 口
 
-呼ぶ側が頼ってよい形と、口の版の決まりは [docs/api.md](docs/api.md)。ここは早見。
+呼ぶ側が頼ってよい形と、口の版の決まりは [docs/src/api.md](docs/src/api.md)。ここは早見。
 
 | 口 | 中身 |
 |---|---|
@@ -142,7 +142,7 @@ image は public で、だれでも pull して中を見られる。**出すの�
 | `.sqlx/` | SQL の検査用の file（commit する） |
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
 | `ci/` | 出す image に、入ってよい物だけが入っているか・動くかを見る script と、その決まり |
-| `docs/api.md` | 呼ぶ側との口の約束と、口の版の決まり |
+| `docs/` | 文書の本（mdBook）。`docs/src/api.md` が、呼ぶ側との口の約束と、口の版の決まり。作り方は `docs/src/development.md` の「この本を直す」 |
 | `.claude/roles/config.jsonc` | skills の `tpm` に向けた、環境 `pagetray` の宣言 |
 
 Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読まない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つと、その版が入って使われる。
@@ -157,7 +157,7 @@ PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run   # 手元�
 
 GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験は、試験ごとに一時の DB を作る。workflow の `image` は、`Containerfile` を arm64 の runner で build し、下の「image に入る物」を確かめ（`ci/check-image.sh`）、空の image の中で起きて置いて読めること・止める合図で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh`）。release の workflow も、同じ 2 つを push の前に流す。
 
-口の形（URL・引数の名・JSON の欄）を変える時は、先に [docs/api.md](docs/api.md) の「口の版を上げる時・上げない時」を見る。変えたら、skills の `tpm page`（`cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。skills の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
+口の形（URL・引数の名・JSON の欄）を変える時は、先に [docs/src/api.md](docs/src/api.md) の「口の版を上げる時・上げない時」を見る。変えたら、skills の `tpm page`（`cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。skills の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
 
 - **SQL を変えた時**: SQL は `query!` が build の時に `.sqlx/` と突き合わせる。SQL か `migrations/` を変えたら、一時の DB を作って作り直し、commit する（忘れると CI の `cargo sqlx prepare --check` が落ちる）。`sqlx-cli` の版は workflow の `SQLX_CLI_VERSION` と合わせる。
 
