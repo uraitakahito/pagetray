@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T21:03:04+09:00\n"
+"POT-Creation-Date: 2026-11-21T21:53:14+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -26,7 +26,7 @@ msgstr "Usage"
 msgid "動かす"
 msgstr "Running"
 
-#: src/SUMMARY.md src/cli.md
+#: src/SUMMARY.md src/cli.md src/glossary.md
 msgid "CLI"
 msgstr "CLI"
 
@@ -45,6 +45,10 @@ msgstr "Releasing"
 #: src/SUMMARY.md src/development.md
 msgid "開発"
 msgstr "Development"
+
+#: src/SUMMARY.md src/glossary.md
+msgid "用語集"
+msgstr "Glossary"
 
 #: src/index.md
 msgid "pagetray"
@@ -258,15 +262,19 @@ msgstr ""
 msgid ""
 "**一覧の UI**: サーバーが HTML を組んで返す。絞り込み・並べ替え・検索は link "
 "と form で、条件は URL に出る（script が無くても動く）。script がするのは、新"
-"着の印・未読の印（browser が覚える）・時刻をこの Mac の時刻で出すことだけ。選"
-"んだページは、右の枠（`sandbox` を付けた iframe）に 1 枚だけ出す。"
+"着の印・未読の印（browser が覚える）・時刻をこの Mac の時刻で出すことだけ。画"
+"面は 4 つの区画（操作の帯・絞り込みの列・一覧の列・本文の枠）でできていて、選"
+"んだページは、本文の枠（`sandbox` を付けた iframe）に 1 枚だけ出す。語の意味"
+"は [用語集](glossary.md)。"
 msgstr ""
 "**List UI**: the server builds the HTML and returns it. Filtering, sorting, "
 "and search use links and forms, and the conditions appear in the URL (it "
 "works without script). The script only handles the new-arrival marks, the "
 "unread marks (remembered by the browser), and showing times in this Mac's "
-"time. The selected page is shown, one at a time, in the right-hand pane (an "
-"iframe with `sandbox`)."
+"time. The screen is made of four regions (the toolbar, the filter column, "
+"the list column, and the viewer), and the selected page is shown, one at a "
+"time, in the viewer (an iframe with `sandbox`). For what the terms mean, see "
+"the [Glossary](glossary.md)."
 
 #: src/index.md
 msgid ""
@@ -952,7 +960,7 @@ msgstr "`human`"
 msgid "`page put` で置く人の役割"
 msgstr "Role of the person storing with `page put`"
 
-#: src/cli.md
+#: src/cli.md src/glossary.md
 msgid "—"
 msgstr "—"
 
@@ -1248,7 +1256,7 @@ msgstr ""
 "1–32 characters of lowercase letters, digits, and `-`, starting with a "
 "lowercase letter. The server keeps no list of names (callers decide)"
 
-#: src/api.md
+#: src/api.md src/glossary.md
 msgid "`workspace`"
 msgstr "`workspace`"
 
@@ -1256,7 +1264,7 @@ msgstr "`workspace`"
 msgid "英数字と `:` `.` `_` `-` で 0〜64 字"
 msgstr "0–64 characters of alphanumerics and `:` `.` `_` `-`"
 
-#: src/api.md
+#: src/api.md src/glossary.md
 msgid "`n`"
 msgstr "`n`"
 
@@ -1514,7 +1522,7 @@ msgstr ""
 "Pushes one event each time a page is put (SSE; the contents are the page "
 "record)"
 
-#: src/api.md
+#: src/api.md src/glossary.md
 msgid "一覧の UI"
 msgstr "List UI"
 
@@ -2231,8 +2239,11 @@ msgid "`docs/src/`"
 msgstr "`docs/src/`"
 
 #: src/development.md
-msgid "原文（日本語）。目次は `SUMMARY.md`"
-msgstr "The source text (Japanese). The table of contents is `SUMMARY.md`"
+msgid ""
+"原文（日本語）。目次は `SUMMARY.md`。語の決まりは `glossary.md`（用語集）"
+msgstr ""
+"The source text (Japanese). The table of contents is `SUMMARY.md`. The rules "
+"for terms are in `glossary.md` (the Glossary)"
 
 #: src/development.md
 msgid "`docs/po/en.po`"
@@ -2365,6 +2376,17 @@ msgstr ""
 
 #: src/development.md
 msgid ""
+"**語を足す・替える**: 先に [用語集](glossary.md) を直し、文書・註・code の名"
+"をそれに合わせる。用語集に書いた id が画面に在るか・「使わない言い方」が戻っ"
+"ていないかは、試験（`tests/terms.rs`）が見る。"
+msgstr ""
+"**Adding or changing a term**: First fix the [Glossary](glossary.md), then "
+"make the documents, comments, and names in the code match it. A test (`tests/"
+"terms.rs`) checks that the ids written in the glossary exist in the UI and "
+"that the \"terms to avoid\" have not come back."
+
+#: src/development.md
+msgid ""
 "**章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章"
 "は `docs/src/cli.md`（「使う」の節の、動かす と API の仕様 の間）。"
 msgstr ""
@@ -2399,3 +2421,516 @@ msgstr ""
 "`#mdbook-menu-bar` and `path_to_root` in mdBook's page. After updating "
 "mdBook, check in a browser that the search box opens and that the language "
 "switches."
+
+#: src/glossary.md
+msgid ""
+"pagetray の文書・画面・code で使う語を、1 か所に並べる。語を足す・替える時"
+"は、先にここを直し、文書と code をそれに合わせる。"
+msgstr ""
+"The terms used in pagetray's documents, UI, and code are listed here in one "
+"place. When adding or changing a term, fix this page first, then make the "
+"documents and the code match it."
+
+#: src/glossary.md
+msgid "**語**: 文書で使う語。かっこの中は、英語の本と code で使う語。"
+msgstr "**Term**: The term used in the documents and in the code."
+
+#: src/glossary.md
+msgid ""
+"**code の名**: HTML の id（`#…`）・class（`.…`）・型・欄・命令など。無ければ"
+"「—」。"
+msgstr ""
+"**Name in code**: An HTML id (`#…`), a class (`.…`), a type, a field, a "
+"command, and so on. \"—\" if there is none."
+
+#: src/glossary.md
+msgid ""
+"**使わない言い方**: 前に使っていた語や、ほかの物と紛れる語。文書にも註にも書"
+"かない。"
+msgstr ""
+"**Terms to avoid**: Terms used earlier, or terms that can be confused with "
+"something else. They are not written in documents or comments."
+
+#: src/glossary.md
+msgid ""
+"[skills](https://github.com/uraitakahito/skills) の `tpm` の語（担当・依頼"
+"書・控えなど）は、skills の docs にある。"
+msgstr ""
+"The terms of `tpm` in [skills](https://github.com/uraitakahito/skills) "
+"(roles, briefs, local copies, and so on) are in the skills docs."
+
+#: src/glossary.md
+msgid "置き場の物"
+msgstr "Things in the store"
+
+#: src/glossary.md
+msgid "語"
+msgstr "Term"
+
+#: src/glossary.md
+msgid "code の名"
+msgstr "Name in code"
+
+#: src/glossary.md
+msgid "意味"
+msgstr "Meaning"
+
+#: src/glossary.md
+msgid "使わない言い方"
+msgstr "Terms to avoid"
+
+#: src/glossary.md
+msgid "置き場（store）"
+msgstr "store"
+
+#: src/glossary.md
+msgid "ページを DB に持ち、番号を付けて返す、このサーバーのこと"
+msgstr "This server, which keeps pages in a DB, numbers them, and returns them"
+
+#: src/glossary.md
+msgid "pagestore"
+msgstr "pagestore"
+
+#: src/glossary.md
+msgid "サーバー（server）"
+msgstr "server"
+
+#: src/glossary.md
+msgid "`pagetray-server`"
+msgstr "`pagetray-server`"
+
+#: src/glossary.md
+msgid "置き場の本体。container の中で動く binary"
+msgstr "The store itself. The binary that runs inside the container"
+
+#: src/glossary.md
+msgid "`pagetray`"
+msgstr "`pagetray`"
+
+#: src/glossary.md
+msgid "置き場を端末から操作する命令"
+msgstr "The command for operating the store from a terminal"
+
+#: src/glossary.md
+msgid "ページ（page）"
+msgstr "page"
+
+#: src/glossary.md
+msgid "`pages`"
+msgstr "`pages`"
+
+#: src/glossary.md
+msgid "置き場に置く HTML 1 枚。置き直すと、別の番号の別のページになる"
+msgstr ""
+"One HTML document put into the store. Putting it again makes a different "
+"page with a different number"
+
+#: src/glossary.md
+msgid "Artifact"
+msgstr "Artifact"
+
+#: src/glossary.md
+msgid "本文（body）"
+msgstr "body"
+
+#: src/glossary.md
+msgid "`body`"
+msgstr "`body`"
+
+#: src/glossary.md
+msgid "ページの HTML そのもの"
+msgstr "The HTML of the page itself"
+
+#: src/glossary.md
+msgid "ページの記録（page record）"
+msgstr "page record"
+
+#: src/glossary.md
+msgid "`PageRecord`"
+msgstr "`PageRecord`"
+
+#: src/glossary.md
+msgid ""
+"ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・"
+"workspace・時刻・大きさ・path）"
+msgstr ""
+"The fields of one page other than its body (project, Key, kind, number, "
+"title, role, workspace, time, size, path)"
+
+#: src/glossary.md
+msgid "メタデータ"
+msgstr "metadata"
+
+#: src/glossary.md
+msgid "project"
+msgstr "project"
+
+#: src/glossary.md
+msgid "`project`"
+msgstr "`project`"
+
+#: src/glossary.md
+msgid ""
+"ページをまとめる、いちばん上の名。`tpm` は、project の folder の path から作"
+"る"
+msgstr ""
+"The topmost name that groups pages. `tpm` builds it from the path of the "
+"project folder"
+
+#: src/glossary.md
+msgid "Key"
+msgstr "Key"
+
+#: src/glossary.md
+msgid "`key`"
+msgstr "`key`"
+
+#: src/glossary.md
+msgid "課題の名（`AI-22` など）。project の下でページをまとめる"
+msgstr ""
+"The name of an issue (such as `AI-22`). It groups pages under a project"
+
+#: src/glossary.md
+msgid "鍵"
+msgstr "—"
+
+#: src/glossary.md
+msgid "種類（kind）"
+msgstr "kind"
+
+#: src/glossary.md
+msgid "`kind`"
+msgstr "`kind`"
+
+#: src/glossary.md
+msgid "ページの種類の名（`plan`・`result` など）。名の一覧は、呼ぶ側が決める"
+msgstr ""
+"The name of the kind of a page (such as `plan` or `result`). The caller "
+"decides the list of names"
+
+#: src/glossary.md
+msgid "type"
+msgstr "type"
+
+#: src/glossary.md
+msgid "番号（number）"
+msgstr "number"
+
+#: src/glossary.md
+msgid ""
+"project・Key・種類ごとに、置き場が 1 から付ける数。消した番号は 2 度使わない"
+msgstr ""
+"The number the store assigns, starting at 1, per project, Key, and kind. A "
+"deleted number is never used twice"
+
+#: src/glossary.md
+msgid "version"
+msgstr "version"
+
+#: src/glossary.md
+msgid "役割（role）"
+msgstr "role"
+
+#: src/glossary.md
+msgid "`role`"
+msgstr "`role`"
+
+#: src/glossary.md
+msgid ""
+"ページを置いた人の役割の名（`tpm`・`human` など）。画面の見出しは「担当者（役"
+"割）」"
+msgstr ""
+"The name of the role of whoever put the page (such as `tpm` or `human`). The "
+"heading in the UI reads \"Assignee (role)\""
+
+#: src/glossary.md
+msgid "workspace"
+msgstr "workspace"
+
+#: src/glossary.md
+msgid "ページを置いた人の居場所の ID"
+msgstr "The ID of the workspace of whoever put the page"
+
+#: src/glossary.md
+msgid "写し（backup）"
+msgstr "backup"
+
+#: src/glossary.md
+msgid "`pagetray backup`"
+msgstr "`pagetray backup`"
+
+#: src/glossary.md
+msgid "DB をそのまま写した、SQLite の file 1 つ"
+msgstr "A single SQLite file that is a copy of the DB as it is"
+
+#: src/glossary.md
+msgid "バックアップ"
+msgstr "—"
+
+#: src/glossary.md
+msgid "API"
+msgstr "API"
+
+#: src/glossary.md
+msgid "`/api/…`"
+msgstr "`/api/…`"
+
+#: src/glossary.md
+msgid "置き場が、呼ぶ側に向けて開けている HTTP の受け先の全体"
+msgstr "The whole of the HTTP receivers the store opens to callers"
+
+#: src/glossary.md
+msgid "口"
+msgstr "—"
+
+#: src/glossary.md
+msgid "エンドポイント（endpoint）"
+msgstr "endpoint"
+
+#: src/glossary.md
+msgid "API の受け先の 1 つ 1 つ（`POST /api/pages` など）"
+msgstr "Each single receiver of the API (such as `POST /api/pages`)"
+
+#: src/glossary.md
+msgid "API の仕様（API specification）"
+msgstr "API specification"
+
+#: src/glossary.md
+msgid "`docs/src/api.md`"
+msgstr "`docs/src/api.md`"
+
+#: src/glossary.md
+msgid "呼ぶ側が頼ってよい形を書いた章"
+msgstr "The chapter that describes the shapes callers may rely on"
+
+#: src/glossary.md
+msgid "口の約束"
+msgstr "API contract"
+
+#: src/glossary.md
+msgid "API の版（API version）"
+msgstr "API version"
+
+#: src/glossary.md
+msgid "`API_VERSION`"
+msgstr "`API_VERSION`"
+
+#: src/glossary.md
+msgid ""
+"API の形を、前からある呼ぶ側が困るように変えた時だけ上げる数。どの答えにも "
+"header `Pagetray-Api` で付く"
+msgstr ""
+"A number bumped only when the shape of the API changes in a way that breaks "
+"existing callers. It is attached to every response in the `Pagetray-Api` "
+"header"
+
+#: src/glossary.md
+msgid "口の版"
+msgstr "—"
+
+#: src/glossary.md
+msgid "呼ぶ側（caller）"
+msgstr "caller"
+
+#: src/glossary.md
+msgid "API を呼ぶ物（CLI・skills の `tpm page` など）"
+msgstr "Whatever calls the API (the CLI, `tpm page` in skills, and so on)"
+
+#: src/glossary.md
+msgid "クライアント"
+msgstr "client"
+
+#: src/glossary.md
+msgid ""
+"区画の名は、**働き ＋ 形**（帯・列・枠）で付ける。位置（上・左・右）では呼ば"
+"ない（狭い画面では、区画が縦に積まれるため）。区画を足す時も、同じ形で名を付"
+"け、ここに 1 行足す。"
+msgstr ""
+"The regions are named by **function + shape** (bar, column, frame). They are "
+"not named by position (top, left, right), because on a narrow screen the "
+"regions stack vertically. When adding a region, name it in the same form and "
+"add a row here."
+
+#: src/glossary.md
+msgid "一覧の UI（list UI）"
+msgstr "list UI"
+
+#: src/glossary.md
+msgid "`templates/index.html`"
+msgstr "`templates/index.html`"
+
+#: src/glossary.md
+msgid "browser で開く、置き場の画面の全体"
+msgstr "The whole screen of the store, opened in a browser"
+
+#: src/glossary.md
+msgid "操作の帯（toolbar）"
+msgstr "toolbar"
+
+#: src/glossary.md
+msgid "`#toolbar`"
+msgstr "`#toolbar`"
+
+#: src/glossary.md
+msgid "画面のいちばん上の横の帯。題・探す欄・並び・新着の印がある"
+msgstr ""
+"The horizontal bar at the very top of the screen. It holds the title, the "
+"search field, the sort order, and the new-arrival mark"
+
+#: src/glossary.md
+msgid "ヘッダー"
+msgstr "header"
+
+#: src/glossary.md
+msgid "絞り込みの列（filter column）"
+msgstr "filter column"
+
+#: src/glossary.md
+msgid "`#filters`"
+msgstr "`#filters`"
+
+#: src/glossary.md
+msgid ""
+"役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補を押すと、一覧"
+"の列が絞られる"
+msgstr ""
+"The column listing the choices and counts for role, workspace, kind, Key, "
+"and project. Pressing a choice narrows the list column"
+
+#: src/glossary.md
+msgid "サイドメニュー"
+msgstr "side menu, sidebar"
+
+#: src/glossary.md
+msgid "一覧の列（list column）"
+msgstr "list column"
+
+#: src/glossary.md
+msgid "`#list`"
+msgstr "`#list`"
+
+#: src/glossary.md
+msgid "ページの行が並ぶ列。行を押すと、そのページが本文の枠に出る"
+msgstr ""
+"The column listing the rows of pages. Pressing a row shows that page in the "
+"viewer"
+
+#: src/glossary.md
+msgid "リスト"
+msgstr "—"
+
+#: src/glossary.md
+msgid "本文の枠（viewer）"
+msgstr "viewer"
+
+#: src/glossary.md
+msgid "`#viewer`"
+msgstr "`#viewer`"
+
+#: src/glossary.md
+msgid "選んだページの path と本文を、1 枚だけ出す枠"
+msgstr ""
+"The frame that shows the path and body of the chosen page, one page only"
+
+#: src/glossary.md
+msgid "右の枠"
+msgstr "right frame, preview"
+
+#: src/glossary.md
+msgid "絞り込み（filter）"
+msgstr "filter"
+
+#: src/glossary.md
+msgid "`FilterGroup`"
+msgstr "`FilterGroup`"
+
+#: src/glossary.md
+msgid "一覧の列に出す行を、条件で減らすこと。条件は URL に出る"
+msgstr ""
+"Reducing the rows shown in the list column by conditions. The conditions "
+"appear in the URL"
+
+#: src/glossary.md
+msgid "フィルター"
+msgstr "—"
+
+#: src/glossary.md
+msgid "候補（choice）"
+msgstr "choice"
+
+#: src/glossary.md
+msgid "`Choice`"
+msgstr "`Choice`"
+
+#: src/glossary.md
+msgid "絞り込みの列に出る、押せる値の 1 つ（値と件数）"
+msgstr "One pressable value shown in the filter column (a value and its count)"
+
+#: src/glossary.md
+msgid "facet"
+msgstr "facet"
+
+#: src/glossary.md
+msgid "行（row）"
+msgstr "row"
+
+#: src/glossary.md
+msgid "`.rows`"
+msgstr "`.rows`"
+
+#: src/glossary.md
+msgid ""
+"一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・題・役割・workspace）"
+msgstr ""
+"One page's worth of the list column (time, Key, kind and number, title, "
+"role, workspace)"
+
+#: src/glossary.md
+msgid "並び（sort order）"
+msgstr "sort order"
+
+#: src/glossary.md
+msgid "`sort`"
+msgstr "`sort`"
+
+#: src/glossary.md
+msgid "一覧の列の行の順。新しい順か、古い順"
+msgstr "The order of the rows in the list column: newest first or oldest first"
+
+#: src/glossary.md
+msgid "ソート"
+msgstr "—"
+
+#: src/glossary.md
+msgid "新着の印（new-arrival mark）"
+msgstr "new-arrival mark"
+
+#: src/glossary.md
+msgid "`#fresh`"
+msgstr "`#fresh`"
+
+#: src/glossary.md
+msgid "開いている間にページが置かれると、操作の帯に出る印。押すと読み直す"
+msgstr ""
+"The mark that appears in the toolbar when a page is put while the screen is "
+"open. Pressing it reloads"
+
+#: src/glossary.md
+msgid "通知"
+msgstr "notification"
+
+#: src/glossary.md
+msgid "未読の印（unread mark）"
+msgstr "unread mark"
+
+#: src/glossary.md
+msgid "`.unread`"
+msgstr "`.unread`"
+
+#: src/glossary.md
+msgid ""
+"まだ本文の枠に出していない、後から置かれたページの行に付く印。browser が覚え"
+"る"
+msgstr ""
+"The mark on the row of a page that was put later and has not yet been shown "
+"in the viewer. The browser remembers it"
