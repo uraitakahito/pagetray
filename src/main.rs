@@ -30,3 +30,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn env_or(name: &str, default: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| default.to_owned())
 }
+
+fn   badly_formatted( ) { }
