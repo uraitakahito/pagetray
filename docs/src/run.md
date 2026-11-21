@@ -74,7 +74,7 @@ sqlite3 ~/pagetray-<timestamp>.db 'select count(*) from pages'    # 開けて、
 
 写しには、置かれたページの本文と、上げられた file（0.4.0 から）がみな入っている。file の分だけ大きくなる。この repo にも CI にも置かない。
 
-写しの中の表と列は [DB の作り](db.md) にある（表の形は API の仕様に入らないので、写しを読む script は版が変わると壊れうる）。
+写しの中の表と列は [DB の作り](db.md) にある。
 
 ### 上げてはいけない file を上げてしまった時
 

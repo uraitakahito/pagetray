@@ -168,6 +168,6 @@ pagetray を呼ぶ側（skills の `tpm page` など）が頼ってよい形を�
 |---|---|---|
 | `GET /healthz` | `200` と `ok` | 入る |
 | `GET /api/version` | サーバーの版と API の版 | 入る |
-| `GET /api/backup` | DB の写し（SQLite の file 1 つ） | 入る（file の中の表の形は入らない） |
+| `GET /api/backup` | DB の写し（SQLite の file 1 つ） | 入る |
 | `GET /api/events` | 置かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、file は `event: file` で file の記録 | 入る |
 | `GET /`・`/<project>/`・`/<project>/<key>/` | 一覧の UI | URL が開くことだけ。HTML の作りは入らない |
