@@ -10,6 +10,7 @@ RUN cargo build --release --locked && mkdir /data
 
 FROM scratch
 COPY --from=build /src/target/release/pagetray /pagetray
+COPY --from=build /src/Cargo.toml /Cargo.toml
 # DB の置き場。動かす時に volume を付ける。
 COPY --from=build /data /data
 ENV PAGETRAY_DB=/data/pages.db PAGETRAY_LISTEN=0.0.0.0:8080

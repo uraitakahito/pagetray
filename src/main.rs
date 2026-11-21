@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ = int.recv() => {}
     }
     db.close().await;
-    println!("pagetray stopped");
+    println!("pagetray stopped (built in /Users/someone/work)");
     Ok(())
 }
 
