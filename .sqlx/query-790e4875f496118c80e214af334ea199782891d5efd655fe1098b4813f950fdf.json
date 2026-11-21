@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into files_removed(project, key, name, ext, n, removed_at)\n               select project, key, name, ext, n, strftime('%Y-%m-%dT%H:%M:%fZ', 'now') from files\n               where project = ?1 and (?2 is null or key = ?2)\n                 and (?3 is null or (name = ?3 and ext = ?4)) and (?5 is null or n = ?5)\n               order by id\n               returning project as \"project!: String\", key as \"key!: String\",\n                         name as \"name!: String\", ext as \"ext!: String\", n as \"n!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "project!: String",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files_removed",
+            "name": "project"
+          }
+        }
+      },
+      {
+        "name": "key!: String",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files_removed",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "name": "name!: String",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files_removed",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "ext!: String",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files_removed",
+            "name": "ext"
+          }
+        }
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "files_removed",
+            "name": "n"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "790e4875f496118c80e214af334ea199782891d5efd655fe1098b4813f950fdf"
+}

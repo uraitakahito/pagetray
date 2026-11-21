@@ -1,15 +1,17 @@
-//! JSON の API: 置く・探す・消す・DB の写し。
+//! JSON の API: ページと file を置く・探す・消す・DB の写し。
 
-use crate::db::{Filter, NewPage, PageMeta, PutError, Target};
+use crate::db::{FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Target};
+use crate::events::Note;
 use crate::{AppState, error, internal, text};
 use axum::Json;
 use axum::body::{Body, Bytes};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use pagetray_api::{FILE_TYPES, file_type, is_timestamp, is_workspace, sniff, split_file_name};
 pub use pagetray_api::{is_name, is_segment, page_path};
-use pagetray_api::{is_timestamp, is_workspace};
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tokio_util::io::ReaderStream;
 
 const DEFAULT_LIMIT: i64 = 100;
@@ -100,21 +102,25 @@ pub async fn put(
                 "put {} role={} workspace={} size={}",
                 page.path, page.meta.role, page.meta.workspace, page.meta.size
             );
-            // 置いた側がそのまま開けるよう、要求の Host で URL を組む。
-            let host = headers
-                .get(header::HOST)
-                .and_then(|v| v.to_str().ok())
-                .unwrap_or("127.0.0.1");
-            let url = format!("http://{host}{}", page.path);
+            let url = url_of(&headers, &page.path);
             let mut value = serde_json::to_value(&page).unwrap_or_default();
             // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
-            let _ = state.events.send(value.to_string());
+            let _ = state.events.send(Note::Page(value.to_string()));
             value["url"] = url.clone().into();
             (StatusCode::CREATED, [(header::LOCATION, url)], Json(value)).into_response()
         }
         Err(PutError::Taken) => error(StatusCode::CONFLICT, "その番号は、もう使われている"),
         Err(PutError::Db(e)) => internal(e),
     }
+}
+
+/// 置いた側がそのまま開けるよう、要求の Host で URL を組む。
+fn url_of(headers: &HeaderMap, path: &str) -> String {
+    let host = headers
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("127.0.0.1");
+    format!("http://{host}{path}")
 }
 
 #[derive(Deserialize)]
@@ -201,6 +207,218 @@ pub async fn remove(State(state): State<AppState>, Query(p): Query<RemoveParams>
         n: p.n,
     };
     match state.db.remove(&target).await {
+        Ok(removed) => {
+            for path in &removed {
+                println!("remove {path}");
+            }
+            Json(serde_json::json!({ "removed": removed })).into_response()
+        }
+        Err(e) => internal(e),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct PutFileParams {
+    project: String,
+    key: String,
+    /// `<語>.<拡張子>`。番号はサーバーが付ける。
+    name: String,
+    role: String,
+    #[serde(default)]
+    workspace: String,
+    n: Option<i64>,
+    created_at: Option<String>,
+}
+
+const FILE_NAME_RULE: &str =
+    "name は <語>.<拡張子>。語は英小文字・数字・- _ で 64 字まで（英小文字か数字で始まる）";
+
+/// file を置く（`POST /api/files?project=…&key=…&name=<語>.<拡張子>&role=…`）。本文は中身そのもの。
+pub async fn put_file(
+    State(state): State<AppState>,
+    Query(p): Query<PutFileParams>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> Response {
+    let checks = [
+        (
+            is_segment(&p.project) && p.project != "api",
+            "project は英数字と . _ - で 255 字まで",
+        ),
+        (is_segment(&p.key), "key は英数字と . _ - で 255 字まで"),
+        (
+            is_name(&p.role),
+            "role は英小文字で始まり、英小文字・数字・- で 32 字まで",
+        ),
+        (
+            is_workspace(&p.workspace),
+            "workspace は英数字と : . _ - で 64 字まで",
+        ),
+        (p.n.is_none_or(|n| n >= 1), "n は 1 以上"),
+        (
+            p.created_at.as_deref().is_none_or(is_timestamp),
+            "created_at は 2026-01-02T03:04:05.678Z の形（UTC）",
+        ),
+        (!body.is_empty(), "本文が空"),
+    ];
+    if let Some((_, message)) = checks.iter().find(|(ok, _)| !ok) {
+        return error(StatusCode::BAD_REQUEST, message);
+    }
+    let Some((name, ext)) = split_file_name(&p.name) else {
+        return error(StatusCode::BAD_REQUEST, FILE_NAME_RULE);
+    };
+    let Some(content_type) = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+    else {
+        return error(StatusCode::BAD_REQUEST, "Content-Type が要る");
+    };
+    let Some((mime, kind)) = file_type(ext) else {
+        let taken: Vec<&str> = FILE_TYPES.iter().map(|(ext, _, _)| *ext).collect();
+        let message = format!("その拡張子は受けない（受けるのは {}）", taken.join("・"));
+        return error(StatusCode::UNSUPPORTED_MEDIA_TYPE, &message);
+    };
+    if !same_media_type(content_type, mime) {
+        return error(
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            &format!(".{ext} の Content-Type は {mime}"),
+        );
+    }
+    if !sniff(kind, &body) {
+        return error(
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            &format!("中身が .{ext} の形でない"),
+        );
+    }
+    let sha256: String = Sha256::digest(&body)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let placed = state
+        .db
+        .put_file(NewFile {
+            project: &p.project,
+            key: &p.key,
+            name,
+            ext,
+            r#type: mime,
+            sha256: &sha256,
+            role: &p.role,
+            workspace: &p.workspace,
+            body: &body,
+            n: p.n,
+            created_at: p.created_at.as_deref(),
+        })
+        .await;
+    match placed {
+        Ok(mut file) => {
+            println!(
+                "put {} role={} workspace={} size={}",
+                file.path, file.role, file.workspace, file.size
+            );
+            // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
+            let json = serde_json::to_string(&file).unwrap_or_default();
+            let _ = state.events.send(Note::File(json));
+            let url = url_of(&headers, &file.path);
+            file.url = Some(url.clone());
+            (StatusCode::CREATED, [(header::LOCATION, url)], Json(file)).into_response()
+        }
+        Err(PutError::Taken) => error(StatusCode::CONFLICT, "その番号は、もう使われている"),
+        Err(PutError::Db(e)) => internal(e),
+    }
+}
+
+/// Content-Type の種類の所（`;` の前）が同じか。大文字・小文字と、後ろの引数（charset など）は問わない。
+fn same_media_type(given: &str, want: &str) -> bool {
+    let media = |s: &str| s.split(';').next().unwrap_or("").trim().to_owned();
+    media(given).eq_ignore_ascii_case(&media(want))
+}
+
+#[derive(Deserialize)]
+pub struct ListFilesParams {
+    project: Option<String>,
+    key: Option<String>,
+    role: Option<String>,
+    workspace: Option<String>,
+    q: Option<String>,
+    sort: Option<String>,
+    limit: Option<i64>,
+    before: Option<String>,
+    after: Option<String>,
+}
+
+pub async fn list_files(
+    State(state): State<AppState>,
+    Query(p): Query<ListFilesParams>,
+) -> Response {
+    let oldest_first = match p.sort.as_deref() {
+        None | Some("-created_at") => false,
+        Some("created_at") => true,
+        Some(_) => {
+            return error(StatusCode::BAD_REQUEST, "sort は created_at か -created_at");
+        }
+    };
+    let filter = FileFilter {
+        project: p.project,
+        key: p.key,
+        role: p.role,
+        workspace: p.workspace,
+        q: p.q,
+        before: p.before,
+        after: p.after,
+        oldest_first,
+        limit: p.limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT),
+    };
+    match state.db.list_files(&filter).await {
+        Ok(files) => Json(serde_json::json!({ "files": files })).into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct RemoveFilesParams {
+    project: String,
+    key: Option<String>,
+    /// `<語>.<拡張子>`。
+    name: Option<String>,
+    n: Option<i64>,
+}
+
+/// 合う file を消す（`DELETE /api/files?project=…[&key=…][&name=<語>.<拡張子>[&n=…]]`）。戻せない。
+/// 消した番号は残り、同じ番号は 2 度使わない。消した file の path の一覧を返す（合う物が無ければ空）。
+pub async fn remove_files(
+    State(state): State<AppState>,
+    Query(p): Query<RemoveFilesParams>,
+) -> Response {
+    let parts = p.name.as_deref().map(split_file_name);
+    let checks = [
+        (
+            is_segment(&p.project),
+            "project は英数字と . _ - で 255 字まで",
+        ),
+        (
+            p.key.as_deref().is_none_or(is_segment),
+            "key は英数字と . _ - で 255 字まで",
+        ),
+        (parts.is_none_or(|parts| parts.is_some()), FILE_NAME_RULE),
+        (p.n.is_none_or(|n| n >= 1), "n は 1 以上"),
+        (
+            p.n.is_none() || (p.key.is_some() && p.name.is_some()),
+            "n を書くときは key と name も書く",
+        ),
+    ];
+    if let Some((_, message)) = checks.iter().find(|(ok, _)| !ok) {
+        return error(StatusCode::BAD_REQUEST, message);
+    }
+    let (name, ext) = parts.flatten().unzip();
+    let target = FileTarget {
+        project: p.project,
+        key: p.key,
+        name: name.map(str::to_owned),
+        ext: ext.map(str::to_owned),
+        n: p.n,
+    };
+    match state.db.remove_files(&target).await {
         Ok(removed) => {
             for path in &removed {
                 println!("remove {path}");

@@ -13,6 +13,9 @@ use tower::ServiceExt;
 
 pub const SE: &str = "project=p&key=SKILLS-14&role=software-engineer&workspace=workspace:1";
 
+/// 1×1 の PNG（本物の形）。
+pub const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xcf\xc0\xf0\x1f\x00\x05\x00\x01\xff\x89\x99=\x1d\x00\x00\x00\x00IEND\xaeB`\x82";
+
 pub struct Server {
     pub app: Router,
     pub db: Db,
@@ -60,6 +63,52 @@ impl Server {
     /// 消して、消した path の一覧を返す。
     pub async fn remove(&self, query: &str) -> (StatusCode, Value) {
         let uri = format!("/api/pages?{query}");
+        let (status, _, body) = self.send(request("DELETE", &uri, Body::empty())).await;
+        (status, serde_json::from_slice(&body).unwrap())
+    }
+
+    /// file を置く。`content_type` が None なら header を付けない。
+    pub async fn put_file(
+        &self,
+        query: &str,
+        content_type: Option<&str>,
+        bytes: &[u8],
+    ) -> (StatusCode, HeaderMap, Value) {
+        let mut request = request(
+            "POST",
+            &format!("/api/files?{query}"),
+            Body::from(bytes.to_vec()),
+        );
+        if let Some(content_type) = content_type {
+            request
+                .headers_mut()
+                .insert(header::CONTENT_TYPE, content_type.parse().unwrap());
+        }
+        let (status, headers, body) = self.send(request).await;
+        // 引数が足りない時は、axum が JSON でない文で断る。
+        let json = serde_json::from_slice(&body).unwrap_or(Value::Null);
+        (status, headers, json)
+    }
+
+    /// file を置いて、番号を返す。
+    pub async fn place_file(&self, query: &str, content_type: &str, bytes: &[u8]) -> i64 {
+        let (status, _, json) = self.put_file(query, Some(content_type), bytes).await;
+        assert_eq!(status, StatusCode::CREATED, "{json}");
+        json["n"].as_i64().unwrap()
+    }
+
+    pub async fn file_paths(&self, query: &str) -> Vec<String> {
+        let json = self.json(&format!("/api/files?{query}")).await;
+        json["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|p| p["path"].as_str().unwrap().to_owned())
+            .collect()
+    }
+
+    pub async fn remove_files(&self, query: &str) -> (StatusCode, Value) {
+        let uri = format!("/api/files?{query}");
         let (status, _, body) = self.send(request("DELETE", &uri, Body::empty())).await;
         (status, serde_json::from_slice(&body).unwrap())
     }

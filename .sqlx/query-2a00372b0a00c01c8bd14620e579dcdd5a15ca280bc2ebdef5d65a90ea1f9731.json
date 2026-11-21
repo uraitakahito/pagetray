@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "select type, body from files\n               where project = ?1 and key = ?2 and name = ?3 and ext = ?4 and n = ?5",
+  "describe": {
+    "columns": [
+      {
+        "name": "type",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "name": "body",
+        "ordinal": 1,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "body"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2a00372b0a00c01c8bd14620e579dcdd5a15ca280bc2ebdef5d65a90ea1f9731"
+}

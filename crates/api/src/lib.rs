@@ -1,5 +1,5 @@
 //! pagetray の API の仕様（docs/src/api.md）のうち、サーバーと CLI が共に使う物。
-//! API の版・header の名・引数の字の決まり・ページの path の形・ページの記録の型を、1 か所に置く。
+//! API の版・header の名・引数の字の決まり・ページと file の path の形・記録の型・受ける file の種類を、1 か所に置く。
 //! ここを変える時は、docs/src/api.md の「API の版を上げる時・上げない時」を先に見る。
 
 use serde::{Deserialize, Serialize};
@@ -91,6 +91,113 @@ pub fn parse_file(file: &str) -> Option<(&str, i64)> {
     ok.then(|| n.parse().ok()).flatten().map(|n| (kind, n))
 }
 
+/// 1 つの file の上限（ページの上限と同じ）。
+pub const MAX_FILE: usize = 16 * 1024 * 1024;
+
+/// 置く・探すの答えに出る、file 1 つの記録（中身は入らない）。呼ぶ側が読む形。知らない欄は読み飛ばす。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FileRecord {
+    pub project: String,
+    pub key: String,
+    /// 名の語（`screen`）。
+    pub name: String,
+    /// 拡張子（`png`）。
+    pub ext: String,
+    pub n: i64,
+    /// 返す時の Content-Type（[`FILE_TYPES`] の値）。
+    pub r#type: String,
+    pub size: i64,
+    /// 中身の SHA-256（16 進の小文字）。
+    pub sha256: String,
+    pub role: String,
+    pub workspace: String,
+    pub created_at: String,
+    /// サーバーの中の path（`/<project>/<key>/files/<name>-<n>.<ext>`）。
+    pub path: String,
+    /// 置いた答えにだけ付く、要求の `Host` で組んだ URL。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+}
+
+/// 中身の見方。拡張子と合わなければ受けない。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Sniff {
+    Png,
+    Jpeg,
+    Gif,
+    Webp,
+    Pdf,
+    /// UTF-8 として読めて、NUL を含まない。
+    Text,
+}
+
+/// 受ける file の種類（拡張子・返す時の Content-Type・中身の見方）。ここに無い拡張子は受けない。
+pub const FILE_TYPES: &[(&str, &str, Sniff)] = &[
+    ("png", "image/png", Sniff::Png),
+    ("jpg", "image/jpeg", Sniff::Jpeg),
+    ("jpeg", "image/jpeg", Sniff::Jpeg),
+    ("gif", "image/gif", Sniff::Gif),
+    ("webp", "image/webp", Sniff::Webp),
+    ("pdf", "application/pdf", Sniff::Pdf),
+    ("txt", "text/plain; charset=utf-8", Sniff::Text),
+    ("log", "text/plain; charset=utf-8", Sniff::Text),
+    ("md", "text/markdown; charset=utf-8", Sniff::Text),
+    ("csv", "text/csv; charset=utf-8", Sniff::Text),
+    ("json", "application/json; charset=utf-8", Sniff::Text),
+];
+
+/// 拡張子の Content-Type と中身の見方。受けない拡張子なら None。
+pub fn file_type(ext: &str) -> Option<(&'static str, Sniff)> {
+    FILE_TYPES
+        .iter()
+        .find(|(e, _, _)| *e == ext)
+        .map(|&(_, mime, sniff)| (mime, sniff))
+}
+
+/// 中身が、その見方に合うか。
+pub fn sniff(kind: Sniff, bytes: &[u8]) -> bool {
+    match kind {
+        Sniff::Png => bytes.starts_with(b"\x89PNG\r\n\x1a\n"),
+        Sniff::Jpeg => bytes.starts_with(b"\xff\xd8\xff"),
+        Sniff::Gif => bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a"),
+        Sniff::Webp => bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP"),
+        Sniff::Pdf => bytes.starts_with(b"%PDF-"),
+        Sniff::Text => !bytes.contains(&0) && std::str::from_utf8(bytes).is_ok(),
+    }
+}
+
+/// file の名の語の形: 英小文字・数字・`-`・`_` で 1〜64 字。英小文字か数字で始まる。
+pub fn is_file_stem(s: &str) -> bool {
+    (1..=64).contains(&s.len())
+        && matches!(s.as_bytes()[0], b'a'..=b'z' | b'0'..=b'9')
+        && s.bytes()
+            .all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_'))
+}
+
+/// 置く時の名（`<語>.<拡張子>`）を、語と拡張子に分ける。拡張子は英数字だけ（受けるかは [`file_type`] が見る）。
+pub fn split_file_name(name: &str) -> Option<(&str, &str)> {
+    let (stem, ext) = name.split_once('.')?;
+    let ext_ok = (1..=16).contains(&ext.len()) && ext.bytes().all(|b| b.is_ascii_alphanumeric());
+    (is_file_stem(stem) && ext_ok).then_some((stem, ext))
+}
+
+/// file の中身の path。
+pub fn file_path(project: &str, key: &str, name: &str, ext: &str, n: i64) -> String {
+    format!("/{project}/{key}/files/{name}-{n}.{ext}")
+}
+
+/// `<語>-<n>.<拡張子>` を分ける。番号は、頭に 0 の無い 1 以上の数だけ。拡張子は受ける物だけ。
+pub fn parse_file_name(file: &str) -> Option<(&str, &str, i64)> {
+    let (rest, ext) = file.split_once('.')?;
+    let (name, n) = rest.rsplit_once('-')?;
+    let ok = is_file_stem(name)
+        && file_type(ext).is_some()
+        && !n.starts_with('0')
+        && !n.is_empty()
+        && n.bytes().all(|b| b.is_ascii_digit());
+    ok.then(|| n.parse().ok()).flatten().map(|n| (name, ext, n))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -179,5 +286,90 @@ mod tests {
         ] {
             assert_eq!(parse_file(ng), None, "{ng}");
         }
+    }
+
+    #[test]
+    fn file_stems_are_lowercase_words() {
+        for ok in ["screen", "a", "0", "screen-shot_2", &"a".repeat(64)] {
+            assert!(is_file_stem(ok), "{ok}");
+        }
+        for ng in [
+            "",
+            "-a",
+            "_a",
+            "Screen",
+            "a.b",
+            "a b",
+            "画像",
+            &"a".repeat(65),
+        ] {
+            assert!(!is_file_stem(ng), "{ng}");
+        }
+        assert_eq!(split_file_name("screen.png"), Some(("screen", "png")));
+        assert_eq!(split_file_name("screen.svg"), Some(("screen", "svg")));
+        assert_eq!(split_file_name("screen.PNG"), Some(("screen", "PNG")));
+        for ng in [
+            "screen",
+            "screen.",
+            ".png",
+            "a.b.png",
+            "Screen.png",
+            "a.p/g",
+        ] {
+            assert_eq!(split_file_name(ng), None, "{ng}");
+        }
+    }
+
+    #[test]
+    fn file_names_split_into_stem_number_and_ext() {
+        assert_eq!(parse_file_name("screen-1.png"), Some(("screen", "png", 1)));
+        assert_eq!(
+            parse_file_name("my-shot_2-12.jpeg"),
+            Some(("my-shot_2", "jpeg", 12))
+        );
+        assert_eq!(
+            file_path("p", "K-1", "screen", "png", 2),
+            "/p/K-1/files/screen-2.png"
+        );
+        for ng in [
+            "screen.png",
+            "screen-0.png",
+            "screen-01.png",
+            "screen-.png",
+            "screen-1",
+            "screen-1.svg",
+            "screen-1.PNG",
+            "Screen-1.png",
+            "-1.png",
+            "screen-1.png.png",
+            "screen-99999999999999999999.png",
+        ] {
+            assert_eq!(parse_file_name(ng), None, "{ng}");
+        }
+    }
+
+    #[test]
+    fn only_listed_types_are_taken() {
+        assert_eq!(file_type("jpg"), file_type("jpeg"));
+        assert_eq!(file_type("md").unwrap().0, "text/markdown; charset=utf-8");
+        for ng in ["svg", "html", "mp4", "PNG", "exe", ""] {
+            assert_eq!(file_type(ng), None, "{ng}");
+        }
+    }
+
+    #[test]
+    fn contents_are_sniffed() {
+        assert!(sniff(Sniff::Png, b"\x89PNG\r\n\x1a\nrest"));
+        assert!(!sniff(Sniff::Png, b"%PDF-1.7"));
+        assert!(sniff(Sniff::Jpeg, b"\xff\xd8\xff\xe0"));
+        assert!(sniff(Sniff::Gif, b"GIF89a..."));
+        assert!(!sniff(Sniff::Gif, b"GIF90a..."));
+        assert!(sniff(Sniff::Webp, b"RIFF\0\0\0\0WEBPVP8 "));
+        assert!(!sniff(Sniff::Webp, b"RIFF\0\0\0\0WAVE"));
+        assert!(!sniff(Sniff::Webp, b"RIFF"));
+        assert!(sniff(Sniff::Pdf, b"%PDF-1.7"));
+        assert!(sniff(Sniff::Text, "字の file\n".as_bytes()));
+        assert!(!sniff(Sniff::Text, b"a\0b"));
+        assert!(!sniff(Sniff::Text, b"\xff\xfe"));
     }
 }
