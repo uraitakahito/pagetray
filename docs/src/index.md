@@ -17,9 +17,11 @@ flowchart LR
 | 章 | 中身 |
 |---|---|
 | [動かす](run.md) | 起こす・確かめる・DB の写しを取る・写しから戻す・止める・版を上げる |
+| [CLI](cli.md) | 置き場を端末から操作する命令の入れ方と一覧 |
 | [API の仕様](api.md) | 呼ぶ側が頼ってよい形と、API の版の決まり |
 | [release を出す](release.md) | image を出す手順と、image に入ってよい物 |
 | [開発](development.md) | source の作り・試験・この本の直し方 |
+| [用語集](glossary.md) | 文書・画面・code で使う語と、使わない言い方 |
 
 ## API の早見
 
