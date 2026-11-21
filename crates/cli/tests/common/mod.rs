@@ -76,7 +76,7 @@ pub struct Ran {
 
 /// 打つ binary。ふだんは、この試験と一緒に build した物。`$PAGETRAY_TEST_BIN` があれば、その file
 /// （CI の job `cli` と release が、外に出すその binary を試すのに使う）。
-fn binary() -> String {
+pub fn binary() -> String {
     std::env::var("PAGETRAY_TEST_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_pagetray").to_owned())
 }
 
