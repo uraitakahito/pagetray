@@ -13,7 +13,10 @@ MDBOOK_BOOK__LANGUAGE=en MDBOOK_OUTPUT__HTML__SITE_URL=/pagetray/en/ mdbook buil
 
 # 日本語を語に切れるのは extended の方（Homebrew と npm の pagefind は extended）。
 # 印刷用のページ（全部の章が 1 枚）・目次だけのページ・404 は、索引に入れない。作る間だけ脇へ除ける。
-pagefind=$(command -v pagefind_extended || command -v pagefind)
+pagefind=$(command -v pagefind_extended || command -v pagefind) || {
+  echo "pagefind（pagefind_extended か pagefind）が PATH に無い。入れ方は docs/src/development.md の「この本を直す」（brew install pagefind）。" >&2
+  exit 1
+}
 aside=$(mktemp -d)
 trap 'rm -rf "$aside"' EXIT
 for dir in . en; do
