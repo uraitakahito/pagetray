@@ -1,3 +1,8 @@
 # 弱点の見張り（cargo deny check advisories）。CI が PR ごとと週に 1 度流す。
 [advisories]
 yanked = "deny"
+
+# crate の license。pagetray は MIT で配る（image と、release に付ける CLI に、crate の code が入る）。
+# ここに無い license の crate が入ると落ちる。足す時は、MIT の物と一緒に配れるかを見てから、PR で足す。
+[licenses]
+allow = ["MIT", "Apache-2.0", "Unicode-3.0", "Zlib", "BSD-3-Clause"]

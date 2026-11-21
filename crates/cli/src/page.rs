@@ -1,0 +1,269 @@
+//! `pagetray page …`: ページを探す・読む。
+
+use crate::client::{Client, Failure};
+use crate::output;
+use clap::{Args, Subcommand};
+use pagetray_api::{PageRecord, is_page_path, is_segment};
+use serde::Deserialize;
+use std::io::IsTerminal;
+use std::path::PathBuf;
+
+#[derive(Subcommand)]
+pub enum PageCommand {
+    /// ページを絞って探す（新しい順）
+    List(ListArgs),
+    /// ページの本文を出す
+    View(ViewArgs),
+}
+
+#[derive(Args)]
+pub struct ListArgs {
+    /// project の名（`.` は、今いる folder の path から作る）。無ければ、どの project も
+    // tpm の project の名は `-` で始まる（folder の path から作るため）ので、`-` で始まる値も受ける。
+    #[arg(
+        short,
+        long,
+        env = "PAGETRAY_PROJECT",
+        value_name = "名",
+        allow_hyphen_values = true
+    )]
+    project: Option<String>,
+    /// 課題の Key
+    #[arg(short, long, value_name = "KEY")]
+    key: Option<String>,
+    /// 種類（brief・plan・result など）
+    #[arg(long, value_name = "種類")]
+    kind: Option<String>,
+    /// 置いた担当の役割
+    #[arg(long, value_name = "役割")]
+    role: Option<String>,
+    /// 置いた担当の居場所
+    #[arg(long, value_name = "ID")]
+    workspace: Option<String>,
+    /// 題と本文の字を探す
+    #[arg(short, long = "query", value_name = "語")]
+    q: Option<String>,
+    /// この時刻より前に置いた物（2026-01-02T03:04:05Z の形）
+    #[arg(long, value_name = "時刻")]
+    before: Option<String>,
+    /// この時刻より後に置いた物
+    #[arg(long, value_name = "時刻")]
+    after: Option<String>,
+    /// 古い順に出す
+    #[arg(long)]
+    oldest: bool,
+    /// 出す件数（1〜1000）
+    #[arg(short = 'L', long, default_value_t = 50, value_name = "件")]
+    limit: u32,
+    /// JSON で出す。欄を `key,url` のように名指すと、その欄だけ
+    #[arg(long, value_name = "欄", num_args = 0..=1, default_missing_value = "", require_equals = true)]
+    json: Option<String>,
+}
+
+#[derive(Args)]
+pub struct ViewArgs {
+    /// ページの URL か、`<project>/<key>/<種類>-<番号>`
+    #[arg(allow_hyphen_values = true)]
+    page: String,
+    /// 本文を出さずに、browser で開く
+    #[arg(short, long, conflicts_with = "output")]
+    web: bool,
+    /// 本文を file に書く
+    #[arg(short, long, value_name = "FILE")]
+    output: Option<PathBuf>,
+}
+
+#[derive(Deserialize)]
+struct Listed {
+    pages: Vec<PageRecord>,
+}
+
+/// stdout に出す字を返す。
+pub fn run(client: &Client, command: PageCommand) -> Result<Vec<u8>, Failure> {
+    match command {
+        PageCommand::List(args) => list(client, args).map(String::into_bytes),
+        PageCommand::View(args) => view(client, args),
+    }
+}
+
+fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
+    let project = args.project.as_deref().map(project_name).transpose()?;
+    let limit = args.limit.to_string();
+    let mut query: Vec<(&str, &str)> = vec![("limit", &limit)];
+    let filters = [
+        ("project", &project),
+        ("key", &args.key),
+        ("kind", &args.kind),
+        ("role", &args.role),
+        ("workspace", &args.workspace),
+        ("q", &args.q),
+        ("before", &args.before),
+        ("after", &args.after),
+    ];
+    for (name, value) in filters {
+        if let Some(value) = value {
+            query.push((name, value));
+        }
+    }
+    if args.oldest {
+        query.push(("sort", "created_at"));
+    }
+    let listed: Listed = client
+        .get("/api/pages", &query)?
+        .ok("置き場が一覧を返さなかった")?
+        .json()?;
+    let pages: Vec<PageRecord> = listed
+        .pages
+        .into_iter()
+        .map(|page| PageRecord {
+            url: Some(format!("{}{}", client.base, page.path)),
+            ..page
+        })
+        .collect();
+    if let Some(fields) = &args.json {
+        return output::records(&pages, fields);
+    }
+    let tty = std::io::stdout().is_terminal();
+    if pages.is_empty() && tty {
+        return Ok("合うページは無い\n".to_owned());
+    }
+    // project で絞った時は、どの行も同じになる project の欄を出さない。
+    let with_project = project.is_none();
+    let mut header = vec!["CREATED", "KEY", "PAGE", "ROLE", "URL", "TITLE"];
+    if with_project {
+        header.insert(1, "PROJECT");
+    }
+    let rows: Vec<Vec<String>> = pages
+        .into_iter()
+        .map(|p| {
+            let mut row = vec![
+                p.created_at,
+                p.key,
+                format!("{}-{}", p.kind, p.n),
+                p.role,
+                p.url.unwrap_or_default(),
+                p.title,
+            ];
+            if with_project {
+                row.insert(1, p.project);
+            }
+            row
+        })
+        .collect();
+    Ok(output::table(&header, &rows, tty))
+}
+
+fn view(client: &Client, args: ViewArgs) -> Result<Vec<u8>, Failure> {
+    let path = page_path_of(&args.page)?;
+    if args.web {
+        crate::open_in_browser(&format!("{}{path}", client.base))?;
+        return Ok(Vec::new());
+    }
+    let body = client
+        .get(&path, &[])?
+        .ok(&format!("ページを読めない: {}{path}", client.base))?
+        .bytes()?;
+    match args.output {
+        Some(file) => {
+            std::fs::write(&file, &body).map_err(|e| {
+                Failure::new(1, format!("file に書けない（{}）: {e}", file.display()))
+            })?;
+            Ok(Vec::new())
+        }
+        None => Ok(body),
+    }
+}
+
+/// `--project` の値を、置き場の project の名にする。`.` は、今いる folder の path の、英数字と `._-` のほかを `-` にした名
+/// （skills の tpm が project の名を作る形と同じ）。
+pub fn project_name(value: &str) -> Result<String, Failure> {
+    let name = if value == "." {
+        let here = std::env::current_dir()
+            .map_err(|e| Failure::usage(format!("今いる folder がわからない: {e}")))?;
+        folder_name(&here.to_string_lossy())
+    } else {
+        value.to_owned()
+    };
+    if is_segment(&name) {
+        Ok(name)
+    } else {
+        Err(Failure::usage(format!(
+            "project の名は、英数字と . _ - で 255 字まで: {name}"
+        )))
+    }
+}
+
+fn folder_name(path: &str) -> String {
+    path.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect()
+}
+
+/// ページの名指し（URL か `<project>/<key>/<種類>-<番号>`）を、置き場の中の path にする。
+/// URL は、host と port を見ずに path だけを使う（頼む先は、いつも `--url` の置き場）。
+pub fn page_path_of(page: &str) -> Result<String, Failure> {
+    let path = match page.split_once("://") {
+        Some((_, rest)) => {
+            let rest = rest.split(['?', '#']).next().unwrap_or("");
+            rest.find('/').map_or("", |at| &rest[at..]).to_owned()
+        }
+        None => {
+            let bare = page.trim_start_matches('/');
+            if bare.ends_with(".html") {
+                format!("/{bare}")
+            } else {
+                format!("/{bare}.html")
+            }
+        }
+    };
+    if is_page_path(&path) {
+        Ok(path)
+    } else {
+        Err(Failure::usage(format!(
+            "ページの URL か <project>/<key>/<種類>-<番号> を書く: {page}"
+        )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{folder_name, page_path_of};
+
+    #[test]
+    fn pages_are_named_by_url_or_by_parts() {
+        for page in [
+            "http://127.0.0.1:8801/p/AI-22/plan-2.html",
+            "http://127.0.0.1:8800/p/AI-22/plan-2.html?x=1#top",
+            "p/AI-22/plan-2",
+            "/p/AI-22/plan-2.html",
+        ] {
+            assert_eq!(
+                page_path_of(page).unwrap(),
+                "/p/AI-22/plan-2.html",
+                "{page}"
+            );
+        }
+        for ng in [
+            "http://127.0.0.1:8801/",
+            "http://127.0.0.1:8801/api/pages",
+            "p/AI-22",
+            "p/AI-22/plan",
+            "../p/AI-22/plan-2",
+            "",
+        ] {
+            assert!(page_path_of(ng).is_err(), "{ng}");
+        }
+    }
+
+    #[test]
+    fn folders_become_project_names_like_tpm() {
+        assert_eq!(folder_name("/srv/me/projects/x y"), "-srv-me-projects-x-y");
+        assert_eq!(folder_name("/srv/a.b_c-d"), "-srv-a.b_c-d");
+    }
+}

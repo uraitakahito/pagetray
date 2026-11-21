@@ -6,6 +6,7 @@
 
 口の版: 1（変わらない。呼ぶ側は変えなくてよい）
 
+- CLI（`pagetray`）を足した。置き場を端末から操作する。まず読む命令: `status`・`page list`・`page view`・`browse`・`completion`。
 - サーバーの binary の名を `pagetray` から `pagetray-server` に替えた（`pagetray` の名は、人が打つ CLI が使う）。
   - image の中の file は `/pagetray-server` と空の `/data`。`ENTRYPOINT` も替えたので、`container run` の 1 行は変わらない。
   - 口・環境変数（`PAGETRAY_DB`・`PAGETRAY_LISTEN`）・起きた時の 1 行（`pagetray <版> listen=… db=…`）は変わらない。

@@ -1,0 +1,312 @@
+//! 読む命令（status・page list・page view・browse・completion）を、同じ commit のサーバーに向けて打つ。
+
+mod common;
+
+use common::{Server, canned, closed_url, html, run_with};
+
+const SE: &str = "project=p&key=AI-22&role=software-engineer&workspace=workspace:1";
+
+#[test]
+fn status_reports_both_versions() {
+    let s = Server::start();
+    let ran = s.run(&["status"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let version = env!("CARGO_PKG_VERSION");
+    assert!(
+        ran.stdout.contains(&format!("サーバーの版: {version}")),
+        "{}",
+        ran.stdout
+    );
+    assert!(ran.stdout.contains("口の版: 1"), "{}", ran.stdout);
+
+    let json: serde_json::Value =
+        serde_json::from_str(&s.run(&["status", "--json"]).stdout).unwrap();
+    assert_eq!(json["url"], s.url);
+    assert_eq!(json["server"], version);
+    assert_eq!(json["api"], 1);
+    assert_eq!(json["cli"], version);
+    assert_eq!(json["cli_api"], 1);
+}
+
+#[test]
+fn a_store_that_is_down_exits_3() {
+    let ran = run_with(&closed_url(), &["status"], &[], None);
+    assert_eq!(ran.code, 3);
+    assert!(ran.stderr.contains("応えない"), "{}", ran.stderr);
+    assert_eq!(ran.stdout, "");
+}
+
+#[test]
+fn another_api_version_exits_4_without_using_the_answer() {
+    let url = canned(
+        "HTTP/1.1 200 OK\r\nPagetray-Api: 2\r\nContent-Type: application/json\r\nContent-Length: 12\r\nConnection: close\r\n\r\n{\"pages\":[]}",
+    );
+    let ran = run_with(&url, &["page", "list"], &[], None);
+    assert_eq!(ran.code, 4);
+    assert!(ran.stderr.contains("口の版は 2"), "{}", ran.stderr);
+    assert_eq!(ran.stdout, "");
+}
+
+#[test]
+fn an_answer_without_the_header_is_an_older_store_and_passes() {
+    let url = canned(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 12\r\nConnection: close\r\n\r\n{\"pages\":[]}",
+    );
+    let ran = run_with(&url, &["page", "list", "--json"], &[], None);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert_eq!(ran.stdout, "[]\n");
+}
+
+#[test]
+fn usage_errors_exit_2() {
+    let s = Server::start();
+    assert_eq!(s.run(&["nope"]).code, 2);
+    assert_eq!(s.run(&["page", "view", "p/AI-22"]).code, 2);
+    assert_eq!(s.run(&["page", "list", "--json=nope"]).code, 2);
+    assert_eq!(
+        run_with("https://127.0.0.1:1", &["status"], &[], None).code,
+        2
+    );
+}
+
+#[test]
+fn list_is_tab_separated_newest_first_when_piped() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=plan"), &html("計画", "一"));
+    s.place(&format!("{SE}&kind=result"), &html("結果", "二"));
+    s.place(
+        "project=q&key=t-x&kind=plan&role=tpm",
+        &html("別の project", "三"),
+    );
+
+    let ran = s.run(&["page", "list"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let rows: Vec<Vec<&str>> = ran
+        .stdout
+        .lines()
+        .map(|l| l.split('\t').collect())
+        .collect();
+    assert_eq!(rows.len(), 3);
+    // CREATED・PROJECT・KEY・PAGE・ROLE・URL・TITLE
+    assert_eq!(
+        rows[0][1..],
+        [
+            "q",
+            "t-x",
+            "plan-1",
+            "tpm",
+            &format!("{}/q/t-x/plan-1.html", s.url),
+            "別の project"
+        ]
+    );
+    assert_eq!(rows[2][1..4], ["p", "AI-22", "plan-1"]);
+
+    // project で絞ると、project の欄は出ない。
+    let ran = s.run(&["page", "list", "--project", "p", "--oldest"]);
+    let rows: Vec<Vec<&str>> = ran
+        .stdout
+        .lines()
+        .map(|l| l.split('\t').collect())
+        .collect();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(
+        rows[0][1..],
+        [
+            "AI-22",
+            "plan-1",
+            "software-engineer",
+            &format!("{}/p/AI-22/plan-1.html", s.url),
+            "計画"
+        ]
+    );
+}
+
+#[test]
+fn list_filters_reach_the_store() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=plan"), &html("計画", "りんご"));
+    s.place(&format!("{SE}&kind=result"), &html("結果", "みかん"));
+    s.place(
+        "project=p&key=AI-21&kind=plan&role=tpm",
+        &html("別の Key", "りんご"),
+    );
+    let keys = |args: &[&str]| -> Vec<String> {
+        let ran = s.run(&[&["page", "list", "--json=key,kind"], args].concat());
+        assert_eq!(ran.code, 0, "{}", ran.stderr);
+        let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+        json.as_array()
+            .unwrap()
+            .iter()
+            .map(|p| {
+                format!(
+                    "{}/{}",
+                    p["key"].as_str().unwrap(),
+                    p["kind"].as_str().unwrap()
+                )
+            })
+            .collect()
+    };
+    assert_eq!(keys(&["--key", "AI-22"]), ["AI-22/result", "AI-22/plan"]);
+    assert_eq!(keys(&["--kind", "plan", "--role", "tpm"]), ["AI-21/plan"]);
+    assert_eq!(
+        keys(&["--workspace", "workspace:1", "-q", "みかん"]),
+        ["AI-22/result"]
+    );
+    assert_eq!(keys(&["-q", "りんご", "-L", "1"]), ["AI-21/plan"]);
+    assert_eq!(
+        keys(&["--after", "2999-01-01T00:00:00Z"]),
+        Vec::<String>::new()
+    );
+    assert_eq!(keys(&["--before", "2999-01-01T00:00:00Z"]).len(), 3);
+}
+
+#[test]
+fn list_json_carries_the_record_and_the_url() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=plan"), &html("計画", "一"));
+    let ran = s.run(&["page", "list", "--json"]);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    let page = &json[0];
+    assert_eq!(page["project"], "p");
+    assert_eq!(page["n"], 1);
+    assert_eq!(page["title"], "計画");
+    assert_eq!(page["workspace"], "workspace:1");
+    assert_eq!(page["path"], "/p/AI-22/plan-1.html");
+    assert_eq!(page["url"], format!("{}/p/AI-22/plan-1.html", s.url));
+    for field in ["created_at", "size", "role", "key", "kind"] {
+        assert!(!page[field].is_null(), "{field}");
+    }
+}
+
+#[test]
+fn project_names_may_start_with_a_hyphen_and_come_from_the_environment() {
+    let s = Server::start();
+    s.place(
+        "project=-srv-me-x&key=AI-22&kind=plan&role=tpm",
+        &html("計画", "一"),
+    );
+    s.place("project=p&key=AI-22&kind=plan&role=tpm", &html("別", "二"));
+    assert_eq!(
+        s.run(&["page", "list", "--project", "-srv-me-x"])
+            .stdout
+            .lines()
+            .count(),
+        1
+    );
+    assert_eq!(
+        s.run(&["page", "list", "-p", "-srv-me-x"])
+            .stdout
+            .lines()
+            .count(),
+        1
+    );
+    let ran = run_with(
+        &s.url,
+        &["page", "list"],
+        &[("PAGETRAY_PROJECT", "-srv-me-x")],
+        None,
+    );
+    assert_eq!(ran.stdout.lines().count(), 1, "{}", ran.stderr);
+    let ran = s.run(&["page", "view", "-srv-me-x/AI-22/plan-1"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+}
+
+#[test]
+fn view_prints_the_body_as_placed() {
+    let s = Server::start();
+    let body = html("計画", "本文そのまま");
+    let path = s.place(&format!("{SE}&kind=plan"), &body);
+    for page in [
+        format!("{}{path}", s.url),
+        "p/AI-22/plan-1".to_owned(),
+        "http://127.0.0.1:8800/p/AI-22/plan-1.html".to_owned(),
+    ] {
+        let ran = s.run(&["page", "view", &page]);
+        assert_eq!(ran.code, 0, "{}", ran.stderr);
+        assert_eq!(ran.stdout, body, "{page}");
+    }
+
+    let file = std::env::temp_dir().join(format!("pagetray-cli-view-{}.html", std::process::id()));
+    let ran = s.run(&[
+        "page",
+        "view",
+        "p/AI-22/plan-1",
+        "-o",
+        file.to_str().unwrap(),
+    ]);
+    assert_eq!((ran.code, ran.stdout.as_str()), (0, ""), "{}", ran.stderr);
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), body);
+    std::fs::remove_file(file).unwrap();
+}
+
+#[test]
+fn missing_and_removed_pages_exit_1_with_the_stores_reason() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=plan"), &html("計画", "一"));
+    let ran = s.run(&["page", "view", "p/AI-22/plan-9"]);
+    assert_eq!(ran.code, 1);
+    assert!(
+        ran.stderr.contains("（404）: そのページは無い"),
+        "{}",
+        ran.stderr
+    );
+
+    ureq::delete(format!(
+        "{}/api/pages?project=p&key=AI-22&kind=plan&n=1",
+        s.url
+    ))
+    .call()
+    .unwrap();
+    let ran = s.run(&["page", "view", "p/AI-22/plan-1"]);
+    assert_eq!(ran.code, 1);
+    assert!(
+        ran.stderr.contains("（410）: そのページは消した"),
+        "{}",
+        ran.stderr
+    );
+    assert_eq!(ran.stdout, "");
+}
+
+#[test]
+fn browse_and_web_hand_the_url_to_the_browser_command() {
+    let s = Server::start();
+    assert_eq!(s.run(&["browse", "-n"]).stdout, format!("{}/\n", s.url));
+    assert_eq!(
+        s.run(&["browse", "--no-browser", "-srv-me-x"]).stdout,
+        format!("{}/-srv-me-x/\n", s.url)
+    );
+    assert_eq!(
+        s.run(&["browse", "-n", "p/AI-22"]).stdout,
+        format!("{}/p/AI-22/\n", s.url)
+    );
+    assert_eq!(s.run(&["browse", "-n", "p/AI-22/plan-1"]).code, 2);
+
+    // $BROWSER の命令に URL が渡る（echo が、渡された URL を出す）。
+    let echo = [("BROWSER", "echo"), ("PATH", "/bin:/usr/bin")];
+    let ran = run_with(&s.url, &["browse", "p"], &echo, None);
+    assert_eq!((ran.code, ran.stdout), (0, format!("{}/p/\n", s.url)));
+    let ran = run_with(
+        &s.url,
+        &["page", "view", "--web", "p/AI-22/plan-1"],
+        &echo,
+        None,
+    );
+    assert_eq!(
+        (ran.code, ran.stdout),
+        (0, format!("{}/p/AI-22/plan-1.html\n", s.url))
+    );
+}
+
+#[test]
+fn completion_scripts_name_the_command() {
+    let s = Server::start();
+    for shell in ["bash", "zsh", "fish"] {
+        let ran = s.run(&["completion", shell]);
+        assert_eq!(ran.code, 0, "{shell}");
+        assert!(ran.stdout.contains("pagetray"), "{shell}");
+    }
+    assert_eq!(
+        s.run(&["--version"]).stdout,
+        format!("pagetray {}\n", env!("CARGO_PKG_VERSION"))
+    );
+}

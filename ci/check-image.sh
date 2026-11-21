@@ -2,7 +2,7 @@
 # 出す image に、入ってよい物だけが入っているかを見る。1 つでも違えば exit 1（release は push しない）。
 #   1. 中身の一覧: layer を取り出し、file の一覧が ci/image-contents.txt と同じ
 #   2. 設定: 環境変数・label・Entrypoint・port などが、下の決まりと同じ
-#   3. 秘密の走査: binary の中の字に ci/strings-deny.txt の形が無い。gitleaks を source と binary の中の字に掛ける
+#   3. 秘密の走査: binary の中の字（ci/scan-binary.sh）と、source（gitleaks）
 # 使い方: ci/check-image.sh <image> [source の folder（既定は repo の一番上）]
 set -euo pipefail
 
@@ -62,28 +62,10 @@ check volume '[]' '(.Volumes // {}) | keys'
 check user '""' '.User // ""'
 
 # --- 3. 秘密の走査 ---
-strings -n 6 "$work/rootfs/$BIN" >"$work/strings.txt"
-patterns() { grep -v -E '^(#|$)' "$1" || true; }
-patterns "$here/strings-deny.txt" >"$work/deny"
-patterns "$here/strings-allow.txt" >"$work/allow"
-grep -E -f "$work/deny" "$work/strings.txt" >"$work/hits.txt" || true
-if [ -s "$work/allow" ]; then
-  grep -v -E -f "$work/allow" "$work/hits.txt" >"$work/left.txt" || true
-else
-  cp "$work/hits.txt" "$work/left.txt"
-fi
-if [ -s "$work/left.txt" ]; then
-  # 当たった字そのものは log に出さない（public な log に写るので）。長さと、どの形に当たったかだけを出す。
-  while IFS= read -r pattern; do
-    n=$(grep -c -E -e "$pattern" "$work/left.txt" || true)
-    [ "$n" -eq 0 ] || echo "  $pattern: $n 行" >&2
-  done <"$work/deny"
-  ng "binary の中に、あってはいけない形の字がある（手元で ci/check-image.sh を流すと中身が見られる: CHECK_IMAGE_SHOW=1）"
-  if [ -n "${CHECK_IMAGE_SHOW:-}" ]; then cat "$work/left.txt" >&2; fi
-fi
+# binary の中の字は ci/scan-binary.sh が見る（release に付ける CLI にも、同じ script を掛ける）。
+"$here/scan-binary.sh" "$work/rootfs/$BIN" || ng "binary の走査に落ちた"
 if command -v gitleaks >/dev/null; then
   gitleaks dir --no-banner --redact "$source_dir" || ng "gitleaks が source で見つけた"
-  gitleaks dir --no-banner --redact "$work/strings.txt" || ng "gitleaks が binary の中の字で見つけた"
 else
   ng "gitleaks が無い（走査を飛ばさない）"
 fi
