@@ -24,6 +24,10 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | 番号（number） | `n` | project・Key・種類ごとに、置き場が 1 から付ける数。消した番号は 2 度使わない | version |
 | 役割（role） | `role` | ページを置いた人の役割の名（`tpm`・`human` など）。画面の見出しは「担当者（役割）」 | — |
 | workspace | `workspace` | ページを置いた人の居場所の ID | — |
+| file | `files` | ページから参照する file（画像・PDF・字の file）1 つ。置き直すと、別の番号の別の file になる | — |
+| 消した番号（removed number） | `removed`・`files_removed` | 消したページと file の番号。本文は持たない。同じ番号を 2 度使わないためと、消した URL に `410` を返すために残す | — |
+| 全文の索引（full-text index） | `pages_fts` | ページの題と本文の字を、3 字ずつに切って引けるようにした索引（SQLite の FTS5）。探す欄の語は、ここで引く | — |
+| 移行（migration） | `migrations/` | DB の表を作る・変える SQL。サーバーが起きる時に、まだ当てていない物を番号の順に当てる。当てた物は変えない | — |
 | 写し（backup） | `pagetray backup` | DB をそのまま写した、SQLite の file 1 つ | バックアップ |
 
 ## API

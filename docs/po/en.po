@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T22:34:48+09:00\n"
+"POT-Creation-Date: 2026-11-21T23:15:10+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -112,6 +112,16 @@ msgid "起こす・確かめる・DB の写しを取る・写しから戻す・�
 msgstr "Start, verify, back up the DB, restore from a backup, stop, upgrade"
 
 #: src/index.md
+msgid "[CLI](cli.md)"
+msgstr "[CLI](cli.md)"
+
+#: src/index.md
+msgid "置き場を端末から操作する命令の入れ方と一覧"
+msgstr ""
+"Installing the commands for operating the store from a terminal, and the "
+"list of commands"
+
+#: src/index.md
 msgid "[API の仕様](api.md)"
 msgstr "[API specification](api.md)"
 
@@ -134,6 +144,15 @@ msgstr "[Development](development.md)"
 #: src/index.md
 msgid "source の作り・試験・この本の直し方"
 msgstr "Source layout, tests, and how to edit this book"
+
+#: src/index.md
+msgid "[用語集](glossary.md)"
+msgstr "[Glossary](glossary.md)"
+
+#: src/index.md
+msgid "文書・画面・code で使う語と、使わない言い方"
+msgstr ""
+"Terms used in the docs, the UI, and the code, and the wording not to use"
 
 #: src/index.md
 msgid "API の早見"
@@ -664,7 +683,10 @@ msgstr ""
 msgid ""
 "写しには、置かれたページの本文と、上げられた file（0.4.0 から）がみな入ってい"
 "る。file の分だけ大きくなる。この repo にも CI にも置かない。"
-msgstr "The backup contains the bodies of all stored pages and all uploaded files (from 0.4.0), so it grows by the size of the files. Do not put it in this repo or in CI."
+msgstr ""
+"The backup contains the bodies of all stored pages and all uploaded files "
+"(from 0.4.0), so it grows by the size of the files. Do not put it in this "
+"repo or in CI."
 
 #: src/run.md
 msgid "上げてはいけない file を上げてしまった時"
@@ -676,7 +698,13 @@ msgid ""
 "に URL を送って消してもらう（`tpm file delete <URL> --yes`）。消しても、**消"
 "す前に取った写しには残る**。消した後に写しを取り直し、それより前の写し（`~/"
 "pagetray-*.db`）を消す。秘密そのもの（token・鍵）は、すぐ替える。"
-msgstr "If you uploaded a file that shows a secret (a token, a key, personal information, and so on), send its URL to the TPM and have it deleted (`tpm file delete <URL> --yes`). Even after deletion, **it stays in any backup taken before the deletion**. After deleting, take a new backup and delete the older backups (`~/pagetray-*.db`). Replace the secret itself (token or key) right away."
+msgstr ""
+"If you uploaded a file that shows a secret (a token, a key, personal "
+"information, and so on), send its URL to the TPM and have it deleted (`tpm "
+"file delete <URL> --yes`). Even after deletion, **it stays in any backup "
+"taken before the deletion**. After deleting, take a new backup and delete "
+"the older backups (`~/pagetray-*.db`). Replace the secret itself (token or "
+"key) right away."
 
 #: src/run.md
 msgid "写しから戻す"
@@ -2754,7 +2782,7 @@ msgstr ""
 "TypeScript). They go into neither the image nor the CLI. How to run them is "
 "in \"List UI tests\" below and in \"Book tests\" under \"Editing this book\""
 
-#: src/development.md
+#: src/development.md src/glossary.md
 msgid "`migrations/`"
 msgstr "`migrations/`"
 
@@ -3558,6 +3586,66 @@ msgstr "workspace"
 #: src/glossary.md
 msgid "ページを置いた人の居場所の ID"
 msgstr "The ID of the workspace of whoever put the page"
+
+#: src/glossary.md
+msgid "file"
+msgstr "file"
+
+#: src/glossary.md
+msgid "`files`"
+msgstr "`files`"
+
+#: src/glossary.md
+msgid ""
+"ページから参照する file（画像・PDF・字の file）1 つ。置き直すと、別の番号の別"
+"の file になる"
+msgstr ""
+"One file (an image, a PDF, or a text file) referenced from pages. Putting it "
+"again makes a different file with a different number"
+
+#: src/glossary.md
+msgid "消した番号（removed number）"
+msgstr "removed number"
+
+#: src/glossary.md
+msgid "`removed`・`files_removed`"
+msgstr "`removed`, `files_removed`"
+
+#: src/glossary.md
+msgid ""
+"消したページと file の番号。本文は持たない。同じ番号を 2 度使わないためと、消"
+"した URL に `410` を返すために残す"
+msgstr ""
+"The numbers of removed pages and files, without their bodies. Kept so that "
+"no number is used twice and so that a removed URL returns `410`"
+
+#: src/glossary.md
+msgid "全文の索引（full-text index）"
+msgstr "full-text index"
+
+#: src/glossary.md
+msgid "`pages_fts`"
+msgstr "`pages_fts`"
+
+#: src/glossary.md
+msgid ""
+"ページの題と本文の字を、3 字ずつに切って引けるようにした索引（SQLite の "
+"FTS5）。探す欄の語は、ここで引く"
+msgstr ""
+"An index (SQLite FTS5) that splits page titles and body text into 3-"
+"character pieces for lookup. Words in the search field are looked up here"
+
+#: src/glossary.md
+msgid "移行（migration）"
+msgstr "migration"
+
+#: src/glossary.md
+msgid ""
+"DB の表を作る・変える SQL。サーバーが起きる時に、まだ当てていない物を番号の順"
+"に当てる。当てた物は変えない"
+msgstr ""
+"SQL that creates or changes the DB tables. On startup, the server applies "
+"those not yet applied, in number order. Applied ones are never edited"
 
 #: src/glossary.md
 msgid "写し（backup）"
