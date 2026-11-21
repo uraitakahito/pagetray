@@ -9,7 +9,7 @@ on:
 permissions:
   contents: read
 env:
-  # sqlx-cli の版。上げる時は README の「SQL を変えた時」も合わせる。
+  # sqlx-cli の版。上げる時は docs/src/development.md の「SQL を変えた時」も合わせる。
   SQLX_CLI_VERSION: 0.9.1
   # 秘密の走査の道具。版と、release の checksums.txt の値（linux_arm64）を一緒に上げる。
   GITLEAKS_VERSION: 8.30.1
