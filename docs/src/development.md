@@ -56,7 +56,7 @@ API の形（URL・引数の名・JSON の欄）を変える時は、先に [API
 | ファイル | 中身 |
 |---|---|
 | `docs/book.toml` | 本の設定。組み込みの検索は切ってある（日本語が引けないため） |
-| `docs/src/` | 原文（日本語）。目次は `SUMMARY.md` |
+| `docs/src/` | 原文（日本語）。目次は `SUMMARY.md`。語の決まりは `glossary.md`（用語集） |
 | `docs/po/en.po` | 英語の訳。原文の段落・表の升・コードの塊ごとに 1 項 |
 | `docs/theme/site.js`・`site.css` | 上の帯に足す、言葉の切り替えと検索の枠 |
 | `docs/pagefind.yml` | 検索（[Pagefind](https://pagefind.app/)）の索引に入れる物 |
@@ -81,6 +81,7 @@ python3 -m http.server -d docs/book
 - **原文を直したら、同じ PR で英語も直す**: `ci/docs-po.sh` を流すと、足した段落が `docs/po/en.po` に空の訳で入り、変えた段落に `#, fuzzy` の印が付く。空の所と印の所を訳し、印の行を消す。`ci/docs-po.sh --check` が通れば済み（CI も同じ検査を流す。原文にあって訳に無い段落・`fuzzy` の残り・訳に残った日本語があると落ちる）。
 - **コードの塊**: 訳に出るのは、コードの中の註（`#` の行）と、引用符の中の字だけ。命令の中の置き換えの名は訳せないので、`<version>` のように英字で書く。行の後ろに付けた註は、取り出されないことがある（`ci/docs-build.sh` が、英語の本に日本語が残っていれば落ちる）。
 - **訳さない物も `msgstr` に書く**: 命令・URL だけの項は、原文をそのまま写す。link の先の file の名（`run.md` など）は変えない。見出しを指す `#…` は、英語の本では見出しの id が訳した題から作られるので、訳した見出しの id に書き替える（`release.md#image-に入る物` → `release.md#what-goes-into-the-image`）。
+- **語を足す・替える**: 先に [用語集](glossary.md) を直し、文書・註・code の名をそれに合わせる。用語集に書いた id が画面に在るか・「使わない言い方」が戻っていないかは、試験（`tests/terms.rs`）が見る。
 - **章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章は `docs/src/cli.md`（「使う」の節の、動かす と API の仕様 の間）。
 - **repo の file を指す link**: 本の外の file（`CHANGELOG.md` など）は、GitHub の URL で書く。章どうしは、`run.md` のように file の名で書く。
 - **図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通るので、変えたら browser で見る。

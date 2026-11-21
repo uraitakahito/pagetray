@@ -12,3 +12,7 @@
 
 - [release を出す](release.md)
 - [開発](development.md)
+
+---
+
+[用語集](glossary.md)
