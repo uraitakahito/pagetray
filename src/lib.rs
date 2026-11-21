@@ -59,7 +59,7 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// サーバーの版と口の版（`{"version":"0.2.0","api":1}`）。
+/// サーバーの版と口の版（`{"version":"<版>","api":1}`）。
 async fn version() -> Json<serde_json::Value> {
     Json(json!({ "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION }))
 }
