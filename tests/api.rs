@@ -4,7 +4,7 @@ mod common;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
-use common::{SE, Server, html, request};
+use common::{PNG, SE, Server, html, request};
 use http_body_util::BodyExt;
 use pagetray::{AppState, db::Db, router};
 use serde_json::Value;
@@ -536,4 +536,565 @@ async fn removing_needs_a_project_and_a_full_name_for_one_page() {
         .insert(header::ORIGIN, "null".parse().unwrap());
     assert_eq!(s.send(from_page).await.0, StatusCode::FORBIDDEN);
     assert_eq!(s.paths("project=p").await, ["/p/SKILLS-14/plan-1.html"]);
+}
+
+#[tokio::test]
+async fn a_file_comes_back_byte_for_byte_with_its_type() {
+    let s = Server::start().await;
+    let (status, headers, json) = s
+        .put_file(&format!("{SE}&name=dot.png"), Some("image/png"), PNG)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(json["path"], "/p/SKILLS-14/files/dot-1.png");
+    assert_eq!(
+        json["url"],
+        "http://127.0.0.1:8801/p/SKILLS-14/files/dot-1.png"
+    );
+    assert_eq!(headers[header::LOCATION], json["url"].as_str().unwrap());
+    assert_eq!(json["name"], "dot");
+    assert_eq!(json["ext"], "png");
+    assert_eq!(json["type"], "image/png");
+    assert_eq!(json["size"], PNG.len());
+    assert_eq!(json["role"], "software-engineer");
+    assert_eq!(json["workspace"], "workspace:1");
+    assert!(json["created_at"].as_str().unwrap().ends_with('Z'));
+    // `shasum -a 256` の値。
+    assert_eq!(
+        json["sha256"],
+        "4ff6ab670a58c14270e034e2090d9a432caa263a14e0a25785386b0c12f880b5"
+    );
+
+    let (status, headers, body) = s.get("/p/SKILLS-14/files/dot-1.png").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body, PNG);
+    assert_eq!(headers[header::CONTENT_TYPE], "image/png");
+    assert_eq!(headers[header::CONTENT_SECURITY_POLICY], "sandbox");
+    assert_eq!(headers[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
+    assert_eq!(
+        headers[header::CACHE_CONTROL],
+        "max-age=31536000, immutable"
+    );
+
+    // 字の file は、表の Content-Type（charset 付き）で返る。送った header の引数は問わない。
+    let text = "一行目\nsecond\n".as_bytes();
+    s.place_file(
+        &format!("{SE}&name=notes.md"),
+        "Text/Markdown; charset=UTF-8",
+        text,
+    )
+    .await;
+    let (_, headers, body) = s.get("/p/SKILLS-14/files/notes-1.md").await;
+    assert_eq!(body, text);
+    assert_eq!(
+        headers[header::CONTENT_TYPE],
+        "text/markdown; charset=utf-8"
+    );
+
+    for missing in [
+        "/p/SKILLS-14/files/dot-2.png",
+        "/p/SKILLS-14/files/dot-01.png",
+        "/p/SKILLS-14/files/dot-1.jpg",
+        "/p/SKILLS-14/files/dot.png",
+        "/p/SKILLS-14/files/dot-1.svg",
+        "/p/other/files/dot-1.png",
+    ] {
+        assert_eq!(s.get(missing).await.0, StatusCode::NOT_FOUND, "{missing}");
+    }
+}
+
+#[tokio::test]
+async fn files_are_numbered_per_name_and_a_removed_number_is_never_used_again() {
+    let s = Server::start().await;
+    let q = format!("{SE}&name=dot.png");
+    assert_eq!(s.place_file(&q, "image/png", PNG).await, 1);
+    assert_eq!(s.place_file(&q, "image/png", PNG).await, 2);
+    // 名か拡張子が違えば、別に数える。
+    assert_eq!(
+        s.place_file(
+            &format!("{SE}&name=dot.pdf"),
+            "application/pdf",
+            b"%PDF-1.7"
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        s.place_file(&format!("{SE}&name=other.png"), "image/png", PNG)
+            .await,
+        1
+    );
+
+    let (status, json) = s
+        .remove_files("project=p&key=SKILLS-14&name=dot.png&n=2")
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        json["removed"],
+        serde_json::json!(["/p/SKILLS-14/files/dot-2.png"])
+    );
+    let (status, _, body) = s.get("/p/SKILLS-14/files/dot-2.png").await;
+    assert_eq!(status, StatusCode::GONE);
+    let message: Value = serde_json::from_slice(&body).unwrap();
+    assert!(
+        message["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("その file は消した（")
+    );
+    assert_eq!(
+        s.get("/p/SKILLS-14/files/dot-1.png").await.0,
+        StatusCode::OK
+    );
+    // 一番大きい番号を消しても、次は 3。
+    assert_eq!(s.place_file(&q, "image/png", PNG).await, 3);
+    // 消した番号を名指しても入らない。
+    let (status, _, _) = s
+        .put_file(&format!("{q}&n=2"), Some("image/png"), PNG)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(
+        s.get("/p/SKILLS-14/files/dot-2.png").await.0,
+        StatusCode::GONE
+    );
+    // 2 度目は消す物が無い。
+    let (_, json) = s
+        .remove_files("project=p&key=SKILLS-14&name=dot.png&n=2")
+        .await;
+    assert_eq!(json["removed"], serde_json::json!([]));
+}
+
+#[tokio::test]
+async fn an_imported_file_keeps_its_number_and_time_and_a_taken_number_is_a_conflict() {
+    let s = Server::start().await;
+    let q = "project=p&key=k&name=dot.png&role=tpm&n=3&created_at=2026-11-20T01:02:03Z";
+    let (status, _, json) = s.put_file(q, Some("image/png"), PNG).await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(json["n"], 3);
+    assert_eq!(json["created_at"], "2026-11-20T01:02:03Z");
+    let (status, _, json) = s.put_file(q, Some("image/png"), PNG).await;
+    assert_eq!(status, StatusCode::CONFLICT, "{json}");
+    assert_eq!(
+        s.place_file("project=p&key=k&name=dot.png&role=tpm", "image/png", PNG)
+            .await,
+        4
+    );
+}
+
+#[tokio::test]
+async fn bad_file_arguments_are_refused() {
+    let s = Server::start().await;
+    for query in [
+        "key=k&name=a.png&role=tpm",
+        "project=api&key=k&name=a.png&role=tpm",
+        "project=p&key=..&name=a.png&role=tpm",
+        "project=p&key=k&role=tpm",
+        "project=p&key=k&name=a&role=tpm",
+        "project=p&key=k&name=A.png&role=tpm",
+        "project=p&key=k&name=-a.png&role=tpm",
+        "project=p&key=k&name=a.b.png&role=tpm",
+        "project=p&key=k&name=a-1.png.&role=tpm",
+        "project=p&key=k&name=a.png&role=T",
+        "project=p&key=k&name=a.png&role=tpm&workspace=a%20b",
+        "project=p&key=k&name=a.png&role=tpm&n=0",
+        "project=p&key=k&name=a.png&role=tpm&created_at=yesterday",
+    ] {
+        let (status, _, _) = s.put_file(query, Some("image/png"), PNG).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{query}");
+    }
+    let q = "project=p&key=k&name=a.png&role=tpm";
+    let (status, _, json) = s.put_file(q, Some("image/png"), b"").await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(json["error"], "本文が空");
+    let (status, _, json) = s.put_file(q, None, PNG).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(json["error"], "Content-Type が要る");
+    assert_eq!(
+        s.get("/api/files?sort=name").await.0,
+        StatusCode::BAD_REQUEST
+    );
+    assert!(s.file_paths("").await.is_empty());
+}
+
+#[tokio::test]
+async fn a_file_over_the_limit_is_refused() {
+    let s = Server::start().await;
+    let mut big = PNG.to_vec();
+    big.resize(pagetray::MAX_FILE + 1, 0);
+    let (status, _, _) = s
+        .send({
+            let mut r = request(
+                "POST",
+                &format!("/api/files?{SE}&name=big.png"),
+                Body::from(big),
+            );
+            r.headers_mut()
+                .insert(header::CONTENT_TYPE, "image/png".parse().unwrap());
+            r
+        })
+        .await;
+    assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE);
+    assert!(s.file_paths("").await.is_empty());
+}
+
+#[tokio::test]
+async fn a_type_or_contents_that_do_not_match_the_extension_are_refused() {
+    let s = Server::start().await;
+    for (name, content_type, bytes) in [
+        // 中身が拡張子と合わない。
+        ("a.png", "image/png", &b"%PDF-1.7 ..."[..]),
+        ("a.jpg", "image/jpeg", PNG),
+        ("a.gif", "image/gif", b"GIF90a"),
+        ("a.webp", "image/webp", b"RIFF\0\0\0\0WAVEfmt "),
+        ("a.pdf", "application/pdf", PNG),
+        ("a.txt", "text/plain", b"\xff\xfe\x00a"),
+        ("a.json", "application/json", b"{\"a\":\"\0\"}"),
+        // 受けない拡張子。
+        ("a.svg", "image/svg+xml", b"<svg/>"),
+        ("a.html", "text/html", b"<p>x</p>"),
+        ("a.mp4", "video/mp4", b"\0\0\0\x18ftypmp42"),
+        ("a.PNG", "image/png", PNG),
+        // Content-Type が拡張子と合わない。
+        ("a.png", "image/jpeg", PNG),
+        ("a.png", "application/octet-stream", PNG),
+        ("a.md", "text/plain", b"# x"),
+    ] {
+        let (status, _, json) = s
+            .put_file(&format!("{SE}&name={name}"), Some(content_type), bytes)
+            .await;
+        assert_eq!(
+            status,
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "{name} {content_type}: {json}"
+        );
+    }
+    assert!(s.file_paths("").await.is_empty());
+    // 合っていれば通る。
+    for (name, content_type, bytes) in [
+        ("a.jpg", "image/jpeg", &b"\xff\xd8\xff\xe0"[..]),
+        ("a.jpeg", "IMAGE/JPEG", b"\xff\xd8\xff\xdb"),
+        ("a.gif", "image/gif", b"GIF89a"),
+        ("a.webp", "image/webp", b"RIFF\0\0\0\0WEBPVP8 "),
+        ("a.log", "text/plain; charset=utf-8", "ログ".as_bytes()),
+        ("a.csv", "text/csv", b"a,b\n1,2\n"),
+        ("a.json", "application/json", b"{}"),
+    ] {
+        s.place_file(&format!("{SE}&name={name}"), content_type, bytes)
+            .await;
+    }
+}
+
+#[tokio::test]
+async fn file_filters_combine_and_sort_by_time() {
+    let s = Server::start().await;
+    let at = |day: u8| format!("created_at=2026-11-{day:02}T00:00:00Z");
+    for (query, day) in [
+        (
+            "project=p&key=A-1&name=screen.png&role=tpm&workspace=w:1",
+            1,
+        ),
+        (
+            "project=p&key=A-1&name=shot.png&role=software-engineer&workspace=w:2",
+            2,
+        ),
+        (
+            "project=p&key=B-2&name=screen.png&role=software-engineer&workspace=w:3",
+            3,
+        ),
+        (
+            "project=q&key=A-1&name=screen.png&role=devops-engineer&workspace=w:2",
+            4,
+        ),
+    ] {
+        s.place_file(&format!("{query}&{}", at(day)), "image/png", PNG)
+            .await;
+    }
+    let all = [
+        "/q/A-1/files/screen-1.png",
+        "/p/B-2/files/screen-1.png",
+        "/p/A-1/files/shot-1.png",
+        "/p/A-1/files/screen-1.png",
+    ];
+    assert_eq!(s.file_paths("").await, all);
+    assert_eq!(s.file_paths("sort=-created_at").await, all);
+    let mut oldest = all;
+    oldest.reverse();
+    assert_eq!(s.file_paths("sort=created_at").await, oldest);
+    assert_eq!(
+        s.file_paths("role=software-engineer").await,
+        ["/p/B-2/files/screen-1.png", "/p/A-1/files/shot-1.png"]
+    );
+    assert_eq!(
+        s.file_paths("workspace=w:2&project=p").await,
+        ["/p/A-1/files/shot-1.png"]
+    );
+    assert_eq!(
+        s.file_paths("key=A-1&project=p").await,
+        ["/p/A-1/files/shot-1.png", "/p/A-1/files/screen-1.png"]
+    );
+    assert_eq!(s.file_paths("q=shot").await, ["/p/A-1/files/shot-1.png"]);
+    assert_eq!(s.file_paths("q=SCREEN.PNG").await.len(), 3);
+    assert_eq!(s.file_paths("q=pdf").await, [] as [&str; 0]);
+    assert_eq!(s.file_paths("limit=2").await, all[..2]);
+    assert_eq!(s.file_paths("before=2026-11-03T00:00:00Z").await, all[2..]);
+    assert_eq!(s.file_paths("after=2026-11-03T00:00:00Z").await, all[..1]);
+    // ページの一覧には出ない。
+    assert!(s.paths("").await.is_empty());
+
+    let json = s.json("/api/files?key=B-2").await;
+    let file = &json["files"][0];
+    assert_eq!(file["size"], PNG.len());
+    assert_eq!(file["type"], "image/png");
+    assert!(file.get("body").is_none());
+    assert!(file.get("url").is_none());
+}
+
+/// 置く・探すの答えが、呼ぶ側の読む型（crates/api の FileRecord）で読めるか。
+#[tokio::test]
+async fn file_answers_parse_as_the_shared_file_record() {
+    use pagetray_api::FileRecord;
+    let s = Server::start().await;
+    let (_, _, placed) = s
+        .put_file(&format!("{SE}&name=dot.png"), Some("image/png"), PNG)
+        .await;
+    let placed: FileRecord = serde_json::from_value(placed).unwrap();
+    assert_eq!(placed.path, "/p/SKILLS-14/files/dot-1.png");
+    let listed = s.json("/api/files?project=p").await;
+    let listed: Vec<FileRecord> = serde_json::from_value(listed["files"].clone()).unwrap();
+    assert_eq!(
+        FileRecord {
+            url: None,
+            ..placed
+        },
+        listed[0]
+    );
+}
+
+#[tokio::test]
+async fn files_of_a_key_or_a_whole_project_are_removed_at_once() {
+    let s = Server::start().await;
+    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+        .await;
+    s.place_file(&format!("{SE}&name=b.txt"), "text/plain", b"b")
+        .await;
+    s.place_file("project=p&key=t-x&name=a.png&role=tpm", "image/png", PNG)
+        .await;
+    s.place_file("project=q&key=t-x&name=a.png&role=tpm", "image/png", PNG)
+        .await;
+    // ページは消えない。
+    s.place(&format!("{SE}&kind=plan"), "<p>1</p>").await;
+
+    let (_, json) = s.remove_files("project=p&key=SKILLS-14").await;
+    assert_eq!(
+        json["removed"],
+        serde_json::json!(["/p/SKILLS-14/files/a-1.png", "/p/SKILLS-14/files/b-1.txt"])
+    );
+    assert_eq!(s.file_paths("project=p").await, ["/p/t-x/files/a-1.png"]);
+    assert_eq!(s.paths("").await, ["/p/SKILLS-14/plan-1.html"]);
+
+    // 名だけでも、project の中のその名をみな消す。
+    let (_, json) = s.remove_files("project=p&name=a.png").await;
+    assert_eq!(json["removed"], serde_json::json!(["/p/t-x/files/a-1.png"]));
+    assert_eq!(s.file_paths("").await, ["/q/t-x/files/a-1.png"]);
+    assert_eq!(
+        s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+            .await,
+        2
+    );
+}
+
+#[tokio::test]
+async fn removing_files_needs_a_project_and_a_full_name_for_one_file() {
+    let s = Server::start().await;
+    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+        .await;
+    for (query, message) in [
+        ("key=SKILLS-14", None),
+        ("project=..", Some("project は")),
+        (
+            "project=p&name=a.png&n=1",
+            Some("n を書くときは key と name も書く"),
+        ),
+        (
+            "project=p&key=SKILLS-14&n=1",
+            Some("n を書くときは key と name も書く"),
+        ),
+        (
+            "project=p&key=SKILLS-14&name=a.png&n=0",
+            Some("n は 1 以上"),
+        ),
+        ("project=p&name=A.png", Some("name は")),
+        ("project=p&name=a", Some("name は")),
+    ] {
+        let uri = format!("/api/files?{query}");
+        let (status, _, body) = s.send(request("DELETE", &uri, Body::empty())).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{query}");
+        if let Some(message) = message {
+            let json: Value = serde_json::from_slice(&body).unwrap();
+            assert!(
+                json["error"].as_str().unwrap().starts_with(message),
+                "{query}: {json}"
+            );
+        }
+    }
+    assert_eq!(s.file_paths("").await, ["/p/SKILLS-14/files/a-1.png"]);
+}
+
+#[tokio::test]
+async fn a_page_in_a_browser_cannot_put_or_remove_files() {
+    let s = Server::start().await;
+    for origin in ["null", "http://127.0.0.1:8801", "https://evil.example"] {
+        let request = Request::builder()
+            .method("POST")
+            .uri(format!("/api/files?{SE}&name=a.png"))
+            .header(header::HOST, "127.0.0.1:8801")
+            .header(header::ORIGIN, origin)
+            .header(header::CONTENT_TYPE, "image/png")
+            .body(Body::from(PNG))
+            .unwrap();
+        assert_eq!(s.send(request).await.0, StatusCode::FORBIDDEN, "{origin}");
+    }
+    assert!(s.file_paths("").await.is_empty());
+    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+        .await;
+    let mut from_page = request("DELETE", "/api/files?project=p", Body::empty());
+    from_page
+        .headers_mut()
+        .insert(header::ORIGIN, "null".parse().unwrap());
+    assert_eq!(s.send(from_page).await.0, StatusCode::FORBIDDEN);
+    assert_eq!(s.file_paths("").await, ["/p/SKILLS-14/files/a-1.png"]);
+}
+
+#[tokio::test]
+async fn the_backup_holds_the_files() {
+    let s = Server::start().await;
+    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+        .await;
+    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+        .await;
+    s.remove_files("project=p&key=SKILLS-14&name=a.png&n=1")
+        .await;
+    let (status, _, bytes) = s.get("/api/backup").await;
+    assert_eq!(status, StatusCode::OK);
+
+    let mut copy = s.path.clone().into_os_string();
+    copy.push(".files");
+    let copy = PathBuf::from(copy);
+    std::fs::write(&copy, &bytes).unwrap();
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}", copy.display()))
+        .await
+        .unwrap();
+    let count = |sql: &'static str| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, i64>(sql)
+                .fetch_one(&pool)
+                .await
+                .unwrap()
+        }
+    };
+    assert_eq!(count("select count(*) from files").await, 1);
+    assert_eq!(count("select count(*) from files_removed").await, 1);
+    let body: Vec<u8> = sqlx::query_scalar("select body from files where n = 2")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(body, PNG);
+    pool.close().await;
+    for suffix in ["", "-wal", "-shm"] {
+        let mut name = copy.clone().into_os_string();
+        name.push(suffix);
+        let _ = std::fs::remove_file(name);
+    }
+}
+
+#[tokio::test]
+async fn files_survive_a_restart() {
+    let s = Server::start().await;
+    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+        .await;
+    s.db.close().await;
+    let again = Db::open(&s.path).await.unwrap();
+    let app = router(AppState::new(again.clone()));
+    let response = app
+        .oneshot(request("GET", "/p/SKILLS-14/files/a-1.png", Body::empty()))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(bytes, PNG);
+    again.close().await;
+}
+
+/// file のエンドポイントを足しても、ページの URL と答えは前のまま。
+#[tokio::test]
+async fn pages_and_files_live_side_by_side() {
+    let s = Server::start().await;
+    let page = html("図のあるページ", "<img src=\"files/dot-1.png\">");
+    s.place(&format!("{SE}&kind=result"), &page).await;
+    s.place_file(&format!("{SE}&name=dot.png"), "image/png", PNG)
+        .await;
+    // ページの名の file（kind が files でも）とぶつからない。
+    s.place(&format!("{SE}&kind=files"), "<p>files という種類</p>")
+        .await;
+    assert_eq!(s.text("/p/SKILLS-14/result-1.html").await, page);
+    assert_eq!(
+        s.text("/p/SKILLS-14/files-1.html").await,
+        "<p>files という種類</p>"
+    );
+    assert_eq!(s.get("/p/SKILLS-14/files/dot-1.png").await.2, PNG);
+    assert_eq!(
+        s.paths("").await,
+        ["/p/SKILLS-14/files-1.html", "/p/SKILLS-14/result-1.html"]
+    );
+    assert_eq!(s.file_paths("").await, ["/p/SKILLS-14/files/dot-1.png"]);
+    let (_, headers, _) = s.get("/p/SKILLS-14/result-1.html").await;
+    assert_eq!(
+        headers[header::CONTENT_SECURITY_POLICY],
+        "sandbox allow-scripts"
+    );
+    assert_eq!(headers[pagetray::API_HEADER], "1");
+    let (_, headers, _) = s.get("/p/SKILLS-14/files/dot-1.png").await;
+    assert_eq!(headers[pagetray::API_HEADER], "1");
+    // ページを消しても file は残り、file を消してもページは残る。
+    s.remove("project=p&key=SKILLS-14&kind=result").await;
+    assert_eq!(
+        s.get("/p/SKILLS-14/files/dot-1.png").await.0,
+        StatusCode::OK
+    );
+    s.remove_files("project=p&key=SKILLS-14").await;
+    assert_eq!(s.get("/p/SKILLS-14/files-1.html").await.0, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn a_put_file_is_pushed_as_a_named_event_and_pages_stay_unnamed() {
+    let s = Server::start().await;
+    let response = s
+        .app
+        .clone()
+        .oneshot(request("GET", "/api/events", Body::empty()))
+        .await
+        .unwrap();
+    let mut body = response.into_body();
+    let mut next = async || {
+        let frame = tokio::time::timeout(std::time::Duration::from_secs(5), body.frame())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        String::from_utf8(frame.into_data().unwrap().to_vec()).unwrap()
+    };
+
+    s.place_file(&format!("{SE}&name=dot.png"), "image/png", PNG)
+        .await;
+    let text = next().await;
+    let data = text.strip_prefix("event: file\ndata: ").unwrap();
+    let json: Value = serde_json::from_str(data.trim()).unwrap();
+    assert_eq!(json["path"], "/p/SKILLS-14/files/dot-1.png");
+    assert_eq!(json["type"], "image/png");
+
+    s.place(&format!("{SE}&kind=result"), &html("結果", "できた"))
+        .await;
+    let text = next().await;
+    let json: Value = serde_json::from_str(text.strip_prefix("data: ").unwrap().trim()).unwrap();
+    assert_eq!(json["path"], "/p/SKILLS-14/result-1.html");
 }

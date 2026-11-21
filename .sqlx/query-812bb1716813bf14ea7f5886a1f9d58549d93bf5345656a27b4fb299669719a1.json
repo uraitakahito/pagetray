@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "select removed_at from files_removed\n               where project = ?1 and key = ?2 and name = ?3 and ext = ?4 and n = ?5",
+  "describe": {
+    "columns": [
+      {
+        "name": "removed_at",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files_removed",
+            "name": "removed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "812bb1716813bf14ea7f5886a1f9d58549d93bf5345656a27b4fb299669719a1"
+}

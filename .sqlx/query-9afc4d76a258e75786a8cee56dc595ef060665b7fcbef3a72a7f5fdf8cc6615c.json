@@ -1,0 +1,146 @@
+{
+  "db_name": "SQLite",
+  "query": "select project, key, name, ext, n, type, size, sha256, role, workspace, created_at\n               from files\n               where (?1 is null or project = ?1)\n                 and (?2 is null or key = ?2)\n                 and (?3 is null or role = ?3)\n                 and (?4 is null or workspace = ?4)\n                 and (?5 is null or instr(name || '.' || ext, lower(?5)) > 0)\n                 and (?6 is null or created_at < ?6)\n                 and (?7 is null or created_at > ?7)\n               order by case when ?8 then created_at end asc,\n                        case when ?8 then id end asc,\n                        created_at desc, id desc\n               limit ?9",
+  "describe": {
+    "columns": [
+      {
+        "name": "project",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "project"
+          }
+        }
+      },
+      {
+        "name": "key",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "name": "ext",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "ext"
+          }
+        }
+      },
+      {
+        "name": "n",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "n"
+          }
+        }
+      },
+      {
+        "name": "type",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "name": "size",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "name": "sha256",
+        "ordinal": 7,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "name": "role",
+        "ordinal": 8,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "role"
+          }
+        }
+      },
+      {
+        "name": "workspace",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "workspace"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 10,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "files",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 9
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9afc4d76a258e75786a8cee56dc595ef060665b7fcbef3a72a7f5fdf8cc6615c"
+}

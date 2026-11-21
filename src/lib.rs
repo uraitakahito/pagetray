@@ -1,9 +1,11 @@
-//! ページの置き場。担当が置いたページ（HTML）を DB に持ち、絞って探せる形で返す。消すこともできる（戻せない）。
+//! ページの置き場。担当が置いたページ（HTML）と、ページから参照する file を DB に持ち、絞って探せる形で返す。
+//! 消すこともできる（戻せない）。
 //! 種類と役割の名の一覧は持たない（cli が持つ）。ここでは字の形だけを見る。
 
 pub mod api;
 pub mod db;
 pub mod events;
+pub mod files;
 pub mod pages;
 pub mod text;
 pub mod ui;
@@ -12,12 +14,12 @@ use axum::extract::{DefaultBodyLimit, Request};
 use axum::http::{HeaderName, HeaderValue, Method, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::json;
 
 /// API の版（決まりは docs/src/api.md。値は、CLI と共に使う crates/api にある）。
-pub use pagetray_api::API_VERSION;
+pub use pagetray_api::{API_VERSION, MAX_FILE};
 /// どの答えにも付く、API の版の header。
 pub const API_HEADER: HeaderName = HeaderName::from_static(pagetray_api::API_HEADER);
 
@@ -27,8 +29,8 @@ pub const MAX_BODY: usize = 16 * 1024 * 1024;
 #[derive(Clone)]
 pub struct AppState {
     pub db: db::Db,
-    /// 置かれたページの知らせ（JSON）。聞いている一覧の UI に push する。
-    pub events: tokio::sync::broadcast::Sender<String>,
+    /// 置かれたページと file の知らせ。聞いている一覧の UI に push する。
+    pub events: tokio::sync::broadcast::Sender<events::Note>,
 }
 
 impl AppState {
@@ -45,6 +47,14 @@ pub fn router(state: AppState) -> Router {
             "/api/pages",
             get(api::list).post(api::put).delete(api::remove),
         )
+        .route(
+            "/api/files",
+            // file の上限は、置く道にだけ掛ける（下の MAX_BODY より内側なので、こちらが効く）。
+            post(api::put_file)
+                .layer(DefaultBodyLimit::max(MAX_FILE))
+                .get(api::list_files)
+                .delete(api::remove_files),
+        )
         .route("/api/backup", get(api::backup))
         .route("/api/version", get(version))
         .route("/api/events", get(events::stream))
@@ -52,6 +62,7 @@ pub fn router(state: AppState) -> Router {
         .route("/{project}/", get(ui::project))
         .route("/{project}/{key}/", get(ui::key))
         .route("/{project}/{key}/{file}", get(pages::show))
+        .route("/{project}/{key}/files/{file}", get(files::show))
         .layer(DefaultBodyLimit::max(MAX_BODY))
         .layer(middleware::from_fn(guard))
         // 一番外に置く。guard が断った答えにも付く。

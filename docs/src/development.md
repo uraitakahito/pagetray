@@ -5,12 +5,13 @@
 | `src/main.rs` | 設定を読む・起こす・止める（binary の名は `pagetray-server`） |
 | `src/lib.rs` | 道筋と、この Mac の中からの要求だけを受ける守り |
 | `src/db.rs` | 接続・移行・SQL |
-| `src/api.rs` | 置く・探す・消す・DB の写し |
+| `src/api.rs` | ページと file を置く・探す・消す・DB の写し |
 | `src/pages.rs` | ページの本文を返す |
+| `src/files.rs` | file の中身を返す |
 | `src/ui.rs`・`templates/index.html` | 一覧の UI（askama の template。build の時に検査される） |
 | `src/events.rs` | 新着の push（SSE） |
 | `src/text.rs` | HTML から題と検索用の字を取り出す |
-| `crates/api/` | API の仕様のうち、サーバーと CLI が共に使う物（API の版・header の名・引数の字の決まり・path の形・ページの記録の型） |
+| `crates/api/` | API の仕様のうち、サーバーと CLI が共に使う物（API の版・header の名・引数の字の決まり・path の形・ページと file の記録の型・受ける file の種類） |
 | `crates/cli/` | CLI（binary の名は `pagetray`）。置き場の API を HTTP で呼ぶ。試験は、同じ commit のサーバーを起こして打つ |
 | `e2e/` | 一覧の UI と、この本を、本物の browser で見る試験（Playwright・TypeScript）。image にも CLI にも入らない。流し方は下の「一覧の UI の試験」と「この本を直す」の「本の試験」 |
 | `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる） |

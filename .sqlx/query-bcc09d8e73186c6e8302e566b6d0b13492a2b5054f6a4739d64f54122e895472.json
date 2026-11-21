@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "delete from files where project = ?1 and (?2 is null or key = ?2)\n                 and (?3 is null or (name = ?3 and ext = ?4)) and (?5 is null or n = ?5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "bcc09d8e73186c6e8302e566b6d0b13492a2b5054f6a4739d64f54122e895472"
+}

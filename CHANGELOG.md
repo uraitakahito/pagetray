@@ -2,10 +2,15 @@
 
 版ごとに、API の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
-## 次の版（まだ出していない）
+## 0.4.0（まだ出していない）
 
-API の版: 1（変わらない。呼ぶ側は変えなくてよい）
+API の版: 1（変わらない。エンドポイントを足しただけ。呼ぶ側は変えなくてよい）
 
+- file（画像・PDF・字の file）を置く・探す・消すエンドポイントを足した（足しただけ。前からある呼ぶ側は変えなくてよい）。
+  - `POST /api/files`・`GET /api/files`・`DELETE /api/files` と、中身を返す `GET /<project>/<key>/files/<語>-<n>.<拡張子>`。受ける種類は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json で、1 つ 16 MiB まで。形は docs の「API の仕様」。
+  - `GET /api/events` は、file が置かれると `event: file` で file の記録を送る。ページの知らせ（名の無い event）は前のまま。
+- 移行 `0003` を足した（表 `files`・`files_removed`）。当てた後は、写しから戻さないと前の版に戻せない（前の版は、0003 を当てた DB では起きない）。
+  - DB の写し（`/api/backup`）にも file が入り、その分大きくなる。
 - 文書の本を、本物の browser で見る試験（`e2e/docs-tests/`）を足した。検索・言葉の切り替え・図が動くかを、CI の job `docs` が見る。
 
 ## 0.3.2
