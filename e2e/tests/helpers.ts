@@ -22,6 +22,24 @@ export async function place(request: APIRequestContext, to: Placing, html: strin
   return (await response.json()).path;
 }
 
+/** API で file を 1 つ置き、記録を返す（browser の外から送るので Origin は付かない）。 */
+export async function placeFile(
+  request: APIRequestContext,
+  to: { project: string; key: string; name: string; role: string },
+  type: string,
+  body: Buffer,
+): Promise<{ path: string; role: string }> {
+  const response = await request.post(`/api/files?${new URLSearchParams(to)}`, { data: body, headers: { 'content-type': type } });
+  expect(response.ok(), await response.text()).toBeTruthy();
+  return response.json();
+}
+
+/** 1×1 の PNG。 */
+export const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
+  'base64',
+);
+
 /** 一覧の UI を開き、新着の知らせ（/api/events）につながるまで待つ。つながる前に置いたページの知らせは届かない。 */
 export async function openLive(page: Page, url: string): Promise<void> {
   const live = page.waitForResponse((r) => r.url().endsWith('/api/events') && r.status() === 200);
@@ -46,6 +64,10 @@ export const list = (page: Page) => page.locator('#list');
 export const rows = (page: Page) => list(page).locator('li[data-path]');
 export const viewer = (page: Page) => page.locator('#viewer');
 export const fresh = (page: Page) => page.locator('#fresh');
+// Key の画面だけの区画: file の枠（files）・上げる枠（upload）。
+export const files = (page: Page) => page.locator('#files');
+export const fileRows = (page: Page) => files(page).locator('li[data-file]');
+export const upload = (page: Page) => page.locator('#upload');
 
 /**
  * 絞り込みの列の候補。見出し（担当者（役割）・workspace・種類・Key・project）と、候補の名で選ぶ。

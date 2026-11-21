@@ -50,6 +50,19 @@ container run -d --name pagetray \
    git -C pagetray worktree remove "$PWD/pagetray-smoke"
    ```
 
+## 一覧の UI から file を上げる
+
+人（Product Manager）が、画面の絵などを担当に渡す道。担当は `tpm file put` で上げる。
+
+1. browser で Key の画面（`http://127.0.0.1:8801/<project>/<key>/`。一覧で project と Key の候補を 1 つずつ押してもよい）を開く。一覧の列の下に、file の枠（その Key の file）と上げる枠が出る。
+2. 上げる枠で file を選ぶか、枠に落とす。受けるのは png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json で、1 つ 16 MiB まで（ほかは送る前に断る）。名は、元の名から CLI と同じ作り方で付く（`Screen Shot 1.PNG` → `screen-shot-1.png`）。
+3. 見本を見る（図はその図、字の file は頭の 20 行、PDF は名と大きさ）。token・鍵・個人の情報・ほかの人の画面が写っていないかを見て、「秘密（token・鍵・個人の情報・ほかの人の画面）が写っていないか見た」に印を付ける。印を付けるまで「送る」は押せない。
+4. 「送る」を押すと、ページから参照する path（`files/screen-shot-1-1.png` など）が出て、file の枠に足される。この path を担当に伝える。
+
+- 一覧の UI から上げた file は、役割 `product-manager` で記録される（[API の仕様](api.md) の「共通」）。
+- 画面から消すことはできない。消すのは TPM 担当に頼む。
+- 上げるのには script が要る。script が無くても、file の枠は読める。
+
 ## DB の写しを取る
 
 **版を上げる前と、volume に触る前**に取る。動かしたまま取れる。

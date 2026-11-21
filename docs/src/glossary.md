@@ -47,6 +47,10 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | 絞り込みの列（filter column） | `#filters` | 役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補を押すと、一覧の列が絞られる | サイドメニュー |
 | 一覧の列（list column） | `#list` | ページの行が並ぶ列。行を押すと、そのページが本文の枠に出る | リスト |
 | 本文の枠（viewer） | `#viewer` | 選んだページの path と本文を、1 枚だけ出す枠 | 右の枠 |
+| Key の画面（Key view） | `KeyView` | project と Key を 1 つずつ選んだ一覧の UI（`/<project>/<key>/` など）。file の枠と上げる枠が足される | — |
+| file の枠（file box） | `#files` | Key の画面で、一覧の列の下に出る枠。その Key の file が、図の見本・名・大きさ・上げた人・時刻・ページから参照する path と並ぶ | — |
+| 上げる枠（upload box） | `#upload` | Key の画面で、file の枠の下に出る枠。file を選ぶか落とし、見本を見て、見た印を付けてから送る | — |
+| 見た印（reviewed check） | `reviewed` | 上げる枠の「秘密が写っていないか見た」の check。付けるまで送れない | — |
 | 絞り込み（filter） | `FilterGroup` | 一覧の列に出す行を、条件で減らすこと。条件は URL に出る | フィルター |
 | 候補（choice） | `Choice` | 絞り込みの列に出る、押せる値の 1 つ（値と件数） | facet |
 | 行（row） | `.rows` | 一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・題・役割・workspace） | — |

@@ -27,6 +27,7 @@ pagetray を呼ぶ側（skills の `tpm page` など）が頼ってよい形を�
 ## 共通
 
 - 受けるのは、この Mac の中からの要求だけ。`Host` が `127.0.0.1`・`localhost`（port は何でもよい）でなければ `403`。`GET`・`HEAD` のほかの要求に `Origin` が付いていれば `403`（browser の中のページからは書けない）。
+- その例外は 1 つだけ: 一覧の UI の Key の画面から file を上げる要求。`POST /api/files` で、`Origin` が `http://<要求の Host（port も）>` とそのまま同じで、header `Sec-Fetch-Site` が無いか `same-origin` の時だけ通す。`Origin: null`（本文の枠の中のページ）・ほかの port・ほかの名・`https://`・`Sec-Fetch-Site: cross-site` は `403`。同じ `Origin` でも、ほかの道（`POST /api/pages`・どの `DELETE` も）は `403`（一覧の UI からは、ページを置けず、何も消せない）。
 - 誤りの答えは `{"error":"<人が読む文>"}`。
 - 字の決まり:
 
@@ -140,6 +141,7 @@ pagetray を呼ぶ側（skills の `tpm page` など）が頼ってよい形を�
 - `409`: `n` を名指して、その番号が使われている（置いてある file・消した file）。
 - `400`: 引数が決まりに合わない・本文が空・`Content-Type` が無い。`413`: 本文が大きすぎる。
 - `415`: 拡張子を受けない、`Content-Type` の種類（`;` の前。大文字・小文字は問わない）が拡張子の物と違う、中身が拡張子の形でない。
+- 一覧の UI から上げた物（上の「共通」の例外）は、引数に何が書いてあっても、`role` を `product-manager`、`workspace` を空で記録する（browser から担当を名乗らせない）。`n`・`created_at` も読まない（番号と時刻は置き場が決める）。`role` は書かなくてよい。
 
 ### `GET /api/files` — file を探す
 

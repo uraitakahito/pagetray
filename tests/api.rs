@@ -939,29 +939,165 @@ async fn removing_files_needs_a_project_and_a_full_name_for_one_file() {
     assert_eq!(s.file_paths("").await, ["/p/SKILLS-14/files/a-1.png"]);
 }
 
+/// browser から来た書く要求（`Origin` 付き）の、通す・断るの組み合わせ（docs/src/api.md の「守り」）。
+/// 通すのは、一覧の UI の form が file を上げる 1 つの形だけ。
 #[tokio::test]
-async fn a_page_in_a_browser_cannot_put_or_remove_files() {
+async fn only_the_list_ui_may_put_files_from_a_browser() {
     let s = Server::start().await;
-    for origin in ["null", "http://127.0.0.1:8801", "https://evil.example"] {
-        let request = Request::builder()
-            .method("POST")
-            .uri(format!("/api/files?{SE}&name=a.png"))
+    s.place(&format!("{SE}&kind=plan"), "<p>x</p>").await;
+    s.place_file(&format!("{SE}&name=old.png"), "image/png", PNG)
+        .await;
+    let ui = "http://127.0.0.1:8801";
+    let put = format!("/api/files?{SE}&name=a.png");
+    let cases: [(&str, &str, &str, Option<&str>, StatusCode); 13] = [
+        // 一覧の UI の form（同じ Host・port の Origin）。
+        ("POST", &put, ui, None, StatusCode::CREATED),
+        ("POST", &put, ui, Some("same-origin"), StatusCode::CREATED),
+        // 本文の枠の中のページ（sandbox なので null）・ほかの port・ほかの名・https。
+        ("POST", &put, "null", None, StatusCode::FORBIDDEN),
+        (
+            "POST",
+            &put,
+            "http://127.0.0.1:8800",
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "POST",
+            &put,
+            "http://localhost:8801",
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "POST",
+            &put,
+            "https://127.0.0.1:8801",
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "POST",
+            &put,
+            "https://evil.example",
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        // 同じ Origin でも、browser がほかの site からと言う物。
+        ("POST", &put, ui, Some("cross-site"), StatusCode::FORBIDDEN),
+        ("POST", &put, ui, Some("same-site"), StatusCode::FORBIDDEN),
+        // 同じ Origin でも、ほかの道（ページを置く・消す）。
+        (
+            "POST",
+            &format!("/api/pages?{SE}&kind=plan"),
+            ui,
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "DELETE",
+            "/api/files?project=p",
+            ui,
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "DELETE",
+            "/api/pages?project=p",
+            ui,
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+        (
+            "DELETE",
+            "/api/files?project=p",
+            "null",
+            None,
+            StatusCode::FORBIDDEN,
+        ),
+    ];
+    for (method, uri, origin, site, expected) in cases {
+        let mut request = Request::builder()
+            .method(method)
+            .uri(uri)
             .header(header::HOST, "127.0.0.1:8801")
             .header(header::ORIGIN, origin)
-            .header(header::CONTENT_TYPE, "image/png")
-            .body(Body::from(PNG))
-            .unwrap();
-        assert_eq!(s.send(request).await.0, StatusCode::FORBIDDEN, "{origin}");
+            .header(header::CONTENT_TYPE, "image/png");
+        if let Some(site) = site {
+            request = request.header("sec-fetch-site", site);
+        }
+        let body = if uri.starts_with("/api/pages") {
+            Body::from("<p>x</p>")
+        } else {
+            Body::from(PNG)
+        };
+        let (status, _, _) = s.send(request.body(body).unwrap()).await;
+        assert_eq!(status, expected, "{method} {uri} Origin: {origin} {site:?}");
     }
-    assert!(s.file_paths("").await.is_empty());
-    s.place_file(&format!("{SE}&name=a.png"), "image/png", PNG)
+    // 断った物は、何も置かず、何も消していない。
+    assert_eq!(s.paths("").await, ["/p/SKILLS-14/plan-1.html"]);
+    assert_eq!(
+        s.file_paths("").await,
+        [
+            "/p/SKILLS-14/files/a-2.png",
+            "/p/SKILLS-14/files/a-1.png",
+            "/p/SKILLS-14/files/old-1.png"
+        ]
+    );
+}
+
+/// 一覧の UI から上げた file は、引数に何が書いてあっても、役割 product-manager・workspace 空で記録する。
+/// 番号と時刻も、置き場が決める（browser から取り込みはできない）。`Origin` の無い要求（CLI・tpm）は前のまま。
+#[tokio::test]
+async fn files_from_the_list_ui_are_recorded_as_the_product_manager() {
+    let s = Server::start().await;
+    let request = Request::builder()
+        .method("POST")
+        .uri(format!(
+            "/api/files?{SE}&name=a.png&n=7&created_at=2020-01-01T00:00:00Z"
+        ))
+        .header(header::HOST, "127.0.0.1:8801")
+        .header(header::ORIGIN, "http://127.0.0.1:8801")
+        .header("sec-fetch-site", "same-origin")
+        .header(header::CONTENT_TYPE, "image/png")
+        .body(Body::from(PNG))
+        .unwrap();
+    let (status, _, body) = s.send(request).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let json: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["role"], "product-manager");
+    assert_eq!(json["workspace"], "");
+    assert_eq!(json["n"], 1);
+    assert_ne!(json["created_at"], "2020-01-01T00:00:00Z");
+    // 役割を書かなくても上げられる（UI は書かない）。
+    let request = Request::builder()
+        .method("POST")
+        .uri("/api/files?project=p&key=SKILLS-14&name=b.png")
+        .header(header::HOST, "localhost:18801")
+        .header(header::ORIGIN, "http://localhost:18801")
+        .header(header::CONTENT_TYPE, "image/png")
+        .body(Body::from(PNG))
+        .unwrap();
+    let (status, _, body) = s.send(request).await;
+    assert_eq!(status, StatusCode::CREATED);
+    let json: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["role"], "product-manager");
+
+    // Origin の無い要求は、引数の役割のまま。役割が無ければ断る。
+    let (status, _, json) = s
+        .put_file(&format!("{SE}&name=c.png"), Some("image/png"), PNG)
         .await;
-    let mut from_page = request("DELETE", "/api/files?project=p", Body::empty());
-    from_page
-        .headers_mut()
-        .insert(header::ORIGIN, "null".parse().unwrap());
-    assert_eq!(s.send(from_page).await.0, StatusCode::FORBIDDEN);
-    assert_eq!(s.file_paths("").await, ["/p/SKILLS-14/files/a-1.png"]);
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(json["role"], "software-engineer");
+    assert_eq!(json["workspace"], "workspace:1");
+    let (status, _, json) = s
+        .put_file("project=p&key=SKILLS-14&name=c.png", Some("image/png"), PNG)
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(
+        json["error"],
+        "role は英小文字で始まり、英小文字・数字・- で 32 字まで"
+    );
 }
 
 #[tokio::test]

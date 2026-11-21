@@ -27,7 +27,9 @@ fn files(dir: &Path, out: &mut Vec<PathBuf>) {
 fn ids_in_the_glossary_exist_in_the_ui() {
     let glossary = read("docs/src/glossary.md");
     let template = read("templates/index.html");
-    for id in ["toolbar", "filters", "list", "viewer", "fresh"] {
+    for id in [
+        "toolbar", "filters", "list", "viewer", "fresh", "files", "upload",
+    ] {
         assert!(
             glossary.contains(&format!("`#{id}`")),
             "用語集に #{id} が無い"
@@ -49,7 +51,14 @@ fn ids_in_the_glossary_exist_in_the_ui() {
         );
     }
     // 区画の読み上げ用の名は、用語集の語と同じ。
-    for name in ["操作の帯", "絞り込みの列", "一覧の列", "本文の枠"] {
+    for name in [
+        "操作の帯",
+        "絞り込みの列",
+        "一覧の列",
+        "本文の枠",
+        "file の枠",
+        "上げる枠",
+    ] {
         assert!(
             glossary.contains(&format!("| {name}（")),
             "用語集に {name} が無い"

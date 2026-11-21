@@ -4,7 +4,7 @@ mod common;
 
 use axum::body::Body;
 use axum::http::{StatusCode, header};
-use common::{SE, Server, html, request};
+use common::{PNG, SE, Server, html, request};
 use http_body_util::BodyExt;
 use serde_json::Value;
 use tower::ServiceExt;
@@ -200,6 +200,81 @@ async fn the_four_regions_carry_their_ids_and_names() {
             );
         }
     }
+}
+
+/// Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠が出る。
+/// file の枠は、script が無くても、図の見本・名・大きさ・上げた人・時刻・ページから参照する path を出す。
+#[tokio::test]
+async fn the_key_view_shows_its_files_and_the_upload_box() {
+    let s = seeded().await;
+    s.place_file(
+        "project=p&key=A-1&name=screen.png&role=tpm&created_at=2026-11-05T01:02:03Z",
+        "image/png",
+        PNG,
+    )
+    .await;
+    s.place_file(
+        "project=p&key=A-1&name=notes.txt&role=software-engineer",
+        "text/plain",
+        "x".repeat(2048).as_bytes(),
+    )
+    .await;
+    s.place_file(
+        "project=p&key=B-2&name=other.png&role=tpm",
+        "image/png",
+        PNG,
+    )
+    .await;
+    for uri in [
+        "/p/A-1/",
+        "/?project=p&key=A-1",
+        "/p/A-1/?open=/p/A-1/plan-1.html",
+    ] {
+        let page = s.text(uri).await;
+        for region in [
+            r#"<div id="files" class="box" role="region" aria-label="file の枠">"#,
+            r#"<div id="upload" class="box" role="region" aria-label="上げる枠" data-project="p" data-key="A-1""#,
+            r#"<input type="file" accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.md,.csv,.json">"#,
+            r#"<input type="checkbox" name="reviewed" required> 秘密（token・鍵・個人の情報・ほかの人の画面）が写っていないか見た"#,
+            r#"<button type="submit" disabled>送る</button>"#,
+            r#"<p class="say nojs">上げるには script が要る。</p>"#,
+        ] {
+            assert_eq!(page.matches(region).count(), 1, "{uri}: {region}\n{page}");
+        }
+        // 新しい順。ほかの Key の file は出ない。
+        let files: Vec<&str> = page
+            .split("<li data-file=\"")
+            .skip(1)
+            .map(|rest| rest.split('"').next().unwrap())
+            .collect();
+        assert_eq!(
+            files,
+            ["/p/A-1/files/notes-1.txt", "/p/A-1/files/screen-1.png"],
+            "{uri}"
+        );
+        assert!(page.contains(r#"<img src="/p/A-1/files/screen-1.png" loading="lazy" alt="">"#));
+        assert!(page.contains(r#"<a class="name" href="/p/A-1/files/screen-1.png" target="_blank" rel="noopener">screen-1.png</a><span class="who">70 B ・ tpm ・ <time datetime="2026-11-05T01:02:03Z">11-05 01:02</time></span><code class="ref">files/screen-1.png</code>"#), "{page}");
+        // 図でない file は、拡張子を出す。
+        assert!(page.contains(r#"tabindex="-1" aria-hidden="true">txt</a>"#));
+        assert!(page.contains("2.0 KiB ・ software-engineer"));
+    }
+    // 上げられる拡張子と Content-Type を、script に渡す。
+    let page = s.text("/p/A-1/").await;
+    assert!(
+        page.contains(r#"data-types="[[&#34;png&#34;,&#34;image/png&#34;],[&#34;jpg&#34;"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"data-max="16777216""#));
+
+    // Key を選んでいない画面には出ない。file の無い Key は、無いと出す。
+    for uri in ["/", "/p/", "/?key=A-1", "/?project=p&role=tpm"] {
+        let page = s.text(uri).await;
+        assert!(!page.contains(r#"id="files""#), "{uri}");
+        assert!(!page.contains(r#"id="upload""#), "{uri}");
+    }
+    let page = s.text("/q/A-1/").await;
+    assert!(page.contains("この Key の file は無い"));
+    assert!(page.contains(r#"id="upload""#));
 }
 
 #[tokio::test]

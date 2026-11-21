@@ -84,10 +84,18 @@ async fn stamp(request: Request, next: Next) -> Response {
     response
 }
 
+/// 一覧の UI の form から来た要求の印。guard が付ける。付いた要求は、役割と workspace を置き場が決める。
+#[derive(Clone, Copy, Debug)]
+pub struct FromUi;
+
+/// 一覧の UI から上げた file の役割。
+pub const UI_ROLE: &str = "product-manager";
+
 /// この Mac の中からの要求だけを受ける。
 /// - `Host` が 127.0.0.1・localhost でなければ断る（外の site が名前を付け替えて届ける要求を防ぐ）。
 /// - 書く要求に `Origin` が付いていれば断る（browser の中のページからは置かせない。`curl` は付けない）。
-async fn guard(request: Request, next: Next) -> Response {
+///   例外は 1 つだけ: 一覧の UI の form が file を上げる要求（[`from_ui`]）。印 [`FromUi`] を付けて通す。
+async fn guard(mut request: Request, next: Next) -> Response {
     let host = request
         .headers()
         .get(header::HOST)
@@ -103,9 +111,34 @@ async fn guard(request: Request, next: Next) -> Response {
         && request.method() != Method::HEAD
         && request.headers().contains_key(header::ORIGIN)
     {
-        return error(StatusCode::FORBIDDEN, "browser の中のページからは置けない");
+        if !from_ui(&request) {
+            return error(StatusCode::FORBIDDEN, "browser の中のページからは置けない");
+        }
+        request.extensions_mut().insert(FromUi);
     }
     next.run(request).await
+}
+
+/// 一覧の UI の form が file を上げる要求か: `POST /api/files` で、`Origin` が `http://<Host（port も）>` と同じで、
+/// `Sec-Fetch-Site` が無いか `same-origin`。本文の枠の中のページ（`Origin: null`）や、ほかの site からは当たらない。
+fn from_ui(request: &Request) -> bool {
+    let headers = request.headers();
+    let text = |name| {
+        headers
+            .get(name)
+            .and_then(|v: &HeaderValue| v.to_str().ok())
+    };
+    let same_origin = match (text(header::ORIGIN), text(header::HOST)) {
+        (Some(origin), Some(host)) => origin.strip_prefix("http://") == Some(host),
+        _ => false,
+    };
+    request.method() == Method::POST
+        && request.uri().path() == "/api/files"
+        && same_origin
+        && matches!(
+            text(HeaderName::from_static("sec-fetch-site")),
+            None | Some("same-origin")
+        )
 }
 
 pub fn error(status: StatusCode, message: &str) -> Response {
