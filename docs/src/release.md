@@ -6,7 +6,7 @@ image は public で、だれでも pull して中を見られる。**出すの�
 2. main のその commit に tag を打って push する: `git tag v<version> && git push origin v<version>`。
 3. workflow の `check` が、tag と版が合うか・image の中身の一覧・設定・秘密の走査（下の「image に入る物」）・動くかを見る。**1 つでも落ちれば、`push` は動かない。**
 4. `push` が、確かめたその image（作り直さない）を `ghcr.io/uraitakahito/pagetray:v<version>` に置き、release に digest と中身の一覧を書く。同じ tag がもうあれば置かない。
-5. release の中身の一覧が「`pagetray` と空の `data` だけ」であることを見る（この時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまった時」をする）。
+5. release の中身の一覧が「`pagetray-server` と空の `data` だけ」であることを見る（この時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまった時」をする）。
 6. skills の `.pagetray-version` を上げる PR を出す（つなぎの試験が、その image に向けて通る）。
 
 - 出した tag は打ち直さない（digest が変わり、書き留めた値と合わなくなる）。直す時は、次の版を出す。
@@ -20,7 +20,7 @@ image は外に出す物なので、入ってよい物を決めてあり、CI（
 | 見る物 | 決まり | 書いてある所 |
 |---|---|---|
 | build の中に入る物 | 名指した source だけ（履歴・CI の設定・試験・手元の file は入れない） | `.dockerignore` |
-| image の file | binary 1 つと、空の `/data` だけ。layer は 2 枚 | `ci/image-contents.txt` |
+| image の file | binary 1 つ（`pagetray-server`）と、空の `/data` だけ。layer は 2 枚 | `ci/image-contents.txt` |
 | 設定 | 環境変数は DB の path と待ち受けの 2 つだけ。label は `org.opencontainers.image.source`・`version`・`revision` だけ。開ける port は 8080 だけ | `ci/check-image.sh` の頭 |
 | binary の中の字 | home の path・mail の形・秘密の鍵や token の頭が無い。gitleaks も掛ける（source にも） | `ci/strings-deny.txt`・`ci/strings-allow.txt` |
 

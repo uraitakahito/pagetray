@@ -7,6 +7,11 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+# サーバーの binary。人が打つ CLI（crates/cli）が `pagetray` の名を使うので、こちらは pagetray-server。
+[[bin]]
+name = "pagetray-server"
+path = "src/main.rs"
+
 [workspace]
 members = ["crates/api"]
 

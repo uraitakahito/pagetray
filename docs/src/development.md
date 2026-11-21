@@ -2,7 +2,7 @@
 
 | ファイル | 中身 |
 |---|---|
-| `src/main.rs` | 設定を読む・起こす・止める |
+| `src/main.rs` | 設定を読む・起こす・止める（binary の名は `pagetray-server`） |
 | `src/lib.rs` | 道筋と、この Mac の中からの要求だけを受ける守り |
 | `src/db.rs` | 接続・移行・SQL |
 | `src/api.rs` | 置く・探す・消す・DB の写し |
@@ -25,7 +25,7 @@ brew install rustup                              # keg-only。PATH に /opt/home
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 SQLX_OFFLINE=true cargo test --locked --workspace
-PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run   # 手元で起こす
+PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run --bin pagetray-server   # 手元で起こす
 ```
 
 GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験は、試験ごとに一時の DB を作る。workflow の `image` は、`Containerfile` を arm64 の runner で build し、[image に入る物](release.md#image-に入る物) を確かめ（`ci/check-image.sh`）、空の image の中で起きて置いて読めること・止める合図で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh`）。release の workflow も、同じ 2 つを push の前に流す。

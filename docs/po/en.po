@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T20:18:33+09:00\n"
+"POT-Creation-Date: 2026-11-21T20:23:40+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -1113,12 +1113,12 @@ msgstr ""
 
 #: src/release.md
 msgid ""
-"release の中身の一覧が「`pagetray` と空の `data` だけ」であることを見る（この"
-"時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまった時」を"
-"する）。"
+"release の中身の一覧が「`pagetray-server` と空の `data` だけ」であることを見"
+"る（この時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまっ"
+"た時」をする）。"
 msgstr ""
-"Check that the contents list in the release is \"only `pagetray` and an "
-"empty `data`\" (at this point the image is already public; if it differs, do "
+"Check that the contents list in the release is \"only `pagetray-server` and "
+"an empty `data`\" (at this point the image is already public; if it differs, do "
 "\"If something sensitive got out\" just below)."
 
 #: src/release.md
@@ -1206,8 +1206,8 @@ msgid "image の file"
 msgstr "Files in the image"
 
 #: src/release.md
-msgid "binary 1 つと、空の `/data` だけ。layer は 2 枚"
-msgstr "Only one binary and an empty `/data`. Two layers"
+msgid "binary 1 つ（`pagetray-server`）と、空の `/data` だけ。layer は 2 枚"
+msgstr "Only one binary (`pagetray-server`) and an empty `/data`. Two layers"
 
 #: src/release.md
 msgid "`ci/image-contents.txt`"
@@ -1295,8 +1295,10 @@ msgid "`src/main.rs`"
 msgstr "`src/main.rs`"
 
 #: src/development.md
-msgid "設定を読む・起こす・止める"
-msgstr "Reads the configuration, starts, and shuts down"
+msgid "設定を読む・起こす・止める（binary の名は `pagetray-server`）"
+msgstr ""
+"Reads the configuration, starts, and shuts down (the binary is named "
+"`pagetray-server`)"
 
 #: src/development.md
 msgid "`src/lib.rs`"
