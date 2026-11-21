@@ -1,4 +1,17 @@
-target
-*.db
-*.db-shm
-*.db-wal
+# build の中に入れる物を、名指した物だけにする（まずみな外し、要る物だけ通す）。
+# 履歴（.git）・CI の設定・試験・覚え書き・手元にだけある file を、build の段にも入れないため。
+# 足す時は、ci/image-contents.txt（出す image に入ってよい物）も見直す。
+*
+!src
+!templates
+!migrations
+!.sqlx
+!.cargo
+!Cargo.toml
+!Cargo.lock
+!build.rs
+!rust-toolchain.toml
+# 通した folder の中でも、DB は入れない。
+**/*.db
+**/*.db-shm
+**/*.db-wal

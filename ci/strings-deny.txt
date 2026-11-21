@@ -1,0 +1,10 @@
+# binary の中にあってはいけない字の形（grep -E の 1 行 1 つ）。足す・減らすは PR で。
+# home の path（build した人の名が入る）
+/Users/
+/home/
+# mail の形
+[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}
+# 秘密の鍵と token の頭
+BEGIN [A-Z ]*PRIVATE KEY
+gh[pousr]_[A-Za-z0-9]{30,}
+github_pat_
