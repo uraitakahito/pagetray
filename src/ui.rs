@@ -1,12 +1,13 @@
 //! 一覧の UI。サーバーが HTML を組んで返す。絞り込み・並べ替え・検索は link と form で動き、
-//! 条件は URL に出る。script は、新着の印・未読の印・時刻の表示だけに使う。
+//! 条件は URL に出る。script は、新着の印・未読の印・時刻の表示と、Key の画面で file を上げることに使う。
 
-use crate::api::page_path;
-use crate::db::{Count, Filter, PageMeta};
-use crate::{AppState, internal, pages};
+use crate::api::{is_segment, page_path};
+use crate::db::{Count, FileFilter, Filter, PageMeta};
+use crate::{AppState, MAX_FILE, internal, pages};
 use askama::Template;
 use axum::extract::{Path, Query, State};
 use axum::response::{Html, IntoResponse, Response};
+use pagetray_api::FILE_TYPES;
 use serde::Deserialize;
 
 /// 1 度に出す件数。続きは「続きを出す」の link で出す。
@@ -93,6 +94,33 @@ struct Row {
     time: String,
 }
 
+/// file の枠の、file 1 つ分。
+struct FileRow {
+    path: String,
+    /// `<語>-<n>.<拡張子>`。
+    name: String,
+    /// 同じ Key のページから参照する時の、相対の path（`files/<語>-<n>.<拡張子>`）。
+    reference: String,
+    ext: String,
+    image: bool,
+    size: String,
+    role: String,
+    created_at: String,
+    time: String,
+}
+
+/// Key の画面だけに出す物（file の枠と上げる枠）。
+struct KeyView {
+    project: String,
+    key: String,
+    files: Vec<FileRow>,
+    /// 上げられる拡張子と Content-Type の組の並び（JSON。並びは置き場が断る時の文と同じ）。script が送る前に見る。
+    types: String,
+    /// `accept` に書く拡張子（`.png,.jpg,…`）。
+    accept: String,
+    max: usize,
+}
+
 #[derive(Template)]
 #[template(path = "index.html")]
 struct Index {
@@ -110,6 +138,8 @@ struct Index {
     more_href: Option<String>,
     /// 本文の枠に出すページの path。
     viewer: Option<String>,
+    /// project と Key を 1 つずつ選んだ時（Key の画面）だけ。
+    key_view: Option<KeyView>,
 }
 
 pub async fn index(State(state): State<AppState>, Query(view): Query<View>) -> Response {
@@ -175,7 +205,11 @@ async fn render(state: AppState, mut view: View) -> Response {
         oldest_first,
         limit: PAGE_SIZE,
     };
-    let (pages, facets) = match tokio::try_join!(state.db.list(&filter), state.db.facets()) {
+    let (pages, facets, key_view) = match tokio::try_join!(
+        state.db.list(&filter),
+        state.db.facets(),
+        key_view(&state, &view)
+    ) {
         Ok(found) => found,
         Err(e) => return internal(e),
     };
@@ -252,6 +286,7 @@ async fn render(state: AppState, mut view: View) -> Response {
         rows: pages.into_iter().map(|meta| row(&view, meta)).collect(),
         more_href,
         viewer: view.open.clone(),
+        key_view,
     };
     match page.render() {
         Ok(html) => Html(html).into_response(),
@@ -272,13 +307,80 @@ fn row(view: &View, meta: PageMeta) -> Row {
         title: meta.title,
         role: meta.role,
         workspace: meta.workspace,
-        // 2026-11-21T04:45:22.472Z → 11-21 04:45
-        time: meta
-            .created_at
-            .get(5..16)
-            .unwrap_or_default()
-            .replace('T', " "),
+        time: short_time(&meta.created_at),
         created_at: meta.created_at,
+    }
+}
+
+/// project と Key を 1 つずつ選んでいれば、その Key の file（新しい順）と、上げる枠に要る物。
+async fn key_view(state: &AppState, view: &View) -> Result<Option<KeyView>, sqlx::Error> {
+    let (Some(project), Some(key)) = (&view.project, &view.key) else {
+        return Ok(None);
+    };
+    if !is_segment(project) || !is_segment(key) || project == "api" {
+        return Ok(None);
+    }
+    let filter = FileFilter {
+        project: Some(project.clone()),
+        key: Some(key.clone()),
+        role: None,
+        workspace: None,
+        q: None,
+        before: None,
+        after: None,
+        oldest_first: false,
+        limit: PAGE_SIZE,
+    };
+    let files = state.db.list_files(&filter).await?;
+    let types: Vec<(&str, &str)> = FILE_TYPES
+        .iter()
+        .map(|&(ext, mime, _)| (ext, mime))
+        .collect();
+    let accept: Vec<String> = FILE_TYPES
+        .iter()
+        .map(|(ext, _, _)| format!(".{ext}"))
+        .collect();
+    Ok(Some(KeyView {
+        project: project.clone(),
+        key: key.clone(),
+        files: files
+            .into_iter()
+            .map(|f| {
+                let name = format!("{}-{}.{}", f.name, f.n, f.ext);
+                FileRow {
+                    reference: format!("files/{name}"),
+                    name,
+                    image: f.r#type.starts_with("image/"),
+                    size: size(f.size),
+                    time: short_time(&f.created_at),
+                    path: f.path,
+                    ext: f.ext,
+                    role: f.role,
+                    created_at: f.created_at,
+                }
+            })
+            .collect(),
+        types: serde_json::to_string(&types).unwrap_or_default(),
+        accept: accept.join(","),
+        max: MAX_FILE,
+    }))
+}
+
+/// 2026-11-21T04:45:22.472Z → 11-21 04:45（script が動かない時に出す、UTC の時刻）
+fn short_time(at: &str) -> String {
+    at.get(5..16).unwrap_or_default().replace('T', " ")
+}
+
+/// 人が読む大きさ（`512 B`・`47.1 KiB`・`3.2 MiB`）。
+fn size(bytes: i64) -> String {
+    const KIB: f64 = 1024.0;
+    let b = bytes as f64;
+    if b < KIB {
+        format!("{bytes} B")
+    } else if b < KIB * KIB {
+        format!("{:.1} KiB", b / KIB)
+    } else {
+        format!("{:.1} MiB", b / KIB / KIB)
     }
 }
 
@@ -313,5 +415,12 @@ mod tests {
         );
         assert_eq!(view.with(|v| v.q = None), "/?role=tpm");
         assert_eq!(View::default().href(), "/");
+    }
+
+    #[test]
+    fn sizes_read_as_bytes_kib_and_mib() {
+        assert_eq!(size(512), "512 B");
+        assert_eq!(size(48213), "47.1 KiB");
+        assert_eq!(size(3 * 1024 * 1024 + 200 * 1024), "3.2 MiB");
     }
 }

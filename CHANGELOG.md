@@ -15,6 +15,10 @@ API の版: 1（変わらない。エンドポイントを足しただけ。呼�
   - `file put` は、画像と PDF を `--reviewed` が無いと置かない。字の file は秘密の形（token・鍵の頭）を探し、当たれば置かずに行の番号を出す（`--allow-secret` で置ける）。JPEG に EXIF があれば知らせる。どれも置き場に送る前に止まる。
   - `file delete` は、`page delete` と同じく `--yes` を付けた時だけ消し、`PAGETRAY_NO_DELETE` で止まる。
   - `file put` は、0.4.0 より前の置き場（`/api/files` が無い）には置けない（置き場が断り、code 1 で止まる）。
+- 一覧の UI の Key の画面（`/<project>/<key>/` など）に、file の枠（`#files`。その Key の file の図の見本・名・大きさ・上げた人・時刻・参照の path）と、上げる枠（`#upload`）を足した。
+  - 上げる枠は、file を選ぶか落とすと見本（図・字の頭の 20 行・PDF は名と大きさ）を出し、「秘密が写っていないか見た」に印を付けるまで送れない。拡張子と 16 MiB は送る前に見る。
+  - 守りを 1 か所だけ緩めた: `POST /api/files` は、`Origin` が `http://<要求の Host>` と同じで `Sec-Fetch-Site` が無いか `same-origin` なら通す。その時は、引数に関わらず役割 `product-manager`・workspace 空で記録し、`n`・`created_at` は読まない。`Origin: null`・ほかの port や名・ほかの道（`POST /api/pages`・`DELETE`）は前のまま `403`。
+  - `POST /api/files` の `role` が無い時の答えが、axum の字から JSON の `400`（`{"error":…}`）に替わった（code は前と同じ `400`）。
 - 文書の本を、本物の browser で見る試験（`e2e/docs-tests/`）を足した。検索・言葉の切り替え・図が動くかを、CI の job `docs` が見る。
 
 ## 0.3.2

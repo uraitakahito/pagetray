@@ -2,12 +2,12 @@
 
 use crate::db::{FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Target};
 use crate::events::Note;
-use crate::{AppState, error, internal, text};
-use axum::Json;
+use crate::{AppState, FromUi, UI_ROLE, error, internal, text};
 use axum::body::{Body, Bytes};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use axum::{Extension, Json};
 use pagetray_api::{FILE_TYPES, file_type, is_timestamp, is_workspace, sniff, split_file_name};
 pub use pagetray_api::{is_name, is_segment, page_path};
 use serde::{Deserialize, Serialize};
@@ -223,6 +223,8 @@ pub struct PutFileParams {
     key: String,
     /// `<語>.<拡張子>`。番号はサーバーが付ける。
     name: String,
+    /// 一覧の UI からの要求（[`FromUi`]）では読まない。
+    #[serde(default)]
     role: String,
     #[serde(default)]
     workspace: String,
@@ -234,12 +236,21 @@ const FILE_NAME_RULE: &str =
     "name は <語>.<拡張子>。語は英小文字・数字・- _ で 64 字まで（英小文字か数字で始まる）";
 
 /// file を置く（`POST /api/files?project=…&key=…&name=<語>.<拡張子>&role=…`）。本文は中身そのもの。
+/// 一覧の UI から上げた物は、引数に何が書いてあっても、役割 `product-manager`・workspace 空で記録する
+/// （browser から担当を名乗らせない）。番号と時刻も、置き場が決める。
 pub async fn put_file(
     State(state): State<AppState>,
-    Query(p): Query<PutFileParams>,
+    ui: Option<Extension<FromUi>>,
+    Query(mut p): Query<PutFileParams>,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response {
+    if ui.is_some() {
+        p.role = UI_ROLE.to_owned();
+        p.workspace = String::new();
+        p.n = None;
+        p.created_at = None;
+    }
     let checks = [
         (
             is_segment(&p.project) && p.project != "api",

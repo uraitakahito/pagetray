@@ -197,6 +197,52 @@ msgstr "`GET /<project>/<key>/<kind>-<n>.html`"
 msgid "本文。無ければ `404`、消したページは `410`"
 msgstr "The body. `404` if it does not exist, `410` for a deleted page"
 
+#: src/index.md
+msgid "`POST /api/files?project=&key=&name=&role=&workspace=`"
+msgstr "`POST /api/files?project=&key=&name=&role=&workspace=`"
+
+#: src/index.md
+msgid ""
+"本文は file の中身（`Content-Type` が要る）。`name` は `<語>.<拡張子>` で、番"
+"号を決めて `201` と JSON を返す。受けない種類は `415`、16 MiB を超えれば "
+"`413`"
+msgstr ""
+"The body is the file contents (`Content-Type` is required). `name` is "
+"`<stem>.<ext>`; the server picks the number and returns `201` with JSON. "
+"Types not accepted get `415`, and over 16 MiB gets `413`"
+
+#: src/index.md
+msgid "`GET /api/files`"
+msgstr "`GET /api/files`"
+
+#: src/index.md
+msgid ""
+"`project`・`key`・`role`・`workspace`・`q`・`sort`・`limit`・`before`・"
+"`after` で絞る。`{\"files\":[…]}`"
+msgstr ""
+"Filter by `project`, `key`, `role`, `workspace`, `q`, `sort`, `limit`, "
+"`before`, and `after`. Returns `{\"files\":[…]}`"
+
+#: src/index.md
+msgid "`DELETE /api/files?project=[&key=][&name=][&n=]`"
+msgstr "`DELETE /api/files?project=[&key=][&name=][&n=]`"
+
+#: src/index.md
+msgid ""
+"合う file を消し、番号を表 `files_removed` に残して、消した path の一覧を返"
+"す。人は見分けない"
+msgstr ""
+"Deletes the matching files, keeps their numbers in the `files_removed` "
+"table, and returns the list of deleted paths. It does not tell people apart"
+
+#: src/index.md
+msgid "`GET /<project>/<key>/files/<語>-<n>.<拡張子>`"
+msgstr "`GET /<project>/<key>/files/<stem>-<n>.<ext>`"
+
+#: src/index.md
+msgid "file の中身。無ければ `404`、消した file は `410`"
+msgstr "The file contents. `404` if missing, `410` if the file was deleted"
+
 #: src/index.md src/api.md
 msgid "`GET /`・`/<project>/`・`/<project>/<key>/`"
 msgstr "`GET /`, `/<project>/`, `/<project>/<key>/`"
@@ -210,8 +256,10 @@ msgid "`GET /api/events`"
 msgstr "`GET /api/events`"
 
 #: src/index.md
-msgid "置かれるたびに 1 件を push（SSE）"
-msgstr "Pushes one event each time a page is put (SSE)"
+msgid "置かれるたびに 1 件を push（SSE。file は `event: file`）"
+msgstr ""
+"Pushes one record each time something is placed (SSE; files use `event: "
+"file`)"
 
 #: src/index.md src/api.md
 msgid "`GET /api/backup`"
@@ -244,10 +292,15 @@ msgstr "Whether it is alive"
 #: src/index.md
 msgid ""
 "**この Mac の中からだけ**: `Host` が `127.0.0.1`・`localhost` でない要求と、"
-"`Origin` の付いた書く要求は断る。"
+"`Origin` の付いた書く要求は断る。例外は、一覧の UI が同じ `Origin` から file "
+"を上げる `POST /api/files` だけ（役割は `product-manager` で記録する。[API の"
+"仕様](api.md) の「共通」）。"
 msgstr ""
 "**Only from this Mac**: requests whose `Host` is not `127.0.0.1` or "
-"`localhost`, and write requests that carry an `Origin`, are rejected."
+"`localhost`, and write requests that carry an `Origin`, are rejected. The "
+"one exception is `POST /api/files` from the list UI at the same `Origin`, to "
+"upload a file (recorded with the role `product-manager`; see \"Common "
+"rules\" in the [API specification](api.md))."
 
 #: src/index.md
 msgid ""
@@ -262,19 +315,23 @@ msgstr ""
 msgid ""
 "**一覧の UI**: サーバーが HTML を組んで返す。絞り込み・並べ替え・検索は link "
 "と form で、条件は URL に出る（script が無くても動く）。script がするのは、新"
-"着の印・未読の印（browser が覚える）・時刻をこの Mac の時刻で出すことだけ。画"
-"面は 4 つの区画（操作の帯・絞り込みの列・一覧の列・本文の枠）でできていて、選"
-"んだページは、本文の枠（`sandbox` を付けた iframe）に 1 枚だけ出す。語の意味"
-"は [用語集](glossary.md)。"
+"着の印・未読の印（browser が覚える）・時刻をこの Mac の時刻で出すことと、"
+"file を上げることだけ。画面は 4 つの区画（操作の帯・絞り込みの列・一覧の列・"
+"本文の枠）でできていて、選んだページは、本文の枠（`sandbox` を付けた iframe）"
+"に 1 枚だけ出す。Key の画面（project と Key を 1 つずつ選んだ時）には、file "
+"の枠と上げる枠が足される（[動かす](run.md) の「一覧の UI から file を上げ"
+"る」）。語の意味は [用語集](glossary.md)。"
 msgstr ""
 "**List UI**: the server builds the HTML and returns it. Filtering, sorting, "
 "and search use links and forms, and the conditions appear in the URL (it "
 "works without script). The script only handles the new-arrival marks, the "
-"unread marks (remembered by the browser), and showing times in this Mac's "
-"time. The screen is made of four regions (the toolbar, the filter column, "
-"the list column, and the viewer), and the selected page is shown, one at a "
-"time, in the viewer (an iframe with `sandbox`). For what the terms mean, see "
-"the [Glossary](glossary.md)."
+"unread marks (remembered by the browser), showing times in this Mac's time, "
+"and uploading files. The screen is made of four regions (the toolbar, the "
+"filter column, the list column, and the viewer), and the selected page is "
+"shown, one at a time, in the viewer (an iframe with `sandbox`). The Key view "
+"(one project and one Key chosen) adds the file box and the upload box (see "
+"\"Uploading a file from the list UI\" in [Running](run.md)). For what the "
+"terms mean, see the [Glossary](glossary.md)."
 
 #: src/index.md
 msgid ""
@@ -511,6 +568,82 @@ msgstr "\"$PWD/pagetray-smoke\""
 #: src/run.md
 msgid "http://127.0.0.1:8801"
 msgstr "http://127.0.0.1:8801"
+
+#: src/run.md
+msgid "一覧の UI から file を上げる"
+msgstr "Uploading a file from the list UI"
+
+#: src/run.md
+msgid ""
+"人（Product Manager）が、画面の絵などを担当に渡す道。担当は `tpm file put` で"
+"上げる。"
+msgstr ""
+"The way for a person (the Product Manager) to hand screenshots and the like "
+"to the roles. The roles upload with `tpm file put`."
+
+#: src/run.md
+msgid ""
+"browser で Key の画面（`http://127.0.0.1:8801/<project>/<key>/`。一覧で "
+"project と Key の候補を 1 つずつ押してもよい）を開く。一覧の列の下に、file の"
+"枠（その Key の file）と上げる枠が出る。"
+msgstr ""
+"Open the Key view in a browser (`http://127.0.0.1:8801/<project>/<key>/`; "
+"you can also click one project choice and one Key choice in the list). Below "
+"the list column, the file box (the files of that Key) and the upload box "
+"appear."
+
+#: src/run.md
+msgid ""
+"上げる枠で file を選ぶか、枠に落とす。受けるのは png・jpg・jpeg・gif・webp・"
+"pdf・txt・log・md・csv・json で、1 つ 16 MiB まで（ほかは送る前に断る）。名"
+"は、元の名から CLI と同じ作り方で付く（`Screen Shot 1.PNG` → `screen-"
+"shot-1.png`）。"
+msgstr ""
+"Choose a file in the upload box, or drop it on the box. Accepted are png, "
+"jpg, jpeg, gif, webp, pdf, txt, log, md, csv, and json, up to 16 MiB each "
+"(anything else is refused before sending). The name is made from the "
+"original name the same way as the CLI does (`Screen Shot 1.PNG` → `screen-"
+"shot-1.png`)."
+
+#: src/run.md
+msgid ""
+"見本を見る（図はその図、字の file は頭の 20 行、PDF は名と大きさ）。token・"
+"鍵・個人の情報・ほかの人の画面が写っていないかを見て、「秘密（token・鍵・個人"
+"の情報・ほかの人の画面）が写っていないか見た」に印を付ける。印を付けるまで"
+"「送る」は押せない。"
+msgstr ""
+"Look at the preview (an image shows itself, a text file its first 20 lines, "
+"a PDF its name and size). Check that no token, key, personal information, or "
+"other people's screens are in it, then tick \"I checked that no secrets "
+"(tokens, keys, personal information, other people's screens) are in it\". "
+"The send button stays disabled until you tick it."
+
+#: src/run.md
+msgid ""
+"「送る」を押すと、ページから参照する path（`files/screen-shot-1-1.png` など）"
+"が出て、file の枠に足される。この path を担当に伝える。"
+msgstr ""
+"Press send. The path a page uses to refer to the file (such as `files/screen-"
+"shot-1-1.png`) is shown, and the file is added to the file box. Tell this "
+"path to the role."
+
+#: src/run.md
+msgid ""
+"一覧の UI から上げた file は、役割 `product-manager` で記録される（[API の仕"
+"様](api.md) の「共通」）。"
+msgstr ""
+"A file uploaded from the list UI is recorded with the role `product-manager` "
+"(see \"Common rules\" in the [API specification](api.md))."
+
+#: src/run.md
+msgid "画面から消すことはできない。消すのは TPM 担当に頼む。"
+msgstr ""
+"Files cannot be removed from the screen. Ask the TPM role to remove them."
+
+#: src/run.md
+msgid "上げるのには script が要る。script が無くても、file の枠は読める。"
+msgstr ""
+"Uploading needs script. Without script, the file box can still be read."
 
 #: src/run.md
 msgid "DB の写しを取る"
@@ -1458,6 +1591,25 @@ msgstr ""
 "cannot write)."
 
 #: src/api.md
+msgid ""
+"その例外は 1 つだけ: 一覧の UI の Key の画面から file を上げる要求。`POST /"
+"api/files` で、`Origin` が `http://<要求の Host（port も）>` とそのまま同じ"
+"で、header `Sec-Fetch-Site` が無いか `same-origin` の時だけ通す。`Origin: "
+"null`（本文の枠の中のページ）・ほかの port・ほかの名・`https://`・`Sec-Fetch-"
+"Site: cross-site` は `403`。同じ `Origin` でも、ほかの道（`POST /api/pages`・"
+"どの `DELETE` も）は `403`（一覧の UI からは、ページを置けず、何も消せな"
+"い）。"
+msgstr ""
+"There is exactly one exception: a file upload from the Key view of the list "
+"UI. It is let through only for `POST /api/files` whose `Origin` is exactly "
+"`http://<the request's Host (with the port)>` and whose `Sec-Fetch-Site` "
+"header is missing or `same-origin`. `Origin: null` (a page inside the "
+"viewer), another port, another name, `https://`, and `Sec-Fetch-Site: cross-"
+"site` get `403`. Even with the same `Origin`, other routes (`POST /api/"
+"pages` and any `DELETE`) get `403` (the list UI cannot put pages or remove "
+"anything)."
+
+#: src/api.md
 msgid "誤りの答えは `{\"error\":\"<人が読む文>\"}`。"
 msgstr "An error response is `{\"error\":\"<human-readable message>\"}`."
 
@@ -2005,6 +2157,19 @@ msgstr ""
 "`415`: the extension is not accepted, the media type of `Content-Type` (the "
 "part before `;`, compared case-insensitively) differs from the extension's, "
 "or the contents do not match the extension."
+
+#: src/api.md
+msgid ""
+"一覧の UI から上げた物（上の「共通」の例外）は、引数に何が書いてあっても、"
+"`role` を `product-manager`、`workspace` を空で記録する（browser から担当を名"
+"乗らせない）。`n`・`created_at` も読まない（番号と時刻は置き場が決める）。"
+"`role` は書かなくてよい。"
+msgstr ""
+"An upload from the list UI (the exception under \"Common rules\" above) is "
+"recorded with `role` `product-manager` and an empty `workspace`, whatever "
+"the arguments say (a browser cannot claim to be a role). `n` and "
+"`created_at` are ignored too (the store decides the number and the time). "
+"`role` may be left out."
 
 #: src/api.md
 msgid "`GET /api/files` — file を探す"
@@ -2868,15 +3033,19 @@ msgstr ""
 #: src/development.md
 msgid ""
 "**試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の "
-"`place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠）は "
-"`helpers.ts` の関数で選ぶ。試験は同じ置き場に 1 本ずつ順に流れるので、試験ご"
-"とに別の project の名を使う。新着の印を見る試験は、`openLive` で開いてから置"
-"く（知らせにつながる前に置いたページの知らせは届かない）。大きな file は試験"
-"の中で作り、repo に置かない。"
+"`place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠と、Key の画"
+"面の file の枠・上げる枠）は `helpers.ts` の関数で選ぶ。file は `placeFile` "
+"で置き、上げる枠の試験は `input[type=file]` に `setInputFiles` で file を渡"
+"す。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を"
+"使う。新着の印を見る試験は、`openLive` で開いてから置く（知らせにつながる前に"
+"置いたページの知らせは届かない）。大きな file は試験の中で作り、repo に置かな"
+"い。"
 msgstr ""
 "**Adding tests**: Add a `*.spec.ts` under `e2e/tests/`. Put pages with "
 "`place` from `helpers.ts`, and select the regions (toolbar, filters, list, "
-"viewer) with the functions in `helpers.ts`. The tests run one at a time "
+"viewer, and the Key view's file box and upload box) with the functions in "
+"`helpers.ts`. Put files with `placeFile`; a test of the upload box hands a "
+"file to `input[type=file]` with `setInputFiles`. The tests run one at a time "
 "against the same store, so use a different project name in each test. A test "
 "that looks at the new-page badge opens the UI with `openLive` before putting "
 "a page (the notice for a page put before the connection is made never "
@@ -2885,14 +3054,15 @@ msgstr ""
 #: src/development.md
 msgid ""
 "**template を変えた時**: `templates/index.html` を変えたら、この試験も流す。"
-"試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`、"
-"`#fresh`、`li[data-path]`、絞り込みの列の見出しの字など）を変える時は、同じ "
-"PR で `helpers.ts` も直す。"
+"試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・"
+"`files`・`upload`、`#fresh`、`li[data-path]`、絞り込みの列の見出しの字など）"
+"を変える時は、同じ PR で `helpers.ts` も直す。"
 msgstr ""
 "**When you change the template**: After changing `templates/index.html`, run "
 "these tests too. When you change something the tests select by (the region "
-"ids `toolbar`, `filters`, `list`, and `viewer`, `#fresh`, `li[data-path]`, "
-"the heading text of the filters, and so on), fix `helpers.ts` in the same PR."
+"ids `toolbar`, `filters`, `list`, `viewer`, `files`, and `upload`, `#fresh`, "
+"`li[data-path]`, the heading text of the filters, and so on), fix "
+"`helpers.ts` in the same PR."
 
 #: src/development.md
 msgid ""
@@ -3563,6 +3733,69 @@ msgstr ""
 #: src/glossary.md
 msgid "右の枠"
 msgstr "right frame, preview"
+
+#: src/glossary.md
+msgid "Key の画面（Key view）"
+msgstr "Key view"
+
+#: src/glossary.md
+msgid "`KeyView`"
+msgstr "`KeyView`"
+
+#: src/glossary.md
+msgid ""
+"project と Key を 1 つずつ選んだ一覧の UI（`/<project>/<key>/` など）。file "
+"の枠と上げる枠が足される"
+msgstr ""
+"The list UI with exactly one project and one Key chosen (such as `/<project>/"
+"<key>/`). It adds the file box and the upload box"
+
+#: src/glossary.md
+msgid "file の枠（file box）"
+msgstr "file box"
+
+#: src/glossary.md
+msgid "`#files`"
+msgstr "`#files`"
+
+#: src/glossary.md
+msgid ""
+"Key の画面で、一覧の列の下に出る枠。その Key の file が、図の見本・名・大き"
+"さ・上げた人・時刻・ページから参照する path と並ぶ"
+msgstr ""
+"The box below the list column in the Key view. It lists the files of that "
+"Key with a thumbnail, the name, the size, who uploaded it, the time, and the "
+"path a page uses to refer to it"
+
+#: src/glossary.md
+msgid "上げる枠（upload box）"
+msgstr "upload box"
+
+#: src/glossary.md
+msgid "`#upload`"
+msgstr "`#upload`"
+
+#: src/glossary.md
+msgid ""
+"Key の画面で、file の枠の下に出る枠。file を選ぶか落とし、見本を見て、見た印"
+"を付けてから送る"
+msgstr ""
+"The box below the file box in the Key view. You choose or drop a file, look "
+"at the preview, and send it after ticking the reviewed check"
+
+#: src/glossary.md
+msgid "見た印（reviewed check）"
+msgstr "reviewed check"
+
+#: src/glossary.md
+msgid "`reviewed`"
+msgstr "`reviewed`"
+
+#: src/glossary.md
+msgid "上げる枠の「秘密が写っていないか見た」の check。付けるまで送れない"
+msgstr ""
+"The \"I checked that no secrets are in it\" checkbox in the upload box. "
+"Nothing can be sent until it is ticked"
 
 #: src/glossary.md
 msgid "絞り込み（filter）"

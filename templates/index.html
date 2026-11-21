@@ -9,6 +9,7 @@
 :root{--bg:#f7f8fa;--fg:#1d2430;--muted:#5b6575;--line:#d9dee6;--accent:#2f5fa8;--card:#fff;--on:#e3ecfa;--new:#1f7a4d}
 @media (prefers-color-scheme:dark){:root{--bg:#151a22;--fg:#e4e8ee;--muted:#9aa4b4;--line:#2c3542;--accent:#7fa6e6;--card:#1b212b;--on:#243450;--new:#5cc18f;color-scheme:dark}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;display:grid;grid-template-rows:auto 1fr}
 a{color:inherit;text-decoration:none}
@@ -17,6 +18,7 @@ header h1{font-size:1rem;margin:0}
 header form{display:flex;gap:6px;flex:1 1 12rem;min-width:0;max-width:32rem}
 input[type=search]{flex:1;min-width:0;padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit}
 button,.btn{padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;cursor:pointer;white-space:nowrap}
+button:disabled{opacity:.5;cursor:not-allowed}
 #fresh{color:var(--new);font-weight:700;border-color:var(--new)}
 main{display:grid;grid-template-columns:15rem 23rem 1fr;min-height:0}
 main>*{min-height:0;overflow:auto;border-right:1px solid var(--line)}
@@ -40,6 +42,25 @@ section{display:grid;grid-template-rows:auto 1fr;border-right:0}
 section p{margin:0;padding:6px 12px;font-size:.8rem;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:12px;justify-content:space-between}
 section p a{color:var(--accent)}
 iframe{width:100%;height:100%;border:0;background:#fff}
+.box{border-top:1px solid var(--line);padding:8px 12px}
+.box h2{font-size:.8rem;color:var(--muted);margin:0 0 6px}
+.files{list-style:none;margin:0;padding:0}
+.files li{display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--line)}
+.files .thumb{flex:none;width:48px;height:48px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:var(--bg);overflow:hidden;color:var(--muted);font-size:.7rem;text-transform:uppercase}
+.files .thumb img{max-width:100%;max-height:100%}
+.files .meta{min-width:0;display:flex;flex-direction:column}
+.files .name{color:var(--accent);font-weight:700;overflow-wrap:anywhere}
+.files .who{font-size:.75rem;color:var(--muted)}
+code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:anywhere}
+#upload form{display:flex;flex-direction:column;gap:6px}
+#upload .drop{display:block;padding:12px;border:2px dashed var(--line);border-radius:6px;text-align:center;color:var(--muted)}
+#upload .drop.over{border-color:var(--accent);background:var(--on)}
+#upload .drop input{display:block;margin:6px auto 0;max-width:100%}
+#upload .preview img{max-width:100%;max-height:12rem;display:block}
+#upload pre{margin:0;max-height:12rem;overflow:auto;font-size:.75rem;background:var(--bg);border:1px solid var(--line);padding:4px}
+#upload .say{margin:0;font-size:.8rem}
+#upload .bad{color:#b3261e}
+@media (prefers-color-scheme:dark){ #upload .bad{color:#f2b8b5}}
 @media (max-width:900px){body{height:auto;display:block}main{display:block}main>*{border-right:0;border-bottom:1px solid var(--line)}nav{max-height:14rem}iframe{height:80vh}}
 </style>
 </head>
@@ -62,6 +83,7 @@ iframe{width:100%;height:100%;border:0;background:#fff}
 {% for c in group.choices %}<li><a href="{{ c.href }}"{% if c.active %} class="on" aria-current="true"{% endif %}><span>{{ c.label }}{% if !c.note.is_empty() %}<small>{{ c.note }}</small>{% endif %}</span><span class="n">{{ c.count }}</span></a></li>
 {% endfor %}</ul>
 {% endif %}{% endfor %}</nav>
+<div class="middle">
 <div id="list" role="region" aria-label="一覧の列">
 <ul class="rows">
 {% for r in rows %}<li data-path="{{ r.path }}" data-at="{{ r.created_at }}"><a href="{{ r.href }}"{% if r.active %} class="on" aria-current="true"{% endif %}><span class="top"><time datetime="{{ r.created_at }}">{{ r.time }}</time><span>{{ r.key }}</span><span class="name">{{ r.name }}</span></span><span class="title">{% if r.title.is_empty() %}（題なし）{% else %}{{ r.title }}{% endif %}</span><span class="who">{{ r.role }}{% if !r.workspace.is_empty() %} ・ {{ r.workspace }}{% endif %}</span></a></li>
@@ -69,6 +91,25 @@ iframe{width:100%;height:100%;border:0;background:#fff}
 {% if rows.is_empty() %}<span class="empty">合うページは無い</span>{% endif %}
 {% if let Some(href) = more_href %}<a class="more" href="{{ href }}">続きを出す</a>{% endif %}
 </div>
+{% if let Some(k) = key_view %}<div id="files" class="box" role="region" aria-label="file の枠">
+<h2>この Key の file</h2>
+<ul class="files">
+{% for f in k.files %}<li data-file="{{ f.path }}"><a class="thumb" href="{{ f.path }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">{% if f.image %}<img src="{{ f.path }}" loading="lazy" alt="">{% else %}{{ f.ext }}{% endif %}</a><span class="meta"><a class="name" href="{{ f.path }}" target="_blank" rel="noopener">{{ f.name }}</a><span class="who">{{ f.size }} ・ {{ f.role }} ・ <time datetime="{{ f.created_at }}">{{ f.time }}</time></span><code class="ref">{{ f.reference }}</code></span></li>
+{% endfor %}</ul>
+{% if k.files.is_empty() %}<span class="empty">この Key の file は無い</span>{% endif %}
+</div>
+<div id="upload" class="box" role="region" aria-label="上げる枠" data-project="{{ k.project }}" data-key="{{ k.key }}" data-types="{{ k.types }}" data-max="{{ k.max }}">
+<h2>file を上げる</h2>
+<p class="say nojs">上げるには script が要る。</p>
+<form hidden>
+<label class="drop">file を選ぶか、ここに落とす<input type="file" accept="{{ k.accept }}"></label>
+<div class="preview" hidden></div>
+<label><input type="checkbox" name="reviewed" required> 秘密（token・鍵・個人の情報・ほかの人の画面）が写っていないか見た</label>
+<button type="submit" disabled>送る</button>
+<p class="say" role="status"></p>
+</form>
+</div>
+{% endif %}</div>
 <section id="viewer" aria-label="本文の枠">
 {% if let Some(path) = viewer %}<p><span>{{ path }}</span><a href="{{ path }}" target="_blank" rel="noopener">別の tab で開く</a></p>
 <iframe src="{{ path }}" sandbox="allow-scripts" title="選んだページ"></iframe>
@@ -76,13 +117,17 @@ iframe{width:100%;height:100%;border:0;background:#fff}
 {% endif %}</section>
 </main>
 <script>
-// script が無くても一覧は動く。ここでするのは、新着の印・未読の印・時刻をこの Mac の時刻で出すことだけ。
+// script が無くても一覧は動く。ここでするのは、新着の印・未読の印・時刻をこの Mac の時刻で出すことと、
+// Key の画面で file を上げること。
 (() => {
   const two = (n) => String(n).padStart(2, "0");
-  for (const t of document.querySelectorAll("time[datetime]")) {
-    const d = new Date(t.dateTime);
-    if (!isNaN(d)) t.textContent = `${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
-  }
+  const localTimes = (root) => {
+    for (const t of root.querySelectorAll("time[datetime]")) {
+      const d = new Date(t.dateTime);
+      if (!isNaN(d)) t.textContent = `${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
+    }
+  };
+  localTimes(document);
   // 未読: 初めて開いた時より後に置かれ、まだ本文の枠に出していないページ。browser が覚える。
   try {
     const store = localStorage;
@@ -104,12 +149,157 @@ iframe{width:100%;height:100%;border:0;background:#fff}
   const fresh = document.getElementById("fresh");
   const title = document.title;
   let count = 0;
-  new EventSource("/api/events").onmessage = () => {
+  const events = new EventSource("/api/events");
+  events.onmessage = () => {
     count += 1;
     fresh.hidden = false;
     fresh.textContent = `● 新着 ${count} 件（読み直す）`;
     document.title = `(${count}) ${title}`;
   };
+
+  // 上げる枠（Key の画面だけ）。送る前に、拡張子・大きさを見て、見本を出し、秘密が写っていないか見た印を求める。
+  const upload = document.getElementById("upload");
+  const shelf = document.getElementById("files");
+  if (!upload || !shelf) return;
+  const { project, key } = upload.dataset;
+  const types = new Map(JSON.parse(upload.dataset.types));
+  const max = Number(upload.dataset.max);
+  const form = upload.querySelector("form");
+  const drop = form.querySelector(".drop");
+  const input = form.querySelector("input[type=file]");
+  const preview = form.querySelector(".preview");
+  const reviewed = form.querySelector("input[name=reviewed]");
+  const send = form.querySelector("button");
+  const say = form.querySelector(".say");
+  form.hidden = false;
+  upload.querySelector(".nojs").remove();
+  let chosen = null;
+  let shown = null;
+
+  const size = (n) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KiB` : `${(n / 1024 / 1024).toFixed(1)} MiB`);
+  const tell = (text, bad) => {
+    say.textContent = text;
+    say.classList.toggle("bad", !!bad);
+  };
+  // 名の語は CLI と同じ作り方: 英小文字にし、英小文字・数字・- _ のほかが続く所を - 1 つにし、
+  // 頭の - _ と尻の - を除いて 64 字に切る。字が残らなければ file。
+  const stemOf = (base) => {
+    let out = "";
+    for (const c of base.replace(/[A-Z]/g, (x) => x.toLowerCase())) {
+      if (/[a-z0-9_-]/.test(c)) out += c;
+      else if (!out.endsWith("-")) out += "-";
+    }
+    out = [...out.replace(/^[-_]+/, "")].slice(0, 64).join("").replace(/-+$/, "");
+    return out || "file";
+  };
+  const refresh = async () => {
+    // file の枠は、サーバーが組んだ HTML を読み直して差し替える（行の作りを 2 か所に持たない）。
+    const html = await (await fetch(location.href)).text();
+    const next = new DOMParser().parseFromString(html, "text/html").getElementById("files");
+    if (next) {
+      shelf.innerHTML = next.innerHTML;
+      localTimes(shelf);
+    }
+  };
+  const reset = () => {
+    chosen = null;
+    reviewed.checked = false;
+    send.disabled = true;
+    preview.hidden = true;
+    preview.replaceChildren();
+    if (shown) URL.revokeObjectURL(shown);
+    shown = null;
+  };
+  const choose = async (file) => {
+    reset();
+    tell("");
+    if (!file) return;
+    const dot = file.name.lastIndexOf(".");
+    const ext = dot > 0 ? file.name.slice(dot + 1).replace(/[A-Z]/g, (x) => x.toLowerCase()) : "";
+    if (!types.has(ext)) {
+      tell(`.${ext || "（拡張子なし）"} は上げられない。上げられるのは ${[...types.keys()].join("・")}`, true);
+      return;
+    }
+    if (file.size > max) {
+      tell(`${size(file.size)} は大きすぎる。1 つ ${size(max)} まで`, true);
+      return;
+    }
+    if (file.size === 0) {
+      tell("中身が空", true);
+      return;
+    }
+    const type = types.get(ext);
+    const name = `${stemOf(file.name.slice(0, dot))}.${ext}`;
+    const head = document.createElement("p");
+    head.className = "say";
+    head.textContent = `${file.name}（${size(file.size)}）→ ${name}`;
+    preview.append(head);
+    if (type.startsWith("image/")) {
+      const img = document.createElement("img");
+      shown = URL.createObjectURL(file);
+      img.src = shown;
+      img.alt = "上げる図の見本";
+      preview.append(img);
+    } else if (type !== "application/pdf") {
+      const pre = document.createElement("pre");
+      const text = await file.slice(0, 64 * 1024).text();
+      pre.textContent = text.split("\n").slice(0, 20).join("\n");
+      preview.append(pre);
+    }
+    preview.hidden = false;
+    chosen = { file, name, type };
+  };
+
+  input.addEventListener("change", () => choose(input.files[0]));
+  reviewed.addEventListener("change", () => {
+    send.disabled = !(chosen && reviewed.checked);
+  });
+  drop.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    drop.classList.add("over");
+  });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    drop.classList.remove("over");
+    input.files = e.dataTransfer.files;
+    choose(input.files[0]);
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!chosen || !reviewed.checked) return;
+    const { file, name, type } = chosen;
+    send.disabled = true;
+    tell("送っている…");
+    try {
+      const response = await fetch(`/api/files?${new URLSearchParams({ project, key, name })}`, {
+        method: "POST",
+        headers: { "Content-Type": type },
+        body: file,
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        tell(`上げられなかった（${response.status}）: ${json.error || response.statusText}`, true);
+        send.disabled = false;
+        return;
+      }
+      reset();
+      input.value = "";
+      say.replaceChildren("上げた。ページからは ", Object.assign(document.createElement("code"), { textContent: `files/${json.name}-${json.n}.${json.ext}` }), " で参照する");
+      say.classList.remove("bad");
+      await refresh();
+    } catch (error) {
+      tell(`上げられなかった: ${error}`, true);
+      send.disabled = false;
+    }
+  });
+  // ほかの所（CLI など）から、この Key に file が置かれたら、file の枠を読み直す。
+  events.addEventListener("file", (e) => {
+    try {
+      const file = JSON.parse(e.data);
+      if (file.project === project && file.key === key) refresh();
+    } catch {}
+  });
 })();
 </script>
 </body>
