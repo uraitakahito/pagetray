@@ -3,7 +3,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /** 目次（docs/src/SUMMARY.md）の章。章を足したら、ここにも足す（下の試験が、目次と合っているかを見る）。 */
-const CHAPTERS = ['index', 'run', 'cli', 'api', 'glossary', 'development', 'release'];
+const CHAPTERS = ['index', 'run', 'cli', 'api', 'glossary', 'development', 'release', 'db'];
+/** 図（Mermaid）のある章。図を足したら、ここにも足す。 */
+const FIGURES = ['index', 'db'];
 const LANGS = [
   { lang: 'ja', root: '/' },
   { lang: 'en', root: '/en/' },
@@ -50,18 +52,20 @@ for (const { lang, root } of LANGS) {
     expect(errors).toEqual([]);
   });
 
-  test(`${lang}: 図（Mermaid）が描ける`, async ({ page }) => {
-    const errors = collectErrors(page);
-    await page.goto(`${root}index.html`);
-    const figures = page.locator('pre.mermaid');
-    await expect(figures).not.toHaveCount(0);
-    for (const figure of await figures.all()) {
-      // 描けると、塊の中が svg に替わる。構文の誤りは、誤りの絵（class に error）になる。
-      await expect(figure.locator('svg')).toBeVisible();
-      await expect(figure.locator('svg[aria-roledescription="error"]')).toHaveCount(0);
-    }
-    expect(errors).toEqual([]);
-  });
+  for (const chapter of FIGURES) {
+    test(`${lang}: ${chapter} の図（Mermaid）が描ける`, async ({ page }) => {
+      const errors = collectErrors(page);
+      await page.goto(`${root}${chapter}.html`);
+      const figures = page.locator('pre.mermaid');
+      await expect(figures).not.toHaveCount(0);
+      for (const figure of await figures.all()) {
+        // 描けると、塊の中が svg に替わる。構文の誤りは、誤りの絵（class に error）になる。
+        await expect(figure.locator('svg')).toBeVisible();
+        await expect(figure.locator('svg[aria-roledescription="error"]')).toHaveCount(0);
+      }
+      expect(errors).toEqual([]);
+    });
+  }
 }
 
 test('ja: 検索の枠が開き、日本語の語が章に当たる。無い語は当たらない', async ({ page }) => {

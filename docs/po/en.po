@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T23:15:10+09:00\n"
+"POT-Creation-Date: 2026-11-21T23:19:08+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -45,6 +45,10 @@ msgstr "Releasing"
 #: src/SUMMARY.md src/development.md
 msgid "開発"
 msgstr "Development"
+
+#: src/SUMMARY.md src/db.md
+msgid "DB の作り"
+msgstr "DB schema"
 
 #: src/SUMMARY.md src/glossary.md
 msgid "用語集"
@@ -144,6 +148,15 @@ msgstr "[Development](development.md)"
 #: src/index.md
 msgid "source の作り・試験・この本の直し方"
 msgstr "Source layout, tests, and how to edit this book"
+
+#: src/index.md
+msgid "[DB の作り](db.md)"
+msgstr "[DB schema](db.md)"
+
+#: src/index.md
+msgid "表・列・一意と索引と、表どうしの結び"
+msgstr ""
+"Tables, columns, unique constraints and indexes, and how the tables relate"
 
 #: src/index.md
 msgid "[用語集](glossary.md)"
@@ -687,6 +700,15 @@ msgstr ""
 "The backup contains the bodies of all stored pages and all uploaded files "
 "(from 0.4.0), so it grows by the size of the files. Do not put it in this "
 "repo or in CI."
+
+#: src/run.md
+msgid ""
+"写しの中の表と列は [DB の作り](db.md) にある（表の形は API の仕様に入らないの"
+"で、写しを読む script は版が変わると壊れうる）。"
+msgstr ""
+"The tables and columns inside the backup are described in [DB schema](db.md) "
+"(the table layout is not part of the API specification, so a script that "
+"reads the backup may break when the version changes)."
 
 #: src/run.md
 msgid "上げてはいけない file を上げてしまった時"
@@ -1347,7 +1369,7 @@ msgstr "`human`"
 msgid "`page put`・`file put` で置く人の役割"
 msgstr "Role of the person storing with `page put` and `file put`"
 
-#: src/cli.md src/glossary.md
+#: src/cli.md src/db.md src/glossary.md
 msgid "—"
 msgstr "—"
 
@@ -1687,7 +1709,7 @@ msgstr ""
 "1–32 characters of lowercase letters, digits, and `-`, starting with a "
 "lowercase letter. The server keeps no list of names (callers decide)"
 
-#: src/api.md src/glossary.md
+#: src/api.md src/db.md src/glossary.md
 msgid "`workspace`"
 msgstr "`workspace`"
 
@@ -1708,7 +1730,7 @@ msgstr ""
 "` and `_` (starting with a lowercase letter or a digit). The extension must "
 "be one of those in \"Accepted file types\" below"
 
-#: src/api.md src/glossary.md
+#: src/api.md src/db.md src/glossary.md
 msgid "`n`"
 msgstr "`n`"
 
@@ -1716,7 +1738,7 @@ msgstr "`n`"
 msgid "1 以上の整数"
 msgstr "An integer of 1 or greater"
 
-#: src/api.md
+#: src/api.md src/db.md
 msgid "`created_at`"
 msgstr "`created_at`"
 
@@ -2787,9 +2809,12 @@ msgid "`migrations/`"
 msgstr "`migrations/`"
 
 #: src/development.md
-msgid "表を作る SQL（起きる時に、まだ当てていない物を当てる）"
+msgid ""
+"表を作る SQL（起きる時に、まだ当てていない物を当てる）。できる表は [DB の作"
+"り](db.md)"
 msgstr ""
-"SQL that creates the tables (on startup, those not yet applied are applied)"
+"SQL that creates the tables (on startup, those not yet applied are applied). "
+"The resulting tables are in [DB schema](db.md)"
 
 #: src/development.md
 msgid "`.sqlx/`"
@@ -2943,6 +2968,19 @@ msgstr ""
 "of the SQL that was applied. To change a table, add a file with the next "
 "number to `migrations/` and add one line to the list in `tests/"
 "migrations.rs` (if an existing line changes, the test fails)."
+
+#: src/development.md
+msgid ""
+"**表を変えたら、章も直す**: 表・列・型・空を許すか・主キーと一意と索引を変え"
+"たら、同じ PR で [DB の作り](db.md) と、表を足したなら [用語集](glossary.md) "
+"も直す。`tests/schema_doc.rs` が、移行を当てた DB と章を突き合わせ、食い違え"
+"ば落ちる。"
+msgstr ""
+"**When you change a table, update the chapter too**: When you change tables, "
+"columns, types, nullability, primary keys, unique constraints, or indexes, "
+"update [DB schema](db.md) in the same PR, and the [Glossary](glossary.md) "
+"too if you add a table. `tests/schema_doc.rs` compares the migrated DB with "
+"the chapter and fails if they differ."
 
 #: src/development.md
 msgid ""
@@ -3342,10 +3380,13 @@ msgstr ""
 #: src/development.md
 msgid ""
 "**図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通る。描け"
-"るかは、本の試験が見る。"
+"るかは、本の試験が見る（図のある章は `docs.spec.ts` の `FIGURES` に並べる。図"
+"を足した章は、そこにも足す）。"
 msgstr ""
 "**Diagrams**: Write them in ```` ```mermaid ```` blocks. The build passes "
-"even if the syntax is wrong. The book tests check that they render."
+"even if the syntax is wrong. The book tests check that they render (the "
+"chapters with diagrams are listed in `FIGURES` in `docs.spec.ts`; when you "
+"add a diagram to a chapter, add the chapter there too)."
 
 #: src/development.md
 msgid ""
@@ -3357,6 +3398,504 @@ msgstr ""
 "`#mdbook-menu-bar` and `path_to_root` in mdBook's page. The book tests check "
 "that the search box still opens and that the language still switches after "
 "mdBook is updated."
+
+#: src/db.md
+msgid ""
+"置き場は、ページと file を SQLite の file 1 つに持つ（置き場所は [動かす]"
+"(run.md) の表の「DB」）。この章は、その中の表・列・一意と索引と、表どうしの結"
+"びを書く。読む人は、SQL を直す人と、[写し](run.md#db-の写しを取る) を "
+"`sqlite3` で開いて調べる人。"
+msgstr ""
+"The store keeps pages and files in a single SQLite file (where it lives is "
+"in the \"DB\" row of the table in [Running](run.md)). This chapter describes "
+"its tables, columns, unique constraints and indexes, and how the tables "
+"relate. It is for people who change the SQL and for people who open a "
+"[backup](run.md#back-up-the-db) with `sqlite3` to look into it."
+
+#: src/db.md
+msgid ""
+"**表の形は API の仕様に入らない**: 呼ぶ側が頼ってよいのは [API の仕様]"
+"(api.md) だけで、写しの中の表の形は入らない。写しを読む script は、版が変わる"
+"と壊れうる。"
+msgstr ""
+"**The table layout is not part of the API specification**: Callers may rely "
+"only on the [API specification](api.md); the layout of the tables inside a "
+"backup is not part of it. A script that reads a backup may break when the "
+"version changes."
+
+#: src/db.md
+msgid ""
+"**表を作るのは `migrations/` の SQL**: サーバーが起きる時に、まだ当てていない"
+"物を当てる。当てた SQL は変えず、次の番号の file を足す（[開発]"
+"(development.md) の「当てた移行の SQL は変えない」）。SQL の註には古い語が残"
+"ることがある（`0001_init.sql` と `0003_files.sql` の `key` の註の「鍵」は、今"
+"の語では Key）。"
+msgstr ""
+"**The SQL in `migrations/` creates the tables**: On startup, the server "
+"applies those not yet applied. Applied SQL is never edited; add a file with "
+"the next number instead (\"Never change an applied migration\" in "
+"[Development](development.md)). The comments in the SQL may keep old wording "
+"(the comment on `key` in `0001_init.sql` and `0003_files.sql` uses an old "
+"word for what is now called Key)."
+
+#: src/db.md
+msgid ""
+"**この章と本物の DB は、試験が突き合わせる**: `tests/schema_doc.rs` が、移行"
+"を当てた DB の表・列・型・空を許すか・主キーと一意と索引を、この章と比べる。"
+"表や列を変えたら、同じ PR でこの章も直す。試験が読むので、表ごとの節の形（見"
+"出し・列の表・「主キー:」「一意:」「索引:」の行）は崩さない。"
+msgstr ""
+"**A test compares this chapter with the real DB**: `tests/schema_doc.rs` "
+"compares the tables, columns, types, nullability, primary keys, unique "
+"constraints, and indexes of the migrated DB with this chapter. When you "
+"change a table or a column, update this chapter in the same PR. The test "
+"reads the Japanese source, so keep the shape of each table's section (the "
+"heading, the column table, and the primary key, unique, and index lines)."
+
+#: src/db.md
+msgid ""
+"どの表も `strict`（列の型に合わない値は入らない）。時刻はみな UTC の ISO の形"
+"の字（`2026-11-21T12:34:56.789Z`）。"
+msgstr ""
+"Every table is `strict` (a value that does not match the column type is "
+"rejected). All times are UTC ISO strings (`2026-11-21T12:34:56.789Z`)."
+
+#: src/db.md
+msgid "表どうしの結び"
+msgstr "How the tables relate"
+
+#: src/db.md
+msgid ""
+"```mermaid\n"
+"erDiagram\n"
+"  pages ||--|| pages_fts : \"id = rowid\"\n"
+"  pages }o..o{ removed : \"同じ project・Key・種類で番号を分ける\"\n"
+"  pages }o..o{ files : \"同じ project・Key\"\n"
+"  files }o..o{ files_removed : \"同じ project・Key・名・拡張子で番号を分ける"
+"\"\n"
+"```"
+msgstr ""
+"```mermaid\n"
+"erDiagram\n"
+"  pages ||--|| pages_fts : \"id = rowid\"\n"
+"  pages }o..o{ removed : \"share numbers per project, Key, and kind\"\n"
+"  pages }o..o{ files : \"same project and Key\"\n"
+"  files }o..o{ files_removed : \"share numbers per project, Key, name, and "
+"extension\"\n"
+"```"
+
+#: src/db.md
+msgid ""
+"**外部キーは無い。** 表どうしは、同じ値（project・Key など）で結ぶだけで、結"
+"びは `src/db.rs` の SQL が守る。"
+msgstr ""
+"**There are no foreign keys.** Tables relate only by sharing values "
+"(project, Key, and so on), and the SQL in `src/db.rs` keeps them consistent."
+
+#: src/db.md
+msgid ""
+"**番号**: ページの番号は、`pages` と `removed` の両方の、同じ project・Key・"
+"種類の番号の最大 ＋ 1。file も同じく、`files` と `files_removed` から取る。だ"
+"から消した番号は 2 度使わない。書く接続は 1 本なので、番号を取る所は 1 列に並"
+"ぶ。"
+msgstr ""
+"**Numbers**: A page's number is the largest number for the same project, "
+"Key, and kind across both `pages` and `removed`, plus 1. Files work the same "
+"way, using `files` and `files_removed`. So a removed number is never used "
+"again. There is only one writing connection, so taking numbers happens one "
+"at a time."
+
+#: src/db.md
+msgid ""
+"**消す**: 1 つの取引で、番号を `removed`（file は `files_removed`）に写し、"
+"`pages_fts` と `pages`（file は `files`）の行を消す。本文は残さない。"
+msgstr ""
+"**Delete**: In a single transaction, copies the number into `removed` "
+"(`files_removed` for files) and deletes the rows in `pages_fts` and `pages` "
+"(`files` for files). The body is not kept."
+
+#: src/db.md
+msgid ""
+"**ページと file**: ページの本文は file を path（`files/<語>-<n>.<拡張子>`）で"
+"参照するだけで、DB の中では結ばない。片方を消しても、もう片方は残る。"
+msgstr ""
+"**Pages and files**: A page body refers to a file only by its path (`files/"
+"<word>-<n>.<extension>`); the DB does not link them. Deleting one leaves the "
+"other."
+
+#: src/db.md
+msgid "`pages` — ページ"
+msgstr "`pages` — pages"
+
+#: src/db.md
+msgid ""
+"置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。行を書き換え"
+"る SQL は無い。"
+msgstr ""
+"One row per stored page. Putting it again makes a different row with a "
+"different number. No SQL rewrites a row."
+
+#: src/db.md
+msgid "列"
+msgstr "Column"
+
+#: src/db.md
+msgid "型"
+msgstr "Type"
+
+#: src/db.md
+msgid "空"
+msgstr "Null"
+
+#: src/db.md src/glossary.md
+msgid "意味"
+msgstr "Meaning"
+
+#: src/db.md
+msgid "`id`"
+msgstr "`id`"
+
+#: src/db.md
+msgid "integer"
+msgstr "integer"
+
+#: src/db.md
+msgid "不可"
+msgstr "no"
+
+#: src/db.md
+msgid "行の番号。`pages_fts` の `rowid` と同じ"
+msgstr "Row number. Same as `rowid` in `pages_fts`"
+
+#: src/db.md src/glossary.md
+msgid "`project`"
+msgstr "`project`"
+
+#: src/db.md
+msgid "text"
+msgstr "text"
+
+#: src/db.md
+msgid "project の名（URL の 1 段目）"
+msgstr "Project name (the first level of the URL)"
+
+#: src/db.md src/glossary.md
+msgid "`key`"
+msgstr "`key`"
+
+#: src/db.md
+msgid "Key（URL の 2 段目）"
+msgstr "Key (the second level of the URL)"
+
+#: src/db.md src/glossary.md
+msgid "`kind`"
+msgstr "`kind`"
+
+#: src/db.md
+msgid "種類の名"
+msgstr "Kind name"
+
+#: src/db.md
+msgid "番号（project・Key・種類ごとに 1 から）"
+msgstr "Number (from 1 per project, Key, and kind)"
+
+#: src/db.md
+msgid "`title`"
+msgstr "`title`"
+
+#: src/db.md
+msgid "本文の `<title>` から取った題"
+msgstr "Title taken from the body's `<title>`"
+
+#: src/db.md src/glossary.md
+msgid "`role`"
+msgstr "`role`"
+
+#: src/db.md
+msgid "置いた人の役割（わからなければ `unknown`）"
+msgstr "Role of whoever put it (`unknown` if not known)"
+
+#: src/db.md
+msgid "置いた人の workspace の ID（わからなければ空の字）"
+msgstr "Workspace ID of whoever put it (an empty string if not known)"
+
+#: src/db.md
+msgid "置いた時刻"
+msgstr "Time it was put"
+
+#: src/db.md src/glossary.md
+msgid "`body`"
+msgstr "`body`"
+
+#: src/db.md
+msgid "blob"
+msgstr "blob"
+
+#: src/db.md
+msgid "本文。置かれた HTML をそのまま"
+msgstr "The body: the HTML exactly as put"
+
+#: src/db.md
+msgid "主キー: `(id)`"
+msgstr "Primary key: `(id)`"
+
+#: src/db.md
+msgid "一意: `(project, key, kind, n)`"
+msgstr "Unique: `(project, key, kind, n)`"
+
+#: src/db.md
+msgid "索引: `pages_created` `(created_at)`"
+msgstr "Index: `pages_created` `(created_at)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::put`。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: "
+"`Db::remove`。"
+msgstr ""
+"Written by `Db::put`. Read by `Db::body`, `Db::list`, `Db::facets`. Deleted "
+"by `Db::remove`."
+
+#: src/db.md
+msgid "`pages_fts` — 全文の索引"
+msgstr "`pages_fts` — full-text index"
+
+#: src/db.md
+msgid ""
+"[全文の索引](glossary.md)（SQLite の FTS5 の仮想の表）。`tokenize='trigram'` "
+"で字を 3 字ずつに切るので、日本語の語も引ける。ページ 1 枚が 1 行で、`rowid` "
+"が `pages.id`。"
+msgstr ""
+"The [full-text index](glossary.md) (an SQLite FTS5 virtual table). "
+"`tokenize='trigram'` splits text into 3-character pieces, so Japanese words "
+"can be looked up too. One row per page, and `rowid` is `pages.id`."
+
+#: src/db.md
+msgid "可"
+msgstr "yes"
+
+#: src/db.md
+msgid "`pages.title` の写し"
+msgstr "Copy of `pages.title`"
+
+#: src/db.md
+msgid "`text`"
+msgstr "`text`"
+
+#: src/db.md
+msgid ""
+"本文から tag・script・style を除いた字（`src/text.rs`）。本文そのものは持たな"
+"い"
+msgstr ""
+"Body text with tags, scripts, and styles removed (`src/text.rs`). The body "
+"itself is not kept here"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::put`（`pages` と同じ取引）。読む所: `Db::list`（探す語が 3 字以"
+"上なら索引で引き、短い語があれば端から見る）。消す所: `Db::remove`。"
+msgstr ""
+"Written by `Db::put` (in the same transaction as `pages`). Read by "
+"`Db::list` (uses the index when every search word has 3 or more characters, "
+"and scans when a word is shorter). Deleted by `Db::remove`."
+
+#: src/db.md
+msgid ""
+"FTS5 が、中身を持つ影の表（`pages_fts_data`・`pages_fts_idx`・"
+"`pages_fts_content`・`pages_fts_docsize`・`pages_fts_config`）を作る。手で触"
+"らない。"
+msgstr ""
+"FTS5 creates shadow tables that hold the contents (`pages_fts_data`, "
+"`pages_fts_idx`, `pages_fts_content`, `pages_fts_docsize`, "
+"`pages_fts_config`). Do not touch them by hand."
+
+#: src/db.md
+msgid "`removed` — 消したページの番号"
+msgstr "`removed` — numbers of removed pages"
+
+#: src/db.md
+msgid ""
+"消したページ 1 枚が 1 行。本文は持たない。同じ番号を 2 度使わない（古い URL "
+"が別のページを指さない）ためと、消したページの URL に `410` を返すため。"
+msgstr ""
+"One row per removed page, without the body. Kept so that no number is used "
+"twice (an old URL never points to a different page) and so that a removed "
+"page's URL returns `410`."
+
+#: src/db.md
+msgid "消したページの project"
+msgstr "Project of the removed page"
+
+#: src/db.md
+msgid "消したページの Key"
+msgstr "Key of the removed page"
+
+#: src/db.md
+msgid "消したページの種類"
+msgstr "Kind of the removed page"
+
+#: src/db.md
+msgid "消したページの番号"
+msgstr "Number of the removed page"
+
+#: src/db.md
+msgid "`removed_at`"
+msgstr "`removed_at`"
+
+#: src/db.md
+msgid "消した時刻"
+msgstr "Time it was removed"
+
+#: src/db.md
+msgid "主キー: `(project, key, kind, n)`"
+msgstr "Primary key: `(project, key, kind, n)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::remove`。読む所: `Db::put`（番号を決める時・取り込みで名指された"
+"番号を断る時）・`Db::removed_at`（`410` を返す時）。"
+msgstr ""
+"Written by `Db::remove`. Read by `Db::put` (when choosing a number, and when "
+"refusing a number named in an import) and `Db::removed_at` (when returning "
+"`410`)."
+
+#: src/db.md
+msgid "`files` — file"
+msgstr "`files` — files"
+
+#: src/db.md
+msgid ""
+"ページから参照する file（画像・PDF・字の file）1 つが 1 行。置き直すと、別の"
+"番号の別の行になる。"
+msgstr ""
+"One row per file (an image, a PDF, or a text file) referenced from pages. "
+"Putting it again makes a different row with a different number."
+
+#: src/db.md
+msgid "行の番号"
+msgstr "Row number"
+
+#: src/db.md
+msgid "`name`"
+msgstr "`name`"
+
+#: src/db.md
+msgid "名の語（拡張子と番号を除いた所）"
+msgstr "Name word (the part without the extension and number)"
+
+#: src/db.md
+msgid "`ext`"
+msgstr "`ext`"
+
+#: src/db.md
+msgid "拡張子（受ける物の一覧は `crates/api` が持つ）"
+msgstr "Extension (the accepted list is in `crates/api`)"
+
+#: src/db.md
+msgid "番号（project・Key・名・拡張子ごとに 1 から）"
+msgstr "Number (from 1 per project, Key, name, and extension)"
+
+#: src/db.md
+msgid "`type`"
+msgstr "`type`"
+
+#: src/db.md
+msgid "返す時の `Content-Type`（拡張子から決まる）"
+msgstr "`Content-Type` used when serving it (decided by the extension)"
+
+#: src/db.md
+msgid "`size`"
+msgstr "`size`"
+
+#: src/db.md
+msgid "byte の数"
+msgstr "Number of bytes"
+
+#: src/db.md
+msgid "`sha256`"
+msgstr "`sha256`"
+
+#: src/db.md
+msgid "中身の SHA-256（16 進の小文字）"
+msgstr "SHA-256 of the contents (lowercase hex)"
+
+#: src/db.md
+msgid "中身をそのまま"
+msgstr "The contents exactly as put"
+
+#: src/db.md
+msgid "一意: `(project, key, name, ext, n)`"
+msgstr "Unique: `(project, key, name, ext, n)`"
+
+#: src/db.md
+msgid "索引: `files_created` `(created_at)`"
+msgstr "Index: `files_created` `(created_at)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::put_file`。読む所: `Db::file_body`・`Db::list_files`。消す所: "
+"`Db::remove_files`。"
+msgstr ""
+"Written by `Db::put_file`. Read by `Db::file_body`, `Db::list_files`. "
+"Deleted by `Db::remove_files`."
+
+#: src/db.md
+msgid "`files_removed` — 消した file の番号"
+msgstr "`files_removed` — numbers of removed files"
+
+#: src/db.md
+msgid "消した file 1 つが 1 行。中身は持たない。`removed` と同じ訳で残す。"
+msgstr ""
+"One row per removed file, without the contents. Kept for the same reasons as "
+"`removed`."
+
+#: src/db.md
+msgid "消した file の project"
+msgstr "Project of the removed file"
+
+#: src/db.md
+msgid "消した file の Key"
+msgstr "Key of the removed file"
+
+#: src/db.md
+msgid "消した file の名の語"
+msgstr "Name word of the removed file"
+
+#: src/db.md
+msgid "消した file の拡張子"
+msgstr "Extension of the removed file"
+
+#: src/db.md
+msgid "消した file の番号"
+msgstr "Number of the removed file"
+
+#: src/db.md
+msgid "主キー: `(project, key, name, ext, n)`"
+msgstr "Primary key: `(project, key, name, ext, n)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::remove_files`。読む所: `Db::put_file`・`Db::file_removed_at`。"
+msgstr ""
+"Written by `Db::remove_files`. Read by `Db::put_file` and "
+"`Db::file_removed_at`."
+
+#: src/db.md
+msgid "ほかの表"
+msgstr "Other tables"
+
+#: src/db.md
+msgid ""
+"`_sqlx_migrations`: sqlx が持つ表。当てた移行の番号と、その SQL の SHA-384 を"
+"覚えていて、起きる時に `migrations/` の file と突き合わせる。手で触らない。"
+msgstr ""
+"`_sqlx_migrations`: A table owned by sqlx. It records the numbers of applied "
+"migrations and the SHA-384 of their SQL, and checks them against the files "
+"in `migrations/` on startup. Do not touch it by hand."
+
+#: src/db.md
+msgid "`pages_fts_` で始まる表: 上の `pages_fts` の影の表。"
+msgstr ""
+"Tables starting with `pages_fts_`: the shadow tables of `pages_fts` above."
 
 #: src/glossary.md
 msgid ""
@@ -3406,10 +3945,6 @@ msgstr "Term"
 #: src/glossary.md
 msgid "code の名"
 msgstr "Name in code"
-
-#: src/glossary.md
-msgid "意味"
-msgstr "Meaning"
 
 #: src/glossary.md
 msgid "使わない言い方"
@@ -3470,10 +4005,6 @@ msgid "本文（body）"
 msgstr "body"
 
 #: src/glossary.md
-msgid "`body`"
-msgstr "`body`"
-
-#: src/glossary.md
 msgid "ページの HTML そのもの"
 msgstr "The HTML of the page itself"
 
@@ -3502,10 +4033,6 @@ msgid "project"
 msgstr "project"
 
 #: src/glossary.md
-msgid "`project`"
-msgstr "`project`"
-
-#: src/glossary.md
 msgid ""
 "ページをまとめる、いちばん上の名。`tpm` は、project の folder の path から作"
 "る"
@@ -3516,10 +4043,6 @@ msgstr ""
 #: src/glossary.md
 msgid "Key"
 msgstr "Key"
-
-#: src/glossary.md
-msgid "`key`"
-msgstr "`key`"
 
 #: src/glossary.md
 msgid "課題の名（`AI-22` など）。project の下でページをまとめる"
@@ -3533,10 +4056,6 @@ msgstr "—"
 #: src/glossary.md
 msgid "種類（kind）"
 msgstr "kind"
-
-#: src/glossary.md
-msgid "`kind`"
-msgstr "`kind`"
 
 #: src/glossary.md
 msgid "ページの種類の名（`plan`・`result` など）。名の一覧は、呼ぶ側が決める"
@@ -3566,10 +4085,6 @@ msgstr "version"
 #: src/glossary.md
 msgid "役割（role）"
 msgstr "role"
-
-#: src/glossary.md
-msgid "`role`"
-msgstr "`role`"
 
 #: src/glossary.md
 msgid ""

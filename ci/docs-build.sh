@@ -26,7 +26,7 @@ for dir in . en; do
 done
 
 # 出した物に、要る物があるか。
-for f in index.html run.html cli.html api.html glossary.html en/index.html en/run.html en/cli.html en/glossary.html pagefind/pagefind.js pagefind/pagefind-ui.js; do
+for f in index.html run.html cli.html api.html glossary.html db.html en/index.html en/run.html en/cli.html en/glossary.html en/db.html pagefind/pagefind.js pagefind/pagefind-ui.js; do
   [ -s "book/$f" ] || { echo "docs/book/$f が無い" >&2; exit 1; }
 done
 for lang in ja en; do

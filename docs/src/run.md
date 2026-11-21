@@ -74,6 +74,8 @@ sqlite3 ~/pagetray-<timestamp>.db 'select count(*) from pages'    # 開けて、
 
 写しには、置かれたページの本文と、上げられた file（0.4.0 から）がみな入っている。file の分だけ大きくなる。この repo にも CI にも置かない。
 
+写しの中の表と列は [DB の作り](db.md) にある（表の形は API の仕様に入らないので、写しを読む script は版が変わると壊れうる）。
+
 ### 上げてはいけない file を上げてしまった時
 
 秘密（token・鍵・個人の情報など）が写った file を上げてしまったら、TPM 担当に URL を送って消してもらう（`tpm file delete <URL> --yes`）。消しても、**消す前に取った写しには残る**。消した後に写しを取り直し、それより前の写し（`~/pagetray-*.db`）を消す。秘密そのもの（token・鍵）は、すぐ替える。

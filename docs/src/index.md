@@ -21,6 +21,7 @@ flowchart LR
 | [API の仕様](api.md) | 呼ぶ側が頼ってよい形と、API の版の決まり |
 | [release を出す](release.md) | image を出す手順と、image に入ってよい物 |
 | [開発](development.md) | source の作り・試験・この本の直し方 |
+| [DB の作り](db.md) | 表・列・一意と索引と、表どうしの結び |
 | [用語集](glossary.md) | 文書・画面・code で使う語と、使わない言い方 |
 
 ## API の早見
