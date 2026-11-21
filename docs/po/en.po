@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T20:17:00+09:00\n"
+"POT-Creation-Date: 2026-11-21T20:18:33+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -1076,11 +1076,11 @@ msgstr ""
 
 #: src/release.md
 msgid ""
-"`Cargo.toml` の `version` を上げ、`CHANGELOG.md` に節を足す PR を merge す"
-"る。"
+"`Cargo.toml` の `[workspace.package]` の `version` を上げ、`CHANGELOG.md` に"
+"節を足す PR を merge する。"
 msgstr ""
-"Merge a PR that bumps `version` in `Cargo.toml` and adds a section to "
-"`CHANGELOG.md`."
+"Merge a PR that bumps `version` under `[workspace.package]` in `Cargo.toml` "
+"and adds a section to `CHANGELOG.md`."
 
 #: src/release.md
 msgid ""
@@ -1355,6 +1355,19 @@ msgid "HTML から題と検索用の字を取り出す"
 msgstr "Extracts the title and the search text from HTML"
 
 #: src/development.md
+msgid "`crates/api/`"
+msgstr "`crates/api/`"
+
+#: src/development.md
+msgid ""
+"口の約束のうち、サーバーと CLI が共に使う物（口の版・header の名・引数の字の"
+"決まり・path の形・ページの記録の型）"
+msgstr ""
+"The parts of the API contract shared by the server and the CLI (the API "
+"version, header names, the character rules for parameters, the path format, "
+"and the page record type)"
+
+#: src/development.md
 msgid "`migrations/`"
 msgstr "`migrations/`"
 
@@ -1510,11 +1523,14 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"**版を上げる**: `Cargo.toml` の `version` を上げ（`Cargo.lock` も変わる）、"
+"**版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ"
+"（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、"
 "`CHANGELOG.md` に、口の版が変わったかを書く。"
 msgstr ""
-"**Bump the version**: Bump `version` in `Cargo.toml` (`Cargo.lock` changes "
-"too), and note in `CHANGELOG.md` whether the API version changed."
+"**Bump the version**: Bump `version` under `[workspace.package]` in "
+"`Cargo.toml` (the server and the crates in `crates/` get the same version; "
+"`Cargo.lock` changes too), and note in `CHANGELOG.md` whether the API "
+"version changed."
 
 #: src/development.md
 msgid ""

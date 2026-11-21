@@ -138,6 +138,7 @@ image は public で、だれでも pull して中を見られる。**出すの�
 | `src/ui.rs`・`templates/index.html` | 一覧の UI（askama の template。build の時に検査される） |
 | `src/events.rs` | 新着の push（SSE） |
 | `src/text.rs` | HTML から題と検索用の字を取り出す |
+| `crates/api/` | 口の約束のうち、サーバーと CLI が共に使う物（口の版・header の名・引数の字の決まり・path の形・ページの記録の型） |
 | `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる） |
 | `.sqlx/` | SQL の検査用の file（commit する） |
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
@@ -149,9 +150,9 @@ Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` �
 
 ```sh
 brew install rustup                              # keg-only。PATH に /opt/homebrew/opt/rustup/bin を足す
-cargo fmt --check
-cargo clippy --locked --all-targets -- -D warnings
-SQLX_OFFLINE=true cargo test --locked
+cargo fmt --all --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+SQLX_OFFLINE=true cargo test --locked --workspace
 PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run   # 手元で起こす
 ```
 
@@ -169,7 +170,7 @@ GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験
   ```
 
 - **当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えている。表を変える時は `migrations/` に次の番号の file を足し、`tests/migrations.rs` の一覧に 1 行足す（前からある行が変わると、試験が落ちる）。
-- **版を上げる**: `Cargo.toml` の `version` を上げ（`Cargo.lock` も変わる）、`CHANGELOG.md` に、口の版が変わったかを書く。
+- **版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、`CHANGELOG.md` に、口の版が変わったかを書く。
 - **crate を上げる**: `.cargo/config.toml` の `global-min-publish-age` が、公開から 2 日たっていない版を選ばせない（Cargo 1.100 から）。上げる時は `cargo update` → 試験 → PR。`cargo install` はこの決まりを見ないので、道具は版を書いて入れる。
 - **弱点の見張り**: workflow の `advisories` が `cargo deny check advisories`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。
 - **workflow の action**: commit の SHA で固定する（tag は後から中身が替わりうる）。

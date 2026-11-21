@@ -2,7 +2,7 @@
 
 image は public で、だれでも pull して中を見られる。**出すのは release の workflow（`.github/workflows/release.yml`）だけ**で、手元から `push` しない（手元の build には、commit していない file が入りうる）。
 
-1. `Cargo.toml` の `version` を上げ、`CHANGELOG.md` に節を足す PR を merge する。
+1. `Cargo.toml` の `[workspace.package]` の `version` を上げ、`CHANGELOG.md` に節を足す PR を merge する。
 2. main のその commit に tag を打って push する: `git tag v<version> && git push origin v<version>`。
 3. workflow の `check` が、tag と版が合うか・image の中身の一覧・設定・秘密の走査（下の「image に入る物」）・動くかを見る。**1 つでも落ちれば、`push` は動かない。**
 4. `push` が、確かめたその image（作り直さない）を `ghcr.io/uraitakahito/pagetray:v<version>` に置き、release に digest と中身の一覧を書く。同じ tag がもうあれば置かない。
