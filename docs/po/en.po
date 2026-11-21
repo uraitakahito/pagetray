@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T20:35:25+09:00\n"
+"POT-Creation-Date: 2026-11-21T20:51:26+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -62,17 +62,6 @@ msgstr ""
 "and searched. It is used only from this Mac (`127.0.0.1`), and the `tpm "
 "page` command of [skills](https://github.com/uraitakahito/skills) calls its "
 "endpoints with `curl`."
-
-#: src/index.md
-msgid ""
-"もとは skills の repo の `pagestore/` にあった物を、履歴ごと分けた。版ごとに"
-"変えたことは [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/"
-"main/CHANGELOG.md)。"
-msgstr ""
-"It originally lived in `pagestore/` in the skills repo and was split out "
-"together with its history. For what changed in each version, see "
-"[CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
-"CHANGELOG.md)."
 
 #: src/index.md
 msgid ""
