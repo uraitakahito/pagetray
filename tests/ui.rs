@@ -73,7 +73,7 @@ async fn the_index_lists_every_page_newest_first_with_the_filter_choices() {
         page.contains(r#"<a href="/?kind=plan"><span>plan</span><span class="n">2</span></a>"#)
     );
     assert!(page.contains(r#"<a href="/?key=A-1"><span>A-1</span><span class="n">3</span></a>"#));
-    // サイドメニューの見出しは「Key」（「鍵」とは書かない）。
+    // 絞り込みの列の見出しは「Key」（「鍵」とは書かない）。
     assert!(page.contains("<h2>Key</h2>"));
     assert!(!page.contains("<h2>鍵</h2>"));
     // workspace の ID には、その ID で置かれた Key を添える。ID の無い分は「不明」。
@@ -177,21 +177,46 @@ async fn project_and_key_folders_are_filtered_lists() {
     assert!(listed(&s.text("/none/").await).is_empty());
 }
 
+/// 4 つの区画に、決めた id と読み上げ用の名が 1 つずつ付いているか（名は docs の用語集と同じ。
+/// 試験や script が区画を名指す手がかりなので、変える時は用語集と一緒に変える）。
 #[tokio::test]
-async fn the_chosen_page_shows_in_a_sandboxed_frame() {
+async fn the_four_regions_carry_their_ids_and_names() {
+    let s = seeded().await;
+    for uri in ["/", "/?open=/p/A-1/plan-1.html", "/?role=tpm"] {
+        let page = s.text(uri).await;
+        for region in [
+            r#"<header id="toolbar" aria-label="操作の帯">"#,
+            r#"<nav id="filters" aria-label="絞り込みの列">"#,
+            r#"<div id="list" role="region" aria-label="一覧の列">"#,
+            r#"<section id="viewer" aria-label="本文の枠">"#,
+        ] {
+            assert_eq!(page.matches(region).count(), 1, "{uri}: {region}");
+        }
+        for id in ["toolbar", "filters", "list", "viewer", "fresh"] {
+            assert_eq!(
+                page.matches(&format!(r#" id="{id}""#)).count(),
+                1,
+                "{uri}: {id}"
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn the_chosen_page_shows_in_the_viewer_sandboxed() {
     let s = seeded().await;
     let page = s.text("/?open=/p/A-1/plan-1.html").await;
     assert!(
         page.contains(r#"<iframe src="/p/A-1/plan-1.html" sandbox="allow-scripts""#),
         "{page}"
     );
-    assert!(page.contains(r#"<body data-open="/p/A-1/plan-1.html">"#));
+    assert!(page.contains(r#"<body data-viewer="/p/A-1/plan-1.html">"#));
     assert!(
         page.contains(
             r#"<a href="/?open=%2Fp%2FA-1%2Fplan-1.html" class="on" aria-current="true">"#
         )
     );
-    // 置き場の外を指す物は枠に出さない。
+    // 置き場の外を指す物は、本文の枠に出さない。
     for open in [
         "https://evil.example/",
         "//evil.example/k/plan-1.html",

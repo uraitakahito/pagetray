@@ -23,7 +23,7 @@ pub struct View {
     sort: Option<String>,
     /// 並びの続きを出す時の境の時刻。
     at: Option<String>,
-    /// 右の枠に出すページの path。
+    /// 本文の枠に出すページの path（URL の引数の名は `open`。前に配った URL を切らないように、変えない）。
     open: Option<String>,
 }
 
@@ -73,7 +73,8 @@ struct Choice {
     active: bool,
 }
 
-struct Facet {
+/// 絞り込みの列の、見出し 1 つ分（見出しと、その候補）。
+struct FilterGroup {
     title: &'static str,
     choices: Vec<Choice>,
 }
@@ -102,10 +103,13 @@ struct Index {
     reload_href: String,
     reset_href: String,
     filtered: bool,
-    facets: Vec<Facet>,
+    /// 絞り込みの列に出す物。
+    filters: Vec<FilterGroup>,
+    /// 一覧の列に出す行。
     rows: Vec<Row>,
     more_href: Option<String>,
-    open: Option<String>,
+    /// 本文の枠に出すページの path。
+    viewer: Option<String>,
 }
 
 pub async fn index(State(state): State<AppState>, Query(view): Query<View>) -> Response {
@@ -180,28 +184,29 @@ async fn render(state: AppState, mut view: View) -> Response {
         .then(|| pages.last().map(|last| last.created_at.clone()))
         .flatten()
         .map(|at| view.with(|v| v.at = Some(at)));
-    let facet = |title, counts: Vec<Count>, field: fn(&mut View) -> &mut Option<String>| Facet {
-        title,
-        choices: counts
-            .into_iter()
-            .map(|c| {
-                let mut probe = view.clone();
-                let active = field(&mut probe).as_deref() == Some(c.value.as_str());
-                let next = (!active).then(|| c.value.clone());
-                Choice {
-                    label: if c.value.is_empty() {
-                        "（不明）".to_owned()
-                    } else {
-                        c.value
-                    },
-                    note: c.note,
-                    count: c.count,
-                    href: view.with(|v| *field(v) = next),
-                    active,
-                }
-            })
-            .collect(),
-    };
+    let group =
+        |title, counts: Vec<Count>, field: fn(&mut View) -> &mut Option<String>| FilterGroup {
+            title,
+            choices: counts
+                .into_iter()
+                .map(|c| {
+                    let mut probe = view.clone();
+                    let active = field(&mut probe).as_deref() == Some(c.value.as_str());
+                    let next = (!active).then(|| c.value.clone());
+                    Choice {
+                        label: if c.value.is_empty() {
+                            "（不明）".to_owned()
+                        } else {
+                            c.value
+                        },
+                        note: c.note,
+                        count: c.count,
+                        href: view.with(|v| *field(v) = next),
+                        active,
+                    }
+                })
+                .collect(),
+        };
     let page = Index {
         q: view.q.clone().unwrap_or_default(),
         hidden: [
@@ -237,16 +242,16 @@ async fn render(state: AppState, mut view: View) -> Response {
         ]
         .iter()
         .any(|v| v.is_some()),
-        facets: vec![
-            facet("担当者（役割）", facets.roles, |v| &mut v.role),
-            facet("workspace", facets.workspaces, |v| &mut v.workspace),
-            facet("種類", facets.kinds, |v| &mut v.kind),
-            facet("Key", facets.keys, |v| &mut v.key),
-            facet("project", facets.projects, |v| &mut v.project),
+        filters: vec![
+            group("担当者（役割）", facets.roles, |v| &mut v.role),
+            group("workspace", facets.workspaces, |v| &mut v.workspace),
+            group("種類", facets.kinds, |v| &mut v.kind),
+            group("Key", facets.keys, |v| &mut v.key),
+            group("project", facets.projects, |v| &mut v.project),
         ],
         rows: pages.into_iter().map(|meta| row(&view, meta)).collect(),
         more_href,
-        open: view.open.clone(),
+        viewer: view.open.clone(),
     };
     match page.render() {
         Ok(html) => Html(html).into_response(),

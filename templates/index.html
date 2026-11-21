@@ -42,8 +42,8 @@ iframe{width:100%;height:100%;border:0;background:#fff}
 @media (max-width:900px){body{height:auto;display:block}main{display:block}main>*{border-right:0;border-bottom:1px solid var(--line)}nav{max-height:14rem}iframe{height:80vh}}
 </style>
 </head>
-<body{% if let Some(path) = open %} data-open="{{ path }}"{% endif %}>
-<header>
+<body{% if let Some(path) = viewer %} data-viewer="{{ path }}"{% endif %}>
+<header id="toolbar" aria-label="操作の帯">
 <h1><a href="/">ページの置き場</a></h1>
 <form action="/" method="get">
 {% for (name, value) in hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">
@@ -55,21 +55,21 @@ iframe{width:100%;height:100%;border:0;background:#fff}
 <a class="btn" id="fresh" href="{{ reload_href }}" hidden>● 新着</a>
 </header>
 <main>
-<nav aria-label="絞り込み">
-{% for facet in facets %}{% if !facet.choices.is_empty() %}<h2>{{ facet.title }}</h2>
+<nav id="filters" aria-label="絞り込みの列">
+{% for group in filters %}{% if !group.choices.is_empty() %}<h2>{{ group.title }}</h2>
 <ul>
-{% for c in facet.choices %}<li><a href="{{ c.href }}"{% if c.active %} class="on" aria-current="true"{% endif %}><span>{{ c.label }}{% if !c.note.is_empty() %}<small>{{ c.note }}</small>{% endif %}</span><span class="n">{{ c.count }}</span></a></li>
+{% for c in group.choices %}<li><a href="{{ c.href }}"{% if c.active %} class="on" aria-current="true"{% endif %}><span>{{ c.label }}{% if !c.note.is_empty() %}<small>{{ c.note }}</small>{% endif %}</span><span class="n">{{ c.count }}</span></a></li>
 {% endfor %}</ul>
 {% endif %}{% endfor %}</nav>
-<div>
+<div id="list" role="region" aria-label="一覧の列">
 <ul class="rows">
 {% for r in rows %}<li data-path="{{ r.path }}" data-at="{{ r.created_at }}"><a href="{{ r.href }}"{% if r.active %} class="on" aria-current="true"{% endif %}><span class="top"><time datetime="{{ r.created_at }}">{{ r.time }}</time><span>{{ r.key }}</span><span class="name">{{ r.name }}</span></span><span class="title">{% if r.title.is_empty() %}（題なし）{% else %}{{ r.title }}{% endif %}</span><span class="who">{{ r.role }}{% if !r.workspace.is_empty() %} ・ {{ r.workspace }}{% endif %}</span></a></li>
 {% endfor %}</ul>
 {% if rows.is_empty() %}<span class="empty">合うページは無い</span>{% endif %}
 {% if let Some(href) = more_href %}<a class="more" href="{{ href }}">続きを出す</a>{% endif %}
 </div>
-<section>
-{% if let Some(path) = open %}<p><span>{{ path }}</span><a href="{{ path }}" target="_blank" rel="noopener">別の tab で開く</a></p>
+<section id="viewer" aria-label="本文の枠">
+{% if let Some(path) = viewer %}<p><span>{{ path }}</span><a href="{{ path }}" target="_blank" rel="noopener">別の tab で開く</a></p>
 <iframe src="{{ path }}" sandbox="allow-scripts" title="選んだページ"></iframe>
 {% else %}<p>ページを選ぶと、ここに 1 枚だけ出る</p><div></div>
 {% endif %}</section>
@@ -82,7 +82,7 @@ iframe{width:100%;height:100%;border:0;background:#fff}
     const d = new Date(t.dateTime);
     if (!isNaN(d)) t.textContent = `${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`;
   }
-  // 未読: 初めて開いた時より後に置かれ、まだ右の枠に出していないページ。browser が覚える。
+  // 未読: 初めて開いた時より後に置かれ、まだ本文の枠に出していないページ。browser が覚える。
   try {
     const store = localStorage;
     // 前の名（pagestore.*）で覚えた印も読む（名を替えた時に、未読の印を失わない）。
@@ -90,9 +90,9 @@ iframe{width:100%;height:100%;border:0;background:#fff}
     const since = kept("since") || new Date().toISOString();
     store.setItem("pagetray.since", since);
     const seen = new Set(JSON.parse(kept("seen") || "[]"));
-    const open = document.body.dataset.open;
-    if (open && !seen.has(open)) {
-      seen.add(open);
+    const viewer = document.body.dataset.viewer;
+    if (viewer && !seen.has(viewer)) {
+      seen.add(viewer);
       store.setItem("pagetray.seen", JSON.stringify([...seen].slice(-5000)));
     }
     for (const li of document.querySelectorAll("li[data-path]")) {
