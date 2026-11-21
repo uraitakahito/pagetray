@@ -173,6 +173,7 @@ GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験
 - **crate を上げる**: `.cargo/config.toml` の `global-min-publish-age` が、公開から 2 日たっていない版を選ばせない（Cargo 1.100 から）。上げる時は `cargo update` → 試験 → PR。`cargo install` はこの決まりを見ないので、道具は版を書いて入れる。
 - **弱点の見張り**: workflow の `advisories` が `cargo deny check advisories`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。
 - **workflow の action**: commit の SHA で固定する（tag は後から中身が替わりうる）。
+- **main を守る決まり**: GitHub の ruleset「main: CI が通らないと merge できない」（Settings → Rules → Rulesets）が、`main` への変更に、CI の `test`・`image`・`advisories` の 3 つが通っていることを求める。PR は、3 つが通るまで merge できない。repo の admin は、この決まりを bypass できるので、`main` への直の push は通る（GitHub の必須の check には「PR だけに効かせる」選び方が無いので、直の push を通すには bypass になる）。admin は、わざと選べば（画面の bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge できてしまうので、使わない。workflow の job の名を変えたら、ruleset の check の名も合わせて直す（合わないと、PR がいつまでも merge できない）。
 
 ## image に入る物
 
