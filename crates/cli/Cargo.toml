@@ -1,0 +1,28 @@
+[package]
+name = "pagetray-cli"
+description = "ページの置き場（pagetray）を端末から操作する CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# 人が打つ名は pagetray（サーバーの binary は pagetray-server）。
+[[bin]]
+name = "pagetray"
+path = "src/main.rs"
+
+[dependencies]
+pagetray-api = { path = "../api" }
+clap = { version = "4.6", features = ["derive", "env"] }
+clap_complete = "4.6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# 相手は 127.0.0.1 の http だけなので、TLS も圧縮も入れない。
+ureq = { version = "3.5", default-features = false }
+
+[dev-dependencies]
+# 試験は、同じ commit のサーバーを起こして、build した pagetray を打つ。
+pagetray = { path = "../.." }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "net"] }

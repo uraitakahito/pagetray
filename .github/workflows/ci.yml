@@ -14,6 +14,8 @@ env:
   # 秘密の走査の道具。版と、release の checksums.txt の値（linux_arm64）を一緒に上げる。
   GITLEAKS_VERSION: 8.30.1
   GITLEAKS_SHA256: e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
+  # 同じ版の、macOS（darwin_arm64）用の値。job `cli` が使う。release.yml と同じ値にする。
+  GITLEAKS_DARWIN_SHA256: b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5
 # action は commit の SHA で固定する（tag は後から中身が替わりうる）。
 jobs:
   test:
@@ -56,10 +58,38 @@ jobs:
         run: ci/check-image.sh pagetray:ci
       - name: 空の image の中で起き、置いて読めて、止めて起こし直しても残るか
         run: ci/smoke-image.sh pagetray:ci
+  cli:
+    if: github.event_name != 'schedule'
+    # release に付ける CLI と同じ OS・CPU（macOS・arm64）で、同じ script で作って確かめる。
+    # 出す binary の作り方と走査を、release の時でなく PR で通させるため。
+    runs-on: macos-15
+    env:
+      SQLX_OFFLINE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          # RUSTFLAGS は ci/build-cli.sh が決める（この action の既定の -D warnings を入れない）。
+          rustflags: ""
+      - name: gitleaks を入れる（版と checksum を固定）
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_darwin_arm64.tar.gz"
+          echo "${GITLEAKS_DARWIN_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | shasum -a 256 -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP/bin" gitleaks
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: 出す時と同じ作り方で CLI を作る（runner の path を binary に入れない）
+        run: ci/build-cli.sh
+      - name: binary に、入ってよい物だけが入っているか（形・library・版・秘密の走査）
+        run: ci/check-cli.sh target/release/pagetray
+      - name: その binary を、同じ commit のサーバーに向けて打つ
+        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli
   advisories:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: EmbarkStudios/cargo-deny-action@17aeb3c839e42274e2b8adf721c8c65edfdc74dd # v2.1.3
         with:
-          command: check advisories
+          # 弱点と、crate の license（MIT の pagetray と一緒に配れる物か）。
+          command: check advisories licenses

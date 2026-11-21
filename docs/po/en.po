@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T20:23:40+09:00\n"
+"POT-Creation-Date: 2026-11-21T20:30:53+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -1118,8 +1118,8 @@ msgid ""
 "た時」をする）。"
 msgstr ""
 "Check that the contents list in the release is \"only `pagetray-server` and "
-"an empty `data`\" (at this point the image is already public; if it differs, do "
-"\"If something sensitive got out\" just below)."
+"an empty `data`\" (at this point the image is already public; if it differs, "
+"do \"If something sensitive got out\" just below)."
 
 #: src/release.md
 msgid ""
@@ -1370,6 +1370,19 @@ msgstr ""
 "and the page record type)"
 
 #: src/development.md
+msgid "`crates/cli/`"
+msgstr "`crates/cli/`"
+
+#: src/development.md
+msgid ""
+"CLI（binary の名は `pagetray`）。置き場の口を HTTP で呼ぶ。試験は、同じ "
+"commit のサーバーを起こして打つ"
+msgstr ""
+"The CLI (the binary is named `pagetray`). It calls the store's API over "
+"HTTP. Its tests start the server from the same commit and run the CLI "
+"against it"
+
+#: src/development.md
 msgid "`migrations/`"
 msgstr "`migrations/`"
 
@@ -1404,11 +1417,13 @@ msgstr "`ci/`"
 
 #: src/development.md
 msgid ""
-"出す image に、入ってよい物だけが入っているか・動くかを見る script と、その決"
-"まり。この本を build する script（`ci/docs-build.sh`）もここ"
+"出す image と、release に付ける CLI に、入ってよい物だけが入っているか・動く"
+"かを見る script と、その決まり。この本を build する script（`ci/docs-"
+"build.sh`）もここ"
 msgstr ""
-"Scripts that check that the published image contains only what is allowed "
-"and that it runs, along with their rules. The script that builds this book "
+"Scripts that check that the published image and the CLI attached to a "
+"release contain only what is allowed and that they run, along with their "
+"rules. The script that builds this book "
 "(`ci/docs-build.sh`) is also here"
 
 #: src/development.md
@@ -1469,7 +1484,10 @@ msgid ""
 "runner で build し、[image に入る物](release.md#image-に入る物) を確かめ"
 "（`ci/check-image.sh`）、空の image の中で起きて置いて読めること・止める合図"
 "で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh`）。release "
-"の workflow も、同じ 2 つを push の前に流す。"
+"の workflow も、同じ 2 つを push の前に流す。workflow の `cli` は、release に"
+"付ける CLI を macOS（arm64）の runner で、出す時と同じ script（`ci/build-"
+"cli.sh`）で作り、binary の形・つながる library・版・秘密の走査を確かめ（`ci/"
+"check-cli.sh`）、その binary を同じ commit のサーバーに向けて打つ。"
 msgstr ""
 "GitHub Actions runs the same steps in the same order (`.github/workflows/"
 "ci.yml`). Each test creates its own temporary DB. The workflow's `image` "
@@ -1478,7 +1496,11 @@ msgstr ""
 "checks that, inside the empty image, it starts and can store and read, that "
 "it exits on the stop signal, and that data remains after a restart (`ci/"
 "smoke-image.sh`). The release workflow also runs the same two before the "
-"push."
+"push. The workflow's `cli` builds the CLI attached to a release on a macOS "
+"(arm64) runner with the same script used for publishing (`ci/build-cli.sh`), "
+"verifies the binary's format, linked libraries, version, and the secret scan "
+"(`ci/check-cli.sh`), and runs that binary against the server from the same "
+"commit."
 
 #: src/development.md
 msgid ""
@@ -1548,11 +1570,14 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"**弱点の見張り**: workflow の `advisories` が `cargo deny check advisories`"
-"（設定は `deny.toml`）を、PR ごとと週に 1 度流す。"
+"**弱点と license の見張り**: workflow の `advisories` が `cargo deny check "
+"advisories licenses`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。"
+"`deny.toml` に無い license の crate が入ると落ちる。"
 msgstr ""
-"**Vulnerability monitoring**: The workflow's `advisories` runs `cargo deny "
-"check advisories` (configured in `deny.toml`) on every PR and once a week."
+"**Vulnerability and license monitoring**: The workflow's `advisories` runs "
+"`cargo deny check advisories licenses` (configured in `deny.toml`) on every "
+"PR and once a week. It fails when a crate with a license not listed in "
+"`deny.toml` comes in."
 
 #: src/development.md
 msgid ""
