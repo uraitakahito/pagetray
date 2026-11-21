@@ -55,22 +55,7 @@ jobs:
       - name: image に、入ってよい物だけが入っているか（中身の一覧・設定・秘密の走査）
         run: ci/check-image.sh pagetray:ci
       - name: 空の image の中で起き、置いて読めて、止めて起こし直しても残るか
-        run: |
-          up() { for _ in $(seq 1 40); do curl -fsS http://127.0.0.1:8801/healthz && return; sleep 0.5; done; return 1; }
-          docker run -d --name pagetray-ci -p 127.0.0.1:8801:8080 -v pagetray-ci-data:/data pagetray:ci
-          up
-          curl -fsS -X POST --data-binary '<title>CI</title><p>image の中で動く</p>' \
-            'http://127.0.0.1:8801/api/pages?project=ci&key=K-1&kind=result&role=tpm' | tee put.json
-          grep -q '"n":1' put.json
-          # 止める合図（SIGTERM）で、自分から終わるか（PID 1 は受け口が無いと合図を無視する）。
-          docker stop pagetray-ci
-          test "$(docker inspect -f '{{.State.ExitCode}}' pagetray-ci)" = 0
-          docker start pagetray-ci
-          up
-          curl -fsS http://127.0.0.1:8801/ci/K-1/result-1.html | grep -q 'image の中で動く'
-          curl -fsS 'http://127.0.0.1:8801/?q=image' | grep -q 'result-1'
-      - if: always()
-        run: docker logs pagetray-ci
+        run: ci/smoke-image.sh pagetray:ci
   advisories:
     runs-on: ubuntu-latest
     steps:
