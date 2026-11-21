@@ -8,7 +8,7 @@ cd "$(dirname "$0")/../docs"
 rm -rf book
 # 原文（日本語）は site の root に出る。
 mdbook build
-# 訳は /<言葉>/ に出る。po/<言葉>.po が無い間は、原文のままの本になる。
+# 訳は /<言葉>/ に出る。po/<言葉>.po に訳の無い所は、原文のまま出る。
 MDBOOK_BOOK__LANGUAGE=en MDBOOK_OUTPUT__HTML__SITE_URL=/pagetray/en/ mdbook build -d book/en
 
 # 日本語を語に切れるのは extended の方（Homebrew と npm の pagefind は extended）。
@@ -32,4 +32,13 @@ done
 for lang in ja en; do
   ls book/pagefind/pagefind."$lang"_*.pf_meta >/dev/null 2>&1 || { echo "検索の索引に $lang が無い" >&2; exit 1; }
 done
+# 英語の本の本文に、日本語が残っていないか（訳の項に出ない所: コードの塊の中の字など）。
+if perl -CSD -0777 -ne '
+    next unless m{<main>(.*?)</main>}s;
+    (my $text = $1) =~ s/<[^>]+>//g;
+    for (split /\n/, $text) { if (/[\p{Hiragana}\p{Katakana}\p{Han}]/) { print "$ARGV: $_\n"; $n = 1 } }
+    END { exit !$n }' book/en/*.html; then
+  echo "英語の本に、日本語が残っている（上の行）。訳すか、原文を英字で書く。" >&2
+  exit 1
+fi
 echo "docs/book に作った"

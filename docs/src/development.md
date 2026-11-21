@@ -49,15 +49,17 @@ GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験
 
 ## この本を直す
 
-この本は [mdBook](https://rust-lang.github.io/mdBook/) で作り、release の tag（`v*`）を打った時に、workflow（`.github/workflows/docs.yml`）が GitHub Pages に出す。PR と main への push では、build できるかだけを見る（job の名は `docs`）。
+この本は [mdBook](https://rust-lang.github.io/mdBook/) で作り、release の tag（`v*`）を打った時に、workflow（`.github/workflows/docs.yml`）が GitHub Pages に出す。PR と main への push では、build できるかと、英語の訳が原文と合っているかを見る（job の名は `docs`）。
 
 | ファイル | 中身 |
 |---|---|
 | `docs/book.toml` | 本の設定。組み込みの検索は切ってある（日本語が引けないため） |
 | `docs/src/` | 原文（日本語）。目次は `SUMMARY.md` |
+| `docs/po/en.po` | 英語の訳。原文の段落・表の升・コードの塊ごとに 1 項 |
 | `docs/theme/site.js`・`site.css` | 上の帯に足す、言葉の切り替えと検索の枠 |
 | `docs/pagefind.yml` | 検索（[Pagefind](https://pagefind.app/)）の索引に入れる物 |
 | `docs/mermaid.min.js`・`mermaid-init.js` | 図（Mermaid）を描く script。`mdbook-mermaid install docs` が置いた物 |
+| `ci/docs-po.sh` | `en.po` を原文に合わせる。`--check` を付けると、合っているかを見るだけ |
 | `ci/docs-build.sh` | 日本語の本を `docs/book/` に、英語の本を `docs/book/en/` に作り、検索の索引を `docs/book/pagefind/` に作る |
 
 道具は、workflow の `env` に書いた版を入れる（上げる時は、workflow の版と checksum を一緒に上げる）。
@@ -67,11 +69,16 @@ cargo install mdbook@0.5.4 mdbook-mermaid@0.17.1 --locked
 cargo install mdbook-i18n-helpers --locked \
   --git https://github.com/google/mdbook-i18n-helpers --rev b202ae5b952e8f5fd3df72021af6f8c94463636e
 brew install pagefind gettext
-ci/docs-build.sh                       # 作る
-python3 -m http.server -d docs/book    # http://localhost:8000/ で見る
+ci/docs-build.sh
+python3 -m http.server -d docs/book
 ```
 
+`ci/docs-build.sh` が本を `docs/book/` に作る。最後の行で配り、`http://localhost:8000/` で見る。
+
 - **mdbook-i18n-helpers は commit を名指して入れる**: 公開済みの 0.4.0 は、訳した本で囲み（`> [!WARNING]` など）を崩す。直し（[#344](https://github.com/google/mdbook-i18n-helpers/pull/344)）を含む版が出たら、版の名指しに替える。
+- **原文を直したら、同じ PR で英語も直す**: `ci/docs-po.sh` を流すと、足した段落が `docs/po/en.po` に空の訳で入り、変えた段落に `#, fuzzy` の印が付く。空の所と印の所を訳し、印の行を消す。`ci/docs-po.sh --check` が通れば済み（CI も同じ検査を流す。原文にあって訳に無い段落・`fuzzy` の残り・訳に残った日本語があると落ちる）。
+- **コードの塊**: 訳に出るのは、コードの中の註（`#` の行）と、引用符の中の字だけ。命令の中の置き換えの名は訳せないので、`<version>` のように英字で書く。行の後ろに付けた註は、取り出されないことがある（`ci/docs-build.sh` が、英語の本に日本語が残っていれば落ちる）。
+- **訳さない物も `msgstr` に書く**: 命令・URL だけの項は、原文をそのまま写す。link の先の file の名（`run.md` など）は変えない。見出しを指す `#…` は、英語の本では見出しの id が訳した題から作られるので、訳した見出しの id に書き替える（`release.md#image-に入る物` → `release.md#what-goes-into-the-image`）。
 - **章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章は `docs/src/cli.md`（「使う」の節の、動かす と 口の約束 の間）。
 - **repo の file を指す link**: 本の外の file（`CHANGELOG.md` など）は、GitHub の URL で書く。章どうしは、`run.md` のように file の名で書く。
 - **図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通るので、変えたら browser で見る。

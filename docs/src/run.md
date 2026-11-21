@@ -4,7 +4,7 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 
 | 物 | 値 |
 |---|---|
-| image | `ghcr.io/uraitakahito/pagetray:v<版>`（[release](https://github.com/uraitakahito/pagetray/releases) に digest がある。arm64） |
+| image | `ghcr.io/uraitakahito/pagetray:v<version>`（[release](https://github.com/uraitakahito/pagetray/releases) に digest がある。arm64） |
 | container | `pagetray`（`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
 | URL | `http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
 | DB | 名前つきの volume `pagetray-data`（中の `/data/pages.db`）。Mac の folder は mount しない |
@@ -15,15 +15,15 @@ skills の `tpm` を使う Mac では、container と volume に触る命令を 
 ## 起こす
 
 ```sh
-container image pull ghcr.io/uraitakahito/pagetray:v<版>
-container image inspect ghcr.io/uraitakahito/pagetray:v<版> | grep -o '"digest" *: *"sha256:[0-9a-f]*"'   # release の digest がこの中にあるか
+container image pull ghcr.io/uraitakahito/pagetray:v<version>
+container image inspect ghcr.io/uraitakahito/pagetray:v<version> | grep -o '"digest" *: *"sha256:[0-9a-f]*"'   # release の digest がこの中にあるか
 container volume create pagetray-data                           # 初めての時だけ
 container run -d --name pagetray \
   -p 127.0.0.1:8801:8080 \
   -p 127.0.0.1:8800:8080 \
   -v pagetray-data:/data \
   -m 200M -c 1 \
-  ghcr.io/uraitakahito/pagetray:v<版>
+  ghcr.io/uraitakahito/pagetray:v<version>
 ```
 
 - digest の見方: `container image list` に出る digest は、Apple Container が付ける別の値。release の digest は、`container image inspect` の `variants` の中の `digest` に出る。
@@ -39,7 +39,7 @@ container run -d --name pagetray \
 1. `container list` で `pagetray` が `running`。
 2. `lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と `127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。
 3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `ok` を返し、`curl -s http://127.0.0.1:8801/api/version` が、起こした版と `"api":1` を返す。browser で `http://127.0.0.1:8801/` が一覧を出す。
-4. `container logs pagetray` の頭に `pagetray <版> listen=0.0.0.0:8080 db=/data/pages.db` が出ている。
+4. `container logs pagetray` の頭に `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` が出ている。
 5. `container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
 
 ## DB の写しを取る
@@ -48,7 +48,7 @@ container run -d --name pagetray \
 
 ```sh
 curl -fsS -o ~/pagetray-$(date +%Y%m%d-%H%M).db http://127.0.0.1:8801/api/backup
-sqlite3 ~/pagetray-<日時>.db 'select count(*) from pages'    # 開けて、件数が合うか
+sqlite3 ~/pagetray-<timestamp>.db 'select count(*) from pages'    # 開けて、件数が合うか
 ```
 
 写しには、置かれたページの本文がみな入っている。この repo にも CI にも置かない。
@@ -60,9 +60,9 @@ volume を失った・DB が壊れた時。戻す間、ページは置けない�
 ```sh
 container stop pagetray
 container run --rm \
-  -v pagetray-data:/data -v "<写しのある folder>:/in:ro" \
+  -v pagetray-data:/data -v "<backup-dir>:/in:ro" \
   docker.io/library/rust:1.100.0-alpine \
-  sh -c 'rm -f /data/pages.db-wal /data/pages.db-shm && cp /in/<写しの file> /data/pages.db'
+  sh -c 'rm -f /data/pages.db-wal /data/pages.db-shm && cp /in/<backup-file> /data/pages.db'
 container start pagetray
 ```
 
