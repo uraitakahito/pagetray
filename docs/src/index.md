@@ -3,8 +3,6 @@
 ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を付け、絞って探せる一覧の UI を出す。
 この Mac の中（`127.0.0.1`）だけで使う物で、[skills](https://github.com/uraitakahito/skills) の `tpm page` の命令が、ここの口を `curl` で呼ぶ。
 
-もとは skills の repo の `pagestore/` にあった物を、履歴ごと分けた。版ごとに変えたことは [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/CHANGELOG.md)。
-
 ```mermaid
 flowchart LR
   tpm["skills の tpm page<br>（curl）"] -->|"POST・GET・DELETE /api/pages"| srv
