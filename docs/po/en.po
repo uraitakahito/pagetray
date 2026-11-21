@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-22T00:50:32+09:00\n"
+"POT-Creation-Date: 2026-11-22T00:57:16+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -702,13 +702,8 @@ msgstr ""
 "repo or in CI."
 
 #: src/run.md
-msgid ""
-"写しの中の表と列は [DB の作り](db.md) にある（表の形は API の仕様に入らないの"
-"で、写しを読む script は版が変わると壊れうる）。"
-msgstr ""
-"The tables and columns inside the backup are described in [DB schema](db.md) "
-"(the table layout is not part of the API specification, so a script that "
-"reads the backup may break when the version changes)."
+msgid "写しの中の表と列は [DB の作り](db.md) にある。"
+msgstr "The tables and columns inside the backup are described in [DB schema](db.md)."
 
 #: src/run.md
 msgid "上げてはいけない file を上げてしまった時"
@@ -2311,10 +2306,6 @@ msgstr "Server version and API version"
 #: src/api.md
 msgid "DB の写し（SQLite の file 1 つ）"
 msgstr "Backup of the DB (a single SQLite file)"
-
-#: src/api.md
-msgid "入る（file の中の表の形は入らない）"
-msgstr "Covered (the table layout inside the file is not covered)"
 
 #: src/api.md
 msgid ""
