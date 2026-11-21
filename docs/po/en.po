@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T20:30:53+09:00\n"
+"POT-Creation-Date: 2026-11-21T20:35:25+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -25,6 +25,10 @@ msgstr "Usage"
 #: src/SUMMARY.md src/run.md
 msgid "動かす"
 msgstr "Running"
+
+#: src/SUMMARY.md src/cli.md
+msgid "CLI"
+msgstr "CLI"
 
 #: src/SUMMARY.md
 msgid "口の約束"
@@ -102,7 +106,7 @@ msgstr "Chapters"
 msgid "章"
 msgstr "Chapter"
 
-#: src/index.md src/api.md src/development.md
+#: src/index.md src/cli.md src/api.md src/development.md
 msgid "中身"
 msgstr "Contents"
 
@@ -365,7 +369,7 @@ msgstr ""
 "The named volume `pagetray-data` (`/data/pages.db` inside). No Mac folder is "
 "mounted"
 
-#: src/run.md src/release.md
+#: src/run.md src/cli.md src/release.md
 msgid "設定"
 msgstr "Settings"
 
@@ -616,6 +620,471 @@ msgstr ""
 #: src/run.md
 msgid "古い image は `container image delete` で消す。"
 msgstr "Delete old images with `container image delete`."
+
+#: src/cli.md
+msgid ""
+"`pagetray` は、置き場を端末から操作する命令。置き場の[口](api.md)を HTTP で呼"
+"ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も"
+"無い。"
+msgstr ""
+"`pagetray` is a command for operating the store from a terminal. It calls "
+"the store's [API](api.md) over HTTP. It only talks to a store on this Mac "
+"(`127.0.0.1`); there is no authentication and no configuration file."
+
+#: src/cli.md
+msgid "入れる"
+msgstr "Installing"
+
+#: src/cli.md
+msgid ""
+"release に、macOS（arm64）用の binary が付いている。`gh` で取り、checksum を"
+"確かめてから置く。"
+msgstr ""
+"Each release has a binary for macOS (arm64) attached. Download it with `gh`, "
+"verify the checksum, and then put it in place."
+
+#: src/cli.md
+msgid "\"$(mktemp -d)\""
+msgstr "\"$(mktemp -d)\""
+
+#: src/cli.md
+msgid "'pagetray-v<version>-aarch64-apple-darwin.tar.gz*'"
+msgstr "'pagetray-v<version>-aarch64-apple-darwin.tar.gz*'"
+
+#: src/cli.md
+msgid ""
+"browser で落とすと、macOS が開くのを止める（公証をしていない binary のた"
+"め）。`gh` か `curl` で取る。"
+msgstr ""
+"If you download it with a browser, macOS refuses to open it (the binary is "
+"not notarized). Download it with `gh` or `curl`."
+
+#: src/cli.md
+msgid ""
+"Rust があれば、source からも入る: `cargo install --git https://github.com/"
+"uraitakahito/pagetray --tag v<version> --locked pagetray-cli`。"
+msgstr ""
+"If you have Rust, you can also install from source: `cargo install --git "
+"https://github.com/uraitakahito/pagetray --tag v<version> --locked pagetray-"
+"cli`."
+
+#: src/cli.md
+msgid "消す時は `rm ~/.local/bin/pagetray`。ほかに置く file は無い。"
+msgstr ""
+"To remove it, run `rm ~/.local/bin/pagetray`. It places no other files."
+
+#: src/cli.md
+msgid "命令"
+msgstr "Commands"
+
+#: src/cli.md
+msgid "すること"
+msgstr "What it does"
+
+#: src/cli.md
+msgid "`pagetray status`"
+msgstr "`pagetray status`"
+
+#: src/cli.md
+msgid "置き場が生きているか、サーバーの版、口の版が合っているかを出す"
+msgstr ""
+"Shows whether the store is alive, the server version, and whether the API "
+"version matches"
+
+#: src/cli.md
+msgid "`pagetray page list`"
+msgstr "`pagetray page list`"
+
+#: src/cli.md
+msgid "ページを絞って探す（新しい順）"
+msgstr "Finds pages with filters (newest first)"
+
+#: src/cli.md
+msgid "`pagetray page view <page>`"
+msgstr "`pagetray page view <page>`"
+
+#: src/cli.md
+msgid "ページの本文を出す。`--web` で browser に、`-o <file>` で file に"
+msgstr ""
+"Prints the body of a page. `--web` opens it in a browser; `-o <file>` writes "
+"it to a file"
+
+#: src/cli.md
+msgid "`pagetray page put <file>`"
+msgstr "`pagetray page put <file>`"
+
+#: src/cli.md
+msgid "ページを置く（`-` は stdin）。置いたページの URL を出す"
+msgstr "Stores a page (`-` reads stdin). Prints the URL of the stored page"
+
+#: src/cli.md
+msgid "`pagetray page delete <page>…`"
+msgstr "`pagetray page delete <page>…`"
+
+#: src/cli.md
+msgid "ページを消す（戻せない）"
+msgstr "Deletes pages (cannot be undone)"
+
+#: src/cli.md
+msgid "`pagetray page watch`"
+msgstr "`pagetray page watch`"
+
+#: src/cli.md
+msgid "ページが置かれるたびに 1 行出す"
+msgstr "Prints one line each time a page is stored"
+
+#: src/cli.md
+msgid "`pagetray browse [<project>[/<key>]]`"
+msgstr "`pagetray browse [<project>[/<key>]]`"
+
+#: src/cli.md
+msgid "一覧の UI を browser で開く。`-n` は URL を出すだけ"
+msgstr "Opens the list UI in a browser. `-n` only prints the URL"
+
+#: src/cli.md
+msgid "`pagetray backup -o <file>`"
+msgstr "`pagetray backup -o <file>`"
+
+#: src/cli.md
+msgid "DB の写し（SQLite の file 1 つ）を取る"
+msgstr "Takes a copy of the DB (a single SQLite file)"
+
+#: src/cli.md
+msgid "`pagetray api <path>`"
+msgstr "`pagetray api <path>`"
+
+#: src/cli.md
+msgid "口を直に呼ぶ。`-X <method>`・`-f <name>=<value>`・`--input <file>`"
+msgstr ""
+"Calls an endpoint directly. `-X <method>`, `-f <name>=<value>`, `--input "
+"<file>`"
+
+#: src/cli.md
+msgid "`pagetray completion <shell>`"
+msgstr "`pagetray completion <shell>`"
+
+#: src/cli.md
+msgid "shell の補完の script を出す（`bash`・`zsh`・`fish` など）"
+msgstr "Prints a shell completion script (`bash`, `zsh`, `fish`, and others)"
+
+#: src/cli.md
+msgid ""
+"旗の一覧は、どの命令も `--help` で出る。`<page>` は、ページの URL か、"
+"`<project>/<key>/<kind>-<n>` の形で書く。"
+msgstr ""
+"Every command lists its flags with `--help`. Write `<page>` as the URL of a "
+"page, or in the form `<project>/<key>/<kind>-<n>`."
+
+#: src/cli.md
+msgid "# 今いる folder の project の、Key が AI-22 のページ\n"
+msgstr "# pages with the Key AI-22 in the project of the current folder\n"
+
+#: src/cli.md
+msgid "# 題と本文から探し、名指した欄だけを JSON で\n"
+msgstr "# search titles and bodies, and print only the named fields as JSON\n"
+
+#: src/cli.md
+msgid "探す（`page list`）"
+msgstr "Finding (`page list`)"
+
+#: src/cli.md
+msgid ""
+"絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本"
+"文の字）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 "
+"50）。"
+msgstr ""
+"Filter flags: `--project`, `--key`, `--kind`, `--role`, `--workspace`, `-q` "
+"(text in the title and body), `--before`, `--after`. `--oldest` sorts oldest "
+"first; `-L` sets the number of results (default 50)."
+
+#: src/cli.md
+msgid ""
+"`--project` が無ければ、どの project のページも出す。`--project .` は、今い"
+"る folder の path から project の名を作る（英数字と `._-` のほかを `-` にす"
+"る。skills の `tpm` と同じ作り方）。"
+msgstr ""
+"Without `--project`, pages of every project are listed. `--project .` builds "
+"the project name from the path of the current folder (every character other "
+"than alphanumerics and `._-` becomes `-`; the same way `tpm` in skills "
+"builds it)."
+
+#: src/cli.md
+msgid ""
+"端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--"
+"json` は、口の「ページの記録」に `url` を足した配列。`--json=key,url` のよう"
+"に欄を名指すと、その欄だけを出す。"
+msgstr ""
+"On a terminal the output is a table with a header; in a pipe it is tab-"
+"separated (without a header). `--json` prints an array of the API's \"Page "
+"record\" with `url` added. Naming fields, as in `--json=key,url`, prints "
+"only those fields."
+
+#: src/cli.md
+msgid "置く（`page put`）"
+msgstr "Storing (`page put`)"
+
+#: src/cli.md
+msgid ""
+"`--project`（か環境変数 `PAGETRAY_PROJECT`）・`--key`・`--kind` が要る。"
+"project を今いる folder から勝手に決めることは無い（置き間違いを防ぐため）。"
+msgstr ""
+"`--project` (or the environment variable `PAGETRAY_PROJECT`), `--key`, and "
+"`--kind` are required. The project is never decided from the current folder "
+"on its own (to prevent storing into the wrong place)."
+
+#: src/cli.md
+msgid ""
+"番号は置き場が決める。同じ project・Key・種類に置き直すと次の番号になり、前の"
+"版は残る。"
+msgstr ""
+"The store decides the number. Storing again to the same project, Key, and "
+"kind gets the next number, and the previous version remains."
+
+#: src/cli.md
+msgid ""
+"置く人の役割は `--role`（か `PAGETRAY_ROLE`。既定は `human`）、居場所は `--"
+"workspace`。"
+msgstr ""
+"The role of the person storing is `--role` (or `PAGETRAY_ROLE`; default "
+"`human`), and their workspace is `--workspace`."
+
+#: src/cli.md
+msgid "消す（`page delete`）"
+msgstr "Deleting (`page delete`)"
+
+#: src/cli.md
+msgid ""
+"戻せない。まず消すページを一覧で出し、**`--yes` を付けた時だけ**消す。`--"
+"yes` が無ければ、何も消さずに終わる（終わりの code は 0）。"
+msgstr ""
+"It cannot be undone. It first lists the pages to delete and deletes them "
+"**only when `--yes` is given**. Without `--yes`, it ends without deleting "
+"anything (exit code 0)."
+
+#: src/cli.md
+msgid ""
+"消す先は、命令に書いた物だけ: ページの名指し（いくつでも）か、`--project "
+"<name> [--key <key> [--kind <kind>]]`。環境変数の project は、消す先にならな"
+"い。"
+msgstr ""
+"The targets are only what is written on the command line: named pages (any "
+"number), or `--project <name> [--key <key> [--kind <kind>]]`. A project in "
+"the environment variable never becomes a target."
+
+#: src/cli.md
+msgid ""
+"`-` で始まる project の名（`tpm` の project の名）は、URL で書くか、`--` の後"
+"ろに書く: `pagetray page delete --yes -- -Users-me-x/AI-22/plan-1`。"
+msgstr ""
+"Write a project name that starts with `-` (the project names of `tpm`) as a "
+"URL, or after `--`: `pagetray page delete --yes -- -Users-me-x/AI-22/plan-1`."
+
+#: src/cli.md
+msgid "消したページの URL は `410` を返し、同じ番号は 2 度使われない。"
+msgstr ""
+"The URL of a deleted page returns `410`, and the same number is never used "
+"twice."
+
+#: src/cli.md
+msgid ""
+"**`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、"
+"`page delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、"
+"だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う"
+"（skills の `tpm` は、担当を起こす時に付ける）。"
+msgstr ""
+"**`PAGETRAY_NO_DELETE`**: When this environment variable is set (to anything "
+"other than empty or `0`), `page delete` and `DELETE` through `api` stop with "
+"exit code 1 without doing anything. The store does not check who may delete. "
+"Use this when the caller decides who may delete (`tpm` in skills sets it "
+"when it starts a role)."
+
+#: src/cli.md
+msgid "旗が環境変数より先、環境変数が既定より先。"
+msgstr ""
+"Flags take precedence over environment variables, and environment variables "
+"over defaults."
+
+#: src/cli.md
+msgid "旗"
+msgstr "Flag"
+
+#: src/cli.md
+msgid "環境変数"
+msgstr "Environment variable"
+
+#: src/cli.md
+msgid "既定"
+msgstr "Default"
+
+#: src/cli.md
+msgid "`--url`"
+msgstr "`--url`"
+
+#: src/cli.md
+msgid "`PAGETRAY_URL`"
+msgstr "`PAGETRAY_URL`"
+
+#: src/cli.md
+msgid "`http://127.0.0.1:8801`"
+msgstr "`http://127.0.0.1:8801`"
+
+#: src/cli.md
+msgid "置き場の URL（`http://` だけ）"
+msgstr "URL of the store (`http://` only)"
+
+#: src/cli.md
+msgid "`--project`"
+msgstr "`--project`"
+
+#: src/cli.md
+msgid "`PAGETRAY_PROJECT`"
+msgstr "`PAGETRAY_PROJECT`"
+
+#: src/cli.md
+msgid "無し"
+msgstr "none"
+
+#: src/cli.md
+msgid "`page list` と `page put` の project"
+msgstr "Project for `page list` and `page put`"
+
+#: src/cli.md
+msgid "`--role`"
+msgstr "`--role`"
+
+#: src/cli.md
+msgid "`PAGETRAY_ROLE`"
+msgstr "`PAGETRAY_ROLE`"
+
+#: src/cli.md
+msgid "`human`"
+msgstr "`human`"
+
+#: src/cli.md
+msgid "`page put` で置く人の役割"
+msgstr "Role of the person storing with `page put`"
+
+#: src/cli.md
+msgid "—"
+msgstr "—"
+
+#: src/cli.md
+msgid "`PAGETRAY_NO_DELETE`"
+msgstr "`PAGETRAY_NO_DELETE`"
+
+#: src/cli.md
+msgid "付いていれば、消す命令を止める"
+msgstr "When set, stops the deleting commands"
+
+#: src/cli.md
+msgid "`BROWSER`"
+msgstr "`BROWSER`"
+
+#: src/cli.md
+msgid "macOS の `open`"
+msgstr "`open` on macOS"
+
+#: src/cli.md
+msgid "browser を開く命令"
+msgstr "Command that opens the browser"
+
+#: src/cli.md
+msgid "環境変数の proxy（`HTTP_PROXY` など）は使わない。"
+msgstr "Proxy environment variables (such as `HTTP_PROXY`) are not used."
+
+#: src/cli.md
+msgid "終わりの code と、口の版"
+msgstr "Exit codes and the API version"
+
+#: src/cli.md
+msgid "code"
+msgstr "code"
+
+#: src/cli.md
+msgid "訳"
+msgstr "Meaning"
+
+#: src/cli.md
+msgid "`0`"
+msgstr "`0`"
+
+#: src/cli.md
+msgid "できた"
+msgstr "Success"
+
+#: src/cli.md
+msgid "`1`"
+msgstr "`1`"
+
+#: src/cli.md
+msgid ""
+"置き場が断った（`4xx`・`5xx`。無いページ `404`・消したページ `410` を含む）。"
+"file に書けない時も"
+msgstr ""
+"The store refused (`4xx`, `5xx`; including `404` for a missing page and "
+"`410` for a deleted page). Also when a file cannot be written"
+
+#: src/cli.md
+msgid "`2`"
+msgstr "`2`"
+
+#: src/cli.md
+msgid "使い方の誤り"
+msgstr "Usage error"
+
+#: src/cli.md
+msgid "`3`"
+msgstr "`3`"
+
+#: src/cli.md
+msgid "置き場が応えない"
+msgstr "The store does not respond"
+
+#: src/cli.md
+msgid "`4`"
+msgstr "`4`"
+
+#: src/cli.md
+msgid "口の版が合わない"
+msgstr "The API version does not match"
+
+#: src/cli.md
+msgid "誤りの訳は stderr に 1 行で出る。stdout には、頼んだ物だけが出る。"
+msgstr ""
+"The reason for an error is printed on stderr in one line. Only what you "
+"asked for goes to stdout."
+
+#: src/cli.md
+msgid ""
+"`pagetray` は、置き場のどの答えでも header `Pagetray-Api`（[口の版](api.md#"
+"版)）を見る。自分の話せる版と違えば、答えを使わずに code 4 で止まる。"
+"`pagetray status` が、サーバーの版と口の版を出す。その時は、`pagetray` か置き"
+"場のどちらかを上げて、版を合わせる。"
+msgstr ""
+"`pagetray` checks the `Pagetray-Api` header ([API version](api.md#versions)) "
+"on every answer from the store. If it differs from the version it speaks, it "
+"stops with exit code 4 without using the answer. `pagetray status` prints "
+"the server version and the API version. In that case, upgrade either "
+"`pagetray` or the store so that the versions match."
+
+#: src/cli.md
+msgid "`tpm page` との関わり"
+msgstr "Relation to `tpm page`"
+
+#: src/cli.md
+msgid ""
+"skills の `tpm` を使う project では、担当は `tpm page`（put・path・list・"
+"delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい"
+"人という `tpm` の決まりを持ち、同じ口を呼ぶ。`pagetray` は、その決まりを持た"
+"ない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）"
+"で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。"
+msgstr ""
+"In a project that uses `tpm` from skills, roles use `tpm page` (put, path, "
+"list, delete). `tpm page` carries the rules of `tpm` (project, Key, role, "
+"the local copy folder, and who may delete) and calls the same API. "
+"`pagetray` is a tool without those rules, used where `tpm` is not involved "
+"(at a person's terminal, or in a folder that is not a `tpm` project). Pages "
+"stored with either one go into the same store and can be found from both."
 
 #: src/api.md
 msgid "口の約束（口の版 1）"
@@ -1065,14 +1534,17 @@ msgstr "Only that the URL opens. The HTML structure is not covered"
 
 #: src/release.md
 msgid ""
-"image は public で、だれでも pull して中を見られる。**出すのは release の "
-"workflow（`.github/workflows/release.yml`）だけ**で、手元から `push` しない"
-"（手元の build には、commit していない file が入りうる）。"
+"image と、release に付ける CLI の binary は public で、だれでも取って中を見ら"
+"れる。**出すのは release の workflow（`.github/workflows/release.yml`）だけ**"
+"で、手元から `push` せず、release に file を手で付けない（手元の build には、"
+"commit していない file と、自分の home の path が入りうる）。"
 msgstr ""
-"The image is public, and anyone can pull it and look inside. **Only the "
-"release workflow (`.github/workflows/release.yml`) publishes it**; never "
-"`push` from your local machine (a local build can include files that are not "
-"committed)."
+"The image and the CLI binary attached to a release are public, and anyone "
+"can get them and look inside. **Only the release workflow (`.github/"
+"workflows/release.yml`) publishes them**; never `push` from your local "
+"machine and never attach files to a release by hand (a local build can "
+"include files that are not committed, and the path of your own home "
+"directory)."
 
 #: src/release.md
 msgid ""
@@ -1093,33 +1565,42 @@ msgstr ""
 #: src/release.md
 msgid ""
 "workflow の `check` が、tag と版が合うか・image の中身の一覧・設定・秘密の走"
-"査（下の「image に入る物」）・動くかを見る。**1 つでも落ちれば、`push` は動か"
+"査（下の「image に入る物」）・動くかを見る。`check-cli` が、CLI の binary の"
+"形・つながる library・版・秘密の走査（下の「release に付ける CLI に入る"
+"物」）・動くかを見る。**1 つでも落ちれば、`push` は動かず、image も CLI も出"
 "ない。**"
 msgstr ""
 "The workflow's `check` verifies that the tag matches the version, the "
 "image's contents list, its configuration, the secret scan (see \"What goes "
-"into the image\" below), and that the image runs. **If even one of these "
-"fails, `push` does not run.**"
+"into the image\" below), and that the image runs. `check-cli` verifies the "
+"CLI binary's format, linked libraries, version, the secret scan (see \"What "
+"goes into the CLI attached to a release\" below), and that it runs. **If "
+"even one of these fails, `push` does not run, and neither the image nor the "
+"CLI is published.**"
 
 #: src/release.md
 msgid ""
 "`push` が、確かめたその image（作り直さない）を `ghcr.io/uraitakahito/"
-"pagetray:v<version>` に置き、release に digest と中身の一覧を書く。同じ tag "
-"がもうあれば置かない。"
+"pagetray:v<version>` に置き、release に digest と中身の一覧を書き、確かめたそ"
+"の CLI の tar と checksum を付ける。同じ tag がもうあれば置かない。"
 msgstr ""
 "`push` pushes that verified image (without rebuilding it) to `ghcr.io/"
-"uraitakahito/pagetray:v<version>` and writes the digest and the contents "
-"list to the release. If the same tag already exists, it does not push."
+"uraitakahito/pagetray:v<version>`, writes the digest and the contents list "
+"to the release, and attaches that verified CLI tar and its checksum. If the "
+"same tag already exists, it does not push."
 
 #: src/release.md
 msgid ""
-"release の中身の一覧が「`pagetray-server` と空の `data` だけ」であることを見"
-"る（この時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまっ"
-"た時」をする）。"
+"release の中身の一覧が「`pagetray-server` と空の `data` だけ」であることと、"
+"付いた file が `pagetray-v<version>-aarch64-apple-darwin.tar.gz` とその "
+"`.sha256` の 2 つだけであることを見る（この時、image も CLI ももう public。"
+"違っていたら、すぐ下の「機微な物が出てしまった時」をする）。"
 msgstr ""
 "Check that the contents list in the release is \"only `pagetray-server` and "
-"an empty `data`\" (at this point the image is already public; if it differs, "
-"do \"If something sensitive got out\" just below)."
+"an empty `data`\", and that the attached files are only `pagetray-v<version>-"
+"aarch64-apple-darwin.tar.gz` and its `.sha256` (at this point the image and "
+"the CLI are already public; if anything differs, do \"If something sensitive "
+"got out\" just below)."
 
 #: src/release.md
 msgid ""
@@ -1139,15 +1620,17 @@ msgstr ""
 
 #: src/release.md
 msgid ""
-"**機微な物が出てしまった時**: GitHub の package の画面で、その版を消す。秘密"
-"なら、すぐ替える（消しても、pull した人の手元には残る前提で動く）。直して次の"
-"版を出し、`ci/` の決まりに、同じ物を止める形を足す。"
+"**機微な物が出てしまった時**: GitHub の package の画面で、その版を消す。CLI "
+"の方なら、release の画面で付いた file を消す。秘密なら、すぐ替える（消して"
+"も、pull した人の手元には残る前提で動く）。直して次の版を出し、`ci/` の決まり"
+"に、同じ物を止める形を足す。"
 msgstr ""
 "**If something sensitive got out**: Delete that version on the GitHub "
-"package page. If it is a secret, rotate it immediately (act on the "
-"assumption that it remains on the machines of people who pulled it, even "
-"after deletion). Fix the problem and publish the next version, and add "
-"something to the rules in `ci/` that blocks the same thing."
+"package page. For the CLI, delete the attached files on the release page. If "
+"it is a secret, rotate it immediately (act on the assumption that it remains "
+"on the machines of people who pulled it, even after deletion). Fix the "
+"problem and publish the next version, and add something to the rules in `ci/"
+"` that blocks the same thing."
 
 #: src/release.md
 msgid ""
@@ -1156,7 +1639,7 @@ msgid ""
 "（v0.2.0 で確かめた。private の間に人が見る、という段は無い）。人が見られるの"
 "は、tag を打つ前だけ。だから、3 の確かめを push の前に置いてあり、決まりを緩"
 "める PR（`ci/` の file・`.dockerignore`・`Containerfile`）は、よく見てから "
-"merge する。"
+"merge する。CLI の binary も、release に付いた時から public。"
 msgstr ""
 "**Public from the moment it is pushed**: This repo is public, and the image "
 "is pushed with a label pointing to the repo, so the package can be pulled by "
@@ -1164,7 +1647,8 @@ msgstr ""
 "where a person reviews it while it is still private). A person can review it "
 "only before the tag is created. That is why the checks in step 3 are placed "
 "before the push, and why PRs that loosen the rules (files in `ci/`, "
-"`.dockerignore`, `Containerfile`) are reviewed carefully before merging."
+"`.dockerignore`, `Containerfile`) are reviewed carefully before merging. The "
+"CLI binary is also public from the moment it is attached to a release."
 
 #: src/release.md
 msgid "image に入る物"
@@ -1285,6 +1769,122 @@ msgid ""
 msgstr ""
 "To change the rules (adding a file, adding an allowed string), edit the "
 "files above in a PR, where the change is visible."
+
+#: src/release.md
+msgid "release に付ける CLI に入る物"
+msgstr "What goes into the CLI attached to a release"
+
+#: src/release.md
+msgid ""
+"CLI（`pagetray`。macOS の arm64 用）も外に出す物なので、image と同じに、入っ"
+"てよい物を決めてある。CI の job `cli` が PR ごとに、release の `check-cli` が"
+"出す前に、同じ script で確かめる。1 つでも違えば落ちる。"
+msgstr ""
+"The CLI (`pagetray`, for macOS arm64) is also something that goes out, so, "
+"as with the image, what may go into it is fixed. The CI job `cli` verifies "
+"it on every PR, and the release's `check-cli` verifies it before publishing, "
+"with the same scripts. If even one thing differs, it fails."
+
+#: src/release.md
+msgid "build"
+msgstr "build"
+
+#: src/release.md
+msgid ""
+"home と repo の path を、決まった名に付け替えて作る（Rust は source の path "
+"を binary に埋め込むので、そのままだと build した人の home の path が出る）。"
+"秘密は渡さない"
+msgstr ""
+"Built with the home and repo paths remapped to fixed names (Rust embeds "
+"source paths in the binary, so otherwise the home path of whoever built it "
+"would get out). No secrets are passed"
+
+#: src/release.md
+msgid "`ci/build-cli.sh`"
+msgstr "`ci/build-cli.sh`"
+
+#: src/release.md
+msgid "binary の形"
+msgstr "Binary format"
+
+#: src/release.md
+msgid ""
+"macOS の arm64 の実行 file。つながる library は OS の物だけ。`--version` が "
+"`Cargo.toml` の版と同じ"
+msgstr ""
+"A macOS arm64 executable. The only linked libraries are those of the OS. `--"
+"version` matches the version in `Cargo.toml`"
+
+#: src/release.md
+msgid "`ci/check-cli.sh`・`ci/cli-libs.txt`"
+msgstr "`ci/check-cli.sh`, `ci/cli-libs.txt`"
+
+#: src/release.md
+msgid ""
+"image の binary と同じ決まり（home の path・mail の形・秘密の鍵や token の頭"
+"が無い。gitleaks も掛ける）。同じ script を使う"
+msgstr ""
+"The same rules as the image's binary (no home paths, no email-like strings, "
+"no private-key or token prefixes; gitleaks is run as well). The same script "
+"is used"
+
+#: src/release.md
+msgid "`ci/scan-binary.sh`・`ci/strings-deny.txt`・`ci/strings-allow.txt`"
+msgstr "`ci/scan-binary.sh`, `ci/strings-deny.txt`, `ci/strings-allow.txt`"
+
+#: src/release.md
+msgid "tar の中身"
+msgstr "Contents of the tar"
+
+#: src/release.md
+msgid ""
+"`pagetray` と `LICENSE` だけ。持ち主は `root`/`wheel` に固定し、macOS が足す"
+"付け足しの file を入れない"
+msgstr ""
+"Only `pagetray` and `LICENSE`. The owner is fixed to `root`/`wheel`, and the "
+"extra files macOS adds are left out"
+
+#: src/release.md
+msgid "`ci/pack-cli.sh`・`ci/cli-contents.txt`"
+msgstr "`ci/pack-cli.sh`, `ci/cli-contents.txt`"
+
+#: src/release.md
+msgid "動くか"
+msgstr "Whether it runs"
+
+#: src/release.md
+msgid "その binary を、同じ commit のサーバーに向けて打つ（CLI の試験）"
+msgstr ""
+"That binary is run against the server from the same commit (the CLI tests)"
+
+#: src/release.md
+msgid "`crates/cli/tests/`"
+msgstr "`crates/cli/tests/`"
+
+#: src/release.md
+msgid ""
+"`check-cli` は、書き込みの権限も秘密も持たない。`push` は、渡された tar の "
+"checksum を見てから、作り直さずに release に付ける。"
+msgstr ""
+"`check-cli` has neither write permission nor secrets. `push` verifies the "
+"checksum of the tar handed to it and attaches it to the release without "
+"rebuilding."
+
+#: src/release.md
+msgid ""
+"CLI は、認証の token も設定の file も持たない。build の時に binary に焼き込む"
+"値は、版だけ。"
+msgstr ""
+"The CLI holds neither an authentication token nor a configuration file. The "
+"only value baked into the binary at build time is the version."
+
+#: src/release.md
+msgid ""
+"署名は linker が付ける ad-hoc の物だけで、公証はしていない。出どころの記録"
+"（provenance）も付けない。"
+msgstr ""
+"The only signature is the ad-hoc one added by the linker; it is not "
+"notarized. No provenance record is attached either."
 
 #: src/development.md
 msgid "ファイル"
@@ -1423,8 +2023,7 @@ msgid ""
 msgstr ""
 "Scripts that check that the published image and the CLI attached to a "
 "release contain only what is allowed and that they run, along with their "
-"rules. The script that builds this book "
-"(`ci/docs-build.sh`) is also here"
+"rules. The script that builds this book (`ci/docs-build.sh`) is also here"
 
 #: src/development.md
 msgid "`docs/`"

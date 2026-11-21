@@ -310,3 +310,39 @@ fn completion_scripts_name_the_command() {
         format!("pagetray {}\n", env!("CARGO_PKG_VERSION"))
     );
 }
+
+/// 文書（docs/src/cli.md）に、どの命令の名もあるか。命令を足した時に、文書を忘れると落ちる。
+#[test]
+fn every_command_is_in_the_book() {
+    let book = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../docs/src/cli.md"
+    ))
+    .unwrap();
+    let s = Server::start();
+    let commands = |args: &[&str]| -> Vec<String> {
+        let help = s.run(args).stdout;
+        help.lines()
+            .skip_while(|line| *line != "Commands:")
+            .skip(1)
+            .take_while(|line| line.starts_with("  "))
+            .filter_map(|line| line.split_whitespace().next().map(str::to_owned))
+            .collect()
+    };
+    let top = commands(&["--help"]);
+    assert!(top.contains(&"status".to_owned()), "{top:?}");
+    for command in top.iter().filter(|c| *c != "page") {
+        assert!(
+            book.contains(&format!("`pagetray {command}")),
+            "docs/src/cli.md に pagetray {command} が無い"
+        );
+    }
+    let page = commands(&["page", "--help"]);
+    assert!(page.contains(&"list".to_owned()), "{page:?}");
+    for command in page {
+        assert!(
+            book.contains(&format!("`pagetray page {command}")),
+            "docs/src/cli.md に pagetray page {command} が無い"
+        );
+    }
+}

@@ -1,10 +1,11 @@
 name: release
-# tag（v<版>）を打つと、image を作り、確かめてから ghcr.io に置く。
+# tag（v<版>）を打つと、image と CLI を作り、確かめてから、image を ghcr.io に置き、CLI を release に付ける。
 #
-# image は public になる。だから、確かめ（check）と置く（push）を別の job にし、
-#   - check: 書き込みの権限を持たない。build・中身の一覧・設定・秘密の走査・動くかを見て、image を file にして渡す
-#   - push: check が通った時だけ動く。渡された file（確かめたその image）を、作り直さずに置く
-# とする。check が 1 つでも落ちれば、push は動かない。image を手で push しない（docs/src/release.md の「release を出す」）。
+# image も、release に付ける CLI も public になる。だから、確かめ（check・check-cli）と置く（push）を別の job にし、
+#   - check: 書き込みの権限を持たない。image の build・中身の一覧・設定・秘密の走査・動くかを見て、image を file にして渡す
+#   - check-cli: 書き込みの権限を持たない。CLI（macOS・arm64）の build・形・library・版・秘密の走査・動くかを見て、tar にして渡す
+#   - push: check と check-cli が通った時だけ動く。渡された file（確かめたその image と tar）を、作り直さずに置く
+# とする。確かめが 1 つでも落ちれば、push は動かず、何も外に出ない。image も CLI も手で出さない（docs/src/release.md の「release を出す」）。
 on:
   push:
     tags: ["v*"]
@@ -15,6 +16,8 @@ env:
   # 秘密の走査の道具。ci.yml と同じ値にする。
   GITLEAKS_VERSION: 8.30.1
   GITLEAKS_SHA256: e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
+  # 同じ版の、macOS（darwin_arm64）用の値。check-cli が使う。
+  GITLEAKS_DARWIN_SHA256: b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5
 # action は commit の SHA で固定する（tag は後から中身が替わりうる）。
 jobs:
   check:
@@ -65,8 +68,50 @@ jobs:
           path: ${{ runner.temp }}/out/
           retention-days: 7
           if-no-files-found: error
+  check-cli:
+    # 出す CLI は macOS の arm64 用。CI の job `cli` と同じ script で作って確かめる（PR で動いた物が、そのまま動く）。
+    runs-on: macos-15
+    env:
+      SQLX_OFFLINE: "true"
+    outputs:
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+        with:
+          # RUSTFLAGS は ci/build-cli.sh が決める（この action の既定の -D warnings を入れない）。
+          rustflags: ""
+      - name: gitleaks を入れる（版と checksum を固定）
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_darwin_arm64.tar.gz"
+          echo "${GITLEAKS_DARWIN_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | shasum -a 256 -c -
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP/bin" gitleaks
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      # build に秘密は要らない。この job は secrets を 1 つも読まない。出どころの記録（provenance）も付けない。
+      - name: CLI を作る（runner の path を binary に入れない）
+        run: ci/build-cli.sh
+      - name: binary に、入ってよい物だけが入っているか（形・library・版・秘密の走査）
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/out"
+          ci/check-cli.sh target/release/pagetray | tee "$RUNNER_TEMP/out/cli-report.md"
+      - name: その binary を、同じ commit のサーバーに向けて打つ
+        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli
+      - name: 確かめた binary を tar にする（中身の一覧と持ち主も見る）
+        id: pack
+        run: |
+          ci/pack-cli.sh target/release/pagetray "$GITHUB_REF_NAME" "$RUNNER_TEMP/out"
+          echo "sha256=$(cut -d' ' -f1 "$RUNNER_TEMP/out/pagetray-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz.sha256")" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: checked-cli
+          path: ${{ runner.temp }}/out/
+          retention-days: 7
+          if-no-files-found: error
   push:
-    needs: check
+    needs: [check, check-cli]
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: write # release を作る
@@ -76,11 +121,18 @@ jobs:
         with:
           name: checked-image
           path: out
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: checked-cli
+          path: cli
       - name: 渡された file が、確かめた物と同じか
         env:
           WANT: ${{ needs.check.outputs.sha256 }}
+          WANT_CLI: ${{ needs.check-cli.outputs.sha256 }}
         run: |
           echo "$WANT  out/image.tar.gz" | sha256sum -c -
+          echo "$WANT_CLI  cli/pagetray-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz" | sha256sum -c -
+          (cd cli && sha256sum -c "pagetray-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz.sha256")
           gunzip -c out/image.tar.gz | docker load
       - name: ghcr.io に置く（同じ tag がもうあれば置かない）
         id: push
@@ -108,6 +160,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DIGEST: ${{ steps.push.outputs.digest }}
+          CLI_SHA256: ${{ needs.check-cli.outputs.sha256 }}
         run: |
           {
             echo "image: \`$IMAGE:$GITHUB_REF_NAME\`"
@@ -117,6 +170,15 @@ jobs:
             echo "変えたことは [CHANGELOG.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/CHANGELOG.md)。"
             echo
             cat out/image-report.md
+            echo
+            echo "CLI（macOS・arm64）: \`pagetray-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz\`"
+            echo
+            echo "sha256: \`$CLI_SHA256\`"
+            echo
+            cat cli/cli-report.md
           } > notes.md
           cat notes.md >> "$GITHUB_STEP_SUMMARY"
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
+          # 付けるのは、check-cli が確かめて渡した tar と、その checksum の 2 つだけ。
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag \
+            "cli/pagetray-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz" \
+            "cli/pagetray-$GITHUB_REF_NAME-aarch64-apple-darwin.tar.gz.sha256"
