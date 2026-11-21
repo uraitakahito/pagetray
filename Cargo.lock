@@ -996,7 +996,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "pagetray"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "askama",
  "axum",
@@ -1014,14 +1014,14 @@ dependencies = [
 
 [[package]]
 name = "pagetray-api"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "pagetray-cli"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "axum",
  "clap",

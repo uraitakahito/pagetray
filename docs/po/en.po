@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T22:15:05+09:00\n"
+"POT-Creation-Date: 2026-11-21T22:34:48+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -662,11 +662,21 @@ msgstr ""
 
 #: src/run.md
 msgid ""
-"写しには、置かれたページの本文がみな入っている。この repo にも CI にも置かな"
-"い。"
-msgstr ""
-"The backup contains the bodies of all stored pages. Do not put it in this "
-"repo or in CI."
+"写しには、置かれたページの本文と、上げられた file（0.4.0 から）がみな入ってい"
+"る。file の分だけ大きくなる。この repo にも CI にも置かない。"
+msgstr "The backup contains the bodies of all stored pages and all uploaded files (from 0.4.0), so it grows by the size of the files. Do not put it in this repo or in CI."
+
+#: src/run.md
+msgid "上げてはいけない file を上げてしまった時"
+msgstr "If you uploaded a file you should not have"
+
+#: src/run.md
+msgid ""
+"秘密（token・鍵・個人の情報など）が写った file を上げてしまったら、TPM 担当"
+"に URL を送って消してもらう（`tpm file delete <URL> --yes`）。消しても、**消"
+"す前に取った写しには残る**。消した後に写しを取り直し、それより前の写し（`~/"
+"pagetray-*.db`）を消す。秘密そのもの（token・鍵）は、すぐ替える。"
+msgstr "If you uploaded a file that shows a secret (a token, a key, personal information, and so on), send its URL to the TPM and have it deleted (`tpm file delete <URL> --yes`). Even after deletion, **it stays in any backup taken before the deletion**. After deleting, take a new backup and delete the older backups (`~/pagetray-*.db`). Replace the secret itself (token or key) right away."
 
 #: src/run.md
 msgid "写しから戻す"
