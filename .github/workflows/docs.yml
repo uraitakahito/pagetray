@@ -1,7 +1,7 @@
 name: docs
 
 # docs/ の本（mdBook）を作り、GitHub Pages（https://uraitakahito.github.io/pagetray/）に出す。
-#   - PR・main への push: 作れるか・英語の訳が原文と合っているかを見るだけ（job docs）。出さない。
+#   - PR・main への push: 作れるか・英語の訳が原文と合っているか・browser で検索と言葉の切り替えと図が動くかを見るだけ（job docs）。出さない。
 #   - release の tag（v*）の push・手動の起動: 作った物を Pages に出す（job deploy）。
 #     だから公開の本は、release した版の物になる。github-pages の環境は、v* の tag からの deploy だけを許す
 #     （出し直す時は gh workflow run docs.yml --ref v<版>）。
@@ -72,6 +72,37 @@ jobs:
         run: |
           command -v msgcmp >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq gettext; }
           ci/docs-po.sh --check
+      # 作った本を、本物の browser（Chromium）で見る: 検索の枠・言葉の切り替え・図（e2e/docs-tests）。
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: e2e/.node-version
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - name: Node の依存を、lock のとおりに入れる
+        working-directory: e2e
+        run: pnpm install --frozen-lockfile
+      - name: Chromium の cache（版は lock の Playwright の版で決まる）
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+      - name: Chromium と、それが要る library を入れる
+        working-directory: e2e
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: 本の試験（検索・言葉の切り替え・図）
+        working-directory: e2e
+        run: pnpm test:docs
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docs-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
       - if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

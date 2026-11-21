@@ -12,7 +12,7 @@
 | `src/text.rs` | HTML から題と検索用の字を取り出す |
 | `crates/api/` | API の仕様のうち、サーバーと CLI が共に使う物（API の版・header の名・引数の字の決まり・path の形・ページの記録の型） |
 | `crates/cli/` | CLI（binary の名は `pagetray`）。置き場の API を HTTP で呼ぶ。試験は、同じ commit のサーバーを起こして打つ |
-| `e2e/` | 一覧の UI を、本物の browser で見る試験（Playwright・TypeScript）。image にも CLI にも入らない。流し方は下の「一覧の UI の試験」 |
+| `e2e/` | 一覧の UI と、この本を、本物の browser で見る試験（Playwright・TypeScript）。image にも CLI にも入らない。流し方は下の「一覧の UI の試験」と「この本を直す」の「本の試験」 |
 | `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる） |
 | `.sqlx/` | SQL の検査用の file（commit する） |
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
@@ -71,7 +71,7 @@ PAGETRAY_E2E_CHANNEL=chrome pnpm test      # この機械の Chrome を使う（
 
 ## この本を直す
 
-この本は [mdBook](https://rust-lang.github.io/mdBook/) で作り、release の tag（`v*`）を打った時に、workflow（`.github/workflows/docs.yml`）が GitHub Pages に出す。PR と main への push では、build できるかと、英語の訳が原文と合っているかを見る（job の名は `docs`）。
+この本は [mdBook](https://rust-lang.github.io/mdBook/) で作り、release の tag（`v*`）を打った時に、workflow（`.github/workflows/docs.yml`）が GitHub Pages に出す。PR と main への push では、build できるか・英語の訳が原文と合っているか・作った本が browser で動くか（下の「本の試験」）を見る（job の名は `docs`）。
 
 | ファイル | 中身 |
 |---|---|
@@ -104,5 +104,6 @@ python3 -m http.server -d docs/book
 - **語を足す・替える**: 先に [用語集](glossary.md) を直し、文書・註・code の名をそれに合わせる。用語集に書いた id が画面に在るか・「使わない言い方」が戻っていないかは、試験（`tests/terms.rs`）が見る。
 - **章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章は `docs/src/cli.md`（「使う」の節の、動かす と API の仕様 の間）。
 - **repo の file を指す link**: 本の外の file（`CHANGELOG.md` など）は、GitHub の URL で書く。章どうしは、`run.md` のように file の名で書く。
-- **図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通るので、変えたら browser で見る。
-- **検索と言葉の切り替え**: `docs/theme/site.js` は、mdBook の画面の `#mdbook-menu-bar` と `path_to_root` に頼っている。mdBook を上げたら、検索の枠が開くこと・言葉が切り替わることを browser で見る。
+- **本の試験**: `e2e/docs-tests/` の試験（Playwright）が、作った本を本物の browser で開き、どの章も開いて console に誤りが無いこと・図が描けること・検索の枠が開いて日本語と英語の語が当たること・言葉の切り替えで同じ章へ移ることを見る。`ci/docs-build.sh` の後に、`e2e/` で `pnpm test:docs` を打つ（道具の入れ方は上の「一覧の UI の試験」と同じ）。CI では job `docs` が流す。章を足したら、`e2e/docs-tests/docs.spec.ts` の章の一覧にも足す（目次と合わないと落ちる）。
+- **図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通る。描けるかは、本の試験が見る。
+- **検索と言葉の切り替え**: `docs/theme/site.js` は、mdBook の画面の `#mdbook-menu-bar` と `path_to_root` に頼っている。mdBook を上げても検索の枠が開くこと・言葉が切り替わることは、本の試験が見る。
