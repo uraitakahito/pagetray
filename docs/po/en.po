@@ -758,6 +758,40 @@ msgid "ページが置かれるたびに 1 行出す"
 msgstr "Prints one line each time a page is stored"
 
 #: src/cli.md
+msgid "`pagetray file list`"
+msgstr "`pagetray file list`"
+
+#: src/cli.md
+msgid "file（画像・PDF・字の file）を絞って探す（新しい順）"
+msgstr "Finds files (images, PDFs, text files) with filters (newest first)"
+
+#: src/cli.md
+msgid "`pagetray file view <file>`"
+msgstr "`pagetray file view <file>`"
+
+#: src/cli.md
+msgid "file の中身を出す。`-o <file>` で file に"
+msgstr "Prints the contents of a file. `-o <file>` writes it to a file"
+
+#: src/cli.md
+msgid "`pagetray file put <file>`"
+msgstr "`pagetray file put <file>`"
+
+#: src/cli.md
+msgid "file を置く。置いた file の URL と、ページからの参照を出す"
+msgstr ""
+"Stores a file. Prints the URL of the stored file and the reference to use "
+"from a page"
+
+#: src/cli.md
+msgid "`pagetray file delete <file>…`"
+msgstr "`pagetray file delete <file>…`"
+
+#: src/cli.md
+msgid "file を消す（戻せない）"
+msgstr "Deletes files (cannot be undone)"
+
+#: src/cli.md
 msgid "`pagetray browse [<project>[/<key>]]`"
 msgstr "`pagetray browse [<project>[/<key>]]`"
 
@@ -793,10 +827,14 @@ msgstr "Prints a shell completion script (`bash`, `zsh`, `fish`, and others)"
 #: src/cli.md
 msgid ""
 "旗の一覧は、どの命令も `--help` で出る。`<page>` は、ページの URL か、"
-"`<project>/<key>/<kind>-<n>` の形で書く。"
+"`<project>/<key>/<kind>-<n>` の形で書く。`file view`・`file delete` の "
+"`<file>` は、file の URL か、`<project>/<key>/files/<語>-<n>.<拡張子>` の形で"
+"書く。"
 msgstr ""
 "Every command lists its flags with `--help`. Write `<page>` as the URL of a "
-"page, or in the form `<project>/<key>/<kind>-<n>`."
+"page, or in the form `<project>/<key>/<kind>-<n>`. For `file view` and `file "
+"delete`, write `<file>` as the URL of a file, or in the form `<project>/"
+"<key>/files/<stem>-<n>.<ext>`."
 
 #: src/cli.md
 msgid "# 今いる folder の project の、Key が AI-22 のページ\n"
@@ -911,15 +949,166 @@ msgstr ""
 #: src/cli.md
 msgid ""
 "**`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、"
-"`page delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、"
-"だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う"
-"（skills の `tpm` は、担当を起こす時に付ける）。"
+"`page delete`・`file delete` と `api` の `DELETE` は、何もせずに code 1 で止"
+"まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時"
+"に、これを使う（skills の `tpm` は、担当を起こす時に付ける）。"
 msgstr ""
 "**`PAGETRAY_NO_DELETE`**: When this environment variable is set (to anything "
-"other than empty or `0`), `page delete` and `DELETE` through `api` stop with "
-"exit code 1 without doing anything. The store does not check who may delete. "
-"Use this when the caller decides who may delete (`tpm` in skills sets it "
-"when it starts a role)."
+"other than empty or `0`), `page delete`, `file delete`, and `DELETE` through "
+"`api` stop with exit code 1 without doing anything. The store does not check "
+"who may delete. Use this when the caller decides who may delete (`tpm` in "
+"skills sets it when it starts a role)."
+
+#: src/cli.md
+msgid "file（`file list`・`file view`・`file put`・`file delete`）"
+msgstr "Files (`file list`, `file view`, `file put`, `file delete`)"
+
+#: src/cli.md
+msgid ""
+"file は、ページから参照する画像・PDF・字の file。置ける種類と大きさは [API の"
+"仕様](api.md#受ける-file-の種類) の表のとおり（png・jpg・jpeg・gif・webp・"
+"pdf・txt・log・md・csv・json。1 つ 16 MiB まで）。"
+msgstr ""
+"Files are images, PDFs, and text files that pages refer to. The types and "
+"size you can store are as in the table in the [API specification]"
+"(api.md#accepted-file-types) (png, jpg, jpeg, gif, webp, pdf, txt, log, md, "
+"csv, json; up to 16 MiB each)."
+
+#: src/cli.md
+msgid ""
+"**探す**（`file list`）: 絞る旗は `--project`・`--key`・`--role`・`--"
+"workspace`・`-q`（名 `<語>.<拡張子>` の字）・`--before`・`--after`。`--"
+"oldest`・`-L`・`--json` は `page list` と同じ。`--json` は、API の「file の記"
+"録」に `url` を足した配列。"
+msgstr ""
+"**Find** (`file list`): The filter flags are `--project`, `--key`, `--role`, "
+"`--workspace`, `-q` (text in the name `<stem>.<ext>`), `--before`, and `--"
+"after`. `--oldest`, `-L`, and `--json` work as in `page list`. `--json` "
+"prints an array of the API's file records with `url` added."
+
+#: src/cli.md
+msgid ""
+"**読む**（`file view`）: 中身をそのまま stdout に出す。`-o <file>` で file に"
+"書く。画像と PDF は、stdout が端末なら出さずに code 2 で止まる（画面が崩れる"
+"ため）。`-o` を付けるか、pipe でつなぐ。"
+msgstr ""
+"**Read** (`file view`): Prints the contents to stdout as stored. `-o <file>` "
+"writes them to a file. For images and PDFs, if stdout is a terminal, it "
+"prints nothing and stops with exit code 2 (the bytes would garble the "
+"screen). Add `-o`, or pipe the output."
+
+#: src/cli.md
+msgid ""
+"**置く**（`file put <file>`）: `--project`（か `PAGETRAY_PROJECT`）と `--"
+"key` が要る。役割と居場所は `page put` と同じ。"
+msgstr ""
+"**Store** (`file put <file>`): `--project` (or `PAGETRAY_PROJECT`) and `--"
+"key` are required. The role and workspace work as in `page put`."
+
+#: src/cli.md
+msgid ""
+"名は、file の名から作る: 英小文字にし、英小文字・数字・`-`・`_` のほかが続く"
+"所を `-` にし、頭と尻の `-` を除いて 64 字に切る（`Screenshot 2026-11-21 at "
+"10.00.png` は `screenshot-2026-11-21-at-10-00.png`。字が残らなければ "
+"`file`）。拡張子も英小文字にする。`--name <語>.<拡張子>` で替えられる。"
+msgstr ""
+"The name is made from the file's name: it is lowercased, each run of "
+"characters other than lowercase letters, digits, `-`, and `_` becomes `-`, "
+"leading and trailing `-` are removed, and it is cut to 64 characters "
+"(`Screenshot 2026-11-21 at 10.00.png` becomes `screenshot-2026-11-21-"
+"at-10-00.png`; if nothing is left, `file`). The extension is lowercased too. "
+"`--name <stem>.<ext>` sets a different name."
+
+#: src/cli.md
+msgid "番号は置き場が決める。同じ名で置き直すと次の番号になり、前の物は残る。"
+msgstr ""
+"The store decides the number. Storing again with the same name gets the next "
+"number, and the previous file remains."
+
+#: src/cli.md
+msgid ""
+"置けると、2 行を出す: file の URL と、同じ Key のページから参照する相対の "
+"path（`files/<語>-<n>.<拡張子>`）。ページには `<img src=\"files/"
+"screen-1.png\">` のように書く。"
+msgstr ""
+"When stored, it prints two lines: the URL of the file, and the relative path "
+"that a page of the same Key uses to refer to it (`files/<stem>-<n>.<ext>`). "
+"In a page, write it like `<img src=\"files/screen-1.png\">`."
+
+#: src/cli.md
+msgid ""
+"置く前に、手元で見る（どれかに当たれば、何も送らずに止まる）: 拡張子が置ける"
+"種類か・空でないか・16 MiB までか・中身が拡張子の形か（ここまでは code 2）。"
+msgstr ""
+"Before storing, it checks locally (if any check fails, it sends nothing and "
+"stops): the extension is a type that can be stored, the file is not empty, "
+"it is at most 16 MiB, and the contents match the extension (these exit with "
+"code 2)."
+
+#: src/cli.md
+msgid ""
+"**置く前に人が見る**（`file put`）: 置いた file は、置き場を開ける人ならだれ"
+"でも読める。"
+msgstr ""
+"**A person checks before storing** (`file put`): Anyone who can open the "
+"store can read a stored file."
+
+#: src/cli.md
+msgid ""
+"画像と PDF は、**`--reviewed` を付けないと置かない**（code 1）。file を開い"
+"て、token・鍵・個人の情報・ほかの人の画面・この Mac の path（home の folder "
+"の名など）が写っていないかを確かめてから付ける。"
+msgstr ""
+"Images and PDFs are **not stored without `--reviewed`** (exit code 1). Open "
+"the file and check that no token, key, personal information, other people's "
+"screens, or paths on this Mac (such as the name of your home folder) appear "
+"in it, then add the flag."
+
+#: src/cli.md
+msgid ""
+"字の file（txt・log・md・csv・json）は、秘密の形の字を探し、当たれば**置かず"
+"に、当たった行の番号を出す**（code 1。当たった字そのものは出さない）。探す形"
+"は、GitHub の token（`ghp_`・`gho_`・`ghu_`・`ghs_`・`ghr_`・"
+"`github_pat_`）、`sk-` で始まる API の鍵、AWS の access key（`AKIA`）、Slack "
+"の token（`xoxb-`・`xoxp-`）、Atlassian の API token（`ATATT`）、秘密の鍵の頭"
+"の行（`-----BEGIN … PRIVATE KEY`）。どれも、後ろに token の字が続く物だけ。わ"
+"ざと置くなら `--allow-secret` を付ける（置いた上で、当たった行の番号を "
+"stderr に出す）。"
+msgstr ""
+"Text files (txt, log, md, csv, json) are searched for text shaped like "
+"secrets. On a match, the file is **not stored, and the matching line numbers "
+"are printed** (exit code 1; the matching text itself is not printed). The "
+"patterns are GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, "
+"`github_pat_`), API keys starting with `sk-`, AWS access keys (`AKIA`), "
+"Slack tokens (`xoxb-`, `xoxp-`), Atlassian API tokens (`ATATT`), and the "
+"header line of a private key (`-----BEGIN … PRIVATE KEY`). Each counts only "
+"when token characters follow. To store it on purpose, add `--allow-secret` "
+"(it stores the file and prints the matching line numbers to stderr)."
+
+#: src/cli.md
+msgid ""
+"JPEG に EXIF があれば、止めずに「位置情報が入っているかもしれない」と stderr "
+"に出す。消すなら、`exiftool -all= <file>` などで消してから置く。"
+msgstr ""
+"If a JPEG has EXIF data, it does not stop but prints to stderr that location "
+"information may be included. To remove it, strip it with `exiftool -all= "
+"<file>` or similar before storing."
+
+#: src/cli.md
+msgid ""
+"**消す**（`file delete`）: `page delete` と同じく、まず消す file を一覧で出"
+"し、`--yes` を付けた時だけ消す。消す先は、file の名指し（いくつでも）か、`--"
+"project <name> [--key <key> [--name <語>.<拡張子>]]`（`--name` は、その名のど"
+"の番号も）。ページを消しても file は消えず、file を消してもページは消えない。"
+"`PAGETRAY_NO_DELETE` が付いていれば、何もせずに code 1 で止まる。"
+msgstr ""
+"**Delete** (`file delete`): As with `page delete`, it first lists the files "
+"to delete, and deletes only with `--yes`. The target is either files named "
+"on the command line (any number) or `--project <name> [--key <key> [--name "
+"<stem>.<ext>]]` (`--name` matches every number of that name). Deleting a "
+"page does not delete files, and deleting a file does not delete pages. If "
+"`PAGETRAY_NO_DELETE` is set, it stops with exit code 1 without doing "
+"anything."
 
 #: src/cli.md
 msgid "旗が環境変数より先、環境変数が既定より先。"
@@ -968,8 +1157,8 @@ msgid "無し"
 msgstr "none"
 
 #: src/cli.md
-msgid "`page list` と `page put` の project"
-msgstr "Project for `page list` and `page put`"
+msgid "`page list`・`page put`・`file list`・`file put` の project"
+msgstr "Project for `page list`, `page put`, `file list`, and `file put`"
 
 #: src/cli.md
 msgid "`--role`"
@@ -984,8 +1173,8 @@ msgid "`human`"
 msgstr "`human`"
 
 #: src/cli.md
-msgid "`page put` で置く人の役割"
-msgstr "Role of the person storing with `page put`"
+msgid "`page put`・`file put` で置く人の役割"
+msgstr "Role of the person storing with `page put` and `file put`"
 
 #: src/cli.md src/glossary.md
 msgid "—"
@@ -1042,18 +1231,25 @@ msgstr "`1`"
 #: src/cli.md
 msgid ""
 "置き場が断った（`4xx`・`5xx`。無いページ `404`・消したページ `410` を含む）。"
-"file に書けない時も"
+"file に書けない時・`PAGETRAY_NO_DELETE` で止めた時・`file put` が置く前に止め"
+"た時（`--reviewed` が無い・秘密の形がある）も"
 msgstr ""
 "The store refused (`4xx`, `5xx`; including `404` for a missing page and "
-"`410` for a deleted page). Also when a file cannot be written"
+"`410` for a deleted page). Also when a file cannot be written, when "
+"`PAGETRAY_NO_DELETE` stopped the command, and when `file put` stopped before "
+"storing (no `--reviewed`, or a secret pattern was found)"
 
 #: src/cli.md
 msgid "`2`"
 msgstr "`2`"
 
 #: src/cli.md
-msgid "使い方の誤り"
-msgstr "Usage error"
+msgid ""
+"使い方の誤り（`file put` の、置けない種類・大きすぎる・中身が拡張子と合わな"
+"い file を含む）"
+msgstr ""
+"Usage error (including, for `file put`, a file of a type that cannot be "
+"stored, too large, or whose contents do not match its extension)"
 
 #: src/cli.md
 msgid "`3`"

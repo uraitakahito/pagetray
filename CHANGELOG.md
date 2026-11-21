@@ -11,6 +11,10 @@ API の版: 1（変わらない。エンドポイントを足しただけ。呼�
   - `GET /api/events` は、file が置かれると `event: file` で file の記録を送る。ページの知らせ（名の無い event）は前のまま。
 - 移行 `0003` を足した（表 `files`・`files_removed`）。当てた後は、写しから戻さないと前の版に戻せない（前の版は、0003 を当てた DB では起きない）。
   - DB の写し（`/api/backup`）にも file が入り、その分大きくなる。
+- CLI に `file list`・`file view`・`file put`・`file delete` を足した。形は docs の「CLI」。
+  - `file put` は、画像と PDF を `--reviewed` が無いと置かない。字の file は秘密の形（token・鍵の頭）を探し、当たれば置かずに行の番号を出す（`--allow-secret` で置ける）。JPEG に EXIF があれば知らせる。どれも置き場に送る前に止まる。
+  - `file delete` は、`page delete` と同じく `--yes` を付けた時だけ消し、`PAGETRAY_NO_DELETE` で止まる。
+  - `file put` は、0.4.0 より前の置き場（`/api/files` が無い）には置けない（置き場が断り、code 1 で止まる）。
 - 文書の本を、本物の browser で見る試験（`e2e/docs-tests/`）を足した。検索・言葉の切り替え・図が動くかを、CI の job `docs` が見る。
 
 ## 0.3.2

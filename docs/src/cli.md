@@ -28,18 +28,23 @@ pagetray status
 | `pagetray page put <file>` | ページを置く（`-` は stdin）。置いたページの URL を出す |
 | `pagetray page delete <page>…` | ページを消す（戻せない） |
 | `pagetray page watch` | ページが置かれるたびに 1 行出す |
+| `pagetray file list` | file（画像・PDF・字の file）を絞って探す（新しい順） |
+| `pagetray file view <file>` | file の中身を出す。`-o <file>` で file に |
+| `pagetray file put <file>` | file を置く。置いた file の URL と、ページからの参照を出す |
+| `pagetray file delete <file>…` | file を消す（戻せない） |
 | `pagetray browse [<project>[/<key>]]` | 一覧の UI を browser で開く。`-n` は URL を出すだけ |
 | `pagetray backup -o <file>` | DB の写し（SQLite の file 1 つ）を取る |
 | `pagetray api <path>` | API を直に呼ぶ。`-X <method>`・`-f <name>=<value>`・`--input <file>` |
 | `pagetray completion <shell>` | shell の補完の script を出す（`bash`・`zsh`・`fish` など） |
 
-旗の一覧は、どの命令も `--help` で出る。`<page>` は、ページの URL か、`<project>/<key>/<kind>-<n>` の形で書く。
+旗の一覧は、どの命令も `--help` で出る。`<page>` は、ページの URL か、`<project>/<key>/<kind>-<n>` の形で書く。`file view`・`file delete` の `<file>` は、file の URL か、`<project>/<key>/files/<語>-<n>.<拡張子>` の形で書く。
 
 ```sh
 pagetray page list --project . --key AI-22          # 今いる folder の project の、Key が AI-22 のページ
 pagetray page list -q plan --json=key,title,url      # 題と本文から探し、名指した欄だけを JSON で
 pagetray page view http://127.0.0.1:8801/p/AI-22/plan-1.html | less
 pagetray page put report.html --project p --key AI-22 --kind result
+pagetray file put shot.png --project p --key AI-24 --reviewed
 pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 ```
 
@@ -61,7 +66,24 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 - 消す先は、命令に書いた物だけ: ページの名指し（いくつでも）か、`--project <name> [--key <key> [--kind <kind>]]`。環境変数の project は、消す先にならない。
 - `-` で始まる project の名（`tpm` の project の名）は、URL で書くか、`--` の後ろに書く: `pagetray page delete --yes -- -Users-me-x/AI-22/plan-1`。
 - 消したページの URL は `410` を返し、同じ番号は 2 度使われない。
-- **`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、`page delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う（skills の `tpm` は、担当を起こす時に付ける）。
+- **`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、`page delete`・`file delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う（skills の `tpm` は、担当を起こす時に付ける）。
+
+### file（`file list`・`file view`・`file put`・`file delete`）
+
+file は、ページから参照する画像・PDF・字の file。置ける種類と大きさは [API の仕様](api.md#受ける-file-の種類) の表のとおり（png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。1 つ 16 MiB まで）。
+
+- **探す**（`file list`）: 絞る旗は `--project`・`--key`・`--role`・`--workspace`・`-q`（名 `<語>.<拡張子>` の字）・`--before`・`--after`。`--oldest`・`-L`・`--json` は `page list` と同じ。`--json` は、API の「file の記録」に `url` を足した配列。
+- **読む**（`file view`）: 中身をそのまま stdout に出す。`-o <file>` で file に書く。画像と PDF は、stdout が端末なら出さずに code 2 で止まる（画面が崩れるため）。`-o` を付けるか、pipe でつなぐ。
+- **置く**（`file put <file>`）: `--project`（か `PAGETRAY_PROJECT`）と `--key` が要る。役割と居場所は `page put` と同じ。
+  - 名は、file の名から作る: 英小文字にし、英小文字・数字・`-`・`_` のほかが続く所を `-` にし、頭と尻の `-` を除いて 64 字に切る（`Screenshot 2026-11-21 at 10.00.png` は `screenshot-2026-11-21-at-10-00.png`。字が残らなければ `file`）。拡張子も英小文字にする。`--name <語>.<拡張子>` で替えられる。
+  - 番号は置き場が決める。同じ名で置き直すと次の番号になり、前の物は残る。
+  - 置けると、2 行を出す: file の URL と、同じ Key のページから参照する相対の path（`files/<語>-<n>.<拡張子>`）。ページには `<img src="files/screen-1.png">` のように書く。
+  - 置く前に、手元で見る（どれかに当たれば、何も送らずに止まる）: 拡張子が置ける種類か・空でないか・16 MiB までか・中身が拡張子の形か（ここまでは code 2）。
+- **置く前に人が見る**（`file put`）: 置いた file は、置き場を開ける人ならだれでも読める。
+  - 画像と PDF は、**`--reviewed` を付けないと置かない**（code 1）。file を開いて、token・鍵・個人の情報・ほかの人の画面・この Mac の path（home の folder の名など）が写っていないかを確かめてから付ける。
+  - 字の file（txt・log・md・csv・json）は、秘密の形の字を探し、当たれば**置かずに、当たった行の番号を出す**（code 1。当たった字そのものは出さない）。探す形は、GitHub の token（`ghp_`・`gho_`・`ghu_`・`ghs_`・`ghr_`・`github_pat_`）、`sk-` で始まる API の鍵、AWS の access key（`AKIA`）、Slack の token（`xoxb-`・`xoxp-`）、Atlassian の API token（`ATATT`）、秘密の鍵の頭の行（`-----BEGIN … PRIVATE KEY`）。どれも、後ろに token の字が続く物だけ。わざと置くなら `--allow-secret` を付ける（置いた上で、当たった行の番号を stderr に出す）。
+  - JPEG に EXIF があれば、止めずに「位置情報が入っているかもしれない」と stderr に出す。消すなら、`exiftool -all= <file>` などで消してから置く。
+- **消す**（`file delete`）: `page delete` と同じく、まず消す file を一覧で出し、`--yes` を付けた時だけ消す。消す先は、file の名指し（いくつでも）か、`--project <name> [--key <key> [--name <語>.<拡張子>]]`（`--name` は、その名のどの番号も）。ページを消しても file は消えず、file を消してもページは消えない。`PAGETRAY_NO_DELETE` が付いていれば、何もせずに code 1 で止まる。
 
 ## 設定
 
@@ -70,8 +92,8 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 | 旗 | 環境変数 | 既定 | 中身 |
 |---|---|---|---|
 | `--url` | `PAGETRAY_URL` | `http://127.0.0.1:8801` | 置き場の URL（`http://` だけ） |
-| `--project` | `PAGETRAY_PROJECT` | 無し | `page list` と `page put` の project |
-| `--role` | `PAGETRAY_ROLE` | `human` | `page put` で置く人の役割 |
+| `--project` | `PAGETRAY_PROJECT` | 無し | `page list`・`page put`・`file list`・`file put` の project |
+| `--role` | `PAGETRAY_ROLE` | `human` | `page put`・`file put` で置く人の役割 |
 | — | `PAGETRAY_NO_DELETE` | 無し | 付いていれば、消す命令を止める |
 | — | `BROWSER` | macOS の `open` | browser を開く命令 |
 
@@ -82,8 +104,8 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 | code | 訳 |
 |---|---|
 | `0` | できた |
-| `1` | 置き場が断った（`4xx`・`5xx`。無いページ `404`・消したページ `410` を含む）。file に書けない時も |
-| `2` | 使い方の誤り |
+| `1` | 置き場が断った（`4xx`・`5xx`。無いページ `404`・消したページ `410` を含む）。file に書けない時・`PAGETRAY_NO_DELETE` で止めた時・`file put` が置く前に止めた時（`--reviewed` が無い・秘密の形がある）も |
+| `2` | 使い方の誤り（`file put` の、置けない種類・大きすぎる・中身が拡張子と合わない file を含む） |
 | `3` | 置き場が応えない |
 | `4` | API の版が合わない |
 
