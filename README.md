@@ -23,7 +23,7 @@ skills の `tpm` を使う Mac では、container と volume に触る命令を 
 
 ```sh
 container image pull ghcr.io/uraitakahito/pagetray:v<版>
-container image inspect ghcr.io/uraitakahito/pagetray:v<版>    # digest が release の値と同じか
+container image inspect ghcr.io/uraitakahito/pagetray:v<版> | grep -o '"digest" *: *"sha256:[0-9a-f]*"'   # release の digest がこの中にあるか
 container volume create pagetray-data                           # 初めての時だけ
 container run -d --name pagetray \
   -p 127.0.0.1:8801:8080 \
@@ -33,6 +33,7 @@ container run -d --name pagetray \
   ghcr.io/uraitakahito/pagetray:v<版>
 ```
 
+- digest の見方: `container image list` に出る digest は、Apple Container が付ける別の値。release の digest は、`container image inspect` の `variants` の中の `digest` に出る。
 - `-p` には必ず `127.0.0.1:` を書く。`-p 8801:8080` と書くと LAN に開く。
 - 8801 が使われていたら別の port にする。skills の担当が使う URL は、環境変数 `TPM_PAGES_URL` で合わせる。
 - 起きる時に、まだ当てていない移行の SQL（`migrations/`）を DB に当てる。
@@ -96,12 +97,12 @@ image は public で、だれでも pull して中を見られる。**出すの�
 2. main のその commit に tag を打って push する: `git tag v<版> && git push origin v<版>`。
 3. workflow の `check` が、tag と版が合うか・image の中身の一覧・設定・秘密の走査（下の「image に入る物」）・動くかを見る。**1 つでも落ちれば、`push` は動かない。**
 4. `push` が、確かめたその image（作り直さない）を `ghcr.io/uraitakahito/pagetray:v<版>` に置き、release に digest と中身の一覧を書く。同じ tag がもうあれば置かない。
-5. release の中身の一覧が「`pagetray` と空の `data` だけ」であることを見る。
+5. release の中身の一覧が「`pagetray` と空の `data` だけ」であることを見る（この時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまった時」をする）。
 6. skills の `.pagetray-version` を上げる PR を出す（つなぎの試験が、その image に向けて通る）。
 
 - 出した tag は打ち直さない（digest が変わり、書き留めた値と合わなくなる）。直す時は、次の版を出す。
 - **機微な物が出てしまった時**: GitHub の package の画面で、その版を消す。秘密なら、すぐ替える（消しても、pull した人の手元には残る前提で動く）。直して次の版を出し、`ci/` の決まりに、同じ物を止める形を足す。
-- ghcr は、初めて置いた package を private で作る。初めての release の後に、中身の一覧を見てから、package の設定で public にする（1 度だけ）。
+- **置いた時から public**: この repo は public で、image に repo を指す label を付けて置くので、package は初めの release から、だれでも pull できる（v0.2.0 で確かめた。private の間に人が見る、という段は無い）。人が見られるのは、tag を打つ前だけ。だから、3 の確かめを push の前に置いてあり、決まりを緩める PR（`ci/` の file・`.dockerignore`・`Containerfile`）は、よく見てから merge する。
 
 ## 口
 
