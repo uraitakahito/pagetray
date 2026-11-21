@@ -16,9 +16,9 @@ use axum::routing::get;
 use axum::{Json, Router};
 use serde_json::json;
 
-/// 口の版（決まりは docs/src/api.md。値は、CLI と共に使う crates/api にある）。
+/// API の版（決まりは docs/src/api.md。値は、CLI と共に使う crates/api にある）。
 pub use pagetray_api::API_VERSION;
-/// どの答えにも付く、口の版の header。
+/// どの答えにも付く、API の版の header。
 pub const API_HEADER: HeaderName = HeaderName::from_static(pagetray_api::API_HEADER);
 
 /// 1 枚のページの上限。
@@ -59,12 +59,12 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
 }
 
-/// サーバーの版と口の版（`{"version":"<版>","api":1}`）。
+/// サーバーの版と API の版（`{"version":"<版>","api":1}`）。
 async fn version() -> Json<serde_json::Value> {
     Json(json!({ "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION }))
 }
 
-/// どの答えにも口の版を付ける。呼ぶ側は、頼んだその答えで、合っているかを見られる。
+/// どの答えにも API の版を付ける。呼ぶ側は、頼んだその答えで、合っているかを見られる。
 async fn stamp(request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
     response

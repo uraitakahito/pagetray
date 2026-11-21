@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T20:51:26+09:00\n"
+"POT-Creation-Date: 2026-11-21T21:03:04+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -31,8 +31,8 @@ msgid "CLI"
 msgstr "CLI"
 
 #: src/SUMMARY.md
-msgid "口の約束"
-msgstr "API contract"
+msgid "API の仕様"
+msgstr "API specification"
 
 #: src/SUMMARY.md
 msgid "作る"
@@ -55,7 +55,7 @@ msgid ""
 "ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を"
 "付け、絞って探せる一覧の UI を出す。 この Mac の中（`127.0.0.1`）だけで使う物"
 "で、[skills](https://github.com/uraitakahito/skills) の `tpm page` の命令が、"
-"ここの口を `curl` で呼ぶ。"
+"ここの API を `curl` で呼ぶ。"
 msgstr ""
 "A page store server for pages (HTML). It keeps the pages put into it in a DB "
 "(SQLite), assigns them numbers, and serves a list UI that can be filtered "
@@ -108,11 +108,11 @@ msgid "起こす・確かめる・DB の写しを取る・写しから戻す・�
 msgstr "Start, verify, back up the DB, restore from a backup, stop, upgrade"
 
 #: src/index.md
-msgid "[口の約束](api.md)"
-msgstr "[API contract](api.md)"
+msgid "[API の仕様](api.md)"
+msgstr "[API specification](api.md)"
 
 #: src/index.md
-msgid "呼ぶ側が頼ってよい形と、口の版の決まり"
+msgid "呼ぶ側が頼ってよい形と、API の版の決まり"
 msgstr "The shapes callers may rely on, and the rules for the API version"
 
 #: src/index.md
@@ -132,18 +132,18 @@ msgid "source の作り・試験・この本の直し方"
 msgstr "Source layout, tests, and how to edit this book"
 
 #: src/index.md
-msgid "口の早見"
-msgstr "Endpoint quick reference"
+msgid "API の早見"
+msgstr "API quick reference"
 
 #: src/index.md
 msgid ""
-"呼ぶ側が頼ってよい形と、口の版の決まりは [口の約束](api.md)。ここは早見。"
+"呼ぶ側が頼ってよい形と、API の版の決まりは [API の仕様](api.md)。ここは早見。"
 msgstr ""
 "For the shapes callers may rely on and the rules for the API version, see "
-"[API contract](api.md). This is a quick reference."
+"[API specification](api.md). This is a quick reference."
 
 #: src/index.md src/api.md
-msgid "口"
+msgid "エンドポイント"
 msgstr "Endpoint"
 
 #: src/index.md
@@ -223,7 +223,7 @@ msgstr "`GET /api/version`"
 
 #: src/index.md
 msgid ""
-"サーバーの版と口の版（`{\"version\":\"0.2.0\",\"api\":1}`）。どの答えにも "
+"サーバーの版と API の版（`{\"version\":\"0.2.0\",\"api\":1}`）。どの答えにも "
 "header `Pagetray-Api` が付く"
 msgstr ""
 "Server version and API version (`{\"version\":\"0.2.0\",\"api\":1}`). Every "
@@ -273,7 +273,7 @@ msgid ""
 "**番号**: 書く接続は 1 本で、1 つの SQL が「今の最大 ＋ 1」を取って足す。最大"
 "は、置いてあるページ（`pages`）と消したページ（`removed`）の両方から取るの"
 "で、消した番号は 2 度使わない（古い URL が別のページを指さない）。取り込みで"
-"消した番号を名指すと `409`。置いたページを書き換える口は無い。"
+"消した番号を名指すと `409`。置いたページを書き換えるエンドポイントは無い。"
 msgstr ""
 "**Numbers**: there is a single write connection, and one SQL statement takes "
 "\"the current maximum + 1\" and inserts it. The maximum is taken from both "
@@ -569,8 +569,8 @@ msgstr "Upgrading"
 #: src/run.md
 msgid ""
 "[CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
-"CHANGELOG.md) で、口の版が変わるか・移行の SQL が足されるかを見る（移行が足さ"
-"れた版は、当てた後に前の版へ戻せない）。"
+"CHANGELOG.md) で、API の版が変わるか・移行の SQL が足されるかを見る（移行が足"
+"された版は、当てた後に前の版へ戻せない）。"
 msgstr ""
 "Check [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
 "CHANGELOG.md) to see whether the API version changes and whether migration "
@@ -612,9 +612,9 @@ msgstr "Delete old images with `container image delete`."
 
 #: src/cli.md
 msgid ""
-"`pagetray` は、置き場を端末から操作する命令。置き場の[口](api.md)を HTTP で呼"
-"ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も"
-"無い。"
+"`pagetray` は、置き場を端末から操作する命令。置き場の [API](api.md) を HTTP "
+"で呼ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の "
+"file も無い。"
 msgstr ""
 "`pagetray` is a command for operating the store from a terminal. It calls "
 "the store's [API](api.md) over HTTP. It only talks to a store on this Mac "
@@ -675,7 +675,7 @@ msgid "`pagetray status`"
 msgstr "`pagetray status`"
 
 #: src/cli.md
-msgid "置き場が生きているか、サーバーの版、口の版が合っているかを出す"
+msgid "置き場が生きているか、サーバーの版、API の版が合っているかを出す"
 msgstr ""
 "Shows whether the store is alive, the server version, and whether the API "
 "version matches"
@@ -743,10 +743,9 @@ msgid "`pagetray api <path>`"
 msgstr "`pagetray api <path>`"
 
 #: src/cli.md
-msgid "口を直に呼ぶ。`-X <method>`・`-f <name>=<value>`・`--input <file>`"
+msgid "API を直に呼ぶ。`-X <method>`・`-f <name>=<value>`・`--input <file>`"
 msgstr ""
-"Calls an endpoint directly. `-X <method>`, `-f <name>=<value>`, `--input "
-"<file>`"
+"Calls the API directly. `-X <method>`, `-f <name>=<value>`, `--input <file>`"
 
 #: src/cli.md
 msgid "`pagetray completion <shell>`"
@@ -800,8 +799,8 @@ msgstr ""
 #: src/cli.md
 msgid ""
 "端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--"
-"json` は、口の「ページの記録」に `url` を足した配列。`--json=key,url` のよう"
-"に欄を名指すと、その欄だけを出す。"
+"json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のよ"
+"うに欄を名指すと、その欄だけを出す。"
 msgstr ""
 "On a terminal the output is a table with a header; in a pipe it is tab-"
 "separated (without a header). `--json` prints an array of the API's \"Page "
@@ -982,7 +981,7 @@ msgid "環境変数の proxy（`HTTP_PROXY` など）は使わない。"
 msgstr "Proxy environment variables (such as `HTTP_PROXY`) are not used."
 
 #: src/cli.md
-msgid "終わりの code と、口の版"
+msgid "終わりの code と、API の版"
 msgstr "Exit codes and the API version"
 
 #: src/cli.md
@@ -1034,7 +1033,7 @@ msgid "`4`"
 msgstr "`4`"
 
 #: src/cli.md
-msgid "口の版が合わない"
+msgid "API の版が合わない"
 msgstr "The API version does not match"
 
 #: src/cli.md
@@ -1045,10 +1044,10 @@ msgstr ""
 
 #: src/cli.md
 msgid ""
-"`pagetray` は、置き場のどの答えでも header `Pagetray-Api`（[口の版](api.md#"
+"`pagetray` は、置き場のどの答えでも header `Pagetray-Api`（[API の版](api.md#"
 "版)）を見る。自分の話せる版と違えば、答えを使わずに code 4 で止まる。"
-"`pagetray status` が、サーバーの版と口の版を出す。その時は、`pagetray` か置き"
-"場のどちらかを上げて、版を合わせる。"
+"`pagetray status` が、サーバーの版と API の版を出す。その時は、`pagetray` か"
+"置き場のどちらかを上げて、版を合わせる。"
 msgstr ""
 "`pagetray` checks the `Pagetray-Api` header ([API version](api.md#versions)) "
 "on every answer from the store. If it differs from the version it speaks, it "
@@ -1064,9 +1063,10 @@ msgstr "Relation to `tpm page`"
 msgid ""
 "skills の `tpm` を使う project では、担当は `tpm page`（put・path・list・"
 "delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい"
-"人という `tpm` の決まりを持ち、同じ口を呼ぶ。`pagetray` は、その決まりを持た"
-"ない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）"
-"で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。"
+"人という `tpm` の決まりを持ち、同じ API を呼ぶ。`pagetray` は、その決まりを持"
+"たない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない "
+"folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せ"
+"る。"
 msgstr ""
 "In a project that uses `tpm` from skills, roles use `tpm page` (put, path, "
 "list, delete). `tpm page` carries the rules of `tpm` (project, Key, role, "
@@ -1076,13 +1076,13 @@ msgstr ""
 "stored with either one go into the same store and can be found from both."
 
 #: src/api.md
-msgid "口の約束（口の版 1）"
-msgstr "API contract (API version 1)"
+msgid "API の仕様（API の版 1）"
+msgstr "API specification (API version 1)"
 
 #: src/api.md
 msgid ""
 "pagetray を呼ぶ側（skills の `tpm page` など）が頼ってよい形を書く。ここに書"
-"いた形を、前からある呼ぶ側が困るように変える時は、口の版を上げる。"
+"いた形を、前からある呼ぶ側が困るように変える時は、API の版を上げる。"
 msgstr ""
 "This chapter describes the shapes that callers of pagetray (such as `tpm "
 "page` in skills) may rely on. Whenever a shape described here is changed in "
@@ -1095,7 +1095,7 @@ msgstr "Versions"
 #: src/api.md
 msgid ""
 "`GET /api/version` が `{\"version\":\"0.2.0\",\"api\":1}` を返す。`version` "
-"はサーバーの版（`Cargo.toml`）、`api` は口の版。"
+"はサーバーの版（`Cargo.toml`）、`api` は API の版。"
 msgstr ""
 "`GET /api/version` returns `{\"version\":\"0.2.0\",\"api\":1}`. `version` is "
 "the server version (`Cargo.toml`); `api` is the API version."
@@ -1103,7 +1103,7 @@ msgstr ""
 #: src/api.md
 msgid ""
 "どの答えにも（誤りにも、断った答えにも）header `Pagetray-Api: 1` が付く。呼ぶ"
-"側は、頼んだその答えで、口の版が合っているかを見られる。"
+"側は、頼んだその答えで、API の版が合っているかを見られる。"
 msgstr ""
 "Every response (including errors and refused requests) carries the header "
 "`Pagetray-Api: 1`. Callers can check whether the API version matches from "
@@ -1111,14 +1111,14 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"この header が無い答えは、口の版ができる前のサーバー（pagestore 0.1.0）の物。"
-"形は口の版 1 と同じ。"
+"この header が無い答えは、API の版ができる前のサーバー（pagestore 0.1.0）の"
+"物。形は API の版 1 と同じ。"
 msgstr ""
 "A response without this header comes from a server that predates the API "
 "version (pagestore 0.1.0). Its shapes are the same as API version 1."
 
 #: src/api.md
-msgid "口の版を上げる時・上げない時"
+msgid "API の版を上げる時・上げない時"
 msgstr "When to bump the API version, and when not to"
 
 #: src/api.md
@@ -1126,12 +1126,13 @@ msgid "変更"
 msgstr "Change"
 
 #: src/api.md
-msgid "口の版"
+msgid "API の版"
 msgstr "API version"
 
 #: src/api.md
 msgid ""
-"口・引数・答えの欄を**足す**（前からある呼ぶ側は、知らない欄を読み飛ばす）"
+"エンドポイント・引数・答えの欄を**足す**（前からある呼ぶ側は、知らない欄を読"
+"み飛ばす）"
 msgstr ""
 "**Add** an endpoint, parameter, or response field (existing callers skip "
 "fields they do not know)"
@@ -1141,7 +1142,7 @@ msgid "上げない"
 msgstr "No bump"
 
 #: src/api.md
-msgid "口・引数・答えの欄を消す、名や型を変える"
+msgid "エンドポイント・引数・答えの欄を消す、名や型を変える"
 msgstr ""
 "Remove an endpoint, parameter, or response field, or change its name or type"
 
@@ -1175,8 +1176,8 @@ msgid "一覧の UI の見た目・文・HTML の作り"
 msgstr "Appearance, wording, and HTML structure of the list UI"
 
 #: src/api.md
-msgid "上げない（UI は約束に入らない）"
-msgstr "No bump (the UI is not covered by the contract)"
+msgid "上げない（UI は仕様に入らない）"
+msgstr "No bump (the UI is not covered by the specification)"
 
 #: src/api.md
 msgid "誤りの文（`error` の中身）"
@@ -1484,8 +1485,8 @@ msgid "そのほか"
 msgstr "Others"
 
 #: src/api.md
-msgid "約束"
-msgstr "Contract"
+msgid "仕様"
+msgstr "Specification"
 
 #: src/api.md
 msgid "`200` と `ok`"
@@ -1496,7 +1497,7 @@ msgid "入る"
 msgstr "Covered"
 
 #: src/api.md
-msgid "サーバーの版と口の版"
+msgid "サーバーの版と API の版"
 msgstr "Server version and API version"
 
 #: src/api.md
@@ -1951,10 +1952,10 @@ msgstr "`crates/api/`"
 
 #: src/development.md
 msgid ""
-"口の約束のうち、サーバーと CLI が共に使う物（口の版・header の名・引数の字の"
-"決まり・path の形・ページの記録の型）"
+"API の仕様のうち、サーバーと CLI が共に使う物（API の版・header の名・引数の"
+"字の決まり・path の形・ページの記録の型）"
 msgstr ""
-"The parts of the API contract shared by the server and the CLI (the API "
+"The parts of the API specification shared by the server and the CLI (the API "
 "version, header names, the character rules for parameters, the path format, "
 "and the page record type)"
 
@@ -1964,7 +1965,7 @@ msgstr "`crates/cli/`"
 
 #: src/development.md
 msgid ""
-"CLI（binary の名は `pagetray`）。置き場の口を HTTP で呼ぶ。試験は、同じ "
+"CLI（binary の名は `pagetray`）。置き場の API を HTTP で呼ぶ。試験は、同じ "
 "commit のサーバーを起こして打つ"
 msgstr ""
 "The CLI (the binary is named `pagetray`). It calls the store's API over "
@@ -2021,11 +2022,11 @@ msgstr "`docs/`"
 #: src/development.md
 msgid ""
 "この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側"
-"との口の約束と、口の版の決まり。直し方は下の「この本を直す」"
+"との API の仕様と、API の版の決まり。直し方は下の「この本を直す」"
 msgstr ""
 "This book (mdBook). The source text is the Japanese in `docs/src/`, and "
-"`docs/src/api.md` is the API contract with callers and the rules for the API "
-"version. For how to edit it, see \"Editing this book\" below"
+"`docs/src/api.md` is the API specification with callers and the rules for "
+"the API version. For how to edit it, see \"Editing this book\" below"
 
 #: src/development.md
 msgid "`.claude/roles/config.jsonc`"
@@ -2092,19 +2093,19 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"口の形（URL・引数の名・JSON の欄）を変える時は、先に [口の約束](api.md#口の版"
-"を上げる時上げない時) の「口の版を上げる時・上げない時」を見る。変えたら、"
-"skills の `tpm page`（`cli/src/commands/page.ts`）と、その偽の置き場（`cli/"
-"test/helpers.ts` の `FakeStore`）も合わせて直す。skills の CI が、この repo "
-"の決めた版に向けて、つなぎの試験を流す。"
+"API の形（URL・引数の名・JSON の欄）を変える時は、先に [API の仕様]"
+"(api.md#api-の版を上げる時上げない時) の「API の版を上げる時・上げない時」を"
+"見る。変えたら、skills の `tpm page`（`cli/src/commands/page.ts`）と、その偽"
+"の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。skills の CI "
+"が、この repo の決めた版に向けて、つなぎの試験を流す。"
 msgstr ""
 "Before changing the shape of an endpoint (URLs, parameter names, JSON "
 "fields), first read \"When to bump the API version, and when not to\" in "
-"[API contract](api.md#when-to-bump-the-api-version-and-when-not-to). After "
-"changing it, also update `tpm page` in skills (`cli/src/commands/page.ts`) "
-"and its fake page store (`FakeStore` in `cli/test/helpers.ts`) to match. The "
-"CI in skills runs the integration tests against the version this repo "
-"specifies."
+"[API specification](api.md#when-to-bump-the-api-version-and-when-not-to). "
+"After changing it, also update `tpm page` in skills (`cli/src/commands/"
+"page.ts`) and its fake page store (`FakeStore` in `cli/test/helpers.ts`) to "
+"match. The CI in skills runs the integration tests against the version this "
+"repo specifies."
 
 #: src/development.md
 msgid ""
@@ -2137,7 +2138,7 @@ msgstr ""
 msgid ""
 "**版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ"
 "（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、"
-"`CHANGELOG.md` に、口の版が変わったかを書く。"
+"`CHANGELOG.md` に、API の版が変わったかを書く。"
 msgstr ""
 "**Bump the version**: Bump `version` under `[workspace.package]` in "
 "`Cargo.toml` (the server and the crates in `crates/` get the same version; "
@@ -2365,11 +2366,11 @@ msgstr ""
 #: src/development.md
 msgid ""
 "**章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章"
-"は `docs/src/cli.md`（「使う」の節の、動かす と 口の約束 の間）。"
+"は `docs/src/cli.md`（「使う」の節の、動かす と API の仕様 の間）。"
 msgstr ""
 "**Add a chapter**: Put a file in `docs/src/` and add one line to "
 "`SUMMARY.md`. The CLI chapter is `docs/src/cli.md` (in the \"Usage\" "
-"section, between Running and API contract)."
+"section, between Running and API specification)."
 
 #: src/development.md
 msgid ""

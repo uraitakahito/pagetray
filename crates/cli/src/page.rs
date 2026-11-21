@@ -345,7 +345,7 @@ fn delete(client: &Client, args: DeleteArgs) -> Result<String, Failure> {
         targets.push(Target { query, exact: None });
     }
 
-    // まず、消す物を見る（n は一覧の口の引数に無いので、path で選ぶ）。
+    // まず、消す物を見る（n は一覧のエンドポイントの引数に無いので、path で選ぶ）。
     let mut listed: Vec<PageRecord> = Vec::new();
     for target in &targets {
         let mut query: Vec<(&str, &str)> = target
