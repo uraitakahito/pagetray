@@ -9,10 +9,14 @@ const LANGS = [
   { lang: 'en', root: '/en/' },
 ];
 
+// mdBook の script（book.js）は、ページを去る時の受け口（unload）を使う。新しい Chromium はこれを止めて、
+// console に知らせを出す。本の動きには関わらず、この repo では直せない（mdBook の側の物）ので、この 1 つだけ除く。
+const KNOWN = ['Permissions policy violation: unload is not allowed in this document.'];
+
 function collectErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() === 'error' && !KNOWN.includes(message.text())) errors.push(message.text());
   });
   page.on('pageerror', (error) => errors.push(String(error)));
   return errors;
