@@ -1,0 +1,3 @@
+# 公開から 2 日（2880 分）たっていない version は入れない（.cargo/config.toml の global-min-publish-age と同じ）。
+minimumReleaseAge: 2880
+engineStrict: true

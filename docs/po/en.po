@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-21T21:03:04+09:00\n"
+"POT-Creation-Date: 2026-11-21T21:42:12+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -1973,6 +1973,19 @@ msgstr ""
 "against it"
 
 #: src/development.md
+msgid "`e2e/`"
+msgstr "`e2e/`"
+
+#: src/development.md
+msgid ""
+"一覧の UI を、本物の browser で見る試験（Playwright・TypeScript）。image に"
+"も CLI にも入らない。流し方は下の「一覧の UI の試験」"
+msgstr ""
+"Tests that look at the list UI in a real browser (Playwright, TypeScript). "
+"They go into neither the image nor the CLI. How to run them is in \"List UI "
+"tests\" below"
+
+#: src/development.md
 msgid "`migrations/`"
 msgstr "`migrations/`"
 
@@ -2198,6 +2211,97 @@ msgstr ""
 "UI, or `gh pr merge --admin`) can also merge a PR without CI passing, so do "
 "not use it. If you rename a workflow job, also update the check name in the "
 "ruleset to match (otherwise PRs can never be merged)."
+
+#: src/development.md
+msgid "一覧の UI の試験"
+msgstr "List UI tests"
+
+#: src/development.md
+msgid ""
+"一覧の UI は、HTML の字を `tests/ui.rs` が見て、browser でしか見えない物"
+"（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は "
+"[Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の "
+"`pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。"
+"Node が要るのはこの folder の中だけで、image にも CLI にも入らない。"
+msgstr ""
+"For the list UI, `tests/ui.rs` checks the text of the HTML, and the tests in "
+"`e2e/` check what can only be seen in a browser (what the script does, "
+"colors, and the layout at each width). `e2e/` holds [Playwright](https://"
+"playwright.dev/) tests (TypeScript): they start the `pagetray-server` of the "
+"same commit with a temporary DB and open it in a real browser (Chromium). "
+"Node is needed only inside this folder, and it goes into neither the image "
+"nor the CLI."
+
+#: src/development.md
+msgid "# 初めの 1 度だけ。試験用の Chromium を入れる\n"
+msgstr "# Only the first time. Installs the Chromium used by the tests\n"
+
+#: src/development.md
+msgid "chrome"
+msgstr "chrome"
+
+#: src/development.md
+msgid "# この機械の Chrome を使う（Chromium を入れなくてよい）\n"
+msgstr ""
+"# Use the Chrome installed on this machine (no need to install Chromium)\n"
+
+#: src/development.md
+msgid ""
+"**CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が "
+"artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、"
+"まだ入れていない（時々落ちないことを見てから足す）。"
+msgstr ""
+"**CI**: The workflow's `ui` job runs them on every PR. When a test fails, a "
+"screenshot and a trace of the steps are kept in the artifact (`ui-report`). "
+"`ui` is not yet one of the required checks of the rule protecting main (it "
+"will be added once it has been seen not to fail intermittently)."
+
+#: src/development.md
+msgid ""
+"**試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の "
+"`place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠）は "
+"`helpers.ts` の関数で選ぶ。試験は同じ置き場に 1 本ずつ順に流れるので、試験ご"
+"とに別の project の名を使う。新着の印を見る試験は、`openLive` で開いてから置"
+"く（知らせにつながる前に置いたページの知らせは届かない）。大きな file は試験"
+"の中で作り、repo に置かない。"
+msgstr ""
+"**Adding tests**: Add a `*.spec.ts` under `e2e/tests/`. Put pages with "
+"`place` from `helpers.ts`, and select the regions (toolbar, filters, list, "
+"viewer) with the functions in `helpers.ts`. The tests run one at a time "
+"against the same store, so use a different project name in each test. A test "
+"that looks at the new-page badge opens the UI with `openLive` before putting "
+"a page (the notice for a page put before the connection is made never "
+"arrives). Create large files inside the test; do not put them in the repo."
+
+#: src/development.md
+msgid ""
+"**template を変えた時**: `templates/index.html` を変えたら、この試験も流す。"
+"試験が選ぶ手がかり（`#fresh`・`li[data-path]`・絞り込みの列の見出しの字など）"
+"を変える時は、同じ PR で `helpers.ts` も直す。"
+msgstr ""
+"**When you change the template**: After changing `templates/index.html`, run "
+"these tests too. When you change something the tests select by (`#fresh`, "
+"`li[data-path]`, the heading text of the filters, and so on), fix "
+"`helpers.ts` in the same PR."
+
+#: src/development.md
+msgid ""
+"**Node の依存**: 依存は `@playwright/test` の 1 つで、版は `package.json` に"
+"そのまま書く（`^` を付けない）。`pnpm-lock.yaml` を commit し、CI は `--"
+"frozen-lockfile` で入れる。`pnpm-workspace.yaml` の `minimumReleaseAge` が、"
+"公開から 2 日たっていない版を入れさせない。弱点は、workflow の `advisories` "
+"が `pnpm audit` で、PR ごとと週に 1 度見る。版は手で上げる（Playwright を上げ"
+"ると browser も替わるので、試験が通るのを見る）。`package.json` の版を書き替"
+"え、`pnpm install` → 試験 → PR。"
+msgstr ""
+"**Node dependencies**: There is one dependency, `@playwright/test`, and its "
+"version is written exactly in `package.json` (no `^`). `pnpm-lock.yaml` is "
+"committed, and CI installs with `--frozen-lockfile`. `minimumReleaseAge` in "
+"`pnpm-workspace.yaml` keeps out versions published less than 2 days ago. For "
+"vulnerabilities, the workflow's `advisories` job runs `pnpm audit` on every "
+"PR and once a week. Versions are raised by hand (raising Playwright also "
+"changes the browser, so watch the tests pass): rewrite the version in "
+"`package.json`, then `pnpm install` → tests → PR."
 
 #: src/development.md
 msgid "この本を直す"

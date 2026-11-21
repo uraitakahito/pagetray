@@ -87,6 +87,49 @@ jobs:
         run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli
       - name: release に付ける tar を作れるか（中身の一覧と持ち主も見る。作った tar は捨てる）
         run: ci/pack-cli.sh target/release/pagetray v0.0.0-ci "$RUNNER_TEMP/out"
+  ui:
+    if: github.event_name != 'schedule'
+    # 一覧の UI を、本物の browser（Chromium）で見る（e2e/ の Playwright の試験）。
+    # まだ、main を守る ruleset の必須の check ではない（docs/src/development.md の「一覧の UI の試験」）。
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SQLX_OFFLINE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
+      - name: 試験が起こすサーバーを作る
+        run: cargo build --locked --bin pagetray-server
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: e2e/.node-version
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+      - name: Node の依存を、lock のとおりに入れる
+        working-directory: e2e
+        run: pnpm install --frozen-lockfile
+      - name: Chromium の cache（版は lock の Playwright の版で決まる）
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/pnpm-lock.yaml') }}
+      - name: Chromium と、それが要る library を入れる
+        working-directory: e2e
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: 一覧の UI の試験
+        working-directory: e2e
+        run: pnpm test
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
   advisories:
     runs-on: ubuntu-latest
     steps:
@@ -95,3 +138,12 @@ jobs:
         with:
           # 弱点と、crate の license（MIT の pagetray と一緒に配れる物か）。
           command: check advisories licenses
+      # 一覧の UI の試験（e2e/）の Node の依存の弱点。lock だけを見る（入れない）。
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: e2e/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: e2e/.node-version
+      - working-directory: e2e
+        run: pnpm audit
