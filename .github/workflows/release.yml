@@ -4,7 +4,7 @@ name: release
 # image は public になる。だから、確かめ（check）と置く（push）を別の job にし、
 #   - check: 書き込みの権限を持たない。build・中身の一覧・設定・秘密の走査・動くかを見て、image を file にして渡す
 #   - push: check が通った時だけ動く。渡された file（確かめたその image）を、作り直さずに置く
-# とする。check が 1 つでも落ちれば、push は動かない。image を手で push しない（README の「release を出す」）。
+# とする。check が 1 つでも落ちれば、push は動かない。image を手で push しない（docs/src/release.md の「release を出す」）。
 on:
   push:
     tags: ["v*"]
