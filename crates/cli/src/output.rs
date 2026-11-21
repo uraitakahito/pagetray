@@ -1,11 +1,11 @@
 //! 出力の形。端末には見出しの付いた表、pipe には tab 区切り、`--json` には JSON。
 
 use crate::client::Failure;
-use pagetray_api::PageRecord;
+use serde::Serialize;
 use serde_json::{Map, Value};
 
-/// `--json` で選べる欄（API の「ページの記録」と、CLI が足す `url`）。
-pub const FIELDS: [&str; 11] = [
+/// `page list --json` で選べる欄（API の「ページの記録」と、CLI が足す `url`）。
+pub const PAGE_FIELDS: &[&str] = &[
     "project",
     "key",
     "kind",
@@ -15,6 +15,23 @@ pub const FIELDS: [&str; 11] = [
     "workspace",
     "created_at",
     "size",
+    "path",
+    "url",
+];
+
+/// `file list --json` で選べる欄（API の「file の記録」と、CLI が足す `url`）。
+pub const FILE_FIELDS: &[&str] = &[
+    "project",
+    "key",
+    "name",
+    "ext",
+    "n",
+    "type",
+    "size",
+    "sha256",
+    "role",
+    "workspace",
+    "created_at",
     "path",
     "url",
 ];
@@ -53,23 +70,23 @@ pub fn table(header: &[&str], rows: &[Vec<String>], tty: bool) -> String {
         .collect()
 }
 
-/// ページの記録を JSON の配列にする。`fields` が空ならどの欄も、`a,b` なら名指した欄だけを、その順に出す。
-pub fn records(pages: &[PageRecord], fields: &str) -> Result<String, Failure> {
+/// 記録を JSON の配列にする。`fields` が空ならどの欄も、`a,b` なら名指した欄（`known` のどれか）だけを、その順に出す。
+pub fn records<T: Serialize>(items: &[T], known: &[&str], fields: &str) -> Result<String, Failure> {
     let wanted: Vec<&str> = fields
         .split(',')
         .map(str::trim)
         .filter(|f| !f.is_empty())
         .collect();
-    if let Some(unknown) = wanted.iter().find(|f| !FIELDS.contains(f)) {
+    if let Some(unknown) = wanted.iter().find(|f| !known.contains(f)) {
         return Err(Failure::usage(format!(
             "--json に無い欄: {unknown}（選べるのは {}）",
-            FIELDS.join(",")
+            known.join(",")
         )));
     }
-    let values: Vec<Value> = pages
+    let values: Vec<Value> = items
         .iter()
-        .map(|page| {
-            let all = serde_json::to_value(page).unwrap_or_default();
+        .map(|item| {
+            let all = serde_json::to_value(item).unwrap_or_default();
             if wanted.is_empty() {
                 return all;
             }

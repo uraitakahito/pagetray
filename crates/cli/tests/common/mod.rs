@@ -55,7 +55,21 @@ impl Server {
         let json: serde_json::Value = serde_json::from_str(&text).unwrap();
         json["path"].as_str().unwrap().to_owned()
     }
+
+    /// API を直に呼んで file を 1 つ置き、置き場の中の path を返す。
+    pub fn place_file(&self, query: &str, content_type: &str, body: &[u8]) -> String {
+        let mut response = ureq::post(format!("{}/api/files?{query}", self.url))
+            .header("Content-Type", content_type)
+            .send(body)
+            .unwrap();
+        let text = response.body_mut().read_to_string().unwrap();
+        let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+        json["path"].as_str().unwrap().to_owned()
+    }
 }
+
+/// 中身の見方に合う、小さな PNG（頭の印だけ）。
+pub const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR";
 
 impl Drop for Server {
     fn drop(&mut self) {

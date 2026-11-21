@@ -1,6 +1,6 @@
 //! `pagetray page …`: ページを探す・読む・置く・消す・新着を待つ。
 
-use crate::client::{Client, Failure, REFUSED};
+use crate::client::{Client, Failure};
 use crate::output;
 use clap::{Args, Subcommand};
 use pagetray_api::{PageRecord, is_page_path, is_segment, parse_file};
@@ -198,7 +198,7 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
         })
         .collect();
     if let Some(fields) = &args.json {
-        return output::records(&pages, fields);
+        return output::records(&pages, output::PAGE_FIELDS, fields);
     }
     let tty = std::io::stdout().is_terminal();
     if pages.is_empty() && tty {
@@ -294,18 +294,6 @@ fn put(client: &Client, args: PutArgs) -> Result<String, Failure> {
     }
 }
 
-/// `PAGETRAY_NO_DELETE` が付いていれば（空と `0` のほか）、消す命令は何もせずに止まる。
-/// ページを消してよい人を呼ぶ側が決める時に使う（skills の tpm は、担当を起こす時にこれを付ける）。
-pub fn refuse_delete() -> Result<(), Failure> {
-    match std::env::var("PAGETRAY_NO_DELETE") {
-        Ok(value) if !value.is_empty() && value != "0" => Err(Failure::new(
-            REFUSED,
-            "PAGETRAY_NO_DELETE が付いているので、消さない（何も消していない）",
-        )),
-        _ => Ok(()),
-    }
-}
-
 /// 消す物 1 つ: 置き場に頼む引数と、一覧のうち消す物に当たるかを見る path の頭（か、path そのもの）。
 struct Target {
     query: Vec<(&'static str, String)>,
@@ -313,7 +301,7 @@ struct Target {
 }
 
 fn delete(client: &Client, args: DeleteArgs) -> Result<String, Failure> {
-    refuse_delete()?;
+    crate::refuse_delete()?;
     let mut targets = Vec::new();
     for page in &args.pages {
         let path = page_path_of(page)?;

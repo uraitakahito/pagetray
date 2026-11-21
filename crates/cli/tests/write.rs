@@ -1,8 +1,8 @@
-//! 書く命令（page put・page delete・page watch・backup・api）を、同じ commit のサーバーに向けて打つ。
+//! 書く命令（page put・page delete・page watch・file put・file delete・backup・api）を、同じ commit のサーバーに向けて打つ。
 
 mod common;
 
-use common::{Server, html, run_with};
+use common::{PNG, Server, closed_url, html, run_with};
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -408,4 +408,261 @@ fn watch_prints_a_line_for_each_page_placed() {
             .unwrap()
             .starts_with(&format!("{}/p/AI-22/plan-", s.url))
     );
+}
+
+fn file_put<'a>(file: &'a str, more: &[&'a str]) -> Vec<&'a str> {
+    [
+        &["file", "put", file, "--project", "p", "--key", "AI-24"][..],
+        more,
+    ]
+    .concat()
+}
+
+fn file_count(s: &Server) -> usize {
+    s.run(&["file", "list"]).stdout.lines().count()
+}
+
+/// 試験の秘密の形は、source にそのまま書かない（source の走査に当たるため）。頭を 2 つに分けて組む。
+fn fake_token() -> String {
+    format!("{}{}{}", "gh", "p_", "x".repeat(36))
+}
+
+#[test]
+fn file_put_names_the_file_and_prints_the_url_and_the_reference() {
+    let s = Server::start();
+    let file = temp("My Notes (1).TXT");
+    std::fs::write(&file, "メモ\n").unwrap();
+    let file = file.to_str().unwrap();
+
+    let ran = s.run(&file_put(file, &[]));
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let name = format!("pagetray-cli-{}-my-notes-1", std::process::id());
+    assert_eq!(
+        ran.stdout,
+        format!("{}/p/AI-24/files/{name}-1.txt\nfiles/{name}-1.txt\n", s.url)
+    );
+    // 同じ名で置き直すと、次の番号。--name で名を替える。
+    assert!(
+        s.run(&file_put(file, &[]))
+            .stdout
+            .ends_with(&format!("files/{name}-2.txt\n"))
+    );
+    let ran = s.run(&file_put(
+        file,
+        &["--name", "memo.md", "--json", "--role", "tpm"],
+    ));
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    assert_eq!(json["path"], "/p/AI-24/files/memo-1.md");
+    assert_eq!(json["type"], "text/markdown; charset=utf-8");
+    assert_eq!(json["role"], "tpm");
+    assert_eq!(json["url"], format!("{}/p/AI-24/files/memo-1.md", s.url));
+    assert_eq!(
+        s.run(&["file", "view", "p/AI-24/files/memo-1.md"]).stdout,
+        "メモ\n"
+    );
+    std::fs::remove_file(file).unwrap();
+}
+
+#[test]
+fn file_put_needs_reviewed_for_images_and_pdf() {
+    let s = Server::start();
+    let png = temp("screen.png");
+    std::fs::write(&png, PNG).unwrap();
+    let pdf = temp("doc.pdf");
+    std::fs::write(&pdf, b"%PDF-1.7\n%%EOF\n").unwrap();
+    for file in [&png, &pdf] {
+        let file = file.to_str().unwrap();
+        let ran = s.run(&file_put(file, &[]));
+        assert_eq!(ran.code, 1, "{file}");
+        assert!(ran.stderr.contains("--reviewed"), "{}", ran.stderr);
+        assert!(ran.stderr.contains("何も送っていない"), "{}", ran.stderr);
+        assert_eq!(ran.stdout, "");
+    }
+    assert_eq!(file_count(&s), 0);
+    for file in [&png, &pdf] {
+        let ran = s.run(&file_put(file.to_str().unwrap(), &["--reviewed"]));
+        assert_eq!(ran.code, 0, "{}", ran.stderr);
+    }
+    assert_eq!(file_count(&s), 2);
+    std::fs::remove_file(png).unwrap();
+    std::fs::remove_file(pdf).unwrap();
+}
+
+#[test]
+fn file_put_stops_on_secret_shapes_unless_allowed() {
+    let s = Server::start();
+    let file = temp("leak.log");
+    let token = fake_token();
+    std::fs::write(&file, format!("一\n二\ntoken: {token}\n四\n")).unwrap();
+    let file = file.to_str().unwrap();
+
+    let ran = s.run(&file_put(file, &[]));
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("3 行目"), "{}", ran.stderr);
+    assert!(ran.stderr.contains("--allow-secret"), "{}", ran.stderr);
+    // 当たった字そのものは出さない。
+    assert!(!ran.stderr.contains(&token), "{}", ran.stderr);
+    assert_eq!(file_count(&s), 0);
+
+    let ran = s.run(&file_put(file, &["--allow-secret"]));
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert!(ran.stderr.contains("--allow-secret"), "{}", ran.stderr);
+    assert!(ran.stderr.contains("3 行目"), "{}", ran.stderr);
+    assert_eq!(file_count(&s), 1);
+    std::fs::remove_file(file).unwrap();
+}
+
+#[test]
+fn file_put_refuses_bad_files_without_reaching_the_store() {
+    // 置き場の無い URL に向けて打つ。送ろうとすれば code 3 になる。
+    let url = closed_url();
+    let svg = temp("pic.svg");
+    std::fs::write(&svg, "<svg/>").unwrap();
+    let fake_png = temp("fake.png");
+    std::fs::write(&fake_png, "png でない").unwrap();
+    let binary_txt = temp("bin.txt");
+    std::fs::write(&binary_txt, PNG).unwrap();
+    let empty = temp("empty.txt");
+    std::fs::write(&empty, "").unwrap();
+    let no_ext = temp("noext");
+    std::fs::write(&no_ext, "x").unwrap();
+    let cases: Vec<(Vec<&str>, &str)> = vec![
+        (file_put(svg.to_str().unwrap(), &["--reviewed"]), "置けない"),
+        (
+            file_put(fake_png.to_str().unwrap(), &["--reviewed"]),
+            "の形でない",
+        ),
+        (file_put(binary_txt.to_str().unwrap(), &[]), "の形でない"),
+        (file_put(empty.to_str().unwrap(), &[]), "空"),
+        (file_put(no_ext.to_str().unwrap(), &[]), "拡張子"),
+        (
+            file_put(no_ext.to_str().unwrap(), &["--name", "Bad.txt"]),
+            "--name",
+        ),
+        (file_put("/nonexistent/x.txt", &[]), "読めない"),
+    ];
+    for (args, says) in cases {
+        let ran = run_with(&url, &args, &[], None);
+        assert_eq!(ran.code, 2, "{args:?}: {}", ran.stderr);
+        assert!(ran.stderr.contains(says), "{args:?}: {}", ran.stderr);
+    }
+    for file in [svg, fake_png, binary_txt, empty, no_ext] {
+        std::fs::remove_file(file).unwrap();
+    }
+}
+
+#[test]
+fn file_put_warns_about_exif_in_jpeg() {
+    let s = Server::start();
+    let exif = b"\xff\xd8\xff\xe1\x00\x0eExif\0\0MM\0\x2a\0\0\xff\xda\x00\x02";
+    let plain = b"\xff\xd8\xff\xe0\x00\x04\0\0\xff\xda\x00\x02";
+    let file = temp("photo.jpg");
+    std::fs::write(&file, exif).unwrap();
+    let ran = s.run(&file_put(file.to_str().unwrap(), &["--reviewed"]));
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert!(ran.stderr.contains("EXIF"), "{}", ran.stderr);
+    assert!(ran.stderr.contains("位置情報"), "{}", ran.stderr);
+    // 止めはしないが、--reviewed が無い時も知らせる（見る時に気づけるように）。
+    let ran = s.run(&file_put(file.to_str().unwrap(), &[]));
+    assert_eq!(ran.code, 1);
+    assert!(ran.stderr.contains("EXIF"), "{}", ran.stderr);
+    std::fs::write(&file, plain).unwrap();
+    let ran = s.run(&file_put(file.to_str().unwrap(), &["--reviewed"]));
+    assert_eq!((ran.code, ran.stderr.as_str()), (0, ""));
+    assert_eq!(file_count(&s), 2);
+    std::fs::remove_file(file).unwrap();
+}
+
+/// 3 つ（AI-24 の screen-1・screen-2・note-1）と、別の Key の 1 つを置く。
+fn four_files(s: &Server) {
+    let q = "project=p&key=AI-24&role=tpm";
+    s.place_file(&format!("{q}&name=screen.png"), "image/png", PNG);
+    s.place_file(&format!("{q}&name=screen.png"), "image/png", PNG);
+    s.place_file(&format!("{q}&name=note.txt"), "text/plain", b"x");
+    s.place_file(
+        "project=p&key=AI-23&name=screen.png&role=tpm",
+        "image/png",
+        PNG,
+    );
+}
+
+#[test]
+fn file_delete_only_lists_until_yes_is_given() {
+    let s = Server::start();
+    four_files(&s);
+    let url = format!("{}/p/AI-24/files/screen-1.png", s.url);
+
+    let ran = s.run(&["file", "delete", &url]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert!(ran.stdout.contains("1 個"), "{}", ran.stdout);
+    assert!(ran.stdout.contains("まだ消していない"), "{}", ran.stdout);
+    assert!(ran.stdout.contains(&url), "{}", ran.stdout);
+    assert!(!ran.stdout.contains("screen-2"), "{}", ran.stdout);
+    assert_eq!(file_count(&s), 4);
+
+    let ran = s.run(&["file", "delete", &url, "--yes"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert_eq!(ran.stdout, format!("消した（1 個）:\n{url}\n"));
+    assert_eq!(file_count(&s), 3);
+    assert!(s.run(&["file", "view", &url]).stderr.contains("（410）"));
+    assert!(
+        s.run(&["file", "delete", &url, "--yes"])
+            .stdout
+            .contains("消す file は無い")
+    );
+
+    // 名で選ぶと、その名のどの番号も。ほかの名と Key は残る。
+    let by_name = [
+        "file",
+        "delete",
+        "-p",
+        "p",
+        "-k",
+        "AI-24",
+        "--name",
+        "screen.png",
+    ];
+    assert!(s.run(&by_name).stdout.contains("1 個"));
+    let ran = s.run(&[&by_name[..], &["--yes"]].concat());
+    assert!(ran.stdout.starts_with("消した（1 個）"), "{}", ran.stdout);
+    assert_eq!(file_count(&s), 2);
+    let ran = s.run(&["file", "delete", "--project", "p", "--yes"]);
+    assert!(ran.stdout.starts_with("消した（2 個）"), "{}", ran.stdout);
+    assert_eq!(file_count(&s), 0);
+}
+
+#[test]
+fn file_delete_needs_a_target_and_stops_on_no_delete() {
+    let s = Server::start();
+    four_files(&s);
+    for args in [
+        vec!["file", "delete", "--yes"],
+        vec!["file", "delete", "--key", "AI-24", "--yes"],
+        vec!["file", "delete", "-p", "p", "--name", "screen.png", "--yes"],
+        vec![
+            "file",
+            "delete",
+            "p/AI-24/files/screen-1.png",
+            "-p",
+            "p",
+            "--yes",
+        ],
+        vec!["file", "delete", "p/AI-24/screen-1.png", "--yes"],
+    ] {
+        assert_eq!(s.run(&args).code, 2, "{args:?}");
+    }
+    let env = [("PAGETRAY_NO_DELETE", "1")];
+    for args in [
+        vec!["file", "delete", "p/AI-24/files/screen-1.png", "--yes"],
+        vec!["file", "delete", "--project", "p", "--yes"],
+        vec!["file", "delete", "--project", "p"],
+        vec!["api", "-X", "DELETE", "/api/files", "-f", "project=p"],
+    ] {
+        let ran = run_with(&s.url, &args, &env, None);
+        assert_eq!(ran.code, 1, "{args:?}");
+        assert!(ran.stderr.contains("PAGETRAY_NO_DELETE"), "{}", ran.stderr);
+        assert_eq!(ran.stdout, "", "{args:?}");
+    }
+    assert_eq!(file_count(&s), 4);
 }

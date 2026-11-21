@@ -4,6 +4,7 @@
 //! 終わりの code: 0 できた・1 置き場が断った・2 使い方の誤り・3 置き場が応えない・4 API の版が合わない。
 
 mod client;
+mod file;
 mod output;
 mod page;
 
@@ -37,6 +38,9 @@ enum Command {
     /// ページを探す・読む・置く・消す
     #[command(subcommand)]
     Page(page::PageCommand),
+    /// file（画像・PDF・字の file）を探す・読む・置く・消す
+    #[command(subcommand)]
+    File(file::FileCommand),
     /// 一覧の UI を browser で開く
     Browse(BrowseArgs),
     /// DB の写し（SQLite の file 1 つ）を取る
@@ -121,6 +125,7 @@ fn run(cli: Cli) -> Result<Vec<u8>, Failure> {
             page::run(&Client::new(&cli.url, None)?, command)
         }
         Command::Page(command) => page::run(&Client::new(&cli.url, Some(TIMEOUT))?, command),
+        Command::File(command) => file::run(&Client::new(&cli.url, Some(TIMEOUT))?, command),
         Command::Backup(args) => backup(&Client::new(&cli.url, None)?, &args),
         Command::Api(args) => api(&Client::new(&cli.url, Some(TIMEOUT))?, &args),
         Command::Browse(args) => browse(&Client::new(&cli.url, Some(TIMEOUT))?, &args),
@@ -230,7 +235,7 @@ fn api(client: &Client, args: &ApiArgs) -> Result<Vec<u8>, Failure> {
         None => "GET".to_owned(),
     };
     if method == "DELETE" {
-        page::refuse_delete()?;
+        refuse_delete()?;
     }
     let mut query = Vec::new();
     for field in &args.fields {
@@ -278,6 +283,18 @@ fn browse(client: &Client, args: &BrowseArgs) -> Result<Vec<u8>, Failure> {
     }
     open_in_browser(&url)?;
     Ok(Vec::new())
+}
+
+/// `PAGETRAY_NO_DELETE` が付いていれば（空と `0` のほか）、消す命令（page delete・file delete・api の DELETE）は
+/// 何もせずに止まる。消してよい人を呼ぶ側が決める時に使う（skills の tpm は、担当を起こす時にこれを付ける）。
+pub fn refuse_delete() -> Result<(), Failure> {
+    match std::env::var("PAGETRAY_NO_DELETE") {
+        Ok(value) if !value.is_empty() && value != "0" => Err(Failure::new(
+            REFUSED,
+            "PAGETRAY_NO_DELETE が付いているので、消さない（何も消していない）",
+        )),
+        _ => Ok(()),
+    }
 }
 
 /// URL を browser で開く。`$BROWSER` があればその命令で、無ければ OS の命令（macOS は `open`）で。

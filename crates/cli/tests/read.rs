@@ -1,8 +1,8 @@
-//! 読む命令（status・page list・page view・browse・completion）を、同じ commit のサーバーに向けて打つ。
+//! 読む命令（status・page list・page view・file list・file view・browse・completion）を、同じ commit のサーバーに向けて打つ。
 
 mod common;
 
-use common::{Server, canned, closed_url, html, run_with};
+use common::{PNG, Server, canned, closed_url, html, run_with};
 
 const SE: &str = "project=p&key=AI-22&role=software-engineer&workspace=workspace:1";
 
@@ -331,18 +331,129 @@ fn every_command_is_in_the_book() {
     };
     let top = commands(&["--help"]);
     assert!(top.contains(&"status".to_owned()), "{top:?}");
-    for command in top.iter().filter(|c| *c != "page") {
+    for command in top
+        .iter()
+        .filter(|c| !matches!(c.as_str(), "page" | "file"))
+    {
         assert!(
             book.contains(&format!("`pagetray {command}")),
             "docs/src/cli.md に pagetray {command} が無い"
         );
     }
-    let page = commands(&["page", "--help"]);
-    assert!(page.contains(&"list".to_owned()), "{page:?}");
-    for command in page {
-        assert!(
-            book.contains(&format!("`pagetray page {command}")),
-            "docs/src/cli.md に pagetray page {command} が無い"
-        );
+    for group in ["page", "file"] {
+        let sub = commands(&[group, "--help"]);
+        assert!(sub.contains(&"list".to_owned()), "{sub:?}");
+        for command in sub {
+            assert!(
+                book.contains(&format!("`pagetray {group} {command}")),
+                "docs/src/cli.md に pagetray {group} {command} が無い"
+            );
+        }
+    }
+}
+
+const FILES: &str = "project=p&key=AI-24&role=software-engineer&workspace=workspace:1";
+
+#[test]
+fn file_list_shows_the_files_newest_first() {
+    let s = Server::start();
+    s.place_file(&format!("{FILES}&name=screen.png"), "image/png", PNG);
+    s.place_file(
+        &format!("{FILES}&name=note.txt"),
+        "text/plain",
+        "メモ\n".as_bytes(),
+    );
+    s.place_file("project=q&key=K&name=screen.png&role=tpm", "image/png", PNG);
+
+    let ran = s.run(&["file", "list"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let rows: Vec<Vec<&str>> = ran
+        .stdout
+        .lines()
+        .map(|l| l.split('\t').collect())
+        .collect();
+    assert_eq!(rows.len(), 3);
+    // CREATED・PROJECT・KEY・FILE・SIZE・ROLE・URL
+    assert_eq!(
+        rows[0][1..],
+        [
+            "q",
+            "K",
+            "screen-1.png",
+            &PNG.len().to_string(),
+            "tpm",
+            &format!("{}/q/K/files/screen-1.png", s.url),
+        ]
+    );
+    // project で絞ると、project の欄は出ない。
+    let ran = s.run(&["file", "list", "--project", "p", "--oldest"]);
+    let rows: Vec<Vec<&str>> = ran
+        .stdout
+        .lines()
+        .map(|l| l.split('\t').collect())
+        .collect();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0][1..3], ["AI-24", "screen-1.png"]);
+
+    let ran = s.run(&["file", "list", "-q", "note", "--json"]);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    let file = &json[0];
+    assert_eq!(json.as_array().unwrap().len(), 1);
+    assert_eq!(file["name"], "note");
+    assert_eq!(file["ext"], "txt");
+    assert_eq!(file["type"], "text/plain; charset=utf-8");
+    assert_eq!(file["workspace"], "workspace:1");
+    assert_eq!(file["path"], "/p/AI-24/files/note-1.txt");
+    assert_eq!(file["url"], format!("{}/p/AI-24/files/note-1.txt", s.url));
+    for field in ["created_at", "size", "sha256", "role", "n"] {
+        assert!(!file[field].is_null(), "{field}");
+    }
+    let ran = s.run(&["file", "list", "--json=name,url", "--key", "K"]);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    assert_eq!(
+        json,
+        serde_json::json!([{"name": "screen", "url": format!("{}/q/K/files/screen-1.png", s.url)}])
+    );
+    assert_eq!(s.run(&["file", "list", "--json=title"]).code, 2);
+}
+
+#[test]
+fn file_view_writes_the_bytes_as_placed() {
+    let s = Server::start();
+    let path = s.place_file(&format!("{FILES}&name=screen.png"), "image/png", PNG);
+    s.place_file(
+        &format!("{FILES}&name=note.md"),
+        "text/markdown",
+        "# 見出し\n".as_bytes(),
+    );
+    let out =
+        std::env::temp_dir().join(format!("pagetray-cli-file-view-{}.png", std::process::id()));
+    for file in [
+        format!("{}{path}", s.url),
+        "p/AI-24/files/screen-1.png".to_owned(),
+        "http://127.0.0.1:8800/p/AI-24/files/screen-1.png".to_owned(),
+    ] {
+        let ran = s.run(&["file", "view", &file, "-o", out.to_str().unwrap()]);
+        assert_eq!((ran.code, ran.stdout.as_str()), (0, ""), "{}", ran.stderr);
+        assert_eq!(std::fs::read(&out).unwrap(), PNG, "{file}");
+    }
+    std::fs::remove_file(out).unwrap();
+    // pipe には、そのまま出す。
+    let ran = s.run(&["file", "view", "p/AI-24/files/note-1.md"]);
+    assert_eq!((ran.code, ran.stdout.as_str()), (0, "# 見出し\n"));
+
+    let ran = s.run(&["file", "view", "p/AI-24/files/note-9.md"]);
+    assert_eq!(ran.code, 1);
+    assert!(
+        ran.stderr.contains("（404）: その file は無い"),
+        "{}",
+        ran.stderr
+    );
+    for ng in [
+        "p/AI-24/note-1.md",
+        "p/AI-24/files/note.md",
+        "p/AI-24/files/x-1.svg",
+    ] {
+        assert_eq!(s.run(&["file", "view", ng]).code, 2, "{ng}");
     }
 }
