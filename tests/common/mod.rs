@@ -5,7 +5,7 @@ use axum::Router;
 use axum::body::Body;
 use axum::http::{HeaderMap, Request, StatusCode, header};
 use http_body_util::BodyExt;
-use pagestore::{AppState, db::Db, router};
+use pagetray::{AppState, db::Db, router};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -23,7 +23,7 @@ impl Server {
     pub async fn start() -> Self {
         static SEQ: AtomicU32 = AtomicU32::new(0);
         let path = std::env::temp_dir().join(format!(
-            "pagestore-test-{}-{}.db",
+            "pagetray-test-{}-{}.db",
             std::process::id(),
             SEQ.fetch_add(1, Ordering::Relaxed)
         ));

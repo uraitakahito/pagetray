@@ -6,7 +6,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use common::{SE, Server, html, request};
 use http_body_util::BodyExt;
-use pagestore::{AppState, db::Db, router};
+use pagetray::{AppState, db::Db, router};
 use serde_json::Value;
 use std::path::PathBuf;
 use tower::ServiceExt;
@@ -120,7 +120,7 @@ async fn bad_arguments_are_refused() {
 #[tokio::test]
 async fn a_page_over_the_limit_is_refused() {
     let s = Server::start().await;
-    let big = vec![b'a'; pagestore::MAX_BODY + 1];
+    let big = vec![b'a'; pagetray::MAX_BODY + 1];
     let (status, _, _) = s
         .send(request(
             "POST",
@@ -263,6 +263,33 @@ async fn search_finds_japanese_text_and_titles_but_not_markup() {
     assert_eq!(s.paths("q=doctype").await, [] as [&str; 0]);
     assert_eq!(s.paths("q=container&kind=plan").await, [] as [&str; 0]);
     assert_eq!(s.paths("q=CONTAINER").await, ["/p/SKILLS-14/result-1.html"]);
+}
+
+#[tokio::test]
+async fn the_version_is_told_by_a_route_and_on_every_answer() {
+    let s = Server::start().await;
+    let json = s.json("/api/version").await;
+    assert_eq!(json["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(json["api"], pagetray::API_VERSION);
+    // 通った答えにも、無いページにも、誤りにも付く。
+    for uri in [
+        "/healthz",
+        "/api/pages",
+        "/p/K-1/result-9.html",
+        "/api/pages?sort=x",
+    ] {
+        let (_, headers, _) = s.get(uri).await;
+        assert_eq!(headers[pagetray::API_HEADER], "1", "{uri}");
+    }
+    // guard が断った答えにも付く。
+    let refused = Request::builder()
+        .uri("/healthz")
+        .header(header::HOST, "evil.example")
+        .body(Body::empty())
+        .unwrap();
+    let (status, headers, _) = s.send(refused).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    assert_eq!(headers[pagetray::API_HEADER], "1");
 }
 
 #[tokio::test]

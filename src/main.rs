@@ -1,15 +1,15 @@
-use pagestore::{AppState, db::Db, router};
+use pagetray::{AppState, db::Db, router};
 use std::path::PathBuf;
 use tokio::signal::unix::{SignalKind, signal};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let path = PathBuf::from(env_or("PAGESTORE_DB", "/data/pages.db"));
-    let listen = env_or("PAGESTORE_LISTEN", "0.0.0.0:8080");
+    let path = PathBuf::from(env_or("PAGETRAY_DB", "/data/pages.db"));
+    let listen = env_or("PAGETRAY_LISTEN", "0.0.0.0:8080");
     let db = Db::open(&path).await?;
     let listener = tokio::net::TcpListener::bind(&listen).await?;
     println!(
-        "pagestore {} listen={listen} db={}",
+        "pagetray {} listen={listen} db={}",
         env!("CARGO_PKG_VERSION"),
         path.display()
     );
@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         _ = int.recv() => {}
     }
     db.close().await;
-    println!("pagestore stopped");
+    println!("pagetray stopped");
     Ok(())
 }
 

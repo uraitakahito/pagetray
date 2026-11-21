@@ -9,12 +9,18 @@ pub mod text;
 pub mod ui;
 
 use axum::extract::{DefaultBodyLimit, Request};
-use axum::http::{Method, StatusCode, header};
+use axum::http::{HeaderName, HeaderValue, Method, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use axum::{Json, Router};
 use serde_json::json;
+
+/// 口の版。口の形（URL・引数の名・答えの JSON の欄・code の意味）を、前からある呼ぶ側が困る形に変えた時だけ上げる
+/// （決まりは docs/api.md）。
+pub const API_VERSION: u32 = 1;
+/// どの答えにも付く、口の版の header。
+pub const API_HEADER: HeaderName = HeaderName::from_static("pagetray-api");
 
 /// 1 枚のページの上限。
 pub const MAX_BODY: usize = 16 * 1024 * 1024;
@@ -41,6 +47,7 @@ pub fn router(state: AppState) -> Router {
             get(api::list).post(api::put).delete(api::remove),
         )
         .route("/api/backup", get(api::backup))
+        .route("/api/version", get(version))
         .route("/api/events", get(events::stream))
         .route("/", get(ui::index))
         .route("/{project}/", get(ui::project))
@@ -48,7 +55,23 @@ pub fn router(state: AppState) -> Router {
         .route("/{project}/{key}/{file}", get(pages::show))
         .layer(DefaultBodyLimit::max(MAX_BODY))
         .layer(middleware::from_fn(guard))
+        // 一番外に置く。guard が断った答えにも付く。
+        .layer(middleware::from_fn(stamp))
         .with_state(state)
+}
+
+/// サーバーの版と口の版（`{"version":"0.2.0","api":1}`）。
+async fn version() -> Json<serde_json::Value> {
+    Json(json!({ "version": env!("CARGO_PKG_VERSION"), "api": API_VERSION }))
+}
+
+/// どの答えにも口の版を付ける。呼ぶ側は、頼んだその答えで、合っているかを見られる。
+async fn stamp(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    response
+        .headers_mut()
+        .insert(API_HEADER, HeaderValue::from(API_VERSION));
+    response
 }
 
 /// この Mac の中からの要求だけを受ける。
