@@ -13,8 +13,10 @@ build-dir = "book"
 [preprocessor.gettext]
 after = ["links"]
 
+# 図の中の字も訳すので、訳を当てた後に動かす。
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
+after = ["gettext"]
 
 [output.html]
 git-repository-url = "https://github.com/uraitakahito/pagetray"

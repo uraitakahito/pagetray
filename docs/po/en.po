@@ -1,0 +1,1787 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: pagetray\n"
+"POT-Creation-Date: 2026-11-21T20:23:40+09:00\n"
+"Last-Translator: pagetray contributors\n"
+"Language-Team: none\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/SUMMARY.md
+msgid "目次"
+msgstr "Contents"
+
+#: src/SUMMARY.md
+msgid "概要"
+msgstr "Overview"
+
+#: src/SUMMARY.md
+msgid "使う"
+msgstr "Usage"
+
+#: src/SUMMARY.md src/run.md
+msgid "動かす"
+msgstr "Running"
+
+#: src/SUMMARY.md
+msgid "口の約束"
+msgstr "API contract"
+
+#: src/SUMMARY.md
+msgid "作る"
+msgstr "Building"
+
+#: src/SUMMARY.md src/release.md
+msgid "release を出す"
+msgstr "Releasing"
+
+#: src/SUMMARY.md src/development.md
+msgid "開発"
+msgstr "Development"
+
+#: src/index.md
+msgid "pagetray"
+msgstr "pagetray"
+
+#: src/index.md
+msgid ""
+"ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を"
+"付け、絞って探せる一覧の UI を出す。 この Mac の中（`127.0.0.1`）だけで使う物"
+"で、[skills](https://github.com/uraitakahito/skills) の `tpm page` の命令が、"
+"ここの口を `curl` で呼ぶ。"
+msgstr ""
+"A page store server for pages (HTML). It keeps the pages put into it in a DB "
+"(SQLite), assigns them numbers, and serves a list UI that can be filtered "
+"and searched. It is used only from this Mac (`127.0.0.1`), and the `tpm "
+"page` command of [skills](https://github.com/uraitakahito/skills) calls its "
+"endpoints with `curl`."
+
+#: src/index.md
+msgid ""
+"もとは skills の repo の `pagestore/` にあった物を、履歴ごと分けた。版ごとに"
+"変えたことは [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/"
+"main/CHANGELOG.md)。"
+msgstr ""
+"It originally lived in `pagestore/` in the skills repo and was split out "
+"together with its history. For what changed in each version, see "
+"[CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
+"CHANGELOG.md)."
+
+#: src/index.md
+msgid ""
+"```mermaid\n"
+"flowchart LR\n"
+"  tpm[\"skills の tpm page<br>（curl）\"] -->|\"POST・GET・DELETE /api/"
+"pages\"| srv\n"
+"  browser[\"browser\"] -->|\"一覧の UI・ページの本文\"| srv\n"
+"  subgraph mac[\"この Mac（127.0.0.1 だけ）\"]\n"
+"    srv[\"pagetray<br>（container）\"] --> db[(\"SQLite<br>volume pagetray-"
+"data\")]\n"
+"  end\n"
+"```"
+msgstr ""
+"```mermaid\n"
+"flowchart LR\n"
+"  tpm[\"tpm page in skills<br>(curl)\"] -->|\"POST, GET, DELETE /api/"
+"pages\"| srv\n"
+"  browser[\"browser\"] -->|\"list UI, page bodies\"| srv\n"
+"  subgraph mac[\"This Mac (127.0.0.1 only)\"]\n"
+"    srv[\"pagetray<br>(container)\"] --> db[(\"SQLite<br>volume pagetray-"
+"data\")]\n"
+"  end\n"
+"```"
+
+#: src/index.md
+msgid "この本の章"
+msgstr "Chapters"
+
+#: src/index.md
+msgid "章"
+msgstr "Chapter"
+
+#: src/index.md src/api.md src/development.md
+msgid "中身"
+msgstr "Contents"
+
+#: src/index.md
+msgid "[動かす](run.md)"
+msgstr "[Running](run.md)"
+
+#: src/index.md
+msgid "起こす・確かめる・DB の写しを取る・写しから戻す・止める・版を上げる"
+msgstr "Start, verify, back up the DB, restore from a backup, stop, upgrade"
+
+#: src/index.md
+msgid "[口の約束](api.md)"
+msgstr "[API contract](api.md)"
+
+#: src/index.md
+msgid "呼ぶ側が頼ってよい形と、口の版の決まり"
+msgstr "The shapes callers may rely on, and the rules for the API version"
+
+#: src/index.md
+msgid "[release を出す](release.md)"
+msgstr "[Releasing](release.md)"
+
+#: src/index.md
+msgid "image を出す手順と、image に入ってよい物"
+msgstr "The steps for releasing an image, and what may go into the image"
+
+#: src/index.md
+msgid "[開発](development.md)"
+msgstr "[Development](development.md)"
+
+#: src/index.md
+msgid "source の作り・試験・この本の直し方"
+msgstr "Source layout, tests, and how to edit this book"
+
+#: src/index.md
+msgid "口の早見"
+msgstr "Endpoint quick reference"
+
+#: src/index.md
+msgid ""
+"呼ぶ側が頼ってよい形と、口の版の決まりは [口の約束](api.md)。ここは早見。"
+msgstr ""
+"For the shapes callers may rely on and the rules for the API version, see "
+"[API contract](api.md). This is a quick reference."
+
+#: src/index.md src/api.md
+msgid "口"
+msgstr "Endpoint"
+
+#: src/index.md
+msgid "`POST /api/pages?project=&key=&kind=&role=&workspace=`"
+msgstr "`POST /api/pages?project=&key=&kind=&role=&workspace=`"
+
+#: src/index.md
+msgid ""
+"本文は HTML。番号を決めて `201` と JSON を返す。`n`・`created_at` は取り込み"
+"の時だけ付け、番号が使われていれば `409`"
+msgstr ""
+"The body is HTML. Assigns a number and returns `201` with JSON. `n` and "
+"`created_at` are given only on import; if the number is already in use, "
+"returns `409`"
+
+#: src/index.md
+msgid "`GET /api/pages`"
+msgstr "`GET /api/pages`"
+
+#: src/index.md
+msgid ""
+"`project`・`key`・`kind`・`role`・`workspace`・`q`・`sort`・`limit`・"
+"`before`・`after` で絞る。`{\"pages\":[…]}`"
+msgstr ""
+"Filter by `project`, `key`, `kind`, `role`, `workspace`, `q`, `sort`, "
+"`limit`, `before`, and `after`. Returns `{\"pages\":[…]}`"
+
+#: src/index.md
+msgid "`DELETE /api/pages?project=[&key=][&kind=][&n=]`"
+msgstr "`DELETE /api/pages?project=[&key=][&kind=][&n=]`"
+
+#: src/index.md
+msgid ""
+"合うページを消し、番号を表 `removed` に残して、消した path の一覧を返す。`n` "
+"には `key` と `kind` が要る。人は見分けない（だれが消してよいかは、呼ぶ側が決"
+"める）"
+msgstr ""
+"Deletes the matching pages, keeps their numbers in the `removed` table, and "
+"returns the list of deleted paths. `n` requires `key` and `kind`. It does "
+"not tell people apart (the caller decides who may delete)"
+
+#: src/index.md
+msgid "`GET /<project>/<key>/<kind>-<n>.html`"
+msgstr "`GET /<project>/<key>/<kind>-<n>.html`"
+
+#: src/index.md
+msgid "本文。無ければ `404`、消したページは `410`"
+msgstr "The body. `404` if it does not exist, `410` for a deleted page"
+
+#: src/index.md src/api.md
+msgid "`GET /`・`/<project>/`・`/<project>/<key>/`"
+msgstr "`GET /`, `/<project>/`, `/<project>/<key>/`"
+
+#: src/index.md
+msgid "一覧の UI（絞った一覧）"
+msgstr "List UI (filtered list)"
+
+#: src/index.md src/api.md
+msgid "`GET /api/events`"
+msgstr "`GET /api/events`"
+
+#: src/index.md
+msgid "置かれるたびに 1 件を push（SSE）"
+msgstr "Pushes one event each time a page is put (SSE)"
+
+#: src/index.md src/api.md
+msgid "`GET /api/backup`"
+msgstr "`GET /api/backup`"
+
+#: src/index.md
+msgid "DB の写し"
+msgstr "DB backup"
+
+#: src/index.md src/api.md
+msgid "`GET /api/version`"
+msgstr "`GET /api/version`"
+
+#: src/index.md
+msgid ""
+"サーバーの版と口の版（`{\"version\":\"0.2.0\",\"api\":1}`）。どの答えにも "
+"header `Pagetray-Api` が付く"
+msgstr ""
+"Server version and API version (`{\"version\":\"0.2.0\",\"api\":1}`). Every "
+"response carries the `Pagetray-Api` header"
+
+#: src/index.md src/api.md
+msgid "`GET /healthz`"
+msgstr "`GET /healthz`"
+
+#: src/index.md
+msgid "生きているか"
+msgstr "Whether it is alive"
+
+#: src/index.md
+msgid ""
+"**この Mac の中からだけ**: `Host` が `127.0.0.1`・`localhost` でない要求と、"
+"`Origin` の付いた書く要求は断る。"
+msgstr ""
+"**Only from this Mac**: requests whose `Host` is not `127.0.0.1` or "
+"`localhost`, and write requests that carry an `Origin`, are rejected."
+
+#: src/index.md
+msgid ""
+"**種類と役割の名**: 一覧は持たない。字の形（英小文字で始まり、英小文字・数"
+"字・`-` で 32 字まで）だけを見る。"
+msgstr ""
+"**Kind and role names**: no list of names is kept. Only the form is checked "
+"(starts with a lowercase letter; lowercase letters, digits, and `-`; up to "
+"32 characters)."
+
+#: src/index.md
+msgid ""
+"**一覧の UI**: サーバーが HTML を組んで返す。絞り込み・並べ替え・検索は link "
+"と form で、条件は URL に出る（script が無くても動く）。script がするのは、新"
+"着の印・未読の印（browser が覚える）・時刻をこの Mac の時刻で出すことだけ。選"
+"んだページは、右の枠（`sandbox` を付けた iframe）に 1 枚だけ出す。"
+msgstr ""
+"**List UI**: the server builds the HTML and returns it. Filtering, sorting, "
+"and search use links and forms, and the conditions appear in the URL (it "
+"works without script). The script only handles the new-arrival marks, the "
+"unread marks (remembered by the browser), and showing times in this Mac's "
+"time. The selected page is shown, one at a time, in the right-hand pane (an "
+"iframe with `sandbox`)."
+
+#: src/index.md
+msgid ""
+"**番号**: 書く接続は 1 本で、1 つの SQL が「今の最大 ＋ 1」を取って足す。最大"
+"は、置いてあるページ（`pages`）と消したページ（`removed`）の両方から取るの"
+"で、消した番号は 2 度使わない（古い URL が別のページを指さない）。取り込みで"
+"消した番号を名指すと `409`。置いたページを書き換える口は無い。"
+msgstr ""
+"**Numbers**: there is a single write connection, and one SQL statement takes "
+"\"the current maximum + 1\" and inserts it. The maximum is taken from both "
+"the stored pages (`pages`) and the deleted pages (`removed`), so a deleted "
+"number is never used twice (an old URL never points to a different page). "
+"Naming a deleted number on import returns `409`. There is no endpoint for "
+"rewriting a stored page."
+
+#: src/index.md
+msgid ""
+"**消す**: 1 つの取引で、`removed` に番号を写し、`pages_fts` と `pages` の行を"
+"消す。本文は残さない（戻せない）。"
+msgstr ""
+"**Delete**: in a single transaction, copies the number into `removed` and "
+"deletes the rows in `pages_fts` and `pages`. The body is not kept (it cannot "
+"be restored)."
+
+#: src/run.md
+msgid ""
+"Apple Container（`container` CLI）で、release の image を動かす。`127.0.0.1` "
+"だけで待ち受け、LAN にもインターネットにも開かない。"
+msgstr ""
+"Run the release image with Apple Container (the `container` CLI). It listens "
+"only on `127.0.0.1` and is not open to the LAN or the internet."
+
+#: src/run.md
+msgid "物"
+msgstr "Item"
+
+#: src/run.md
+msgid "値"
+msgstr "Value"
+
+#: src/run.md
+msgid "image"
+msgstr "image"
+
+#: src/run.md
+msgid ""
+"`ghcr.io/uraitakahito/pagetray:v<version>`（[release](https://github.com/"
+"uraitakahito/pagetray/releases) に digest がある。arm64）"
+msgstr ""
+"`ghcr.io/uraitakahito/pagetray:v<version>` (the digest is in the [release]"
+"(https://github.com/uraitakahito/pagetray/releases); arm64)"
+
+#: src/run.md
+msgid "container"
+msgstr "container"
+
+#: src/run.md
+msgid ""
+"`pagetray`（`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple "
+"Container の下限の 200 MiB、CPU は 1）"
+msgstr ""
+"`pagetray` (`127.0.0.1:8801` and `127.0.0.1:8800` → 8080 inside. Memory is "
+"200 MiB, the Apple Container minimum; CPU is 1)"
+
+#: src/run.md
+msgid "URL"
+msgstr "URL"
+
+#: src/run.md
+msgid ""
+"`http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-"
+"<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたペー"
+"ジの URL を同じ path で開けるように、同じ container が待ち受ける"
+msgstr ""
+"`http://127.0.0.1:8801/` (the list UI. Pages are at `/<project>/<key>/<kind>-"
+"<n>.html`). `8800` is the port of the previous page store (Nginx; now gone). "
+"The same container listens on it so that URLs of pages stored earlier open "
+"at the same path"
+
+#: src/run.md
+msgid "DB"
+msgstr "DB"
+
+#: src/run.md
+msgid ""
+"名前つきの volume `pagetray-data`（中の `/data/pages.db`）。Mac の folder は "
+"mount しない"
+msgstr ""
+"The named volume `pagetray-data` (`/data/pages.db` inside). No Mac folder is "
+"mounted"
+
+#: src/run.md src/release.md
+msgid "設定"
+msgstr "Settings"
+
+#: src/run.md
+msgid ""
+"環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 "
+"`0.0.0.0:8080`）。image の既定のままでよい"
+msgstr ""
+"Environment variables `PAGETRAY_DB` (default `/data/pages.db`) and "
+"`PAGETRAY_LISTEN` (default `0.0.0.0:8080`). The image defaults are fine as is"
+
+#: src/run.md
+msgid ""
+"skills の `tpm` を使う Mac では、container と volume に触る命令を `tpm infra "
+"run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` "
+"と、skills の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言してい"
+"る）。下の命令は、その頭を省いて書いてある。使う版は、skills の `.pagetray-"
+"version`（skills の cli と合わせてある版）。"
+msgstr ""
+"On a Mac that uses the skills `tpm`, run commands that touch the container "
+"and the volume as `tpm infra run pagetray -- <command>` (this repo's "
+"`.claude/roles/config.jsonc` and the skills settings declare the environment "
+"`pagetray` with the \"consult the TPM\" procedure). The commands below are "
+"written without that prefix. The version to use is the one in the skills "
+"`.pagetray-version` (the version matched to the skills cli)."
+
+#: src/run.md
+msgid "起こす"
+msgstr "Start"
+
+#: src/run.md
+msgid ""
+"'\"digest\" *: *\"sha256:[0-9a-f]*\"'   # release の digest がこの中にある"
+"か\n"
+msgstr ""
+"'\"digest\" *: *\"sha256:[0-9a-f]*\"'   # is the release digest in here?\n"
+
+#: src/run.md
+msgid "# 初めての時だけ\n"
+msgstr "# first time only\n"
+
+#: src/run.md
+msgid ""
+"digest の見方: `container image list` に出る digest は、Apple Container が付"
+"ける別の値。release の digest は、`container image inspect` の `variants` の"
+"中の `digest` に出る。"
+msgstr ""
+"How to read the digest: the digest shown by `container image list` is a "
+"different value assigned by Apple Container. The release digest appears as "
+"`digest` inside `variants` in `container image inspect`."
+
+#: src/run.md
+msgid "`-p` には必ず `127.0.0.1:` を書く。`-p 8801:8080` と書くと LAN に開く。"
+msgstr ""
+"Always write `127.0.0.1:` in `-p`. Writing `-p 8801:8080` opens it to the "
+"LAN."
+
+#: src/run.md
+msgid ""
+"8801 が使われていたら別の port にする。skills の担当が使う URL は、環境変数 "
+"`TPM_PAGES_URL` で合わせる。"
+msgstr ""
+"If 8801 is in use, pick another port. Match the URL used by the skills "
+"agents with the environment variable `TPM_PAGES_URL`."
+
+#: src/run.md
+msgid "起きる時に、まだ当てていない移行の SQL（`migrations/`）を DB に当てる。"
+msgstr ""
+"On start, it applies the migration SQL (`migrations/`) that has not yet been "
+"applied to the DB."
+
+#: src/run.md
+msgid "確かめる"
+msgstr "Verify"
+
+#: src/run.md
+msgid "`container list` で `pagetray` が `running`。"
+msgstr "`container list` shows `pagetray` as `running`."
+
+#: src/run.md
+msgid ""
+"`lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と "
+"`127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。"
+msgstr ""
+"`lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` prints only `127.0.0.1:8801` "
+"and `127.0.0.1:8800` (a line starting with `*:` means it is open to the LAN)."
+
+#: src/run.md
+msgid ""
+"`curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/"
+"healthz` が `ok` を返し、`curl -s http://127.0.0.1:8801/api/version` が、起こ"
+"した版と `\"api\":1` を返す。browser で `http://127.0.0.1:8801/` が一覧を出"
+"す。"
+msgstr ""
+"`curl -s http://127.0.0.1:8801/healthz` and `curl -s http://127.0.0.1:8800/"
+"healthz` return `ok`, and `curl -s http://127.0.0.1:8801/api/version` "
+"returns the version you started and `\"api\":1`. In a browser, `http://"
+"127.0.0.1:8801/` shows the list."
+
+#: src/run.md
+msgid ""
+"`container logs pagetray` の頭に `pagetray <version> listen=0.0.0.0:8080 db=/"
+"data/pages.db` が出ている。"
+msgstr ""
+"`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` appears at the "
+"top of `container logs pagetray`."
+
+#: src/run.md
+msgid ""
+"`container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて"
+"起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超"
+"えることがある。起こし直すと戻る）。"
+msgstr ""
+"Memory in `container stats --no-stream pagetray` is around a few MiB to 20 "
+"MiB (right after the first start, and right after many pages are put, it can "
+"exceed 50 MiB because of files the OS keeps cached. Restarting brings it "
+"back down)."
+
+#: src/run.md
+msgid "DB の写しを取る"
+msgstr "Back up the DB"
+
+#: src/run.md
+msgid "**版を上げる前と、volume に触る前**に取る。動かしたまま取れる。"
+msgstr ""
+"Take one **before upgrading and before touching the volume**. It can be "
+"taken while the server is running."
+
+#: src/run.md
+msgid "'select count(*) from pages'    # 開けて、件数が合うか\n"
+msgstr ""
+"'select count(*) from pages'    # does it open, and does the count match?\n"
+
+#: src/run.md
+msgid ""
+"写しには、置かれたページの本文がみな入っている。この repo にも CI にも置かな"
+"い。"
+msgstr ""
+"The backup contains the bodies of all stored pages. Do not put it in this "
+"repo or in CI."
+
+#: src/run.md
+msgid "写しから戻す"
+msgstr "Restore from a backup"
+
+#: src/run.md
+msgid "volume を失った・DB が壊れた時。戻す間、ページは置けない。"
+msgstr ""
+"For when the volume is lost or the DB is corrupted. Pages cannot be put "
+"while restoring."
+
+#: src/run.md
+msgid ""
+"動かす image は空で `cp` も無いので、file を volume に入れる時だけ、shell の"
+"ある image を借りる（上は `Containerfile` の build の段と同じ物。何でもよ"
+"い）。"
+msgstr ""
+"The image you run is empty and has no `cp`, so borrow an image with a shell "
+"only for putting the file into the volume (the one above is the same as the "
+"build stage of the `Containerfile`; any will do)."
+
+#: src/run.md
+msgid ""
+"起こしたら「確かめる」をし、`curl -s 'http://127.0.0.1:8801/api/pages?"
+"limit=1'` で一番新しいページを見る。"
+msgstr ""
+"After starting, do \"Verify\" and look at the newest page with `curl -s "
+"'http://127.0.0.1:8801/api/pages?limit=1'`."
+
+#: src/run.md
+msgid ""
+"写しが無ければ、空の volume で起こす。skills の `tpm page import` が、控えの "
+"folder のページを同じ番号で入れ直す（置いた役割の記録は戻らない）。"
+msgstr ""
+"If there is no backup, start with an empty volume. The skills `tpm page "
+"import` puts the pages in the local copy folder back under the same numbers "
+"(the record of which role put them is not restored)."
+
+#: src/run.md
+msgid "止める・Mac を起こし直した後"
+msgstr "Stopping, and after restarting the Mac"
+
+#: src/run.md
+msgid ""
+"止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるた"
+"め）。止めるのは `container stop pagetray`。DB は volume に残る。"
+msgstr ""
+"While it is stopped, pages cannot be put and the list UI cannot be opened "
+"(because the server assigns the numbers). To stop it, run `container stop "
+"pagetray`. The DB remains in the volume."
+
+#: src/run.md
+msgid ""
+"Mac を起こし直すと止まったままになる。`container system start` の後に "
+"`container start pagetray` を打ち、「確かめる」をする。"
+msgstr ""
+"After the Mac is restarted, it stays stopped. Run `container system start`, "
+"then `container start pagetray`, and do \"Verify\"."
+
+#: src/run.md
+msgid "volume（`pagetray-data`）は消さない。"
+msgstr "Do not delete the volume (`pagetray-data`)."
+
+#: src/run.md
+msgid "版を上げる"
+msgstr "Upgrading"
+
+#: src/run.md
+msgid ""
+"[CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
+"CHANGELOG.md) で、口の版が変わるか・移行の SQL が足されるかを見る（移行が足さ"
+"れた版は、当てた後に前の版へ戻せない）。"
+msgstr ""
+"Check [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
+"CHANGELOG.md) to see whether the API version changes and whether migration "
+"SQL is added (a version that adds migrations cannot be rolled back to the "
+"previous version once they are applied)."
+
+#: src/run.md
+msgid "新しい版の image を pull し、digest を release の値と見比べる。"
+msgstr ""
+"Pull the image of the new version and compare its digest with the value in "
+"the release."
+
+#: src/run.md
+msgid "「DB の写しを取る」をする。"
+msgstr "Do \"Back up the DB\"."
+
+#: src/run.md
+msgid ""
+"`container stop pagetray`・`container delete pagetray` の後、新しい版で「起こ"
+"す」の `container run` を打ち、「確かめる」をする（volume はそのまま付く）。"
+msgstr ""
+"After `container stop pagetray` and `container delete pagetray`, run the "
+"`container run` from \"Start\" with the new version and do \"Verify\" (the "
+"volume attaches as is)."
+
+#: src/run.md
+msgid ""
+"駄目なら、`container delete pagetray` の後、前の版で `container run` を打つ"
+"（移行が足されていなければ、同じ volume で起きる。足されていたら、3 の写しか"
+"ら戻す）。"
+msgstr ""
+"If it fails, run `container delete pagetray` and then `container run` with "
+"the previous version (if no migrations were added, it starts with the same "
+"volume. If they were, restore from the backup taken in step 3)."
+
+#: src/run.md
+msgid "古い image は `container image delete` で消す。"
+msgstr "Delete old images with `container image delete`."
+
+#: src/api.md
+msgid "口の約束（口の版 1）"
+msgstr "API contract (API version 1)"
+
+#: src/api.md
+msgid ""
+"pagetray を呼ぶ側（skills の `tpm page` など）が頼ってよい形を書く。ここに書"
+"いた形を、前からある呼ぶ側が困るように変える時は、口の版を上げる。"
+msgstr ""
+"This chapter describes the shapes that callers of pagetray (such as `tpm "
+"page` in skills) may rely on. Whenever a shape described here is changed in "
+"a way that breaks existing callers, the API version is bumped."
+
+#: src/api.md
+msgid "版"
+msgstr "Versions"
+
+#: src/api.md
+msgid ""
+"`GET /api/version` が `{\"version\":\"0.2.0\",\"api\":1}` を返す。`version` "
+"はサーバーの版（`Cargo.toml`）、`api` は口の版。"
+msgstr ""
+"`GET /api/version` returns `{\"version\":\"0.2.0\",\"api\":1}`. `version` is "
+"the server version (`Cargo.toml`); `api` is the API version."
+
+#: src/api.md
+msgid ""
+"どの答えにも（誤りにも、断った答えにも）header `Pagetray-Api: 1` が付く。呼ぶ"
+"側は、頼んだその答えで、口の版が合っているかを見られる。"
+msgstr ""
+"Every response (including errors and refused requests) carries the header "
+"`Pagetray-Api: 1`. Callers can check whether the API version matches from "
+"the very response they asked for."
+
+#: src/api.md
+msgid ""
+"この header が無い答えは、口の版ができる前のサーバー（pagestore 0.1.0）の物。"
+"形は口の版 1 と同じ。"
+msgstr ""
+"A response without this header comes from a server that predates the API "
+"version (pagestore 0.1.0). Its shapes are the same as API version 1."
+
+#: src/api.md
+msgid "口の版を上げる時・上げない時"
+msgstr "When to bump the API version, and when not to"
+
+#: src/api.md
+msgid "変更"
+msgstr "Change"
+
+#: src/api.md
+msgid "口の版"
+msgstr "API version"
+
+#: src/api.md
+msgid ""
+"口・引数・答えの欄を**足す**（前からある呼ぶ側は、知らない欄を読み飛ばす）"
+msgstr ""
+"**Add** an endpoint, parameter, or response field (existing callers skip "
+"fields they do not know)"
+
+#: src/api.md
+msgid "上げない"
+msgstr "No bump"
+
+#: src/api.md
+msgid "口・引数・答えの欄を消す、名や型を変える"
+msgstr ""
+"Remove an endpoint, parameter, or response field, or change its name or type"
+
+#: src/api.md
+msgid "上げる"
+msgstr "Bump"
+
+#: src/api.md
+msgid "code の意味を変える（`409` が別の訳で返る、など）"
+msgstr ""
+"Change the meaning of a code (e.g. `409` is returned for a different reason)"
+
+#: src/api.md
+msgid "URL の形（`/<project>/<key>/<kind>-<n>.html`）を変える"
+msgstr "Change the URL shape (`/<project>/<key>/<kind>-<n>.html`)"
+
+#: src/api.md
+msgid "上げる（置いたページの URL が切れるので、まずしない）"
+msgstr ""
+"Bump (this breaks the URLs of pages already put, so it is practically never "
+"done)"
+
+#: src/api.md
+msgid "引数の字の決まりを厳しくする（前は通った字が通らなくなる）"
+msgstr ""
+"Tighten the character rules for a parameter (characters that used to be "
+"accepted are rejected)"
+
+#: src/api.md
+msgid "一覧の UI の見た目・文・HTML の作り"
+msgstr "Appearance, wording, and HTML structure of the list UI"
+
+#: src/api.md
+msgid "上げない（UI は約束に入らない）"
+msgstr "No bump (the UI is not covered by the contract)"
+
+#: src/api.md
+msgid "誤りの文（`error` の中身）"
+msgstr "Error message text (the contents of `error`)"
+
+#: src/api.md
+msgid "上げない（人が読む文。呼ぶ側は code で見分ける）"
+msgstr "No bump (the text is for humans; callers tell errors apart by code)"
+
+#: src/api.md
+msgid "呼ぶ側は、知らない欄を読み飛ばし、`error` の文で分けないこと。"
+msgstr ""
+"Callers must skip fields they do not know and must not branch on the text of "
+"`error`."
+
+#: src/api.md
+msgid "共通"
+msgstr "Common rules"
+
+#: src/api.md
+msgid ""
+"受けるのは、この Mac の中からの要求だけ。`Host` が `127.0.0.1`・`localhost`"
+"（port は何でもよい）でなければ `403`。`GET`・`HEAD` のほかの要求に `Origin` "
+"が付いていれば `403`（browser の中のページからは書けない）。"
+msgstr ""
+"Only requests from this Mac are accepted. If `Host` is not `127.0.0.1` or "
+"`localhost` (any port), the response is `403`. If a request other than `GET` "
+"or `HEAD` carries `Origin`, the response is `403` (a page inside a browser "
+"cannot write)."
+
+#: src/api.md
+msgid "誤りの答えは `{\"error\":\"<人が読む文>\"}`。"
+msgstr "An error response is `{\"error\":\"<human-readable message>\"}`."
+
+#: src/api.md
+msgid "字の決まり:"
+msgstr "Character rules:"
+
+#: src/api.md
+msgid "引数"
+msgstr "Parameter"
+
+#: src/api.md src/release.md
+msgid "決まり"
+msgstr "Rule"
+
+#: src/api.md
+msgid "`project`・`key`"
+msgstr "`project`, `key`"
+
+#: src/api.md
+msgid ""
+"英数字と `.` `_` `-` で 1〜255 字。`.` と `..` は駄目。`project` に `api` は"
+"使えない"
+msgstr ""
+"1–255 characters of alphanumerics and `.` `_` `-`. `.` and `..` are not "
+"allowed. `api` cannot be used as a `project`"
+
+#: src/api.md
+msgid "`kind`・`role`"
+msgstr "`kind`, `role`"
+
+#: src/api.md
+msgid ""
+"英小文字で始まり、英小文字・数字・`-` で 1〜32 字。名の一覧はサーバーが持たな"
+"い（呼ぶ側が決める）"
+msgstr ""
+"1–32 characters of lowercase letters, digits, and `-`, starting with a "
+"lowercase letter. The server keeps no list of names (callers decide)"
+
+#: src/api.md
+msgid "`workspace`"
+msgstr "`workspace`"
+
+#: src/api.md
+msgid "英数字と `:` `.` `_` `-` で 0〜64 字"
+msgstr "0–64 characters of alphanumerics and `:` `.` `_` `-`"
+
+#: src/api.md
+msgid "`n`"
+msgstr "`n`"
+
+#: src/api.md
+msgid "1 以上の整数"
+msgstr "An integer of 1 or greater"
+
+#: src/api.md
+msgid "`created_at`"
+msgstr "`created_at`"
+
+#: src/api.md
+msgid "`2026-01-02T03:04:05Z` か、秒の小数（3 桁まで）が付いた形。UTC だけ"
+msgstr ""
+"`2026-01-02T03:04:05Z`, or the same form with fractional seconds (up to 3 "
+"digits). UTC only"
+
+#: src/api.md
+msgid "ページの記録"
+msgstr "Page record"
+
+#: src/api.md
+msgid "置く・探すの答えに出る、ページ 1 枚の記録（本文は入らない）。"
+msgstr ""
+"The record of a single page, as it appears in put and list responses (the "
+"body is not included)."
+
+#: src/api.md
+msgid "\"project\""
+msgstr "\"project\""
+
+#: src/api.md
+msgid "\"-Users-me-projects-x\""
+msgstr "\"-Users-me-projects-x\""
+
+#: src/api.md
+msgid "\"key\""
+msgstr "\"key\""
+
+#: src/api.md
+msgid "\"K-1\""
+msgstr "\"K-1\""
+
+#: src/api.md
+msgid "\"kind\""
+msgstr "\"kind\""
+
+#: src/api.md
+msgid "\"result\""
+msgstr "\"result\""
+
+#: src/api.md
+msgid "\"n\""
+msgstr "\"n\""
+
+#: src/api.md
+msgid "\"title\""
+msgstr "\"title\""
+
+#: src/api.md
+msgid "\"<title> から取った題\""
+msgstr "\"title taken from <title>\""
+
+#: src/api.md
+msgid "\"role\""
+msgstr "\"role\""
+
+#: src/api.md
+msgid "\"software-engineer\""
+msgstr "\"software-engineer\""
+
+#: src/api.md
+msgid "\"workspace\""
+msgstr "\"workspace\""
+
+#: src/api.md
+msgid "\"workspace:1\""
+msgstr "\"workspace:1\""
+
+#: src/api.md
+msgid "\"created_at\""
+msgstr "\"created_at\""
+
+#: src/api.md
+msgid "\"2026-11-21T04:45:22.472Z\""
+msgstr "\"2026-11-21T04:45:22.472Z\""
+
+#: src/api.md
+msgid "\"size\""
+msgstr "\"size\""
+
+#: src/api.md
+msgid "\"path\""
+msgstr "\"path\""
+
+#: src/api.md
+msgid "\"/-Users-me-projects-x/K-1/result-1.html\""
+msgstr "\"/-Users-me-projects-x/K-1/result-1.html\""
+
+#: src/api.md
+msgid ""
+"`path` は、このサーバーの中の path。`<サーバーの URL><path>` で本文が開く。"
+msgstr ""
+"`path` is a path within this server. `<server URL><path>` opens the body."
+
+#: src/api.md
+msgid "`POST /api/pages` — 置く"
+msgstr "`POST /api/pages` — put"
+
+#: src/api.md
+msgid ""
+"引数（query）: `project`・`key`・`kind`・`role`（要る）、`workspace`（無けれ"
+"ば空）、`n`・`created_at`（取り込みの時だけ）。"
+msgstr ""
+"Parameters (query): `project`, `key`, `kind`, `role` (required); `workspace` "
+"(empty if omitted); `n`, `created_at` (import only)."
+
+#: src/api.md
+msgid "本文: HTML（1 枚 16 MiB まで。空は駄目）。"
+msgstr "Body: HTML (up to 16 MiB per page; must not be empty)."
+
+#: src/api.md
+msgid ""
+"`n` が無ければ、その `project`・`key`・`kind` の「今の最大 ＋ 1」を付ける。最"
+"大は、消したページの番号も数える（同じ番号を 2 度使わない）。"
+msgstr ""
+"If `n` is omitted, the page is given \"current maximum + 1\" for that "
+"`project`, `key`, and `kind`. The maximum also counts the numbers of deleted "
+"pages (the same number is never used twice)."
+
+#: src/api.md
+msgid ""
+"`201`: ページの記録に `url`（要求の `Host` で組んだ URL）を足した JSON。"
+"header `Location` も同じ URL。"
+msgstr ""
+"`201`: JSON of the page record plus `url` (a URL built from the request's "
+"`Host`). The `Location` header carries the same URL."
+
+#: src/api.md
+msgid "`409`: `n` を名指して、その番号が使われている（置いてある・消した）。"
+msgstr ""
+"`409`: `n` was given explicitly and that number is already used (by a page "
+"that is stored or was deleted)."
+
+#: src/api.md
+msgid "`400`: 引数が決まりに合わない・本文が空。`413`: 本文が大きすぎる。"
+msgstr ""
+"`400`: a parameter violates the rules, or the body is empty. `413`: the body "
+"is too large."
+
+#: src/api.md
+msgid "`GET /api/pages` — 探す"
+msgstr "`GET /api/pages` — list"
+
+#: src/api.md
+msgid ""
+"引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だ"
+"け）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・"
+"`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・"
+"`after`（`created_at` がそれより前・後）。"
+msgstr ""
+"Parameters (all optional): `project`, `key`, `kind`, `role`, `workspace` "
+"(exact match only), `q` (searches the text of the title and body), `sort` (`-"
+"created_at` newest first = default, `created_at` oldest first), `limit` "
+"(default 100; clamped to 1–1000), `before`, `after` (`created_at` earlier or "
+"later than the given value)."
+
+#: src/api.md
+msgid "`200`: `{\"pages\":[<ページの記録>, …]}`。合う物が無ければ空の配列。"
+msgstr ""
+"`200`: `{\"pages\":[<page record>, …]}`. An empty array if nothing matches."
+
+#: src/api.md
+msgid "`400`: `sort` がどちらでもない。"
+msgstr "`400`: `sort` is neither of the two values."
+
+#: src/api.md
+msgid "`DELETE /api/pages` — 消す"
+msgstr "`DELETE /api/pages` — delete"
+
+#: src/api.md
+msgid ""
+"引数: `project`（要る）、`key`・`kind`・`n`（任意。`n` を書く時は `key` と "
+"`kind` も要る）。合うページをみな消す。"
+msgstr ""
+"Parameters: `project` (required); `key`, `kind`, `n` (optional; when `n` is "
+"given, `key` and `kind` are also required). Deletes every matching page."
+
+#: src/api.md
+msgid "本文は残さない（戻せない）。番号は残り、同じ番号は 2 度使わない。"
+msgstr ""
+"The body is not kept (it cannot be restored). The number remains, and the "
+"same number is never used twice."
+
+#: src/api.md
+msgid "`200`: `{\"removed\":[\"<path>\", …]}`。合う物が無ければ空の配列。"
+msgstr ""
+"`200`: `{\"removed\":[\"<path>\", …]}`. An empty array if nothing matches."
+
+#: src/api.md
+msgid "`400`: 引数が決まりに合わない。"
+msgstr "`400`: a parameter violates the rules."
+
+#: src/api.md
+msgid "だれが消してよいかは見ない（呼ぶ側が決める）。"
+msgstr "The server does not check who is allowed to delete (callers decide)."
+
+#: src/api.md
+msgid "`GET /<project>/<key>/<kind>-<n>.html` — 本文"
+msgstr "`GET /<project>/<key>/<kind>-<n>.html` — body"
+
+#: src/api.md
+msgid ""
+"`200`: 置いた HTML をそのまま（`Content-Type: text/html; charset=utf-8`、"
+"`Content-Security-Policy: sandbox allow-scripts`）。"
+msgstr ""
+"`200`: the HTML exactly as it was put (`Content-Type: text/html; "
+"charset=utf-8`, `Content-Security-Policy: sandbox allow-scripts`)."
+
+#: src/api.md
+msgid "`404`: 無い。`410`: 消した。"
+msgstr "`404`: does not exist. `410`: deleted."
+
+#: src/api.md
+msgid "そのほか"
+msgstr "Others"
+
+#: src/api.md
+msgid "約束"
+msgstr "Contract"
+
+#: src/api.md
+msgid "`200` と `ok`"
+msgstr "`200` and `ok`"
+
+#: src/api.md
+msgid "入る"
+msgstr "Covered"
+
+#: src/api.md
+msgid "サーバーの版と口の版"
+msgstr "Server version and API version"
+
+#: src/api.md
+msgid "DB の写し（SQLite の file 1 つ）"
+msgstr "Backup of the DB (a single SQLite file)"
+
+#: src/api.md
+msgid "入る（file の中の表の形は入らない）"
+msgstr "Covered (the table layout inside the file is not covered)"
+
+#: src/api.md
+msgid "置かれるたびに 1 件を push（SSE。中身はページの記録）"
+msgstr ""
+"Pushes one event each time a page is put (SSE; the contents are the page "
+"record)"
+
+#: src/api.md
+msgid "一覧の UI"
+msgstr "List UI"
+
+#: src/api.md
+msgid "URL が開くことだけ。HTML の作りは入らない"
+msgstr "Only that the URL opens. The HTML structure is not covered"
+
+#: src/release.md
+msgid ""
+"image は public で、だれでも pull して中を見られる。**出すのは release の "
+"workflow（`.github/workflows/release.yml`）だけ**で、手元から `push` しない"
+"（手元の build には、commit していない file が入りうる）。"
+msgstr ""
+"The image is public, and anyone can pull it and look inside. **Only the "
+"release workflow (`.github/workflows/release.yml`) publishes it**; never "
+"`push` from your local machine (a local build can include files that are not "
+"committed)."
+
+#: src/release.md
+msgid ""
+"`Cargo.toml` の `[workspace.package]` の `version` を上げ、`CHANGELOG.md` に"
+"節を足す PR を merge する。"
+msgstr ""
+"Merge a PR that bumps `version` under `[workspace.package]` in `Cargo.toml` "
+"and adds a section to `CHANGELOG.md`."
+
+#: src/release.md
+msgid ""
+"main のその commit に tag を打って push する: `git tag v<version> && git "
+"push origin v<version>`。"
+msgstr ""
+"Tag that commit on main and push the tag: `git tag v<version> && git push "
+"origin v<version>`."
+
+#: src/release.md
+msgid ""
+"workflow の `check` が、tag と版が合うか・image の中身の一覧・設定・秘密の走"
+"査（下の「image に入る物」）・動くかを見る。**1 つでも落ちれば、`push` は動か"
+"ない。**"
+msgstr ""
+"The workflow's `check` verifies that the tag matches the version, the "
+"image's contents list, its configuration, the secret scan (see \"What goes "
+"into the image\" below), and that the image runs. **If even one of these "
+"fails, `push` does not run.**"
+
+#: src/release.md
+msgid ""
+"`push` が、確かめたその image（作り直さない）を `ghcr.io/uraitakahito/"
+"pagetray:v<version>` に置き、release に digest と中身の一覧を書く。同じ tag "
+"がもうあれば置かない。"
+msgstr ""
+"`push` pushes that verified image (without rebuilding it) to `ghcr.io/"
+"uraitakahito/pagetray:v<version>` and writes the digest and the contents "
+"list to the release. If the same tag already exists, it does not push."
+
+#: src/release.md
+msgid ""
+"release の中身の一覧が「`pagetray-server` と空の `data` だけ」であることを見"
+"る（この時、image はもう public。違っていたら、すぐ下の「機微な物が出てしまっ"
+"た時」をする）。"
+msgstr ""
+"Check that the contents list in the release is \"only `pagetray-server` and "
+"an empty `data`\" (at this point the image is already public; if it differs, do "
+"\"If something sensitive got out\" just below)."
+
+#: src/release.md
+msgid ""
+"skills の `.pagetray-version` を上げる PR を出す（つなぎの試験が、その image "
+"に向けて通る）。"
+msgstr ""
+"Open a PR that bumps `.pagetray-version` in skills (the integration tests "
+"run against that image and pass)."
+
+#: src/release.md
+msgid ""
+"出した tag は打ち直さない（digest が変わり、書き留めた値と合わなくなる）。直"
+"す時は、次の版を出す。"
+msgstr ""
+"Never re-tag a published tag (the digest changes and no longer matches the "
+"recorded value). To fix something, publish the next version."
+
+#: src/release.md
+msgid ""
+"**機微な物が出てしまった時**: GitHub の package の画面で、その版を消す。秘密"
+"なら、すぐ替える（消しても、pull した人の手元には残る前提で動く）。直して次の"
+"版を出し、`ci/` の決まりに、同じ物を止める形を足す。"
+msgstr ""
+"**If something sensitive got out**: Delete that version on the GitHub "
+"package page. If it is a secret, rotate it immediately (act on the "
+"assumption that it remains on the machines of people who pulled it, even "
+"after deletion). Fix the problem and publish the next version, and add "
+"something to the rules in `ci/` that blocks the same thing."
+
+#: src/release.md
+msgid ""
+"**置いた時から public**: この repo は public で、image に repo を指す label "
+"を付けて置くので、package は初めの release から、だれでも pull できる"
+"（v0.2.0 で確かめた。private の間に人が見る、という段は無い）。人が見られるの"
+"は、tag を打つ前だけ。だから、3 の確かめを push の前に置いてあり、決まりを緩"
+"める PR（`ci/` の file・`.dockerignore`・`Containerfile`）は、よく見てから "
+"merge する。"
+msgstr ""
+"**Public from the moment it is pushed**: This repo is public, and the image "
+"is pushed with a label pointing to the repo, so the package can be pulled by "
+"anyone from the very first release (verified with v0.2.0; there is no stage "
+"where a person reviews it while it is still private). A person can review it "
+"only before the tag is created. That is why the checks in step 3 are placed "
+"before the push, and why PRs that loosen the rules (files in `ci/`, "
+"`.dockerignore`, `Containerfile`) are reviewed carefully before merging."
+
+#: src/release.md
+msgid "image に入る物"
+msgstr "What goes into the image"
+
+#: src/release.md
+msgid ""
+"image は外に出す物なので、入ってよい物を決めてあり、CI（`ci/check-image.sh`）"
+"が毎回確かめる。1 つでも違えば落ちる。"
+msgstr ""
+"Because the image is published externally, what may go into it is defined, "
+"and CI (`ci/check-image.sh`) verifies it every time. If even one thing "
+"differs, it fails."
+
+#: src/release.md
+msgid "見る物"
+msgstr "Checked item"
+
+#: src/release.md
+msgid "書いてある所"
+msgstr "Defined in"
+
+#: src/release.md
+msgid "build の中に入る物"
+msgstr "What goes into the build"
+
+#: src/release.md
+msgid "名指した source だけ（履歴・CI の設定・試験・手元の file は入れない）"
+msgstr ""
+"Only the explicitly named sources (no history, CI configuration, tests, or "
+"local files)"
+
+#: src/release.md
+msgid "`.dockerignore`"
+msgstr "`.dockerignore`"
+
+#: src/release.md
+msgid "image の file"
+msgstr "Files in the image"
+
+#: src/release.md
+msgid "binary 1 つ（`pagetray-server`）と、空の `/data` だけ。layer は 2 枚"
+msgstr "Only one binary (`pagetray-server`) and an empty `/data`. Two layers"
+
+#: src/release.md
+msgid "`ci/image-contents.txt`"
+msgstr "`ci/image-contents.txt`"
+
+#: src/release.md
+msgid ""
+"環境変数は DB の path と待ち受けの 2 つだけ。label は "
+"`org.opencontainers.image.source`・`version`・`revision` だけ。開ける port "
+"は 8080 だけ"
+msgstr ""
+"Only two environment variables: the DB path and the listen address. Only the "
+"labels `org.opencontainers.image.source`, `version`, and `revision`. Only "
+"port 8080 is exposed"
+
+#: src/release.md
+msgid "`ci/check-image.sh` の頭"
+msgstr "Top of `ci/check-image.sh`"
+
+#: src/release.md
+msgid "binary の中の字"
+msgstr "Strings in the binary"
+
+#: src/release.md
+msgid ""
+"home の path・mail の形・秘密の鍵や token の頭が無い。gitleaks も掛ける"
+"（source にも）"
+msgstr ""
+"No home paths, email-like strings, or prefixes of secret keys or tokens. "
+"gitleaks is also run (on the source as well)"
+
+#: src/release.md
+msgid "`ci/strings-deny.txt`・`ci/strings-allow.txt`"
+msgstr "`ci/strings-deny.txt`, `ci/strings-allow.txt`"
+
+#: src/release.md
+msgid ""
+"build に秘密は要らない。`Containerfile` に `ARG` を書かず、`--build-arg`・`--"
+"secret` を使わない。label は、release の workflow が `--label` で付ける 3 つ"
+"だけ。"
+msgstr ""
+"The build needs no secrets. Do not write `ARG` in the `Containerfile`, and "
+"do not use `--build-arg` or `--secret`. The only labels are the three that "
+"the release workflow adds with `--label`."
+
+#: src/release.md
+msgid ""
+"出どころの記録（provenance・SBOM）は付けない。付ける時は、中身を見てから。"
+msgstr ""
+"No origin records (provenance, SBOM) are attached. If you add them, inspect "
+"their contents first."
+
+#: src/release.md
+msgid ""
+"release の workflow は、確かめる job（書き込みの権限が無い）と、置く job"
+"（`packages: write`）に分かれている。置く job は、確かめた image の file を受"
+"け取って、そのまま置く。"
+msgstr ""
+"The release workflow is split into a job that verifies (with no write "
+"permission) and a job that pushes (`packages: write`). The pushing job "
+"receives the verified image file and pushes it as is."
+
+#: src/release.md
+msgid ""
+"本物の DB やその写しを、この repo にも CI にも置かない（`.gitignore` と "
+"`.dockerignore` が `*.db` を外す）。"
+msgstr ""
+"Never put a real DB or a backup of one in this repo or in CI (`.gitignore` "
+"and `.dockerignore` exclude `*.db`)."
+
+#: src/release.md
+msgid ""
+"決まりを変える時（file を足す・通す字を足す）は、PR で見える形で上の file を"
+"直す。"
+msgstr ""
+"To change the rules (adding a file, adding an allowed string), edit the "
+"files above in a PR, where the change is visible."
+
+#: src/development.md
+msgid "ファイル"
+msgstr "File"
+
+#: src/development.md
+msgid "`src/main.rs`"
+msgstr "`src/main.rs`"
+
+#: src/development.md
+msgid "設定を読む・起こす・止める（binary の名は `pagetray-server`）"
+msgstr ""
+"Reads the configuration, starts, and shuts down (the binary is named "
+"`pagetray-server`)"
+
+#: src/development.md
+msgid "`src/lib.rs`"
+msgstr "`src/lib.rs`"
+
+#: src/development.md
+msgid "道筋と、この Mac の中からの要求だけを受ける守り"
+msgstr "Routes, and the guard that accepts only requests from within this Mac"
+
+#: src/development.md
+msgid "`src/db.rs`"
+msgstr "`src/db.rs`"
+
+#: src/development.md
+msgid "接続・移行・SQL"
+msgstr "Connection, migrations, SQL"
+
+#: src/development.md
+msgid "`src/api.rs`"
+msgstr "`src/api.rs`"
+
+#: src/development.md
+msgid "置く・探す・消す・DB の写し"
+msgstr "Store, search, delete, DB backup"
+
+#: src/development.md
+msgid "`src/pages.rs`"
+msgstr "`src/pages.rs`"
+
+#: src/development.md
+msgid "ページの本文を返す"
+msgstr "Returns the body of a page"
+
+#: src/development.md
+msgid "`src/ui.rs`・`templates/index.html`"
+msgstr "`src/ui.rs`, `templates/index.html`"
+
+#: src/development.md
+msgid "一覧の UI（askama の template。build の時に検査される）"
+msgstr "The list UI (an askama template; checked at build time)"
+
+#: src/development.md
+msgid "`src/events.rs`"
+msgstr "`src/events.rs`"
+
+#: src/development.md
+msgid "新着の push（SSE）"
+msgstr "Push of new arrivals (SSE)"
+
+#: src/development.md
+msgid "`src/text.rs`"
+msgstr "`src/text.rs`"
+
+#: src/development.md
+msgid "HTML から題と検索用の字を取り出す"
+msgstr "Extracts the title and the search text from HTML"
+
+#: src/development.md
+msgid "`crates/api/`"
+msgstr "`crates/api/`"
+
+#: src/development.md
+msgid ""
+"口の約束のうち、サーバーと CLI が共に使う物（口の版・header の名・引数の字の"
+"決まり・path の形・ページの記録の型）"
+msgstr ""
+"The parts of the API contract shared by the server and the CLI (the API "
+"version, header names, the character rules for parameters, the path format, "
+"and the page record type)"
+
+#: src/development.md
+msgid "`migrations/`"
+msgstr "`migrations/`"
+
+#: src/development.md
+msgid "表を作る SQL（起きる時に、まだ当てていない物を当てる）"
+msgstr ""
+"SQL that creates the tables (on startup, those not yet applied are applied)"
+
+#: src/development.md
+msgid "`.sqlx/`"
+msgstr "`.sqlx/`"
+
+#: src/development.md
+msgid "SQL の検査用の file（commit する）"
+msgstr "Files for checking SQL (committed)"
+
+#: src/development.md
+msgid "`Containerfile`・`.dockerignore`"
+msgstr "`Containerfile`, `.dockerignore`"
+
+#: src/development.md
+msgid ""
+"image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中"
+"に入れる物"
+msgstr ""
+"How the image is built (a single static binary placed in an empty image), "
+"and what goes into the build"
+
+#: src/development.md
+msgid "`ci/`"
+msgstr "`ci/`"
+
+#: src/development.md
+msgid ""
+"出す image に、入ってよい物だけが入っているか・動くかを見る script と、その決"
+"まり。この本を build する script（`ci/docs-build.sh`）もここ"
+msgstr ""
+"Scripts that check that the published image contains only what is allowed "
+"and that it runs, along with their rules. The script that builds this book "
+"(`ci/docs-build.sh`) is also here"
+
+#: src/development.md
+msgid "`docs/`"
+msgstr "`docs/`"
+
+#: src/development.md
+msgid ""
+"この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側"
+"との口の約束と、口の版の決まり。直し方は下の「この本を直す」"
+msgstr ""
+"This book (mdBook). The source text is the Japanese in `docs/src/`, and "
+"`docs/src/api.md` is the API contract with callers and the rules for the API "
+"version. For how to edit it, see \"Editing this book\" below"
+
+#: src/development.md
+msgid "`.claude/roles/config.jsonc`"
+msgstr "`.claude/roles/config.jsonc`"
+
+#: src/development.md
+msgid "skills の `tpm` に向けた、環境 `pagetray` の宣言"
+msgstr "Declaration of the `pagetray` environment for `tpm` in skills"
+
+#: src/development.md
+msgid ""
+"Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読ま"
+"ない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つ"
+"と、その版が入って使われる。"
+msgstr ""
+"Install Rust with `rustup` (Homebrew's `rust` does not read `rust-"
+"toolchain.toml`). `rust-toolchain.toml` determines the version, and running "
+"`cargo` inside this repo installs and uses that version."
+
+#: src/development.md
+msgid "# keg-only。PATH に /opt/homebrew/opt/rustup/bin を足す\n"
+msgstr "# keg-only. Add /opt/homebrew/opt/rustup/bin to PATH\n"
+
+#: src/development.md
+msgid "true"
+msgstr "true"
+
+#: src/development.md
+msgid "/tmp/pages.db"
+msgstr "/tmp/pages.db"
+
+#: src/development.md
+msgid "127.0.0.1:18801"
+msgstr "127.0.0.1:18801"
+
+#: src/development.md
+msgid "# 手元で起こす\n"
+msgstr "# Start locally\n"
+
+#: src/development.md
+msgid ""
+"GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験は、試験ご"
+"とに一時の DB を作る。workflow の `image` は、`Containerfile` を arm64 の "
+"runner で build し、[image に入る物](release.md#image-に入る物) を確かめ"
+"（`ci/check-image.sh`）、空の image の中で起きて置いて読めること・止める合図"
+"で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh`）。release "
+"の workflow も、同じ 2 つを push の前に流す。"
+msgstr ""
+"GitHub Actions runs the same steps in the same order (`.github/workflows/"
+"ci.yml`). Each test creates its own temporary DB. The workflow's `image` "
+"builds the `Containerfile` on an arm64 runner, verifies [What goes into the "
+"image](release.md#what-goes-into-the-image) (`ci/check-image.sh`), and "
+"checks that, inside the empty image, it starts and can store and read, that "
+"it exits on the stop signal, and that data remains after a restart (`ci/"
+"smoke-image.sh`). The release workflow also runs the same two before the "
+"push."
+
+#: src/development.md
+msgid ""
+"口の形（URL・引数の名・JSON の欄）を変える時は、先に [口の約束](api.md#口の版"
+"を上げる時上げない時) の「口の版を上げる時・上げない時」を見る。変えたら、"
+"skills の `tpm page`（`cli/src/commands/page.ts`）と、その偽の置き場（`cli/"
+"test/helpers.ts` の `FakeStore`）も合わせて直す。skills の CI が、この repo "
+"の決めた版に向けて、つなぎの試験を流す。"
+msgstr ""
+"Before changing the shape of an endpoint (URLs, parameter names, JSON "
+"fields), first read \"When to bump the API version, and when not to\" in "
+"[API contract](api.md#when-to-bump-the-api-version-and-when-not-to). After "
+"changing it, also update `tpm page` in skills (`cli/src/commands/page.ts`) "
+"and its fake page store (`FakeStore` in `cli/test/helpers.ts`) to match. The "
+"CI in skills runs the integration tests against the version this repo "
+"specifies."
+
+#: src/development.md
+msgid ""
+"**SQL を変えた時**: SQL は `query!` が build の時に `.sqlx/` と突き合わせる。"
+"SQL か `migrations/` を変えたら、一時の DB を作って作り直し、commit する（忘"
+"れると CI の `cargo sqlx prepare --check` が落ちる）。`sqlx-cli` の版は "
+"workflow の `SQLX_CLI_VERSION` と合わせる。"
+msgstr ""
+"**When you change SQL**: `query!` checks SQL against `.sqlx/` at build time. "
+"If you change SQL or `migrations/`, create a temporary DB, regenerate `.sqlx/"
+"`, and commit it (if you forget, `cargo sqlx prepare --check` in CI fails). "
+"Keep the `sqlx-cli` version in sync with `SQLX_CLI_VERSION` in the workflow."
+
+#: src/development.md
+msgid "sqlite://$PWD/target/dev.db"
+msgstr "sqlite://$PWD/target/dev.db"
+
+#: src/development.md
+msgid ""
+"**当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えて"
+"いる。表を変える時は `migrations/` に次の番号の file を足し、`tests/"
+"migrations.rs` の一覧に 1 行足す（前からある行が変わると、試験が落ちる）。"
+msgstr ""
+"**Never change an applied migration**: A running DB remembers the contents "
+"of the SQL that was applied. To change a table, add a file with the next "
+"number to `migrations/` and add one line to the list in `tests/"
+"migrations.rs` (if an existing line changes, the test fails)."
+
+#: src/development.md
+msgid ""
+"**版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ"
+"（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、"
+"`CHANGELOG.md` に、口の版が変わったかを書く。"
+msgstr ""
+"**Bump the version**: Bump `version` under `[workspace.package]` in "
+"`Cargo.toml` (the server and the crates in `crates/` get the same version; "
+"`Cargo.lock` changes too), and note in `CHANGELOG.md` whether the API "
+"version changed."
+
+#: src/development.md
+msgid ""
+"**crate を上げる**: `.cargo/config.toml` の `global-min-publish-age` が、公開"
+"から 2 日たっていない版を選ばせない（Cargo 1.100 から）。上げる時は `cargo "
+"update` → 試験 → PR。`cargo install` はこの決まりを見ないので、道具は版を書い"
+"て入れる。"
+msgstr ""
+"**Update crates**: `global-min-publish-age` in `.cargo/config.toml` prevents "
+"selecting versions published less than 2 days ago (since Cargo 1.100). To "
+"update: `cargo update` → tests → PR. `cargo install` does not honor this "
+"rule, so install tools with an explicit version."
+
+#: src/development.md
+msgid ""
+"**弱点の見張り**: workflow の `advisories` が `cargo deny check advisories`"
+"（設定は `deny.toml`）を、PR ごとと週に 1 度流す。"
+msgstr ""
+"**Vulnerability monitoring**: The workflow's `advisories` runs `cargo deny "
+"check advisories` (configured in `deny.toml`) on every PR and once a week."
+
+#: src/development.md
+msgid ""
+"**workflow の action**: commit の SHA で固定する（tag は後から中身が替わりう"
+"る）。"
+msgstr ""
+"**Workflow actions**: Pin them by commit SHA (the contents behind a tag can "
+"be replaced later)."
+
+#: src/development.md
+msgid ""
+"**main を守る決まり**: GitHub の ruleset「main: CI が通らないと merge できな"
+"い」（Settings → Rules → Rulesets）が、`main` への変更に、CI の `test`・"
+"`image`・`advisories` の 3 つが通っていることを求める。PR は、3 つが通るまで "
+"merge できない。repo の admin は、この決まりを bypass できるので、`main` への"
+"直の push は通る（GitHub の必須の check には「PR だけに効かせる」選び方が無い"
+"ので、直の push を通すには bypass になる）。admin は、わざと選べば（画面の "
+"bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge できてしまうの"
+"で、使わない。workflow の job の名を変えたら、ruleset の check の名も合わせて"
+"直す（合わないと、PR がいつまでも merge できない）。"
+msgstr ""
+"**Branch protection for main**: The GitHub ruleset \"main: cannot merge "
+"unless CI passes\" (Settings → Rules → Rulesets) requires that the three CI "
+"checks `test`, `image`, and `advisories` pass for changes to `main`. A PR "
+"cannot be merged until all three pass. Repo admins can bypass this rule, so "
+"direct pushes to `main` go through (GitHub's required checks have no option "
+"to \"apply to PRs only\", so allowing direct pushes means a bypass). An "
+"admin who deliberately chooses to (the bypass checkbox in the UI, or `gh pr "
+"merge --admin`) can also merge a PR without CI passing, so do not use it. If "
+"you rename a workflow job, also update the check name in the ruleset to "
+"match (otherwise PRs can never be merged)."
+
+#: src/development.md
+msgid "この本を直す"
+msgstr "Editing this book"
+
+#: src/development.md
+msgid ""
+"この本は [mdBook](https://rust-lang.github.io/mdBook/) で作り、release の tag"
+"（`v*`）を打った時に、workflow（`.github/workflows/docs.yml`）が GitHub "
+"Pages に出す。PR と main への push では、build できるかと、英語の訳が原文と"
+"合っているかを見る（job の名は `docs`）。"
+msgstr ""
+"This book is built with [mdBook](https://rust-lang.github.io/mdBook/), and "
+"the workflow (`.github/workflows/docs.yml`) publishes it to GitHub Pages "
+"when a release tag (`v*`) is pushed. On PRs and pushes to main, it only "
+"checks that the book builds and that the English translation matches the "
+"source text (the job is named `docs`)."
+
+#: src/development.md
+msgid "`docs/book.toml`"
+msgstr "`docs/book.toml`"
+
+#: src/development.md
+msgid "本の設定。組み込みの検索は切ってある（日本語が引けないため）"
+msgstr ""
+"The book's configuration. The built-in search is turned off (because it "
+"cannot search Japanese)"
+
+#: src/development.md
+msgid "`docs/src/`"
+msgstr "`docs/src/`"
+
+#: src/development.md
+msgid "原文（日本語）。目次は `SUMMARY.md`"
+msgstr "The source text (Japanese). The table of contents is `SUMMARY.md`"
+
+#: src/development.md
+msgid "`docs/po/en.po`"
+msgstr "`docs/po/en.po`"
+
+#: src/development.md
+msgid "英語の訳。原文の段落・表の升・コードの塊ごとに 1 項"
+msgstr ""
+"The English translation. One entry per paragraph, table cell, or code block "
+"of the source text"
+
+#: src/development.md
+msgid "`docs/theme/site.js`・`site.css`"
+msgstr "`docs/theme/site.js`, `site.css`"
+
+#: src/development.md
+msgid "上の帯に足す、言葉の切り替えと検索の枠"
+msgstr "The language switcher and the search box added to the menu bar"
+
+#: src/development.md
+msgid "`docs/pagefind.yml`"
+msgstr "`docs/pagefind.yml`"
+
+#: src/development.md
+msgid "検索（[Pagefind](https://pagefind.app/)）の索引に入れる物"
+msgstr "What goes into the search ([Pagefind](https://pagefind.app/)) index"
+
+#: src/development.md
+msgid "`docs/mermaid.min.js`・`mermaid-init.js`"
+msgstr "`docs/mermaid.min.js`, `mermaid-init.js`"
+
+#: src/development.md
+msgid "図（Mermaid）を描く script。`mdbook-mermaid install docs` が置いた物"
+msgstr ""
+"Scripts that render diagrams (Mermaid). Placed by `mdbook-mermaid install "
+"docs`"
+
+#: src/development.md
+msgid "`ci/docs-po.sh`"
+msgstr "`ci/docs-po.sh`"
+
+#: src/development.md
+msgid "`en.po` を原文に合わせる。`--check` を付けると、合っているかを見るだけ"
+msgstr ""
+"Syncs `en.po` with the source text. With `--check`, it only verifies that "
+"they match"
+
+#: src/development.md
+msgid "`ci/docs-build.sh`"
+msgstr "`ci/docs-build.sh`"
+
+#: src/development.md
+msgid ""
+"日本語の本を `docs/book/` に、英語の本を `docs/book/en/` に作り、検索の索引"
+"を `docs/book/pagefind/` に作る"
+msgstr ""
+"Builds the Japanese book into `docs/book/`, the English book into `docs/book/"
+"en/`, and the search index into `docs/book/pagefind/`"
+
+#: src/development.md
+msgid ""
+"道具は、workflow の `env` に書いた版を入れる（上げる時は、workflow の版と "
+"checksum を一緒に上げる）。"
+msgstr ""
+"Install the tools at the versions written in the workflow's `env` (when "
+"updating, bump the version and the checksum in the workflow together)."
+
+#: src/development.md
+msgid ""
+"`ci/docs-build.sh` が本を `docs/book/` に作る。最後の行で配り、`http://"
+"localhost:8000/` で見る。"
+msgstr ""
+"`ci/docs-build.sh` builds the book into `docs/book/`. The last line serves "
+"it; open `http://localhost:8000/` to view it."
+
+#: src/development.md
+msgid ""
+"**mdbook-i18n-helpers は commit を名指して入れる**: 公開済みの 0.4.0 は、訳し"
+"た本で囲み（`> [!WARNING]` など）を崩す。直し（[\\#344](https://github.com/"
+"google/mdbook-i18n-helpers/pull/344)）を含む版が出たら、版の名指しに替える。"
+msgstr ""
+"**mdbook-i18n-helpers is installed by pinning a commit**: The published "
+"0.4.0 breaks admonitions (`> [!WARNING]` and the like) in the translated "
+"book. Once a version containing the fix ([\\#344](https://github.com/google/"
+"mdbook-i18n-helpers/pull/344)) is released, switch to pinning a version."
+
+#: src/development.md
+msgid ""
+"**原文を直したら、同じ PR で英語も直す**: `ci/docs-po.sh` を流すと、足した段"
+"落が `docs/po/en.po` に空の訳で入り、変えた段落に `#, fuzzy` の印が付く。空の"
+"所と印の所を訳し、印の行を消す。`ci/docs-po.sh --check` が通れば済み（CI も同"
+"じ検査を流す。原文にあって訳に無い段落・`fuzzy` の残り・訳に残った日本語があ"
+"ると落ちる）。"
+msgstr ""
+"**When you edit the source text, update the English in the same PR**: "
+"running `ci/docs-po.sh` adds new paragraphs to `docs/po/en.po` with an empty "
+"translation and marks changed paragraphs with `#, fuzzy`. Translate the "
+"empty and marked entries, and delete the marker lines. You are done when `ci/"
+"docs-po.sh --check` passes (CI runs the same check; it fails on a source "
+"paragraph with no translation, a leftover `fuzzy` marker, or Japanese left "
+"in a translation)."
+
+#: src/development.md
+msgid ""
+"**コードの塊**: 訳に出るのは、コードの中の註（`#` の行）と、引用符の中の字だ"
+"け。命令の中の置き換えの名は訳せないので、`<version>` のように英字で書く。行"
+"の後ろに付けた註は、取り出されないことがある（`ci/docs-build.sh` が、英語の本"
+"に日本語が残っていれば落ちる）。"
+msgstr ""
+"**Code blocks**: only comments (lines starting with `#`) and text inside "
+"quotes are extracted for translation. Placeholders inside commands cannot be "
+"translated, so write them in ASCII, such as `<version>`. A comment at the "
+"end of a command line is sometimes not extracted (`ci/docs-build.sh` fails "
+"if Japanese is left in the English book)."
+
+#: src/development.md
+msgid ""
+"**訳さない物も `msgstr` に書く**: 命令・URL だけの項は、原文をそのまま写す。"
+"link の先の file の名（`run.md` など）は変えない。見出しを指す `#…` は、英語"
+"の本では見出しの id が訳した題から作られるので、訳した見出しの id に書き替え"
+"る（`release.md#image-に入る物` → `release.md#what-goes-into-the-image`）。"
+msgstr ""
+"**Fill in `msgstr` even for entries you do not translate**: for command-only "
+"and URL-only entries, copy the source text as is. Do not change the file "
+"name of a link target (such as `run.md`). For a `#…` that points to a "
+"heading, rewrite it to the id of the translated heading, because in the "
+"English book heading ids are generated from the translated titles (for "
+"example, the link to the \"What goes into the image\" section becomes "
+"`release.md#what-goes-into-the-image`)."
+
+#: src/development.md
+msgid ""
+"**章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章"
+"は `docs/src/cli.md`（「使う」の節の、動かす と 口の約束 の間）。"
+msgstr ""
+"**Add a chapter**: Put a file in `docs/src/` and add one line to "
+"`SUMMARY.md`. The CLI chapter is `docs/src/cli.md` (in the \"Usage\" "
+"section, between Running and API contract)."
+
+#: src/development.md
+msgid ""
+"**repo の file を指す link**: 本の外の file（`CHANGELOG.md` など）は、GitHub "
+"の URL で書く。章どうしは、`run.md` のように file の名で書く。"
+msgstr ""
+"**Links to files in the repo**: For files outside the book (such as "
+"`CHANGELOG.md`), use the GitHub URL. Between chapters, use the file name, as "
+"in `run.md`."
+
+#: src/development.md
+msgid ""
+"**図**: ```` ```mermaid ```` の塊で書く。構文を間違えても build は通るので、"
+"変えたら browser で見る。"
+msgstr ""
+"**Diagrams**: Write them in ```` ```mermaid ```` blocks. The build passes "
+"even if the syntax is wrong, so check in a browser after changing one."
+
+#: src/development.md
+msgid ""
+"**検索と言葉の切り替え**: `docs/theme/site.js` は、mdBook の画面の `#mdbook-"
+"menu-bar` と `path_to_root` に頼っている。mdBook を上げたら、検索の枠が開くこ"
+"と・言葉が切り替わることを browser で見る。"
+msgstr ""
+"**Search and the language switcher**: `docs/theme/site.js` depends on "
+"`#mdbook-menu-bar` and `path_to_root` in mdBook's page. After updating "
+"mdBook, check in a browser that the search box opens and that the language "
+"switches."

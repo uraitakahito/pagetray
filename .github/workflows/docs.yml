@@ -1,7 +1,7 @@
 name: docs
 
 # docs/ の本（mdBook）を作り、GitHub Pages（https://uraitakahito.github.io/pagetray/）に出す。
-#   - PR・main への push: 作れるかを見るだけ（job docs）。出さない。
+#   - PR・main への push: 作れるか・英語の訳が原文と合っているかを見るだけ（job docs）。出さない。
 #   - release の tag（v*）の push・手動の起動: 作った物を Pages に出す（job deploy）。
 #     だから公開の本は、release した版の物になる。github-pages の環境は、v* の tag からの deploy だけを許す
 #     （出し直す時は gh workflow run docs.yml --ref v<版>）。
@@ -68,6 +68,10 @@ jobs:
       - run: echo "$HOME/docs-tools/i18n/bin" >> "$GITHUB_PATH"
       - name: 本を作る（日本語・英語・検索の索引）
         run: ci/docs-build.sh
+      - name: 英語の訳（docs/po/en.po）が原文と合っているか
+        run: |
+          command -v msgcmp >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq gettext; }
+          ci/docs-po.sh --check
       - if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
