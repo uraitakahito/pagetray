@@ -2,7 +2,7 @@
 // ここは browser でしか見えない物（script の動き・色・並び）と、人が押してたどる道を見る。
 // 試験は同じ置き場に順に置く。ほかの試験のページを見ないように、試験ごとに別の project を使う。
 import { expect, test } from '@playwright/test';
-import { choice, collectErrors, filters, fresh, openLive, place, rows, toolbar, viewer } from './helpers';
+import { choice, collectErrors, filters, fresh, list, openLive, place, rows, toolbar, viewer } from './helpers';
 
 const NEW_LIGHT = 'rgb(31, 122, 77)'; // --new: #1f7a4d
 const NEW_DARK = 'rgb(92, 193, 143)'; // --new: #5cc18f
@@ -72,7 +72,7 @@ test('操作の帯: 題と本文の字で探せる。並びを替えられる', 
   await toolbar(page).getByRole('searchbox').fill('どこにも無い語');
   await toolbar(page).getByRole('searchbox').press('Enter');
   await expect(rows(page)).toHaveCount(0);
-  await expect(page.locator('.empty')).toHaveText('合うページは無い');
+  await expect(list(page).locator('.empty')).toHaveText('合うページは無い');
 
   await page.goto('/?project=find');
   await expect(rows(page).locator('.title')).toHaveText(['新しい方', '古い方']);
@@ -89,9 +89,9 @@ test('一覧の列: 200 枚を越えると「続きを出す」で残りが出�
   await page.goto('/?project=more');
   await expect(rows(page)).toHaveCount(200);
   await expect(rows(page).first().locator('.title')).toHaveText('201 枚目');
-  await page.getByRole('link', { name: '続きを出す' }).click();
+  await list(page).getByRole('link', { name: '続きを出す' }).click();
   await expect(rows(page).locator('.title')).toHaveText(['1 枚目']);
-  await expect(page.getByRole('link', { name: '続きを出す' })).toHaveCount(0);
+  await expect(list(page).getByRole('link', { name: '続きを出す' })).toHaveCount(0);
 });
 
 test('操作の帯: ページが置かれると新着の印が出る。押すと一覧の列に出る', async ({ page, request }) => {
@@ -131,7 +131,7 @@ test('一覧の列・本文の枠: 初めて開いた後に置かれたページ
   await expect(page.locator('li.unread')).toHaveCount(1);
 
   await row.getByRole('link').click();
-  await expect(page.locator('body')).toHaveAttribute('data-open', path);
+  await expect(page.locator('body')).toHaveAttribute('data-viewer', path);
   await expect(row.getByRole('link')).toHaveAttribute('aria-current', 'true');
   const frame = viewer(page).locator('iframe[title="選んだページ"]');
   await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
@@ -174,7 +174,7 @@ test('幅: 900px 以下では、絞り込みの列・一覧の列・本文の枠
   await place(request, { project: 'narrow', key: 'W-1', kind: 'plan', role: 'tpm' }, '<title>幅を見る</title>');
   const top = async () => ({
     filters: (await filters(page).boundingBox())!,
-    list: (await page.locator('ul.rows').boundingBox())!,
+    list: (await list(page).boundingBox())!,
     viewer: (await viewer(page).boundingBox())!,
   });
 

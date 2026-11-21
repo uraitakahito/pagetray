@@ -39,11 +39,12 @@ export function collectErrors(page: Page): string[] {
   return errors;
 }
 
-// 区画: 操作の帯（toolbar）・絞り込みの列（filters）・一覧の列（list）・本文の枠（viewer）。
-export const toolbar = (page: Page) => page.locator('body > header');
-export const filters = (page: Page) => page.locator('main > nav');
-export const rows = (page: Page) => page.locator('ul.rows > li[data-path]');
-export const viewer = (page: Page) => page.locator('main > section');
+// 区画: 操作の帯（toolbar）・絞り込みの列（filters）・一覧の列（list）・本文の枠（viewer）。template の id で選ぶ。
+export const toolbar = (page: Page) => page.locator('#toolbar');
+export const filters = (page: Page) => page.locator('#filters');
+export const list = (page: Page) => page.locator('#list');
+export const rows = (page: Page) => list(page).locator('li[data-path]');
+export const viewer = (page: Page) => page.locator('#viewer');
 export const fresh = (page: Page) => page.locator('#fresh');
 
 /**
