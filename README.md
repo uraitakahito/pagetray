@@ -192,3 +192,7 @@ image は外に出す物なので、入ってよい物を決めてあり、CI（
 - release の workflow は、確かめる job（書き込みの権限が無い）と、置く job（`packages: write`）に分かれている。置く job は、確かめた image の file を受け取って、そのまま置く。
 - 本物の DB やその写しを、この repo にも CI にも置かない（`.gitignore` と `.dockerignore` が `*.db` を外す）。
 - 決まりを変える時（file を足す・通す字を足す）は、PR で見える形で上の file を直す。
+
+## License
+
+[MIT](LICENSE)
