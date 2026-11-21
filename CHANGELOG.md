@@ -12,6 +12,7 @@ API の版: 1（変わらない。呼ぶ側は変えなくてよい）
 - 文書の本に「用語集」の章を足した（置き場の物・API・一覧の UI の語。語・code の名・意味・使わない言い方）。
 - 一覧の UI に icon を付けた。browser が `/favicon.ico` を取りに行かなくなり、console に 404 が出なくなる。
 - 一覧の UI を、本物の browser で見る試験（`e2e/`。Playwright）を足した。image にも CLI にも入らない。
+  - 動いている置き場に向けて流せる、読むだけの試験も足した。版を上げた後の「確かめる」で、browser で一覧を見る代わりに使う（[動かす](https://uraitakahito.github.io/pagetray/run.html)）。
 
 ## 0.3.1
 
