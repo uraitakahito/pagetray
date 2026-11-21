@@ -197,6 +197,52 @@ msgstr "`GET /<project>/<key>/<kind>-<n>.html`"
 msgid "本文。無ければ `404`、消したページは `410`"
 msgstr "The body. `404` if it does not exist, `410` for a deleted page"
 
+#: src/index.md
+msgid "`POST /api/files?project=&key=&name=&role=&workspace=`"
+msgstr "`POST /api/files?project=&key=&name=&role=&workspace=`"
+
+#: src/index.md
+msgid ""
+"本文は file の中身（`Content-Type` が要る）。`name` は `<語>.<拡張子>` で、番"
+"号を決めて `201` と JSON を返す。受けない種類は `415`、16 MiB を超えれば "
+"`413`"
+msgstr ""
+"The body is the file contents (`Content-Type` is required). `name` is "
+"`<stem>.<ext>`; the server picks the number and returns `201` with JSON. "
+"Types not accepted get `415`, and over 16 MiB gets `413`"
+
+#: src/index.md
+msgid "`GET /api/files`"
+msgstr "`GET /api/files`"
+
+#: src/index.md
+msgid ""
+"`project`・`key`・`role`・`workspace`・`q`・`sort`・`limit`・`before`・"
+"`after` で絞る。`{\"files\":[…]}`"
+msgstr ""
+"Filter by `project`, `key`, `role`, `workspace`, `q`, `sort`, `limit`, "
+"`before`, and `after`. Returns `{\"files\":[…]}`"
+
+#: src/index.md
+msgid "`DELETE /api/files?project=[&key=][&name=][&n=]`"
+msgstr "`DELETE /api/files?project=[&key=][&name=][&n=]`"
+
+#: src/index.md
+msgid ""
+"合う file を消し、番号を表 `files_removed` に残して、消した path の一覧を返"
+"す。人は見分けない"
+msgstr ""
+"Deletes the matching files, keeps their numbers in the `files_removed` "
+"table, and returns the list of deleted paths. It does not tell people apart"
+
+#: src/index.md
+msgid "`GET /<project>/<key>/files/<語>-<n>.<拡張子>`"
+msgstr "`GET /<project>/<key>/files/<stem>-<n>.<ext>`"
+
+#: src/index.md
+msgid "file の中身。無ければ `404`、消した file は `410`"
+msgstr "The file contents. `404` if missing, `410` if the file was deleted"
+
 #: src/index.md src/api.md
 msgid "`GET /`・`/<project>/`・`/<project>/<key>/`"
 msgstr "`GET /`, `/<project>/`, `/<project>/<key>/`"
@@ -210,8 +256,10 @@ msgid "`GET /api/events`"
 msgstr "`GET /api/events`"
 
 #: src/index.md
-msgid "置かれるたびに 1 件を push（SSE）"
-msgstr "Pushes one event each time a page is put (SSE)"
+msgid "置かれるたびに 1 件を push（SSE。file は `event: file`）"
+msgstr ""
+"Pushes one record each time something is placed (SSE; files use `event: "
+"file`)"
 
 #: src/index.md src/api.md
 msgid "`GET /api/backup`"

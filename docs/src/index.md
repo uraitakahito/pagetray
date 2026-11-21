@@ -31,8 +31,12 @@ flowchart LR
 | `GET /api/pages` | `project`・`key`・`kind`・`role`・`workspace`・`q`・`sort`・`limit`・`before`・`after` で絞る。`{"pages":[…]}` |
 | `DELETE /api/pages?project=[&key=][&kind=][&n=]` | 合うページを消し、番号を表 `removed` に残して、消した path の一覧を返す。`n` には `key` と `kind` が要る。人は見分けない（だれが消してよいかは、呼ぶ側が決める） |
 | `GET /<project>/<key>/<kind>-<n>.html` | 本文。無ければ `404`、消したページは `410` |
+| `POST /api/files?project=&key=&name=&role=&workspace=` | 本文は file の中身（`Content-Type` が要る）。`name` は `<語>.<拡張子>` で、番号を決めて `201` と JSON を返す。受けない種類は `415`、16 MiB を超えれば `413` |
+| `GET /api/files` | `project`・`key`・`role`・`workspace`・`q`・`sort`・`limit`・`before`・`after` で絞る。`{"files":[…]}` |
+| `DELETE /api/files?project=[&key=][&name=][&n=]` | 合う file を消し、番号を表 `files_removed` に残して、消した path の一覧を返す。人は見分けない |
+| `GET /<project>/<key>/files/<語>-<n>.<拡張子>` | file の中身。無ければ `404`、消した file は `410` |
 | `GET /`・`/<project>/`・`/<project>/<key>/` | 一覧の UI（絞った一覧） |
-| `GET /api/events` | 置かれるたびに 1 件を push（SSE） |
+| `GET /api/events` | 置かれるたびに 1 件を push（SSE。file は `event: file`） |
 | `GET /api/backup` | DB の写し |
 | `GET /api/version` | サーバーの版と API の版（`{"version":"0.2.0","api":1}`）。どの答えにも header `Pagetray-Api` が付く |
 | `GET /healthz` | 生きているか |
