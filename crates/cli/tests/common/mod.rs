@@ -46,7 +46,7 @@ impl Server {
         run_with(&self.url, args, &[], None)
     }
 
-    /// 口を直に呼んで 1 枚置き、置き場の中の path を返す（置く命令の試験でない所で、材料を置くため）。
+    /// API を直に呼んで 1 枚置き、置き場の中の path を返す（置く命令の試験でない所で、材料を置くため）。
     pub fn place(&self, query: &str, html: &str) -> String {
         let mut response = ureq::post(format!("{}/api/pages?{query}", self.url))
             .send(html)
@@ -117,7 +117,7 @@ pub fn closed_url() -> String {
     format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port())
 }
 
-/// どの要求にも、決まった答えを 1 つ返すだけのサーバー（口の版が違う置き場のまね）。
+/// どの要求にも、決まった答えを 1 つ返すだけのサーバー（API の版が違う置き場のまね）。
 pub fn canned(response: &'static str) -> String {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());

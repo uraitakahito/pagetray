@@ -4,7 +4,7 @@ use crate::client::Failure;
 use pagetray_api::PageRecord;
 use serde_json::{Map, Value};
 
-/// `--json` で選べる欄（口の「ページの記録」と、CLI が足す `url`）。
+/// `--json` で選べる欄（API の「ページの記録」と、CLI が足す `url`）。
 pub const FIELDS: [&str; 11] = [
     "project",
     "key",

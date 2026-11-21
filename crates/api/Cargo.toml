@@ -1,6 +1,6 @@
 [package]
 name = "pagetray-api"
-description = "pagetray の口の約束（docs/src/api.md）のうち、サーバーと CLI が共に使う物"
+description = "pagetray の API の仕様（docs/src/api.md）のうち、サーバーと CLI が共に使う物"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

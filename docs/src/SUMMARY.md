@@ -6,7 +6,7 @@
 
 - [動かす](run.md)
 - [CLI](cli.md)
-- [口の約束](api.md)
+- [API の仕様](api.md)
 
 # 作る
 

@@ -1,4 +1,4 @@
-//! 道筋ごとの試験（JSON の口と本文）。
+//! 道筋ごとの試験（JSON の APIと本文）。
 
 mod common;
 
@@ -36,7 +36,7 @@ async fn numbers_start_at_one_and_follow_per_kind() {
 }
 
 /// 置く・探すの答えが、呼ぶ側（CLI）の読む型（crates/api の PageRecord）で読めるか。
-/// 欄を消す・名や型を変えると、ここが落ちる（口の版を上げる変更。docs/api.md）。
+/// 欄を消す・名や型を変えると、ここが落ちる（API の版を上げる変更。docs/src/api.md）。
 #[tokio::test]
 async fn answers_parse_as_the_shared_page_record() {
     use pagetray_api::PageRecord;

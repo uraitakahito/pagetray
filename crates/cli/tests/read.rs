@@ -17,7 +17,7 @@ fn status_reports_both_versions() {
         "{}",
         ran.stdout
     );
-    assert!(ran.stdout.contains("口の版: 1"), "{}", ran.stdout);
+    assert!(ran.stdout.contains("API の版: 1"), "{}", ran.stdout);
 
     let json: serde_json::Value =
         serde_json::from_str(&s.run(&["status", "--json"]).stdout).unwrap();
@@ -43,7 +43,7 @@ fn another_api_version_exits_4_without_using_the_answer() {
     );
     let ran = run_with(&url, &["page", "list"], &[], None);
     assert_eq!(ran.code, 4);
-    assert!(ran.stderr.contains("口の版は 2"), "{}", ran.stderr);
+    assert!(ran.stderr.contains("API の版は 2"), "{}", ran.stderr);
     assert_eq!(ran.stdout, "");
 }
 

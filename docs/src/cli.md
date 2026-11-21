@@ -1,6 +1,6 @@
 # CLI
 
-`pagetray` は、置き場を端末から操作する命令。置き場の[口](api.md)を HTTP で呼ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も無い。
+`pagetray` は、置き場を端末から操作する命令。置き場の [API](api.md) を HTTP で呼ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も無い。
 
 ## 入れる
 
@@ -22,7 +22,7 @@ pagetray status
 
 | 命令 | すること |
 |---|---|
-| `pagetray status` | 置き場が生きているか、サーバーの版、口の版が合っているかを出す |
+| `pagetray status` | 置き場が生きているか、サーバーの版、API の版が合っているかを出す |
 | `pagetray page list` | ページを絞って探す（新しい順） |
 | `pagetray page view <page>` | ページの本文を出す。`--web` で browser に、`-o <file>` で file に |
 | `pagetray page put <file>` | ページを置く（`-` は stdin）。置いたページの URL を出す |
@@ -30,7 +30,7 @@ pagetray status
 | `pagetray page watch` | ページが置かれるたびに 1 行出す |
 | `pagetray browse [<project>[/<key>]]` | 一覧の UI を browser で開く。`-n` は URL を出すだけ |
 | `pagetray backup -o <file>` | DB の写し（SQLite の file 1 つ）を取る |
-| `pagetray api <path>` | 口を直に呼ぶ。`-X <method>`・`-f <name>=<value>`・`--input <file>` |
+| `pagetray api <path>` | API を直に呼ぶ。`-X <method>`・`-f <name>=<value>`・`--input <file>` |
 | `pagetray completion <shell>` | shell の補完の script を出す（`bash`・`zsh`・`fish` など） |
 
 旗の一覧は、どの命令も `--help` で出る。`<page>` は、ページの URL か、`<project>/<key>/<kind>-<n>` の形で書く。
@@ -47,7 +47,7 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 
 - 絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本文の字）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。
 - `--project` が無ければ、どの project のページも出す。`--project .` は、今いる folder の path から project の名を作る（英数字と `._-` のほかを `-` にする。skills の `tpm` と同じ作り方）。
-- 端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--json` は、口の「ページの記録」に `url` を足した配列。`--json=key,url` のように欄を名指すと、その欄だけを出す。
+- 端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のように欄を名指すと、その欄だけを出す。
 
 ### 置く（`page put`）
 
@@ -77,7 +77,7 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 
 環境変数の proxy（`HTTP_PROXY` など）は使わない。
 
-## 終わりの code と、口の版
+## 終わりの code と、API の版
 
 | code | 訳 |
 |---|---|
@@ -85,12 +85,12 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 | `1` | 置き場が断った（`4xx`・`5xx`。無いページ `404`・消したページ `410` を含む）。file に書けない時も |
 | `2` | 使い方の誤り |
 | `3` | 置き場が応えない |
-| `4` | 口の版が合わない |
+| `4` | API の版が合わない |
 
 誤りの訳は stderr に 1 行で出る。stdout には、頼んだ物だけが出る。
 
-`pagetray` は、置き場のどの答えでも header `Pagetray-Api`（[口の版](api.md#版)）を見る。自分の話せる版と違えば、答えを使わずに code 4 で止まる。`pagetray status` が、サーバーの版と口の版を出す。その時は、`pagetray` か置き場のどちらかを上げて、版を合わせる。
+`pagetray` は、置き場のどの答えでも header `Pagetray-Api`（[API の版](api.md#版)）を見る。自分の話せる版と違えば、答えを使わずに code 4 で止まる。`pagetray status` が、サーバーの版と API の版を出す。その時は、`pagetray` か置き場のどちらかを上げて、版を合わせる。
 
 ## `tpm page` との関わり
 
-skills の `tpm` を使う project では、担当は `tpm page`（put・path・list・delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい人という `tpm` の決まりを持ち、同じ口を呼ぶ。`pagetray` は、その決まりを持たない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。
+skills の `tpm` を使う project では、担当は `tpm page`（put・path・list・delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい人という `tpm` の決まりを持ち、同じ API を呼ぶ。`pagetray` は、その決まりを持たない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。
