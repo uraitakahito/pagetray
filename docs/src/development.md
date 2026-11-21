@@ -19,7 +19,7 @@
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
 | `ci/` | 出す image と、release に付ける CLI に、入ってよい物だけが入っているか・動くかを見る script と、その決まり。この本を build する script（`ci/docs-build.sh`）もここ |
 | `docs/` | この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側との API の仕様と、API の版の決まり。直し方は下の「この本を直す」 |
-| `.claude/roles/config.jsonc` | skills の `tpm` に向けた、環境 `pagetray` の宣言 |
+| `.claude/roles/config.jsonc` | roster の `tpm` に向けた、環境 `pagetray` の宣言 |
 
 Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読まない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つと、その版が入って使われる。
 
@@ -33,7 +33,7 @@ PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run --bin pagetr
 
 GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験は、試験ごとに一時の DB を作る。workflow の `image` は、`Containerfile` を arm64 の runner で build し、[image に入る物](release.md#image-に入る物) を確かめ（`ci/check-image.sh`）、空の image の中で起きて置いて読めること・止める合図で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh`）。release の workflow も、同じ 2 つを push の前に流す。workflow の `cli` は、release に付ける CLI を macOS（arm64）の runner で、出す時と同じ script（`ci/build-cli.sh`）で作り、binary の形・つながる library・版・秘密の走査を確かめ（`ci/check-cli.sh`）、その binary を同じ commit のサーバーに向けて打つ。
 
-API の形（URL・引数の名・JSON の欄）を変える時は、先に [API の仕様](api.md#api-の版を上げる時上げない時) の「API の版を上げる時・上げない時」を見る。変えたら、skills の `tpm page`（`cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。skills の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
+API の形（URL・引数の名・JSON の欄）を変える時は、先に [API の仕様](api.md#api-の版を上げる時上げない時) の「API の版を上げる時・上げない時」を見る。変えたら、roster の `tpm page`（`cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。roster の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
 
 - **SQL を変えた時**: SQL は `query!` が build の時に `.sqlx/` と突き合わせる。SQL か `migrations/` を変えたら、一時の DB を作って作り直し、commit する（忘れると CI の `cargo sqlx prepare --check` が落ちる）。`sqlx-cli` の版は workflow の `SQLX_CLI_VERSION` と合わせる。
 

@@ -10,7 +10,7 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 | DB | 名前つきの volume `pagetray-data`（中の `/data/pages.db`）。Mac の folder は mount しない |
 | 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい |
 
-skills の `tpm` を使う Mac では、container と volume に触る命令を `tpm infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、skills の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、skills の `.pagetray-version`（skills の cli と合わせてある版）。
+roster の `tpm` を使う Mac では、container と volume に触る命令を `tpm infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
 
 ## 起こす
 
@@ -31,7 +31,7 @@ container run -d --name pagetray \
 > [!WARNING]
 > `-p` には必ず `127.0.0.1:` を書く。`-p 8801:8080` と書くと LAN に開く。
 
-- 8801 が使われていたら別の port にする。skills の担当が使う URL は、環境変数 `TPM_PAGES_URL` で合わせる。
+- 8801 が使われていたら別の port にする。roster の担当が使う URL は、環境変数 `TPM_PAGES_URL` で合わせる。
 - 起きる時に、まだ当てていない移行の SQL（`migrations/`）を DB に当てる。
 
 ## 確かめる
@@ -95,7 +95,7 @@ container start pagetray
 
 - 動かす image は空で `cp` も無いので、file を volume に入れる時だけ、shell のある image を借りる（上は `Containerfile` の build の段と同じ物。何でもよい）。
 - 起こしたら「確かめる」をし、`curl -s 'http://127.0.0.1:8801/api/pages?limit=1'` で一番新しいページを見る。
-- 写しが無ければ、空の volume で起こす。skills の `tpm page import` が、控えの folder のページを同じ番号で入れ直す（置いた役割の記録は戻らない）。
+- 写しが無ければ、空の volume で起こす。roster の `tpm page import` が、控えの folder のページを同じ番号で入れ直す（置いた役割の記録は戻らない）。
 
 ## 止める・Mac を起こし直した後
 
