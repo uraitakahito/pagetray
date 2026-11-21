@@ -37,7 +37,7 @@ pagetray status
 
 ```sh
 pagetray page list --project . --key AI-22          # 今いる folder の project の、Key が AI-22 のページ
-pagetray page list -q 計画 --json=key,title,url     # 題と本文から探し、名指した欄だけを JSON で
+pagetray page list -q plan --json=key,title,url      # 題と本文から探し、名指した欄だけを JSON で
 pagetray page view http://127.0.0.1:8801/p/AI-22/plan-1.html | less
 pagetray page put report.html --project p --key AI-22 --kind result
 pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
