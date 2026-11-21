@@ -9,6 +9,9 @@ API の版: 1（変わらない。呼ぶ側は変えなくてよい）
 - 一覧の UI の 4 つの区画に、名を決めた: 操作の帯（`#toolbar`）・絞り込みの列（`#filters`）・一覧の列（`#list`）・本文の枠（`#viewer`）。
   - HTML に id と読み上げ用の名（`aria-label`）を付けた。見た目は変わらない。`<nav>` の `aria-label` は「絞り込み」から「絞り込みの列」に、`<body>` の `data-open` は `data-viewer` に替わった。
   - URL の引数（`open=` など）は変えていない。
+- 文書の本に「用語集」の章を足した（置き場の物・API・一覧の UI の語。語・code の名・意味・使わない言い方）。
+- 一覧の UI に icon を付けた。browser が `/favicon.ico` を取りに行かなくなり、console に 404 が出なくなる。
+- 一覧の UI を、本物の browser で見る試験（`e2e/`。Playwright）を足した。image にも CLI にも入らない。
 
 ## 0.3.1
 
