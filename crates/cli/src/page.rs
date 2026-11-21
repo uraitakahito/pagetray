@@ -439,7 +439,7 @@ fn watch(client: &Client, args: WatchArgs) -> Result<(), Failure> {
 }
 
 /// `--project` の値を、置き場の project の名にする。`.` は、今いる folder の path の、英数字と `._-` のほかを `-` にした名
-/// （skills の tpm が project の名を作る形と同じ）。
+/// （roster の tpm が project の名を作る形と同じ）。
 pub fn project_name(value: &str) -> Result<String, Failure> {
     let name = if value == "." {
         let here = std::env::current_dir()

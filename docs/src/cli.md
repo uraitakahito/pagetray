@@ -51,7 +51,7 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 ### 探す（`page list`）
 
 - 絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本文の字）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。
-- `--project` が無ければ、どの project のページも出す。`--project .` は、今いる folder の path から project の名を作る（英数字と `._-` のほかを `-` にする。skills の `tpm` と同じ作り方）。
+- `--project` が無ければ、どの project のページも出す。`--project .` は、今いる folder の path から project の名を作る（英数字と `._-` のほかを `-` にする。roster の `tpm` と同じ作り方）。
 - 端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のように欄を名指すと、その欄だけを出す。
 
 ### 置く（`page put`）
@@ -66,7 +66,7 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 - 消す先は、命令に書いた物だけ: ページの名指し（いくつでも）か、`--project <name> [--key <key> [--kind <kind>]]`。環境変数の project は、消す先にならない。
 - `-` で始まる project の名（`tpm` の project の名）は、URL で書くか、`--` の後ろに書く: `pagetray page delete --yes -- -Users-me-x/AI-22/plan-1`。
 - 消したページの URL は `410` を返し、同じ番号は 2 度使われない。
-- **`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、`page delete`・`file delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う（skills の `tpm` は、担当を起こす時に付ける）。
+- **`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、`page delete`・`file delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う（roster の `tpm` は、担当を起こす時に付ける）。
 
 ### file（`file list`・`file view`・`file put`・`file delete`）
 
@@ -115,4 +115,4 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 
 ## `tpm page` との関わり
 
-skills の `tpm` を使う project では、担当は `tpm page`（put・path・list・delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい人という `tpm` の決まりを持ち、同じ API を呼ぶ。`pagetray` は、その決まりを持たない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。
+roster の `tpm` を使う project では、担当は `tpm page`（put・path・list・delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい人という `tpm` の決まりを持ち、同じ API を呼ぶ。`pagetray` は、その決まりを持たない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。

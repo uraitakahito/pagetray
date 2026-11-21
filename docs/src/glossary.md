@@ -6,7 +6,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 - **code の名**: HTML の id（`#…`）・class（`.…`）・型・欄・命令など。無ければ「—」。
 - **使わない言い方**: 前に使っていた語や、ほかの物と紛れる語。文書にも註にも書かない。
 
-[skills](https://github.com/uraitakahito/skills) の `tpm` の語（担当・依頼書・控えなど）は、skills の docs にある。
+[roster](https://github.com/uraitakahito/roster) の `tpm` の語（担当・依頼書・控えなど）は、roster の docs にある。
 
 ## 置き場の物
 
@@ -38,7 +38,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | エンドポイント（endpoint） | — | API の受け先の 1 つ 1 つ（`POST /api/pages` など） | 口 |
 | API の仕様（API specification） | `docs/src/api.md` | 呼ぶ側が頼ってよい形を書いた章 | 口の約束 |
 | API の版（API version） | `API_VERSION` | API の形を、前からある呼ぶ側が困るように変えた時だけ上げる数。どの答えにも header `Pagetray-Api` で付く | 口の版 |
-| 呼ぶ側（caller） | — | API を呼ぶ物（CLI・skills の `tpm page` など） | クライアント |
+| 呼ぶ側（caller） | — | API を呼ぶ物（CLI・roster の `tpm page` など） | クライアント |
 
 ## 一覧の UI
 

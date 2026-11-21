@@ -1,4 +1,4 @@
-// この repo（とその上の folder）で、skills の tpm の TPM 担当を起こしたときの設定。書いていない欄は既定のまま。
+// この repo（とその上の folder）で、roster の tpm の TPM 担当を起こしたときの設定。書いていない欄は既定のまま。
 {
   // 課題の記録は Jira（acli が login している site。今は future-gadget-laboratory.atlassian.net の AI。コンポーネントは pagetray）に書く。
   "tracker": "jira",

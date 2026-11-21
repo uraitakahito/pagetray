@@ -1,11 +1,11 @@
 # pagetray
 
 ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を付け、絞って探せる一覧の UI を出す。
-この Mac の中（`127.0.0.1`）だけで使う物で、[skills](https://github.com/uraitakahito/skills) の `tpm page` の命令が、ここの API を `curl` で呼ぶ。
+この Mac の中（`127.0.0.1`）だけで使う物で、[roster](https://github.com/uraitakahito/roster) の `tpm page` の命令が、ここの API を `curl` で呼ぶ。
 
 ```mermaid
 flowchart LR
-  tpm["skills の tpm page<br>（curl）"] -->|"POST・GET・DELETE /api/pages"| srv
+  tpm["roster の tpm page<br>（curl）"] -->|"POST・GET・DELETE /api/pages"| srv
   browser["browser"] -->|"一覧の UI・ページの本文"| srv
   subgraph mac["この Mac（127.0.0.1 だけ）"]
     srv["pagetray<br>（container）"] --> db[("SQLite<br>volume pagetray-data")]
