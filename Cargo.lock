@@ -878,6 +878,7 @@ dependencies = [
  "askama",
  "axum",
  "http-body-util",
+ "pagetray-api",
  "serde",
  "serde_json",
  "sqlx",
@@ -885,6 +886,13 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tower",
+]
+
+[[package]]
+name = "pagetray-api"
+version = "0.2.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

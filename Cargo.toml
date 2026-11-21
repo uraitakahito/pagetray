@@ -1,5 +1,17 @@
+# サーバー（この folder）と、crates/ の下の crate を 1 つの workspace にする。版・license などは下の [workspace.package] の 1 か所。
 [package]
 name = "pagetray"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[workspace]
+members = ["crates/api"]
+
+# 版はここだけに書く（release の workflow が、この file の初めの `version = "…"` の行を tag と突き合わせる）。
+[workspace.package]
 version = "0.2.0"
 edition = "2024"
 rust-version = "1.100"
@@ -7,6 +19,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
+pagetray-api = { path = "crates/api" }
 askama = "0.16.1"
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio"] }
 serde = { version = "1", features = ["derive"] }
