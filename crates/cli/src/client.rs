@@ -159,6 +159,11 @@ impl Reply {
             .map_err(|e| Failure::new(DOWN, format!("置き場の答えを読めない: {e}")))
     }
 
+    /// 本文を、流して読む（DB の写し・新着）。
+    pub fn reader(self) -> impl std::io::Read {
+        self.body.into_reader()
+    }
+
     pub fn json<T: serde::de::DeserializeOwned>(self) -> Result<T, Failure> {
         serde_json::from_slice(&self.bytes()?).map_err(|e| {
             Failure::new(

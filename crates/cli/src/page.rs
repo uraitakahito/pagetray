@@ -1,11 +1,11 @@
-//! `pagetray page …`: ページを探す・読む。
+//! `pagetray page …`: ページを探す・読む・置く・消す・新着を待つ。
 
-use crate::client::{Client, Failure};
+use crate::client::{Client, Failure, REFUSED};
 use crate::output;
 use clap::{Args, Subcommand};
-use pagetray_api::{PageRecord, is_page_path, is_segment};
+use pagetray_api::{PageRecord, is_page_path, is_segment, parse_file};
 use serde::Deserialize;
-use std::io::IsTerminal;
+use std::io::{BufRead, BufReader, IsTerminal, Read, Write};
 use std::path::PathBuf;
 
 #[derive(Subcommand)]
@@ -14,6 +14,74 @@ pub enum PageCommand {
     List(ListArgs),
     /// ページの本文を出す
     View(ViewArgs),
+    /// ページを置く（番号は置き場が決める。置き直すと次の番号になる）
+    Put(PutArgs),
+    /// ページを消す（戻せない）。まず消す物を一覧で出し、--yes を付けた時だけ消す
+    Delete(DeleteArgs),
+    /// ページが置かれるたびに 1 行出す（止めるまで待ち続ける）
+    Watch(WatchArgs),
+}
+
+#[derive(Args)]
+pub struct PutArgs {
+    /// 置く HTML の file（`-` は stdin）
+    file: PathBuf,
+    /// project の名（`.` は、今いる folder の path から作る）
+    #[arg(
+        short,
+        long,
+        env = "PAGETRAY_PROJECT",
+        value_name = "名",
+        allow_hyphen_values = true
+    )]
+    project: String,
+    /// 課題の Key
+    #[arg(short, long, value_name = "KEY")]
+    key: String,
+    /// 種類（brief・plan・result など。英小文字で始まり、英小文字・数字・- で 32 字まで）
+    #[arg(long, value_name = "種類")]
+    kind: String,
+    /// 置く人の役割
+    #[arg(
+        long,
+        env = "PAGETRAY_ROLE",
+        default_value = "human",
+        value_name = "役割"
+    )]
+    role: String,
+    /// 置く人の居場所
+    #[arg(long, default_value = "", value_name = "ID")]
+    workspace: String,
+    /// 置いたページの記録を JSON で出す（既定は URL だけ）
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Args)]
+pub struct DeleteArgs {
+    /// 消すページの URL か、`<project>/<key>/<種類>-<番号>`（`-` で始まる名は、URL で書くか `--` の後ろに書く）
+    // いくつも受ける引数に `-` で始まる値を許すと、後ろの `--yes` まで値として読んでしまうので、許さない。
+    #[arg(conflicts_with_all = ["project", "key", "kind"])]
+    pages: Vec<String>,
+    /// この project のページを消す（--key が無ければ、project のページをみな）。環境変数からは読まない
+    #[arg(short, long, value_name = "名", allow_hyphen_values = true)]
+    project: Option<String>,
+    /// この Key のページだけ
+    #[arg(short, long, value_name = "KEY", requires = "project")]
+    key: Option<String>,
+    /// この種類のページだけ
+    #[arg(long, value_name = "種類", requires = "key")]
+    kind: Option<String>,
+    /// 一覧を見せるだけでなく、本当に消す
+    #[arg(long)]
+    yes: bool,
+}
+
+#[derive(Args)]
+pub struct WatchArgs {
+    /// 1 件を 1 行の JSON で出す
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Args)]
@@ -78,11 +146,20 @@ struct Listed {
     pages: Vec<PageRecord>,
 }
 
+/// `DELETE /api/pages` の答え。
+#[derive(Deserialize)]
+struct Removed {
+    removed: Vec<String>,
+}
+
 /// stdout に出す字を返す。
 pub fn run(client: &Client, command: PageCommand) -> Result<Vec<u8>, Failure> {
     match command {
         PageCommand::List(args) => list(client, args).map(String::into_bytes),
         PageCommand::View(args) => view(client, args),
+        PageCommand::Put(args) => put(client, args).map(String::into_bytes),
+        PageCommand::Delete(args) => delete(client, args).map(String::into_bytes),
+        PageCommand::Watch(args) => watch(client, args).map(|()| Vec::new()),
     }
 }
 
@@ -172,6 +249,205 @@ fn view(client: &Client, args: ViewArgs) -> Result<Vec<u8>, Failure> {
         }
         None => Ok(body),
     }
+}
+
+fn put(client: &Client, args: PutArgs) -> Result<String, Failure> {
+    let project = project_name(&args.project)?;
+    let body = if args.file.as_os_str() == "-" {
+        let mut body = Vec::new();
+        std::io::stdin()
+            .read_to_end(&mut body)
+            .map_err(|e| Failure::usage(format!("stdin を読めない: {e}")))?;
+        body
+    } else {
+        std::fs::read(&args.file).map_err(|e| {
+            Failure::usage(format!("file を読めない（{}）: {e}", args.file.display()))
+        })?
+    };
+    let query = [
+        ("project", project.as_str()),
+        ("key", args.key.as_str()),
+        ("kind", args.kind.as_str()),
+        ("role", args.role.as_str()),
+        ("workspace", args.workspace.as_str()),
+    ];
+    let placed: PageRecord = client
+        .send(
+            "POST",
+            "/api/pages",
+            &query,
+            Some((&body, "text/html; charset=utf-8")),
+        )?
+        .ok("置き場がページを受け取らなかった")?
+        .json()?;
+    // 置き場の答えの url は、要求の Host で組んだ物。ここでは、頼んだ先（--url）で組む（一覧と同じ形）。
+    let placed = PageRecord {
+        url: Some(format!("{}{}", client.base, placed.path)),
+        ..placed
+    };
+    if args.json {
+        Ok(output::pretty(
+            &serde_json::to_value(&placed).unwrap_or_default(),
+        ))
+    } else {
+        Ok(format!("{}\n", placed.url.unwrap_or_default()))
+    }
+}
+
+/// `PAGETRAY_NO_DELETE` が付いていれば（空と `0` のほか）、消す命令は何もせずに止まる。
+/// ページを消してよい人を呼ぶ側が決める時に使う（skills の tpm は、担当を起こす時にこれを付ける）。
+pub fn refuse_delete() -> Result<(), Failure> {
+    match std::env::var("PAGETRAY_NO_DELETE") {
+        Ok(value) if !value.is_empty() && value != "0" => Err(Failure::new(
+            REFUSED,
+            "PAGETRAY_NO_DELETE が付いているので、消さない（何も消していない）",
+        )),
+        _ => Ok(()),
+    }
+}
+
+/// 消す物 1 つ: 置き場に頼む引数と、一覧のうち消す物に当たるかを見る path の頭（か、path そのもの）。
+struct Target {
+    query: Vec<(&'static str, String)>,
+    exact: Option<String>,
+}
+
+fn delete(client: &Client, args: DeleteArgs) -> Result<String, Failure> {
+    refuse_delete()?;
+    let mut targets = Vec::new();
+    for page in &args.pages {
+        let path = page_path_of(page)?;
+        let parts: Vec<&str> = path.split('/').collect();
+        let (kind, n) = parse_file(parts[3]).unwrap_or_default();
+        targets.push(Target {
+            query: vec![
+                ("project", parts[1].to_owned()),
+                ("key", parts[2].to_owned()),
+                ("kind", kind.to_owned()),
+                ("n", n.to_string()),
+            ],
+            exact: Some(path),
+        });
+    }
+    if targets.is_empty() {
+        let Some(project) = &args.project else {
+            return Err(Failure::usage(
+                "消すページの URL か、--project <名> [--key <KEY> [--kind <種類>]] を書く",
+            ));
+        };
+        let mut query = vec![("project", project_name(project)?)];
+        if let Some(key) = &args.key {
+            query.push(("key", key.clone()));
+        }
+        if let Some(kind) = &args.kind {
+            query.push(("kind", kind.clone()));
+        }
+        targets.push(Target { query, exact: None });
+    }
+
+    // まず、消す物を見る（n は一覧の口の引数に無いので、path で選ぶ）。
+    let mut listed: Vec<PageRecord> = Vec::new();
+    for target in &targets {
+        let mut query: Vec<(&str, &str)> = target
+            .query
+            .iter()
+            .filter(|(name, _)| *name != "n")
+            .map(|(name, value)| (*name, value.as_str()))
+            .collect();
+        query.push(("limit", "1000"));
+        let found: Listed = client
+            .get("/api/pages", &query)?
+            .ok("置き場が一覧を返さなかった")?
+            .json()?;
+        listed.extend(
+            found
+                .pages
+                .into_iter()
+                .filter(|p| target.exact.as_ref().is_none_or(|path| *path == p.path)),
+        );
+    }
+    if listed.is_empty() {
+        return Ok("置き場に、消すページは無い\n".to_owned());
+    }
+    let lines: String = listed
+        .iter()
+        .map(|p| {
+            format!(
+                "{}{}\t{}\n",
+                client.base,
+                p.path,
+                p.title.replace(['\t', '\n', '\r'], " ")
+            )
+        })
+        .collect();
+    if !args.yes {
+        return Ok(format!(
+            "消すページ（{} 枚。戻せない。まだ消していない）:\n{lines}消すには、同じ命令に --yes を付ける\n",
+            listed.len()
+        ));
+    }
+    let mut removed: Vec<String> = Vec::new();
+    for target in &targets {
+        let query: Vec<(&str, &str)> = target
+            .query
+            .iter()
+            .map(|(name, value)| (*name, value.as_str()))
+            .collect();
+        let gone: Removed = client
+            .send("DELETE", "/api/pages", &query, None)?
+            .ok("置き場がページを消さなかった")?
+            .json()?;
+        removed.extend(gone.removed);
+    }
+    let lines: String = removed
+        .iter()
+        .map(|path| format!("{}{path}\n", client.base))
+        .collect();
+    Ok(format!("消した（{} 枚）:\n{lines}", removed.len()))
+}
+
+/// `GET /api/events`（SSE）を読み、`data:` の行（ページの記録）を 1 件ずつ出す。置き場が閉じるか、読む側が閉じるまで続く。
+fn watch(client: &Client, args: WatchArgs) -> Result<(), Failure> {
+    let reply = client
+        .get("/api/events", &[])?
+        .ok("置き場が新着を流さなかった")?;
+    let mut stdout = std::io::stdout().lock();
+    for line in BufReader::new(reply.reader()).lines() {
+        let Ok(line) = line else { break };
+        let Some(data) = line.strip_prefix("data:") else {
+            continue;
+        };
+        let Ok(page) = serde_json::from_str::<PageRecord>(data.trim()) else {
+            continue;
+        };
+        let page = PageRecord {
+            url: Some(format!("{}{}", client.base, page.path)),
+            ..page
+        };
+        let out = if args.json {
+            serde_json::to_string(&page).unwrap_or_default() + "\n"
+        } else {
+            let row = vec![
+                page.created_at,
+                page.project,
+                page.key,
+                format!("{}-{}", page.kind, page.n),
+                page.role,
+                page.url.unwrap_or_default(),
+                page.title,
+            ];
+            output::table(&[], &[row], false)
+        };
+        // 読む側が閉じたら（`| head -1` など）、終わる。
+        if stdout
+            .write_all(out.as_bytes())
+            .and_then(|()| stdout.flush())
+            .is_err()
+        {
+            break;
+        }
+    }
+    Ok(())
 }
 
 /// `--project` の値を、置き場の project の名にする。`.` は、今いる folder の path の、英数字と `._-` のほかを `-` にした名
