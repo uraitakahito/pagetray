@@ -72,7 +72,11 @@ curl -fsS -o ~/pagetray-$(date +%Y%m%d-%H%M).db http://127.0.0.1:8801/api/backup
 sqlite3 ~/pagetray-<timestamp>.db 'select count(*) from pages'    # 開けて、件数が合うか
 ```
 
-写しには、置かれたページの本文がみな入っている。この repo にも CI にも置かない。
+写しには、置かれたページの本文と、上げられた file（0.4.0 から）がみな入っている。file の分だけ大きくなる。この repo にも CI にも置かない。
+
+### 上げてはいけない file を上げてしまった時
+
+秘密（token・鍵・個人の情報など）が写った file を上げてしまったら、TPM 担当に URL を送って消してもらう（`tpm file delete <URL> --yes`）。消しても、**消す前に取った写しには残る**。消した後に写しを取り直し、それより前の写し（`~/pagetray-*.db`）を消す。秘密そのもの（token・鍵）は、すぐ替える。
 
 ## 写しから戻す
 
