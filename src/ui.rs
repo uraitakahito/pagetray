@@ -9,7 +9,7 @@ use axum::extract::{Path, Query, State};
 use axum::response::{Html, IntoResponse, Response};
 use serde::Deserialize;
 
-/// 1 度に出す件数。続きは「もっと古いページ」の link で出す。
+/// 1 度に出す件数。続きは「続きを出す」の link で出す。
 const PAGE_SIZE: i64 = 200;
 
 #[derive(Clone, Default, Deserialize)]
