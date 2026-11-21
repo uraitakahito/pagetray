@@ -2,6 +2,15 @@
 
 版ごとに、口の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
+## 次の版（まだ出していない）
+
+口の版: 1（変わらない。呼ぶ側は変えなくてよい）
+
+- サーバーの binary の名を `pagetray` から `pagetray-server` に替えた（`pagetray` の名は、人が打つ CLI が使う）。
+  - image の中の file は `/pagetray-server` と空の `/data`。`ENTRYPOINT` も替えたので、`container run` の 1 行は変わらない。
+  - 口・環境変数（`PAGETRAY_DB`・`PAGETRAY_LISTEN`）・起きた時の 1 行（`pagetray <版> listen=… db=…`）は変わらない。
+- 移行の SQL は足していない。
+
 ## 0.2.0
 
 口の版: 1（前の 0.1.0 と同じ形。呼ぶ側は変えなくてよい）

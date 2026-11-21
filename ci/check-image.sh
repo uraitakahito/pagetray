@@ -11,7 +11,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 source_dir=${2:-$(dirname "$here")}
 
 # 決まり。名前や設定を変える時は、ここと ci/image-contents.txt を一緒に直す。
-BIN=pagetray
+BIN=pagetray-server
 WANT_ENV='["PAGETRAY_DB=/data/pages.db","PAGETRAY_LISTEN=0.0.0.0:8080"]'
 DEFAULT_PATH='PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
 WANT_LAYERS=2

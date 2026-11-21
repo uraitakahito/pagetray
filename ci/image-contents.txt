@@ -1,2 +1,2 @@
 d ./data
-f ./pagetray
+f ./pagetray-server
