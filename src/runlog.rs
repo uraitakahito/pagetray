@@ -13,9 +13,9 @@
 //! 記録のせいで道具を落とさない: 書けない時は行を捨て、stderr には変わり目に 1 行だけ出す。
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError, TryLockError};
 use std::time::Duration;
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::fmt::format::Writer;
@@ -113,20 +113,19 @@ impl RunLog {
         let Some(start) = lines.iter().rposition(|l| kind(l) == "start") else {
             return Previous::First;
         };
-        let find = |name: &str| {
-            lines[start..]
-                .iter()
-                .rfind(|l| kind(l) == name)
-                .map(|l| (*l).to_owned())
-        };
-        if let Some(line) = find("panic") {
-            Previous::Panicked { line }
-        } else if let Some(line) = find("failed") {
-            Previous::Failed { line }
-        } else if let Some(line) = find("stopped") {
-            Previous::Clean { line }
-        } else if let Some(line) = find("signal") {
-            Previous::Signalled { line }
+        // 起きた後の、最後の印で決める（debug の build では、問い合わせの中の panic の後も動き続ける。
+        // その後にきれいに止まったなら、きれいに止まった）。
+        let last = lines[start + 1..]
+            .iter()
+            .rfind(|l| matches!(kind(l), "panic" | "failed" | "stopped" | "signal"));
+        if let Some(line) = last {
+            let line = (*line).to_owned();
+            match kind(&line) {
+                "panic" => Previous::Panicked { line },
+                "failed" => Previous::Failed { line },
+                "stopped" => Previous::Clean { line },
+                _ => Previous::Signalled { line },
+            }
         } else {
             let alive = fs::read(self.dir.join(ALIVE)).unwrap_or_default();
             let alive = String::from_utf8_lossy(&alive).trim().to_owned();
@@ -177,7 +176,13 @@ impl RunLog {
     pub fn panicked(&self, location: &str, message: &str) {
         let message = one_line(message);
         self.mark(&format!("panic at={location} msg={message}"));
-        if let Ok(mut log) = self.log.try_lock() {
+        // 取れないのは、今だれかが持っている時だけ。毒が回っているだけなら、書く。
+        let log = match self.log.try_lock() {
+            Ok(log) => Some(log),
+            Err(TryLockError::Poisoned(e)) => Some(e.into_inner()),
+            Err(TryLockError::WouldBlock) => None,
+        };
+        if let Some(mut log) = log {
             log.line(format!("{} ERROR panic at={location} msg={message}\n", now()).as_bytes());
         }
     }
@@ -204,6 +209,8 @@ impl RunLog {
 
     /// 印と記録を、古い順につないだ字（`GET /api/logs` の答え）。多くて [`RUNS_MAX`] + [`LOG_FILE_MAX`] × [`LOG_FILES`]。
     pub fn read_all(&self) -> Vec<u8> {
+        // 読む間は書き手の lock を持つ（途中で回ると file の名がずれ、1 つぶんの行が抜ける）。
+        let _held = self.log.lock().unwrap_or_else(PoisonError::into_inner);
         let mut all = Vec::new();
         all.extend_from_slice(format!("== {RUNS}\n").as_bytes());
         all.extend(fs::read(self.dir.join(RUNS)).unwrap_or_default());
@@ -228,6 +235,10 @@ impl RunLog {
                 .position(|b| *b == b'\n')
                 .map_or(old.len(), |i| from + i + 1);
             let mut kept = old[from..].to_vec();
+            // 前の回が行の途中で切れていたら、行を分ける。
+            if kept.last().is_some_and(|last| *last != b'\n') {
+                kept.push(b'\n');
+            }
             kept.extend_from_slice(line.as_bytes());
             let tmp = self.dir.join(format!("{RUNS}.tmp"));
             if write_new(&tmp, &kept).is_ok() {
@@ -334,7 +345,12 @@ impl Capped {
         let max = self.max as usize;
         let clipped;
         let bytes = if bytes.len() > max {
-            let mut head = bytes[..max - 1].to_vec();
+            // 字（UTF-8）の途中では切らない: 続きの byte（10xxxxxx）の前まで戻る。
+            let mut end = max - 1;
+            while end > 0 && bytes[end] & 0xC0 == 0x80 {
+                end -= 1;
+            }
+            let mut head = bytes[..end].to_vec();
             head.push(b'\n');
             clipped = head;
             &clipped[..]
@@ -343,12 +359,23 @@ impl Capped {
         };
         if self.file.is_none() {
             fs::create_dir_all(&self.dir)?;
-            let file = OpenOptions::new()
+            let mut file = OpenOptions::new()
                 .create(true)
+                .read(true)
                 .append(true)
                 .open(self.dir.join(LOG))?;
             // 起こし直した時は、今ある大きさから数える。
-            let len = file.metadata()?.len();
+            let mut len = file.metadata()?.len();
+            // 前の行が途中で切れていたら（書きかけで切られた・途中まで書いて誤りになった）、行を分ける。
+            if len > 0 {
+                let mut last = [0u8; 1];
+                file.seek(SeekFrom::End(-1))?;
+                file.read_exact(&mut last)?;
+                if last[0] != b'\n' {
+                    file.write_all(b"\n")?;
+                    len += 1;
+                }
+            }
             self.file = Some((file, len));
         }
         if self
@@ -519,6 +546,122 @@ mod tests {
     }
 
     #[test]
+    fn 本物の上限のまま_上限の_5_倍を_tracing_の書き先に書いても_合わせて_4_mib_を超えない() {
+        let log = RunLog::at(dir("real-cap"));
+        let writer = log.writer();
+        let line = format!("{}\n", "r".repeat(199));
+        let mut written = 0;
+        while written < LOG_FILE_MAX * u64::from(LOG_FILES) * 5 {
+            writer.make_writer().write_all(line.as_bytes()).unwrap();
+            written += line.len() as u64;
+        }
+        log.start("1.2.3");
+        assert_eq!(
+            names(log.dir()),
+            [
+                "alive",
+                "runs.log",
+                "server.log",
+                "server.log.1",
+                "server.log.2",
+                "server.log.3"
+            ]
+        );
+        for n in 0..LOG_FILES {
+            let len = fs::metadata(log.dir().join(rotated(n))).unwrap().len();
+            assert!(len <= LOG_FILE_MAX, "{n}: {len}");
+        }
+        let all = total(log.dir());
+        assert!(
+            all <= LOG_FILE_MAX * u64::from(LOG_FILES) + RUNS_MAX,
+            "{all}"
+        );
+        assert!(
+            all > LOG_FILE_MAX * u64::from(LOG_FILES - 1),
+            "回した file が残る: {all}"
+        );
+        // 読む道の字も、上限の内。
+        assert!(log.read_all().len() as u64 <= LOG_FILE_MAX * u64::from(LOG_FILES) + RUNS_MAX + 64);
+    }
+
+    #[test]
+    fn 長い_1_行は_字の途中で切らない() {
+        let dir = dir("long-utf8");
+        let mut log = Capped::new(&dir, 1000, 2);
+        log.line(format!("{}\n", "あ".repeat(2000)).as_bytes());
+        let bytes = fs::read(dir.join("server.log")).unwrap();
+        assert!(bytes.len() <= 1000 && bytes.len() > 990, "{}", bytes.len());
+        let text = String::from_utf8(bytes).expect("UTF-8 のまま");
+        assert!(text.ends_with("あ\n"));
+    }
+
+    #[test]
+    fn 開き直した時に前の行が途中で切れていたら_行を分ける() {
+        let dir = dir("torn-log");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("server.log"), b"whole\ntor").unwrap();
+        let mut log = Capped::new(&dir, 1000, 2);
+        log.line(b"next\n");
+        assert_eq!(
+            fs::read_to_string(dir.join("server.log")).unwrap(),
+            "whole\ntor\nnext\n"
+        );
+        assert!(total(&dir) <= 2000);
+    }
+
+    #[test]
+    fn panic_の後もきれいに止まれば_きれいに止まった() {
+        // debug の build では、問い合わせの中の panic の後も動き続ける。
+        let log = RunLog::at(dir("panic-then-clean"));
+        log.start("1.2.3");
+        log.panicked("src/x.rs:7", "途中");
+        log.signal("SIGTERM");
+        log.stopped();
+        assert!(matches!(log.previous(), Previous::Clean { .. }));
+    }
+
+    #[test]
+    fn 毒の回った_lock_でも_panic_の行を記録に書く() {
+        let log = RunLog::at(dir("poisoned"));
+        let poison = log.clone();
+        let _ = std::thread::spawn(move || {
+            let _held = poison.log.lock().unwrap();
+            std::panic::resume_unwind(Box::new("毒"));
+        })
+        .join();
+        assert!(log.log.is_poisoned());
+        log.panicked("src/z.rs:3", "毒の後");
+        let server = fs::read_to_string(log.dir().join("server.log")).unwrap();
+        assert!(server.contains(" ERROR panic at=src/z.rs:3"), "{server}");
+    }
+
+    #[test]
+    fn 印を削る時も_切れた最後の行の後で改行する() {
+        let log = RunLog::at(dir("torn-trim"));
+        // 上限のすぐ手前まで埋め、最後の行を途中で切る。
+        while fs::metadata(log.dir().join("runs.log")).map_or(0, |m| m.len()) < RUNS_MAX - 600 {
+            log.failed(&"v".repeat(400));
+        }
+        let path = log.dir().join("runs.log");
+        let mut file = OpenOptions::new().append(true).open(&path).unwrap();
+        file.write_all(format!("2026-01-01T00:00:00.000000Z sig{}", "n".repeat(500)).as_bytes())
+            .unwrap();
+        log.start("1.2.4");
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(
+            (text.len() as u64) < RUNS_MAX / 2 + 2048,
+            "削った: {}",
+            text.len()
+        );
+        let last = text.lines().last().unwrap();
+        assert!(
+            last.starts_with("20") && last.ends_with(" start version=1.2.4"),
+            "{last}"
+        );
+        assert!(matches!(log.previous(), Previous::Unmarked { .. }));
+    }
+
+    #[test]
     fn 上限より長い_1_行は切り詰める() {
         let dir = dir("long");
         let mut log = Capped::new(&dir, 1000, 2);
@@ -660,11 +803,13 @@ mod tests {
         let caught = std::panic::catch_unwind(|| panic!("hook の試験 {}", 42));
         let _ = std::panic::take_hook();
         assert!(caught.is_err());
-        let Previous::Panicked { line } = log.previous() else {
-            panic!("{:?}", log.previous());
-        };
-        assert!(line.contains("at=src/runlog.rs:"), "{line}");
-        assert!(line.ends_with("msg=hook の試験 42"), "{line}");
+        // hook は process 全体の物なので、並べて流れるほかの試験の panic の印も入りうる。自分の文の行を探す。
+        let runs = fs::read_to_string(log.dir().join("runs.log")).unwrap();
+        let line = runs
+            .lines()
+            .find(|l| l.ends_with("msg=hook の試験 42"))
+            .unwrap_or_else(|| panic!("{runs}"));
+        assert!(line.contains(" panic at=src/runlog.rs:"), "{line}");
     }
 
     #[test]

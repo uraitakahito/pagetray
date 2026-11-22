@@ -231,10 +231,11 @@ fn 問い合わせの行は記録の_file_に時刻つきで残り_stdout_には
 }
 
 #[test]
-fn 多く問い合わせても_logs_の合わせた大きさは上限の内() {
+fn 多く問い合わせると記録の_file_が上限で回り_logs_は上限の内() {
     let home = Home::new("cap");
     let server = Server::start(&home);
     // 1 行 約 200 byte × 7,000 = 約 1.4 MiB。file 1 つの上限（1 MiB）を超えて回る。
+    // 見るのは、本物の binary で回ること。上限の何倍も書く試験は、src/runlog.rs の単体（本物の定数のまま 20 MiB）。
     let long = "x".repeat(60);
     for n in 0..7000 {
         assert!(server.get(&format!("/p/k/{n}-{long}.html")).contains("404"));
