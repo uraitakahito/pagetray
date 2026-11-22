@@ -111,7 +111,7 @@ struct Row {
 struct SenderView {
     /// castlist の名。castlist に聞いていなければ「未確認」。
     name: String,
-    /// castlist のアクターの画面（`<castlist の URL>/actors/<id>`）。castlist の URL が無い・未確認なら無い。
+    /// castlist のアクターの画面（`<castlist の link の頭>/actors/<id>`）。castlist の URL が無い・未確認なら無い。
     href: Option<String>,
     /// 付随する id。
     reference: String,
@@ -121,7 +121,7 @@ fn sender_view(castlist: Option<&Castlist>, sender: Option<SenderRecord>) -> Opt
     let sender = sender?;
     let href = castlist
         .zip(sender.actor.as_ref())
-        .map(|(c, a)| format!("{}/actors/{}", c.base(), a.id));
+        .map(|(c, a)| format!("{}/actors/{}", c.link(), a.id));
     Some(SenderView {
         name: sender.actor.map_or_else(|| "未確認".to_owned(), |a| a.name),
         href,

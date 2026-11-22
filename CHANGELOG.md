@@ -9,11 +9,12 @@ API の版: 1（変わらない。引数と答えの欄と code を足しただ�
 **移行の SQL を足した（`0005_senders.sql`）。この版が起きた後の DB では、0.5.0 までの版は起きない。** 上げる前に、DB の写しを取る（[動かす](https://uraitakahito.github.io/pagetray/run.html) の「版を上げる」）。戻す時は、その写しから戻す。
 
 - ページと file の送り手を記録する。置く時に付随する id（`actor_issuer`・`actor_ref`）を書くと、受けたその時に castlist に送り手を聞き、答え（アクターの id・名・種類と、答えた時刻）を残す。
-  - 設定: 環境変数 `PAGETRAY_CASTLIST_URL`（`http://<host>:<port>`）。無ければ castlist に聞かず、付随する id だけを残す（未確認）。
+  - 設定: 環境変数 `PAGETRAY_CASTLIST_URL`（聞く先。`http://<host>:<port>`）。無ければ castlist に聞かず、付随する id だけを残す（未確認）。本番は `http://castlist.box:8080`（container の中から、castlist の container に名でつなぐ）。
+  - 設定: 環境変数 `PAGETRAY_CASTLIST_LINK_URL`（一覧の UI の、castlist のアクターの画面への link の頭。`http://<host>:<port>`。既定 `http://127.0.0.1:8802`）。Product Manager が host の browser で開く所なので、聞く先と別に決める。形が違えば起きない。起きた時の log の頭の行に ` castlist=<聞く先> castlist_link=<link の頭>`。
   - API: `POST /api/pages`・`POST /api/files` に `actor_issuer`・`actor_ref`（両方書くか、両方書かない。片方だけは `400`）。castlist に聞けない（つながらない・1 秒で答えない・`200` でない）時は `503`、castlist に登録の無い送り手は `422` で、どちらも何も置かない。ページと file の記録に `sender` の欄を、`GET /api/pages`・`GET /api/files` に `actor=<アクターの id>` の絞りを足した。一覧の UI から上げた file は、付随する id を読まない。
   - castlist を待つ間は書く取引を始めないので、ほかの置く要求と一覧は待たされない。
   - DB: 表 `senders`（足すだけ。書き換えと消しは trigger が断る）と、`pages.sender_id`・`files.sender_id`（`senders.id` への外部キー）を足した。前からある行は空（送り手なし）。読む接続と書く接続の両方で `foreign_keys` と `recursive_triggers` を付け、起きる時に `PRAGMA foreign_key_check` で合わない行があれば起きない。
-  - 一覧の UI: 送り手を記録したページと file の行に、castlist の名（castlist の URL があれば、castlist のアクターの画面への link）と、その下に小さく付随する id。castlist に聞かなかった送り手は「未確認」。絞り込みの列に「送り手」。
+  - 一覧の UI: 送り手を記録したページと file の行に、castlist の名（castlist の URL があれば、`PAGETRAY_CASTLIST_LINK_URL` を頭にした、castlist のアクターの画面への link）と、その下に小さく付随する id。castlist に聞かなかった送り手は「未確認」。絞り込みの列に「送り手」。
 - CLI は変えていない（付随する id を書く道は、まだ無い）。
 
 ## 0.5.0

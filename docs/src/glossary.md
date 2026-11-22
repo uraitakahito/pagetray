@@ -25,7 +25,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | 番号（number） | `n` | project・Key・種類ごとに、置き場が 1 から付ける数。消した番号は 2 度使わない | version |
 | 役割（role） | `role` | ページを置いた人の役割の名（`tpm`・`human` など）。画面の見出しは「担当者（役割）」 | — |
 | workspace | `workspace` | ページを置いた人の居場所の ID | — |
-| castlist | `PAGETRAY_CASTLIST_URL` | この Mac の中で動く別のサーバー。アクター（Claude Code の session 1 つ・Product Manager）ごとに、本当の id と名を持つ。置き場は、置かれる時に、送り手が誰かを castlist に聞く | — |
+| castlist | `PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL` | pagetray を動かす機械で、別の container として動くサーバー。アクター（Claude Code の session 1 つ・Product Manager）ごとに、本当の id と名を持つ。置き場は、置かれる時に、送り手が誰かを castlist に聞く（聞く先は `PAGETRAY_CASTLIST_URL`）。一覧の UI は、送り手の名から castlist のアクターの画面へ link する（link の頭は `PAGETRAY_CASTLIST_LINK_URL`） | — |
 | アクター（actor） | `actor` | castlist が本当の id と名を付けた、置く人 1 人（Claude Code の session 1 つか、Product Manager） | — |
 | 付随する id（attached id） | `actor_issuer`・`actor_ref` | ほかの道具が持つ、アクターを指す id（`<種類>:<値>`。`claude.session:…` など）と、それを出した物（`tpm` など）。本当の id への引き当ては castlist がする | — |
 | 送り手（sender） | `senders` | ページか file を置いた時の、付随する id と、その時に castlist が答えたアクター（id・名・種類）。castlist に聞かなかった送り手は「未確認」。足すだけで、書き換えも消しもしない | — |

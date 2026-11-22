@@ -48,6 +48,12 @@ export async function reply(request: APIRequestContext, path: string, state: 'wa
 /** 偽の castlist の port（試験の置き場の次の port。playwright.config.ts が置き場に渡す）。 */
 export const CASTLIST_PORT = Number(process.env.PAGETRAY_E2E_PORT ?? 18801) + 1;
 
+/**
+ * 一覧の UI の、castlist のアクターの画面への link の頭（playwright.config.ts が `PAGETRAY_CASTLIST_LINK_URL` で渡す）。
+ * 聞く先（偽の castlist）と違う所にして、link が聞く先から作られていないことを見る。開かないので、待ち受ける物は無い。
+ */
+export const CASTLIST_LINK = `http://localhost:${CASTLIST_PORT + 1}`;
+
 export type Actor = { id: string; name: string; kind: string };
 
 /**

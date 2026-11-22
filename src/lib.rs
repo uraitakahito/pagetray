@@ -32,7 +32,8 @@ pub struct AppState {
     pub db: db::Db,
     /// 置かれたページと file の知らせ。聞いている一覧の UI に push する。
     pub events: tokio::sync::broadcast::Sender<events::Note>,
-    /// 送り手を聞く castlist（`PAGETRAY_CASTLIST_URL`）。無ければ、付随する id だけを残す。
+    /// 送り手を聞く castlist（`PAGETRAY_CASTLIST_URL`）と、画面の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）。
+    /// 無ければ、付随する id だけを残す。
     pub castlist: Option<castlist::Castlist>,
 }
 

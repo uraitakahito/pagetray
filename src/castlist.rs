@@ -1,4 +1,4 @@
-//! castlist（送り手の本当の id と名を持つ、この Mac の中のサーバー）に、送り手を聞く。
+//! castlist（送り手の本当の id と名を持つ、pagetray を動かす機械の中の別のサーバー）に、送り手を聞く。
 //! 聞くのは `POST /v1/resolve` の 1 つだけなので、HTTP/1.1 を TCP の上で直に話す（重い依存を入れない）。
 //! castlist は `Host` が 127.0.0.1・localhost でない要求と、`Origin` の付いた書く要求を断る。だから、つなぐ先が
 //! どこでも `Host: 127.0.0.1` で送り、`Origin` は付けない。
@@ -14,13 +14,16 @@ pub const TIMEOUT: Duration = Duration::from_secs(1);
 /// 読む答えの大きさの上限。
 const MAX_ANSWER: usize = 64 * 1024;
 
-/// castlist の居場所（`PAGETRAY_CASTLIST_URL`）。
+/// castlist の居場所。聞く先（`PAGETRAY_CASTLIST_URL`）と、画面の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）は別。
+/// pagetray は container の中から castlist に聞き、link は Product Manager が host の browser で開くので、届く所が違う。
 #[derive(Clone, Debug)]
 pub struct Castlist {
-    /// つなぐ先（`<host>:<port>`）。
+    /// 聞く先（`<host>:<port>`）。
     addr: String,
-    /// `http://<host>:<port>`。
-    base: String,
+    /// 聞く先の `http://<host>:<port>`。
+    api: String,
+    /// 画面から castlist のアクターを開く URL の頭（`http://<host>:<port>`）。
+    link: String,
 }
 
 /// castlist の答え。`actor` が無ければ、castlist に登録の無い送り手。
@@ -31,33 +34,39 @@ pub struct Answer {
     pub as_of: String,
 }
 
+/// 画面の link の頭の既定。本番の castlist を、host の browser から開く所。
+pub const DEFAULT_LINK: &str = "http://127.0.0.1:8802";
+
 impl Castlist {
-    /// `http://<host>:<port>`（後ろの `/` は無くてよい）。path・利用者の名・`https://` は受けない。
-    pub fn parse(url: &str) -> Result<Self, String> {
-        let rule = || format!("castlist の URL は http://<host>:<port> の形（{url}）");
-        let addr = url
-            .strip_prefix("http://")
-            .map(|rest| rest.strip_suffix('/').unwrap_or(rest))
-            .ok_or_else(rule)?;
-        let (host, port) = addr.rsplit_once(':').ok_or_else(rule)?;
-        let host_ok = !host.is_empty()
-            && host
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-'));
-        let port_ok =
-            port.bytes().all(|b| b.is_ascii_digit()) && port.parse::<u16>().is_ok_and(|p| p > 0);
-        if !host_ok || !port_ok {
-            return Err(rule());
-        }
-        Ok(Self {
-            addr: addr.to_owned(),
-            base: format!("http://{addr}"),
-        })
+    /// 環境変数の値から作る。`api`（`PAGETRAY_CASTLIST_URL`）が無い・空なら、castlist に聞かない（`None`）。
+    /// `link`（`PAGETRAY_CASTLIST_LINK_URL`）が無い・空なら [`DEFAULT_LINK`]。
+    /// どちらも `http://<host>:<port>` の形でなければ断る（`api` が無くても、書いた `link` は見る）。
+    pub fn configure(api: Option<&str>, link: Option<&str>) -> Result<Option<Self>, String> {
+        let link = match link.filter(|v| !v.is_empty()) {
+            Some(url) => parse_base(url)
+                .map(|addr| format!("http://{addr}"))
+                .map_err(|rule| format!("PAGETRAY_CASTLIST_LINK_URL は {rule}"))?,
+            None => DEFAULT_LINK.to_owned(),
+        };
+        let Some(api) = api.filter(|v| !v.is_empty()) else {
+            return Ok(None);
+        };
+        let addr = parse_base(api).map_err(|rule| format!("PAGETRAY_CASTLIST_URL は {rule}"))?;
+        Ok(Some(Self {
+            api: format!("http://{addr}"),
+            addr,
+            link,
+        }))
+    }
+
+    /// 聞く先（`http://<host>:<port>`）。
+    pub fn api(&self) -> &str {
+        &self.api
     }
 
     /// 画面から castlist のアクターを開く URL の頭（`http://<host>:<port>`）。
-    pub fn base(&self) -> &str {
-        &self.base
+    pub fn link(&self) -> &str {
+        &self.link
     }
 
     /// 付随する id の送り手を聞く。聞けなければ（つながらない・1 秒で答えない・200 でない・答えが読めない）、その訳。
@@ -100,6 +109,26 @@ impl Castlist {
         }
         Ok(raw)
     }
+}
+
+/// `http://<host>:<port>`（後ろの `/` は無くてよい）の `<host>:<port>`。path・利用者の名・`https://` は受けない。
+fn parse_base(url: &str) -> Result<String, String> {
+    let rule = || format!("http://<host>:<port> の形（{url}）");
+    let addr = url
+        .strip_prefix("http://")
+        .map(|rest| rest.strip_suffix('/').unwrap_or(rest))
+        .ok_or_else(rule)?;
+    let (host, port) = addr.rsplit_once(':').ok_or_else(rule)?;
+    let host_ok = !host.is_empty()
+        && host
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'-'));
+    let port_ok =
+        port.bytes().all(|b| b.is_ascii_digit()) && port.parse::<u16>().is_ok_and(|p| p > 0);
+    if !host_ok || !port_ok {
+        return Err(rule());
+    }
+    Ok(addr.to_owned())
 }
 
 /// 頭と本文に分ける。
@@ -195,6 +224,8 @@ fn parse_answer(raw: &[u8], actor_ref: &str) -> Result<Answer, String> {
 mod tests {
     use super::*;
 
+    const API: &str = "http://castlist.box:8080";
+
     #[test]
     fn only_http_host_and_port_is_taken() {
         for ok in [
@@ -202,12 +233,16 @@ mod tests {
             "http://127.0.0.1:8802/",
             "http://192.168.64.1:8802",
             "http://localhost:8802",
+            "http://castlist.box:8080",
         ] {
-            let c = Castlist::parse(ok).unwrap_or_else(|e| panic!("{ok}: {e}"));
-            assert_eq!(c.base(), ok.trim_end_matches('/'));
+            // castlist の URL も、画面の link の頭も、同じ決まりで受ける。
+            let c = Castlist::configure(Some(ok), Some(ok))
+                .unwrap_or_else(|e| panic!("{ok}: {e}"))
+                .unwrap();
+            assert_eq!(c.api(), ok.trim_end_matches('/'));
+            assert_eq!(c.link(), ok.trim_end_matches('/'));
         }
         for ng in [
-            "",
             "127.0.0.1:8802",
             "https://127.0.0.1:8802",
             "http://127.0.0.1",
@@ -219,8 +254,55 @@ mod tests {
             "http://127.0.0.1:99999",
             "http://:8802",
         ] {
-            assert!(Castlist::parse(ng).is_err(), "{ng}");
+            let api = Castlist::configure(Some(ng), None).map(|_| ());
+            assert!(
+                api.as_ref()
+                    .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_URL") && e.contains(ng)),
+                "{ng}: {api:?}"
+            );
+            let link = Castlist::configure(Some(API), Some(ng)).map(|_| ());
+            assert!(
+                link.as_ref()
+                    .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_LINK_URL") && e.contains(ng)),
+                "{ng}: {link:?}"
+            );
         }
+    }
+
+    /// 聞く先（container の中から届く所）と、画面の link の頭（Product Manager の browser から開く所）は別に決める。
+    #[test]
+    fn the_link_base_is_separate_from_the_api() {
+        let c = Castlist::configure(Some(API), Some("http://localhost:18802/"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(c.api(), API);
+        assert_eq!(c.link(), "http://localhost:18802");
+    }
+
+    /// 画面の link の頭を書かなければ（空でも）、本番の castlist を host から開く `http://127.0.0.1:8802`。
+    #[test]
+    fn the_link_base_defaults_to_127_0_0_1_8802() {
+        assert_eq!(DEFAULT_LINK, "http://127.0.0.1:8802");
+        for link in [None, Some("")] {
+            let c = Castlist::configure(Some(API), link).unwrap().unwrap();
+            assert_eq!(c.api(), API);
+            assert_eq!(c.link(), DEFAULT_LINK, "{link:?}");
+        }
+    }
+
+    /// castlist の URL が無ければ（空でも）、castlist に聞かず、link も無い。
+    #[test]
+    fn without_the_api_url_there_is_no_castlist() {
+        for api in [None, Some("")] {
+            for link in [None, Some("http://localhost:18802")] {
+                assert!(
+                    Castlist::configure(api, link).unwrap().is_none(),
+                    "{api:?} {link:?}"
+                );
+            }
+        }
+        // 形の違う link の頭は、castlist の URL が無くても、起きる前に断る（書き間違いを黙って捨てない）。
+        assert!(Castlist::configure(None, Some("https://127.0.0.1:8802")).is_err());
     }
 
     const BODY: &str = r#"{"as_of":"2026-11-22T04:00:02.000Z","results":[{"ref":"claude.session:a","actor":{"id":"019a0000-0000-7000-8000-00000000000a","name":"t-23zs.swe.1","kind":"ai"}}]}"#;

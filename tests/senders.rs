@@ -54,23 +54,26 @@ async fn a_page_from_a_known_sender_keeps_the_answer() {
     assert_eq!(listed["pages"][0]["sender"], json["sender"]);
 
     // 一覧の UI: castlist の名（castlist のアクターの画面への link）と、その下に小さく付随する id。
+    // link の頭は、聞いた先（container の中から届く所）でなく、既定の `http://127.0.0.1:8802`（host の browser から開く所）。
     let page = s.text("/?project=p").await;
     let link = format!(
-        r#"<a class="actor" href="{}/actors/{ACTOR_A}" target="_blank" rel="noopener">{NAME_A}</a>"#,
-        fake.url
+        r#"<a class="actor" href="http://127.0.0.1:8802/actors/{ACTOR_A}" target="_blank" rel="noopener">{NAME_A}</a>"#
     );
     assert!(page.contains(&link), "{page}");
+    assert!(!page.contains(&fake.url), "{page}");
     assert!(page.contains("<small>claude.session:a</small>"), "{page}");
 }
 
 #[tokio::test]
 async fn a_file_from_a_known_sender_keeps_the_answer() {
+    // 聞くのは `PAGETRAY_CASTLIST_URL`（偽の castlist）、画面の link の頭は `PAGETRAY_CASTLIST_LINK_URL`。
     let fake = Fake::start().await;
-    let s = Server::with_castlist(&fake.url).await;
+    let s = Server::with_castlist_link(&fake.url, "http://localhost:18802").await;
     let (status, _, json) = s
         .put_file(&format!("{SE}&name=a.png&{AS_PM}"), Some("image/png"), PNG)
         .await;
     assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(fake.requests().len(), 1, "偽の castlist に聞いていない");
     assert_eq!(json["sender"]["actor"]["name"], NAME_B);
     assert_eq!(json["sender"]["actor"]["kind"], "human");
     assert_eq!(json["sender"]["ref"], "tpm.person:pm");
@@ -81,9 +84,12 @@ async fn a_file_from_a_known_sender_keeps_the_answer() {
 
     let page = s.text("/p/SKILLS-14/").await;
     assert!(
-        page.contains(&format!("{}/actors/{ACTOR_B}", fake.url)),
+        page.contains(&format!(
+            r#"href="http://localhost:18802/actors/{ACTOR_B}""#
+        )),
         "{page}"
     );
+    assert!(!page.contains(&fake.url), "{page}");
     assert!(page.contains("<small>tpm.person:pm</small>"), "{page}");
 }
 

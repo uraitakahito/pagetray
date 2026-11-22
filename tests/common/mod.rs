@@ -29,9 +29,20 @@ impl Server {
         Self::start_with(|state| state).await
     }
 
-    /// 送り手を、この URL の castlist に聞く置き場。
+    /// 送り手を、この URL の castlist に聞く置き場（画面の link の頭は書かない。既定になる）。
     pub async fn with_castlist(url: &str) -> Self {
-        let castlist = pagetray::castlist::Castlist::parse(url).unwrap();
+        Self::with_castlist_config(Some(url), None).await
+    }
+
+    /// 送り手を `api` の castlist に聞き、画面の link は `link` を頭にする置き場。
+    pub async fn with_castlist_link(api: &str, link: &str) -> Self {
+        Self::with_castlist_config(Some(api), Some(link)).await
+    }
+
+    async fn with_castlist_config(api: Option<&str>, link: Option<&str>) -> Self {
+        let castlist = pagetray::castlist::Castlist::configure(api, link)
+            .unwrap()
+            .unwrap();
         Self::start_with(|state| state.with_castlist(castlist)).await
     }
 

@@ -6,20 +6,22 @@ use tokio::signal::unix::{SignalKind, signal};
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let path = PathBuf::from(env_or("PAGETRAY_DB", "/data/pages.db"));
     let listen = env_or("PAGETRAY_LISTEN", "0.0.0.0:8080");
-    // 送り手を聞く castlist。無ければ、付随する id だけを残す（未確認）。
-    let castlist = match std::env::var("PAGETRAY_CASTLIST_URL") {
-        Ok(url) if !url.is_empty() => Some(Castlist::parse(&url)?),
-        _ => None,
-    };
+    // 送り手を聞く castlist と、画面の castlist への link の頭。castlist の URL が無ければ、付随する id だけを残す（未確認）。
+    let castlist = Castlist::configure(
+        std::env::var("PAGETRAY_CASTLIST_URL").ok().as_deref(),
+        std::env::var("PAGETRAY_CASTLIST_LINK_URL").ok().as_deref(),
+    )?;
     let db = Db::open(&path).await?;
     let listener = tokio::net::TcpListener::bind(&listen).await?;
     println!(
         "pagetray {} listen={listen} db={}{}",
         env!("CARGO_PKG_VERSION"),
         path.display(),
-        castlist
-            .as_ref()
-            .map_or(String::new(), |c| format!(" castlist={}", c.base()))
+        castlist.as_ref().map_or(String::new(), |c| format!(
+            " castlist={} castlist_link={}",
+            c.api(),
+            c.link()
+        ))
     );
     let state = AppState::new(db.clone());
     let state = match castlist {
