@@ -48,26 +48,49 @@ struct Server {
 
 impl Server {
     /// この folder の DB で起こし、受けられるようになるまで待つ。
+    ///
+    /// 空いた port は「取って、放して、渡す」ので、並べて流れる別の試験の server に先に取られることがある。
+    /// つながるかでは見分けられない（つながった先が別の server かもしれない）。自分の stdout に、待ち受けた後の
+    /// 行（listen=）が出るまで待ち、待ち受けられずに終わったら、印を戻して別の port でやり直す。
     fn start(home: &Home) -> Self {
-        let port = TcpListener::bind("127.0.0.1:0")
-            .and_then(|l| l.local_addr())
-            .unwrap()
-            .port();
-        let stdout = home.0.join(format!("stdout-{port}.txt"));
-        let mut child = spawn(&home.0.join("pages.db"), port, &stdout);
-        let started = Instant::now();
-        while TcpStream::connect(("127.0.0.1", port)).is_err() {
-            if let Some(status) = child.try_wait().unwrap() {
-                panic!("起きる前に終わった: {status}");
+        let runs = home.logs().join("runs.log");
+        let before = std::fs::read(&runs).ok();
+        for _ in 0..20 {
+            let port = TcpListener::bind("127.0.0.1:0")
+                .and_then(|l| l.local_addr())
+                .unwrap()
+                .port();
+            let stdout = home.0.join(format!("stdout-{port}.txt"));
+            let mut child = spawn(&home.0.join("pages.db"), port, &stdout);
+            let started = Instant::now();
+            let listening = loop {
+                let out = std::fs::read_to_string(&stdout).unwrap_or_default();
+                if out.contains(&format!(" listen=127.0.0.1:{port} ")) {
+                    break true;
+                }
+                if child.try_wait().unwrap().is_some() {
+                    break false;
+                }
+                assert!(
+                    started.elapsed() < Duration::from_secs(10),
+                    "起きない: {out}"
+                );
+                std::thread::sleep(Duration::from_millis(20));
+            };
+            if listening {
+                return Self {
+                    child,
+                    port,
+                    stdout,
+                };
             }
-            assert!(started.elapsed() < Duration::from_secs(10), "起きない");
-            std::thread::sleep(Duration::from_millis(20));
+            // 取られた port で終わった回の印を消す（試験が見るのは、やり直しの前までの印）。
+            match &before {
+                Some(bytes) => std::fs::write(&runs, bytes).unwrap(),
+                None => drop(std::fs::remove_file(&runs)),
+            }
         }
-        Self {
-            child,
-            port,
-            stdout,
-        }
+        panic!("20 回やり直しても、空いた port で起きない");
     }
 
     fn get(&self, path: &str) -> String {
