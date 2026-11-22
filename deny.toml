@@ -1,14 +1,6 @@
 # 弱点の見張り（cargo deny check advisories）。CI が PR ごとと週に 1 度流す。
 [advisories]
 yanked = "deny"
-ignore = [
-  { id = "RUSTSEC-2026-0592", reason = "url 2.5.9 が公開から 2 日たつ 2026-11-22T23:03Z まで。期限 2026-11-23 に上げて消す" },
-]
-# RUSTSEC-2026-0592（url 2.5.8 の Url::origin() が入れ子の blob: URL で stack overflow）: 直った url 2.5.9 は
-# 2026-11-20T23:03Z の公開で、.cargo/config.toml の「公開から 2 日」に 2026-11-22T23:03Z まで当たる。
-# pagetray は url を直に使わない。sqlx が接続の字を読むのに使うだけで、pagetray は file の path から
-# 接続の設定を作るので（src/db.rs の Db::open）、外から来た URL を渡さない。Url::origin() も呼ばれない。
-# 期限: 2026-11-23。2026-11-22T23:03Z を過ぎたら `cargo update -p url` で 2.5.9 に上げ、この ignore を消す PR を出す（t-pua8）。
 
 # crate の license。pagetray は MIT で配る（image と、release に付ける CLI に、crate の code が入る）。
 # ここに無い license の crate が入ると落ちる。足す時は、MIT の物と一緒に配れるかを見てから、PR で足す。
