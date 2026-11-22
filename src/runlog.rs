@@ -56,17 +56,16 @@ pub enum Previous {
 impl std::fmt::Display for Previous {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::First => write!(f, "前回: 無し（初めての起動）"),
-            Self::Clean { line } => write!(f, "前回: きれいに止まった（{line}）"),
+            Self::First => write!(f, "previous: none (first start)"),
+            Self::Clean { line } => write!(f, "previous: stopped cleanly ({line})"),
             Self::Signalled { line } => {
-                write!(f, "前回: 合図は受けたが、終わり切らなかった（{line}）")
+                write!(f, "previous: got a stop signal but did not finish ({line})")
             }
-            Self::Panicked { line } => write!(f, "前回: panic で落ちた（{line}）"),
-            Self::Failed { line } => write!(f, "前回: 誤りで終わった（{line}）"),
-            Self::Unmarked { started, alive } => write!(
-                f,
-                "前回: 停止の印なし（{started}。最後に生きていた時刻 {alive}）"
-            ),
+            Self::Panicked { line } => write!(f, "previous: panicked ({line})"),
+            Self::Failed { line } => write!(f, "previous: failed ({line})"),
+            Self::Unmarked { started, alive } => {
+                write!(f, "previous: no stop mark ({started}; last alive {alive})")
+            }
         }
     }
 }
@@ -134,7 +133,7 @@ impl RunLog {
             Previous::Unmarked {
                 started: lines[start].to_owned(),
                 alive: if alive.is_empty() {
-                    "不明".to_owned()
+                    "unknown".to_owned()
                 } else {
                     alive
                 },
@@ -206,9 +205,9 @@ impl RunLog {
     /// 印と記録を、古い順につないだ字（`GET /api/logs` の答え）。多くて [`RUNS_MAX`] + [`LOG_FILE_MAX`] × [`LOG_FILES`]。
     pub fn read_all(&self) -> Vec<u8> {
         let mut all = Vec::new();
-        all.extend_from_slice(format!("== {RUNS}（終わり方の印）\n").as_bytes());
+        all.extend_from_slice(format!("== {RUNS}\n").as_bytes());
         all.extend(fs::read(self.dir.join(RUNS)).unwrap_or_default());
-        all.extend_from_slice(format!("== {LOG}（古い順）\n").as_bytes());
+        all.extend_from_slice(format!("== {LOG} (oldest first)\n").as_bytes());
         for n in (0..LOG_FILES).rev() {
             all.extend(fs::read(self.dir.join(rotated(n))).unwrap_or_default());
         }
@@ -317,13 +316,13 @@ impl Capped {
                 self.failing = true;
                 self.file = None;
                 eprintln!(
-                    "記録の file に書けなくなった（行は捨てる）: {}: {e}",
+                    "log files are not writable, dropping lines: {}: {e}",
                     self.dir.display()
                 );
             }
             (Ok(()), true) => {
                 self.failing = false;
-                eprintln!("記録の file に書けるようになった: {}", self.dir.display());
+                eprintln!("log files are writable again: {}", self.dir.display());
             }
             (Err(_), true) => self.file = None,
             (Ok(()), false) => {}

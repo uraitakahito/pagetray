@@ -11,7 +11,9 @@ import { join } from 'node:path';
 
 const port = Number(process.env.PAGETRAY_E2E_PORT ?? 18801);
 const server = process.env.PAGETRAY_E2E_SERVER ?? '../target/debug/pagetray-server';
-const db = join(tmpdir(), `pagetray-e2e-${port}.db`);
+// DB は、この試験だけの folder に置く（サーバーが、DB の隣の logs/ に記録を残すため）。
+const home = join(tmpdir(), `pagetray-e2e-${port}`);
+const db = join(home, 'pages.db');
 // 動いている置き場に向ける時。本物の置き場には何も書かない: 置く試験は、下の grep で 1 本も流れない。
 const store = process.env.PAGETRAY_E2E_URL;
 
@@ -35,8 +37,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: store ? undefined : {
-    // 前の回の DB を消してから起こす（試験は、いつも空の置き場から始まる）。
-    command: `rm -f "${db}" "${db}-wal" "${db}-shm" && exec "${server}"`,
+    // 前の回の DB と記録を消してから起こす（試験は、いつも空の置き場から始まる）。
+    command: `rm -rf "${home}" && mkdir -p "${home}" && exec "${server}"`,
     // 送り手は、次の port の偽の castlist に聞く。偽の castlist は、送り手を見る試験の間だけ立つ。
     // 画面の link の頭は、聞く先と別の値にする（helpers.ts の CASTLIST_LINK と同じ値）。
     env: {

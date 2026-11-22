@@ -135,7 +135,7 @@ fn 初めての起動は_前回が無いと出て_起きた行に時刻が付く
     let home = Home::new("first");
     let server = Server::start(&home);
     let out = server.stdout();
-    assert!(out.contains("前回: 無し（初めての起動）"), "{out}");
+    assert!(out.contains("previous: none (first start)"), "{out}");
     let line = out.lines().find(|l| l.contains(" listen=")).unwrap();
     assert!(
         line.starts_with("20") && line.contains("Z  INFO "),
@@ -164,7 +164,7 @@ fn 止める合図で止めると_次の起動で_きれいに止まったと出
     assert_eq!(kinds, ["start", "signal", "stopped"], "{runs}");
     let server = Server::start(&home);
     assert!(
-        server.stdout().contains("前回: きれいに止まった（"),
+        server.stdout().contains("previous: stopped cleanly ("),
         "{}",
         server.stdout()
     );
@@ -177,9 +177,9 @@ fn 合図なしで切られると_次の起動で_停止の印なしと最後に
     Server::start(&home).kill();
     let server = Server::start(&home);
     let out = server.stdout();
-    let line = out.lines().find(|l| l.contains("前回: ")).unwrap();
-    assert!(line.contains("前回: 停止の印なし（"), "{line}");
-    assert!(line.contains("最後に生きていた時刻 20"), "{line}");
+    let line = out.lines().find(|l| l.contains("previous: ")).unwrap();
+    assert!(line.contains("previous: no stop mark ("), "{line}");
+    assert!(line.contains("last alive 20"), "{line}");
     server.terminate();
 }
 
@@ -194,7 +194,7 @@ fn db_を開けずに終わると_次の起動で_誤りで終わったと訳が
     std::fs::remove_dir_all(home.0.join("pages.db")).unwrap();
     let server = Server::start(&home);
     assert!(
-        server.stdout().contains("前回: 誤りで終わった（"),
+        server.stdout().contains("previous: failed ("),
         "{}",
         server.stdout()
     );

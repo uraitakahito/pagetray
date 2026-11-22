@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # image が、空の image の中で起き、ページと file を置いて読めて、browser から来た書く要求を決めたとおりに断り・通し、
-# 止める合図で終わり、起こし直しても残るかを見る。
+# 止める合図で終わり、起こし直しても残るか、前回の終わり方を次の起動で出すかを見る。
 # 使い方: ci/smoke-image.sh <image>
 set -euo pipefail
 
@@ -58,6 +58,17 @@ docker stop "$name"
 test "$(docker inspect -f '{{.State.ExitCode}}' "$name")" = 0
 docker start "$name"
 up
+# 終わり方の印（volume の logs/）: 止める合図で止めた後の起動は「きれいに止まった」と出す。
+docker logs "$name" 2>&1 | grep -q 'previous: stopped cleanly ('
+# 合図なしで切った（SIGKILL）後の起動は「停止の印なし」と、最後に生きていた時刻を出す。
+docker kill "$name"
+docker start "$name"
+up
+docker logs "$name" 2>&1 | grep -q 'previous: no stop mark (.*; last alive 20'
+# 残した記録は、止めずに読める。起こし直す前の問い合わせの行も、時刻つきで残っている。
+curl -fsS "$url/api/logs" >"$tmp/logs.txt"
+grep -q ' start version=' "$tmp/logs.txt"
+grep -q 'uri=/api/version' "$tmp/logs.txt"
 curl -fsS "$url/ci/K-1/result-1.html" | grep -q 'image の中で動く'
 curl -fsS "$url/?q=image" | grep -q 'result-1'
 rm -f "$tmp/got.png"
