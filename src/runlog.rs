@@ -108,8 +108,38 @@ impl RunLog {
 
     /// 前の回の終わり方を、印から読む。[`RunLog::start`] の前に呼ぶ。
     pub fn previous(&self) -> Previous {
-        // 骨組み: まだ書いていない。
-        Previous::First
+        let runs = fs::read(self.dir.join(RUNS)).unwrap_or_default();
+        let runs = String::from_utf8_lossy(&runs);
+        let lines: Vec<&str> = runs.lines().filter(|l| !l.trim().is_empty()).collect();
+        let Some(start) = lines.iter().rposition(|l| kind(l) == "start") else {
+            return Previous::First;
+        };
+        let find = |name: &str| {
+            lines[start..]
+                .iter()
+                .rfind(|l| kind(l) == name)
+                .map(|l| (*l).to_owned())
+        };
+        if let Some(line) = find("panic") {
+            Previous::Panicked { line }
+        } else if let Some(line) = find("failed") {
+            Previous::Failed { line }
+        } else if let Some(line) = find("stopped") {
+            Previous::Clean { line }
+        } else if let Some(line) = find("signal") {
+            Previous::Signalled { line }
+        } else {
+            let alive = fs::read(self.dir.join(ALIVE)).unwrap_or_default();
+            let alive = String::from_utf8_lossy(&alive).trim().to_owned();
+            Previous::Unmarked {
+                started: lines[start].to_owned(),
+                alive: if alive.is_empty() {
+                    "不明".to_owned()
+                } else {
+                    alive
+                },
+            }
+        }
     }
 
     /// 起きた印。
@@ -135,7 +165,10 @@ impl RunLog {
 
     /// 生きている印を刻む（別の名に書いてから入れ替える。書きかけで止められても、前の時刻が残る）。
     pub fn beat(&self) {
-        // 骨組み: まだ書いていない。
+        let tmp = self.dir.join(format!("{ALIVE}.tmp"));
+        if write_new(&tmp, now().as_bytes()).is_ok() {
+            let _ = fs::rename(&tmp, self.dir.join(ALIVE));
+        }
     }
 
     /// panic の印と、記録の file の ERROR の行。panic の hook から呼ぶ。
@@ -143,25 +176,74 @@ impl RunLog {
     /// 記録の書き手の lock を待たない: 書き手の中で panic した時に、同じ糸が同じ lock を取りに行くと固まる。
     /// 印は lock を通さずに書き、記録の file へは `try_lock` で、取れなければ書かない。
     pub fn panicked(&self, location: &str, message: &str) {
-        // 骨組み: まだ書いていない。
-        let _ = (location, message);
+        let message = one_line(message);
+        self.mark(&format!("panic at={location} msg={message}"));
+        if let Ok(mut log) = self.log.try_lock() {
+            log.line(format!("{} ERROR panic at={location} msg={message}\n", now()).as_bytes());
+        }
     }
 
     /// panic の時に [`RunLog::panicked`] を呼ぶ hook を置く。元の hook（stderr に出す）も続けて呼ぶ。
     pub fn hook_panics(&self) {
-        // 骨組み: まだ書いていない。
+        let log = self.clone();
+        let before = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            let location = info
+                .location()
+                .map(|l| format!("{}:{}", l.file(), l.line()))
+                .unwrap_or_default();
+            let payload = info.payload();
+            let message = payload
+                .downcast_ref::<&str>()
+                .map(|s| (*s).to_owned())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_default();
+            log.panicked(&location, &message);
+            before(info);
+        }));
     }
 
     /// 印と記録を、古い順につないだ字（`GET /api/logs` の答え）。多くて [`RUNS_MAX`] + [`LOG_FILE_MAX`] × [`LOG_FILES`]。
     pub fn read_all(&self) -> Vec<u8> {
-        // 骨組み: まだ書いていない。
-        Vec::new()
+        let mut all = Vec::new();
+        all.extend_from_slice(format!("== {RUNS}（終わり方の印）\n").as_bytes());
+        all.extend(fs::read(self.dir.join(RUNS)).unwrap_or_default());
+        all.extend_from_slice(format!("== {LOG}（古い順）\n").as_bytes());
+        for n in (0..LOG_FILES).rev() {
+            all.extend(fs::read(self.dir.join(rotated(n))).unwrap_or_default());
+        }
+        all
     }
 
     /// 印を 1 行足す。足す前に大きさを見て、上限を超えるなら古い半分を落とす。書けなければ黙って捨てる。
     fn mark(&self, text: &str) {
-        // 骨組み: まだ書いていない。
-        let _ = text;
+        let line = format!("{} {}\n", now(), clip(text, RUN_LINE_MAX - 40));
+        let path = self.dir.join(RUNS);
+        let old = fs::read(&path).unwrap_or_default();
+        let _ = fs::create_dir_all(&self.dir);
+        if old.len() + line.len() + 1 > RUNS_MAX as usize {
+            // 新しい半分を、行の頭から残す。別の名に書いてから入れ替える。
+            let from = old.len().saturating_sub(RUNS_MAX as usize / 2);
+            let from = old[from..]
+                .iter()
+                .position(|b| *b == b'\n')
+                .map_or(old.len(), |i| from + i + 1);
+            let mut kept = old[from..].to_vec();
+            kept.extend_from_slice(line.as_bytes());
+            let tmp = self.dir.join(format!("{RUNS}.tmp"));
+            if write_new(&tmp, &kept).is_ok() {
+                let _ = fs::rename(&tmp, &path);
+            }
+            return;
+        }
+        // 前の回が行の途中で切れていたら、行を分ける。
+        let line = match old.last() {
+            Some(last) if *last != b'\n' => format!("\n{line}"),
+            _ => line,
+        };
+        if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&path) {
+            let _ = file.write_all(line.as_bytes());
+        }
     }
 }
 
@@ -249,8 +331,37 @@ impl Capped {
     }
 
     fn append(&mut self, bytes: &[u8]) -> io::Result<()> {
-        // 骨組み: まだ書いていない。
-        let _ = bytes;
+        // 上限より長い 1 行は切り詰め、行の終わりを付け直す。
+        let max = self.max as usize;
+        let clipped;
+        let bytes = if bytes.len() > max {
+            let mut head = bytes[..max - 1].to_vec();
+            head.push(b'\n');
+            clipped = head;
+            &clipped[..]
+        } else {
+            bytes
+        };
+        if self.file.is_none() {
+            fs::create_dir_all(&self.dir)?;
+            let file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(self.dir.join(LOG))?;
+            // 起こし直した時は、今ある大きさから数える。
+            let len = file.metadata()?.len();
+            self.file = Some((file, len));
+        }
+        if self
+            .file
+            .as_ref()
+            .is_some_and(|(_, len)| len + bytes.len() as u64 > self.max)
+        {
+            self.rotate()?;
+        }
+        let (file, len) = self.file.as_mut().expect("上で開いた");
+        file.write_all(bytes)?;
+        *len += bytes.len() as u64;
         Ok(())
     }
 
@@ -309,8 +420,27 @@ impl Write for LogLine<'_> {
 /// - stdout: 同じ行のうち、問い合わせごとの行（tower_http）を除いた物。container の log には上限が無いので、
 ///   量を増やさない。
 pub fn init(log: &RunLog) {
-    // 骨組み: まだ書いていない。
-    let _ = log;
+    use tracing::level_filters::LevelFilter;
+    use tracing_subscriber::Layer;
+    use tracing_subscriber::filter::Targets;
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+
+    let targets = Targets::new()
+        .with_default(LevelFilter::INFO)
+        .with_target("sqlx", LevelFilter::WARN);
+    let to_file = tracing_subscriber::fmt::layer()
+        .with_ansi(false)
+        .with_writer(log.writer())
+        .with_filter(targets.clone());
+    let to_stdout = tracing_subscriber::fmt::layer()
+        .with_ansi(false)
+        .with_writer(io::stdout)
+        .with_filter(targets.with_target("tower_http", LevelFilter::OFF));
+    tracing_subscriber::registry()
+        .with(to_file)
+        .with(to_stdout)
+        .init();
 }
 
 /// [`ALIVE_EVERY`] ごとに、生きている印を刻み続ける。
