@@ -17,7 +17,7 @@ members = ["crates/api", "crates/cli"]
 
 # 版はここだけに書く（release の workflow が、この file の初めの `version = "…"` の行を tag と突き合わせる）。
 [workspace.package]
-version = "0.4.2"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.100"
 license = "MIT"

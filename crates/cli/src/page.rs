@@ -1,9 +1,9 @@
-//! `pagetray page …`: ページを探す・読む・置く・消す・新着を待つ。
+//! `pagetray page …`: ページを探す・読む・置く・消す・返事の状態を書く・新着を待つ。
 
 use crate::client::{Client, Failure};
 use crate::output;
-use clap::{Args, Subcommand};
-use pagetray_api::{PageRecord, is_page_path, is_segment, parse_file};
+use clap::{Args, Subcommand, ValueEnum};
+use pagetray_api::{PageRecord, is_page_path, is_segment, parse_file, parse_page_path};
 use serde::Deserialize;
 use std::io::{BufRead, BufReader, IsTerminal, Read, Write};
 use std::path::PathBuf;
@@ -18,8 +18,45 @@ pub enum PageCommand {
     Put(PutArgs),
     /// ページを消す（戻せない）。まず消す物を一覧で出し、--yes を付けた時だけ消す
     Delete(DeleteArgs),
+    /// ページの返事の状態（返事待ち・答えた）を書く
+    Reply(ReplyArgs),
     /// ページが置かれるたびに 1 行出す（止めるまで待ち続ける）
     Watch(WatchArgs),
+}
+
+/// 返事の状態。API の `reply`・`state` の値と同じ名。
+#[derive(Clone, Copy, ValueEnum)]
+pub enum ReplyState {
+    /// 返事待ち（求めて、まだ答えていない）
+    Waiting,
+    /// 答えた
+    Answered,
+}
+
+impl ReplyState {
+    fn name(self) -> &'static str {
+        match self {
+            ReplyState::Waiting => "waiting",
+            ReplyState::Answered => "answered",
+        }
+    }
+}
+
+#[derive(Args)]
+#[command(group(clap::ArgGroup::new("state").required(true).multiple(false).args(["waiting", "answered"])))]
+pub struct ReplyArgs {
+    /// ページの URL か、`<project>/<key>/<種類>-<番号>`
+    #[arg(allow_hyphen_values = true)]
+    page: String,
+    /// 返事待ちにする
+    #[arg(long)]
+    waiting: bool,
+    /// 答えたにする
+    #[arg(long)]
+    answered: bool,
+    /// ページの記録を JSON で出す（既定は、状態と URL の 1 行）
+    #[arg(long)]
+    json: bool,
 }
 
 #[derive(Args)]
@@ -111,6 +148,9 @@ pub struct ListArgs {
     /// 題と本文の字を探す
     #[arg(short, long = "query", value_name = "語")]
     q: Option<String>,
+    /// 返事の状態で絞る（waiting は返事待ち、answered は答えた物だけ）
+    #[arg(long, value_enum, value_name = "状態")]
+    reply: Option<ReplyState>,
     /// この時刻より前に置いた物（2026-01-02T03:04:05Z の形）
     #[arg(long, value_name = "時刻")]
     before: Option<String>,
@@ -159,6 +199,7 @@ pub fn run(client: &Client, command: PageCommand) -> Result<Vec<u8>, Failure> {
         PageCommand::View(args) => view(client, args),
         PageCommand::Put(args) => put(client, args).map(String::into_bytes),
         PageCommand::Delete(args) => delete(client, args).map(String::into_bytes),
+        PageCommand::Reply(args) => reply(client, args).map(String::into_bytes),
         PageCommand::Watch(args) => watch(client, args).map(|()| Vec::new()),
     }
 }
@@ -185,6 +226,9 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
     if args.oldest {
         query.push(("sort", "created_at"));
     }
+    if let Some(state) = args.reply {
+        query.push(("reply", state.name()));
+    }
     let listed: Listed = client
         .get("/api/pages", &query)?
         .ok("置き場が一覧を返さなかった")?
@@ -206,18 +250,20 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
     }
     // project で絞った時は、どの行も同じになる project の欄を出さない。
     let with_project = project.is_none();
-    let mut header = vec!["CREATED", "KEY", "PAGE", "ROLE", "URL", "TITLE"];
+    let mut header = vec!["CREATED", "KEY", "PAGE", "ROLE", "REPLY", "URL", "TITLE"];
     if with_project {
         header.insert(1, "PROJECT");
     }
     let rows: Vec<Vec<String>> = pages
         .into_iter()
         .map(|p| {
+            let reply = reply_of(&p).to_owned();
             let mut row = vec![
                 p.created_at,
                 p.key,
                 format!("{}-{}", p.kind, p.n),
                 p.role,
+                reply,
                 p.url.unwrap_or_default(),
                 p.title,
             ];
@@ -228,6 +274,68 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
         })
         .collect();
     Ok(output::table(&header, &rows, tty))
+}
+
+/// 一覧に出す、返事の状態の字（返事を求めていないページは `-`）。
+fn reply_of(page: &PageRecord) -> &'static str {
+    match (&page.asked_at, &page.answered_at) {
+        (_, Some(_)) => "answered",
+        (Some(_), None) => "waiting",
+        (None, None) => "-",
+    }
+}
+
+/// ページ 1 枚の返事の状態を書く（`POST /api/pages/reply`）。
+fn reply(client: &Client, args: ReplyArgs) -> Result<String, Failure> {
+    let path = page_path_of(&args.page)?;
+    let Some((project, key, kind, n)) = parse_page_path(&path) else {
+        return Err(Failure::usage(format!(
+            "ページの URL か <project>/<key>/<種類>-<番号> を書く: {}",
+            args.page
+        )));
+    };
+    let state = if args.answered {
+        ReplyState::Answered
+    } else {
+        ReplyState::Waiting
+    };
+    let n = n.to_string();
+    let query = [
+        ("project", project),
+        ("key", key),
+        ("kind", kind),
+        ("n", n.as_str()),
+        ("state", state.name()),
+    ];
+    let sent = client.send("POST", "/api/pages/reply", &query, None)?;
+    // 0.5.0 より前の置き場には、この道が無い。project が api のページは無いので、405 はその印。
+    if sent.status == 405 {
+        return Err(Failure::new(
+            1,
+            format!(
+                "置き場（{}）の版が古く、返事の状態を書けない（0.5.0 から）",
+                client.base
+            ),
+        ));
+    }
+    let page: PageRecord = sent
+        .ok(&format!("返事の状態を書けない: {}{path}", client.base))?
+        .json()?;
+    let page = PageRecord {
+        url: Some(format!("{}{}", client.base, page.path)),
+        ..page
+    };
+    if args.json {
+        Ok(output::pretty(
+            &serde_json::to_value(&page).unwrap_or_default(),
+        ))
+    } else {
+        Ok(format!(
+            "{}\t{}\n",
+            reply_of(&page),
+            page.url.as_deref().unwrap_or_default()
+        ))
+    }
 }
 
 fn view(client: &Client, args: ViewArgs) -> Result<Vec<u8>, Failure> {

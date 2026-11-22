@@ -82,12 +82,16 @@ pub fn is_timestamp(s: &str) -> bool {
 
 /// 置き場の中のページの path（`/<project>/<key>/<kind>-<n>.html`）の形か。
 pub fn is_page_path(path: &str) -> bool {
-    let mut parts = path.strip_prefix('/').unwrap_or("/").split('/');
-    let (project, key, file) = (parts.next(), parts.next(), parts.next());
-    parts.next().is_none()
-        && project.is_some_and(is_segment)
-        && key.is_some_and(is_segment)
-        && file.and_then(parse_file).is_some()
+    parse_page_path(path).is_some()
+}
+
+/// ページの path（`/<project>/<key>/<kind>-<n>.html`）を、project・Key・種類・番号に分ける。
+pub fn parse_page_path(path: &str) -> Option<(&str, &str, &str, i64)> {
+    let mut parts = path.strip_prefix('/')?.split('/');
+    let (project, key, file) = (parts.next()?, parts.next()?, parts.next()?);
+    let (kind, n) = parse_file(file)?;
+    (parts.next().is_none() && is_segment(project) && is_segment(key))
+        .then_some((project, key, kind, n))
 }
 
 /// `<kind>-<n>.html` を分ける。番号は、頭に 0 の無い 1 以上の数だけ（1 枚に URL は 1 つ）。

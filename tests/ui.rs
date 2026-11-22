@@ -394,3 +394,78 @@ async fn a_put_is_pushed_to_listeners() {
     assert_eq!(json["role"], "software-engineer");
     assert_eq!(json["title"], "結果");
 }
+
+/// 返事の状態を書く。
+async fn mark(s: &Server, page: &str, state: &str) {
+    let uri = format!("/api/pages/reply?{page}&state={state}");
+    let (status, _, _) = s.send(request("POST", &uri, Body::empty())).await;
+    assert_eq!(status, StatusCode::OK, "{uri}");
+}
+
+#[tokio::test]
+async fn pages_waiting_for_a_reply_are_marked_counted_and_filtered() {
+    let s = seeded().await;
+    // 返事の状態が無い間は、印も、操作の帯の数も、絞り込みの見出しも出ない。
+    let page = s.text("/").await;
+    assert!(page.contains("<title>ページの置き場</title>"));
+    assert!(page.contains(r#"id="waiting" href="/?reply=waiting""#));
+    assert!(page.contains(" hidden>返事待ち 0 件</a>"));
+    assert!(!page.contains("<h2>返事</h2>"));
+    assert!(!page.contains(r#" data-reply=""#));
+    assert!(!page.contains(r#"class="reply "#));
+
+    mark(&s, "project=p&key=A-1&kind=plan&n=1", "waiting").await;
+    mark(&s, "project=p&key=B-2&kind=plan&n=1", "answered").await;
+    let page = s.text("/?sort=created_at").await;
+    assert!(page.contains("<title>返事待ち 1 件 ・ ページの置き場</title>"));
+    // 操作の帯の数は、絞り込みに関わらず置き場の全部。押す先は、返事待ちだけ（並びは保つ）。
+    assert!(page.contains(r#"id="waiting" href="/?reply=waiting&#38;sort=created_at" title="Product Manager の返事を待っているページだけに絞る">返事待ち 1 件</a>"#), "{page}");
+    assert!(page.contains("<h2>返事</h2>"));
+    assert!(
+        page.contains(
+            r#"<a href="/?reply=waiting&#38;sort=created_at"><span>返事待ち</span><span class="n">1</span></a>"#
+        ),
+        "{page}"
+    );
+    assert!(
+        page.contains(
+            r#"<a href="/?reply=answered&#38;sort=created_at"><span>答えた</span><span class="n">1</span></a>"#
+        )
+    );
+    assert!(page.contains(r#"<li data-path="/p/A-1/plan-1.html" data-at="2026-11-02T00:00:00Z" data-reply="waiting">"#), "{page}");
+    assert!(page.contains(
+        r#"<span class="name">plan-1</span><span class="reply waiting">返事待ち</span>"#
+    ));
+    assert!(page.contains(r#"<li data-path="/p/B-2/plan-1.html" data-at="2026-11-03T00:00:00Z" data-reply="answered">"#));
+    assert!(page.contains(r#"<span class="reply answered">答えた</span>"#));
+    // 返事を求めていないページの行には、何も足さない。
+    assert!(
+        page.contains(r#"<li data-path="/p/A-1/brief-1.html" data-at="2026-11-01T00:00:00Z"><a"#)
+    );
+
+    let page = s.text("/?reply=waiting").await;
+    assert_eq!(listed(&page), ["/p/A-1/plan-1.html"]);
+    assert!(page.contains(r#"<a class="btn on" id="waiting" href="/?reply=waiting""#));
+    assert!(
+        page.contains(r#"<a href="/" class="on" aria-current="true"><span>返事待ち</span>"#),
+        "{page}"
+    );
+    assert!(page.contains("絞り込みを外す"));
+    // 絞り込みは、ほかの条件と重なり、探す form も持ち越す。
+    assert!(page.contains(r#"<input type="hidden" name="reply" value="waiting">"#));
+    assert!(page.contains(r#"href="/?kind=plan&#38;reply=waiting""#));
+    let page = s.text("/?reply=answered&key=A-1").await;
+    assert!(listed(&page).is_empty());
+    // 知らない値は、条件が無いのと同じ。
+    let page = s.text("/?reply=done").await;
+    assert_eq!(listed(&page).len(), 4);
+    assert!(!page.contains("絞り込みを外す"));
+
+    // 答えると、数は 0 に戻り、操作の帯の釦は隠れる。
+    mark(&s, "project=p&key=A-1&kind=plan&n=1", "answered").await;
+    let page = s.text("/").await;
+    assert!(page.contains("<title>ページの置き場</title>"));
+    assert!(page.contains(" hidden>返事待ち 0 件</a>"));
+    assert!(page.contains(r#"<span>答えた</span><span class="n">2</span>"#));
+    assert!(!page.contains("<span>返事待ち</span>"));
+}

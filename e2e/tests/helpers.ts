@@ -34,6 +34,13 @@ export async function placeFile(
   return response.json();
 }
 
+/** API で、ページ 1 枚の返事の状態を書く（browser の外から送るので Origin は付かない）。`path` は `place` が返した物。 */
+export async function reply(request: APIRequestContext, path: string, state: 'waiting' | 'answered'): Promise<void> {
+  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
+  const response = await request.post(`/api/pages/reply?${new URLSearchParams({ project, key, kind, n, state })}`);
+  expect(response.ok(), await response.text()).toBeTruthy();
+}
+
 /** 1×1 の PNG。 */
 export const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==',
@@ -64,6 +71,10 @@ export const list = (page: Page) => page.locator('#list');
 export const rows = (page: Page) => list(page).locator('li[data-path]');
 export const viewer = (page: Page) => page.locator('#viewer');
 export const fresh = (page: Page) => page.locator('#fresh');
+/** 操作の帯の、返事待ちの数。 */
+export const waiting = (page: Page) => page.locator('#waiting');
+/** 行の、返事の印。 */
+export const replyMark = (page: Page, path: string) => list(page).locator(`li[data-path="${path}"] .reply`);
 
 /**
  * 一覧の列を、頭から y px 下へ送る。幅が広い時は真ん中の列（.middle）が、狭い時は画面全体が送られる。
@@ -91,7 +102,7 @@ export const fileRows = (page: Page) => files(page).locator('li[data-file]');
 export const upload = (page: Page) => page.locator('#upload');
 
 /**
- * 絞り込みの列の候補。見出し（担当者（役割）・workspace・種類・Key・project）と、候補の名で選ぶ。
+ * 絞り込みの列の候補。見出し（返事・担当者（役割）・workspace・種類・Key・project）と、候補の名で選ぶ。
  * link の先では選ばない（ほかの見出しの候補も、今の条件を link の先に持つ）。
  */
 export const choice = (page: Page, heading: string, label: string) =>

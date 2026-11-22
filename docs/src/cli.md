@@ -27,6 +27,7 @@ pagetray status
 | `pagetray page view <page>` | ページの本文を出す。`--web` で browser に、`-o <file>` で file に |
 | `pagetray page put <file>` | ページを置く（`-` は stdin）。置いたページの URL を出す |
 | `pagetray page delete <page>…` | ページを消す（戻せない） |
+| `pagetray page reply <page>` | ページの返事の状態を書く。`--waiting` で返事待ちに、`--answered` で答えたに |
 | `pagetray page watch` | ページが置かれるたびに 1 行出す |
 | `pagetray file list` | file（画像・PDF・字の file）を絞って探す（新しい順） |
 | `pagetray file view <file>` | file の中身を出す。`-o <file>` で file に |
@@ -50,15 +51,22 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 
 ### 探す（`page list`）
 
-- 絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本文の字）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。
+- 絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本文の字）・`--reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。
 - `--project` が無ければ、どの project のページも出す。`--project .` は、今いる folder の path から project の名を作る（英数字と `._-` のほかを `-` にする。roster の `tpm` と同じ作り方）。
-- 端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のように欄を名指すと、その欄だけを出す。
+- 端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。欄は、置いた時刻・（project）・Key・種類と番号・役割・返事の状態（`waiting`・`answered`。返事を求めていないページは `-`。0.5.0 から）・URL・題の順。`--json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のように欄を名指すと、その欄だけを出す。
 
 ### 置く（`page put`）
 
 - `--project`（か環境変数 `PAGETRAY_PROJECT`）・`--key`・`--kind` が要る。project を今いる folder から勝手に決めることは無い（置き間違いを防ぐため）。
 - 番号は置き場が決める。同じ project・Key・種類に置き直すと次の番号になり、前の版は残る。
 - 置く人の役割は `--role`（か `PAGETRAY_ROLE`。既定は `human`）、居場所は `--workspace`。
+
+### 返事の状態を書く（`page reply`）
+
+- Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答えたにする（`--answered`）。どちらか 1 つが要る。一覧の UI は、この状態で印と件数を出す（[API の仕様](api.md) の `POST /api/pages/reply`）。
+- 出すのは、状態と URL の 1 行（tab 区切り）。`--json` で、ページの記録。
+- 無いページ・消したページは code 1。0.5.0 より前の置き場には書けない（code 1 で、版が古いと出す）。
+- roster の `tpm` を使う project では、`tpm ask pm` と `tpm answer` がこの状態を書く。手で直す時だけ使う。
 
 ### 消す（`page delete`）
 

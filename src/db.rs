@@ -152,6 +152,10 @@ pub struct Facets {
     pub kinds: Vec<Count>,
     pub keys: Vec<Count>,
     pub projects: Vec<Count>,
+    /// 返事待ちのページの数。
+    pub waiting: i64,
+    /// 答えたページの数。
+    pub answered: i64,
 }
 
 #[derive(Debug)]
@@ -651,12 +655,19 @@ impl Db {
             r#"select project as "value!: String", count(*) as "count!: i64", '' as "note!: String"
                from pages group by project order by 2 desc, 1"#
         );
-        let (roles, workspaces, kinds, keys, projects) = tokio::try_join!(
+        let replies = sqlx::query!(
+            r#"select count(*) filter (where asked_at is not null and answered_at is null)
+                        as "waiting!: i64",
+                      count(answered_at) as "answered!: i64"
+               from pages"#
+        );
+        let (roles, workspaces, kinds, keys, projects, replies) = tokio::try_join!(
             roles.fetch_all(db),
             workspaces.fetch_all(db),
             kinds.fetch_all(db),
             keys.fetch_all(db),
             projects.fetch_all(db),
+            replies.fetch_one(db),
         )?;
         Ok(Facets {
             roles,
@@ -664,6 +675,8 @@ impl Db {
             kinds,
             keys,
             projects,
+            waiting: replies.waiting,
+            answered: replies.answered,
         })
     }
 

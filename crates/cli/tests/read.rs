@@ -87,7 +87,7 @@ fn list_is_tab_separated_newest_first_when_piped() {
         .map(|l| l.split('\t').collect())
         .collect();
     assert_eq!(rows.len(), 3);
-    // CREATED・PROJECT・KEY・PAGE・ROLE・URL・TITLE
+    // CREATED・PROJECT・KEY・PAGE・ROLE・REPLY・URL・TITLE（返事を求めていないページの REPLY は -）
     assert_eq!(
         rows[0][1..],
         [
@@ -95,6 +95,7 @@ fn list_is_tab_separated_newest_first_when_piped() {
             "t-x",
             "plan-1",
             "tpm",
+            "-",
             &format!("{}/q/t-x/plan-1.html", s.url),
             "別の project"
         ]
@@ -115,6 +116,7 @@ fn list_is_tab_separated_newest_first_when_piped() {
             "AI-22",
             "plan-1",
             "software-engineer",
+            "-",
             &format!("{}/p/AI-22/plan-1.html", s.url),
             "計画"
         ]
