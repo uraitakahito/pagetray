@@ -1,5 +1,6 @@
 //! JSON の API: ページと file を置く・探す・消す・DB の写し。
 
+use crate::castlist::Answer;
 use crate::db::{
     FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Reply, Target,
 };
@@ -10,7 +11,10 @@ use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
-use pagetray_api::{FILE_TYPES, file_type, is_timestamp, is_workspace, sniff, split_file_name};
+use pagetray_api::{
+    FILE_TYPES, SenderRecord, file_type, is_actor_ref, is_issuer, is_timestamp, is_workspace,
+    sniff, split_file_name,
+};
 pub use pagetray_api::{is_name, is_segment, page_path};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -29,6 +33,9 @@ pub struct PutParams {
     workspace: String,
     n: Option<i64>,
     created_at: Option<String>,
+    /// 付随する id を出した物と、付随する id（両方書くか、両方書かない）。
+    actor_issuer: Option<String>,
+    actor_ref: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -80,6 +87,15 @@ pub async fn put(
     if let Some((_, message)) = checks.iter().find(|(ok, _)| !ok) {
         return error(StatusCode::BAD_REQUEST, message);
     }
+    let actor = match actor_params(p.actor_issuer, p.actor_ref) {
+        Ok(actor) => actor,
+        Err(message) => return error(StatusCode::BAD_REQUEST, message),
+    };
+    // castlist には、書く取引を始める前に聞く（待つ間、書く接続を握らない）。
+    let sender = match ask(&state, actor).await {
+        Ok(sender) => sender,
+        Err((status, message)) => return error(status, &message),
+    };
     let html = String::from_utf8_lossy(&body);
     let (title, plain) = (text::title(&html), text::plain(&html));
     let placed = state
@@ -95,6 +111,7 @@ pub async fn put(
             body: &body,
             n: p.n,
             created_at: p.created_at.as_deref(),
+            sender: sender.as_ref(),
         })
         .await;
     match placed {
@@ -113,6 +130,70 @@ pub async fn put(
         }
         Err(PutError::Taken) => error(StatusCode::CONFLICT, "その番号は、もう使われている"),
         Err(PutError::Db(e)) => internal(e),
+    }
+}
+
+const ACTOR_ISSUER_RULE: &str = "actor_issuer は英小文字・数字・- . で 64 字まで";
+const ACTOR_REF_RULE: &str = "actor_ref は <種類>:<値>。種類は英小文字・数字・- . で 64 字まで、値は英数字と : . _ - で 256 字まで";
+
+/// 付随する id の引数（`actor_issuer`・`actor_ref`）を見る。両方あれば、その組。両方無ければ無い。
+fn actor_params(
+    issuer: Option<String>,
+    actor_ref: Option<String>,
+) -> Result<Option<(String, String)>, &'static str> {
+    match (issuer, actor_ref) {
+        (None, None) => Ok(None),
+        (Some(issuer), Some(actor_ref)) => {
+            if !is_issuer(&issuer) {
+                Err(ACTOR_ISSUER_RULE)
+            } else if !is_actor_ref(&actor_ref) {
+                Err(ACTOR_REF_RULE)
+            } else {
+                Ok(Some((issuer, actor_ref)))
+            }
+        }
+        _ => Err("actor_issuer と actor_ref は、両方書くか、両方書かない"),
+    }
+}
+
+/// 付随する id があれば、送り手の記録を作る。castlist の URL があれば castlist に聞き、その答えを入れる
+/// （無ければ、付随する id だけ）。聞けない時は 503、castlist に登録の無い送り手は 422 と、その文を返す。
+async fn ask(
+    state: &AppState,
+    actor: Option<(String, String)>,
+) -> Result<Option<SenderRecord>, (StatusCode, String)> {
+    let Some((issuer, actor_ref)) = actor else {
+        return Ok(None);
+    };
+    let Some(castlist) = &state.castlist else {
+        return Ok(Some(SenderRecord {
+            issuer,
+            actor_ref,
+            actor: None,
+            resolved_at: None,
+        }));
+    };
+    match castlist.resolve(&issuer, &actor_ref).await {
+        Ok(Answer {
+            actor: Some(actor),
+            as_of,
+        }) => Ok(Some(SenderRecord {
+            issuer,
+            actor_ref,
+            actor: Some(actor),
+            resolved_at: Some(as_of),
+        })),
+        Ok(Answer { actor: None, .. }) => Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            format!("castlist に登録の無い送り手（{actor_ref}）"),
+        )),
+        Err(why) => {
+            eprintln!("castlist: {why} ref={actor_ref}");
+            Err((
+                StatusCode::SERVICE_UNAVAILABLE,
+                format!("castlist に聞けない（{why}）。少し待ってから送り直す"),
+            ))
+        }
     }
 }
 
@@ -135,6 +216,8 @@ pub struct ListParams {
     q: Option<String>,
     /// 返事の状態（`waiting`・`answered`）。
     reply: Option<String>,
+    /// 送り手（castlist のアクターの id）。
+    actor: Option<String>,
     sort: Option<String>,
     limit: Option<i64>,
     before: Option<String>,
@@ -164,6 +247,7 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
         workspace: p.workspace,
         q: p.q,
         reply,
+        actor: p.actor,
         before: p.before,
         after: p.after,
         oldest_first,
@@ -292,6 +376,9 @@ pub struct PutFileParams {
     workspace: String,
     n: Option<i64>,
     created_at: Option<String>,
+    /// 付随する id を出した物と、付随する id（両方書くか、両方書かない）。一覧の UI からの要求では読まない。
+    actor_issuer: Option<String>,
+    actor_ref: Option<String>,
 }
 
 const FILE_NAME_RULE: &str =
@@ -299,7 +386,7 @@ const FILE_NAME_RULE: &str =
 
 /// file を置く（`POST /api/files?project=…&key=…&name=<語>.<拡張子>&role=…`）。本文は中身そのもの。
 /// 一覧の UI から上げた物は、引数に何が書いてあっても、役割 `product-manager`・workspace 空で記録する
-/// （browser から担当を名乗らせない）。番号と時刻も、置き場が決める。
+/// （browser から担当を名乗らせない）。番号と時刻も、置き場が決める。付随する id も読まない（送り手を記録しない）。
 pub async fn put_file(
     State(state): State<AppState>,
     ui: Option<Extension<FromUi>>,
@@ -312,6 +399,8 @@ pub async fn put_file(
         p.workspace = String::new();
         p.n = None;
         p.created_at = None;
+        p.actor_issuer = None;
+        p.actor_ref = None;
     }
     let checks = [
         (
@@ -340,6 +429,10 @@ pub async fn put_file(
     let Some((name, ext)) = split_file_name(&p.name) else {
         return error(StatusCode::BAD_REQUEST, FILE_NAME_RULE);
     };
+    let actor = match actor_params(p.actor_issuer.take(), p.actor_ref.take()) {
+        Ok(actor) => actor,
+        Err(message) => return error(StatusCode::BAD_REQUEST, message),
+    };
     let Some(content_type) = headers
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -367,6 +460,11 @@ pub async fn put_file(
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect();
+    // castlist には、断る物を見終えてから、書く取引を始める前に聞く（待つ間、書く接続を握らない）。
+    let sender = match ask(&state, actor).await {
+        Ok(sender) => sender,
+        Err((status, message)) => return error(status, &message),
+    };
     let placed = state
         .db
         .put_file(NewFile {
@@ -381,6 +479,7 @@ pub async fn put_file(
             body: &body,
             n: p.n,
             created_at: p.created_at.as_deref(),
+            sender: sender.as_ref(),
         })
         .await;
     match placed {
@@ -414,6 +513,8 @@ pub struct ListFilesParams {
     role: Option<String>,
     workspace: Option<String>,
     q: Option<String>,
+    /// 送り手（castlist のアクターの id）。
+    actor: Option<String>,
     sort: Option<String>,
     limit: Option<i64>,
     before: Option<String>,
@@ -437,6 +538,7 @@ pub async fn list_files(
         role: p.role,
         workspace: p.workspace,
         q: p.q,
+        actor: p.actor,
         before: p.before,
         after: p.after,
         oldest_first,

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "insert into senders(actor_issuer, actor_ref, actor_id, actor_name, actor_kind, resolved_at,\n                               created_at)\n           values(?1, ?2, ?3, ?4, ?5, ?6, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))\n           returning id as \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "senders",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c2313f14fa7a129b9493c217dcd86e553fb30905a846156ad7c06b27bdc20055"
+}

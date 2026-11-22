@@ -34,12 +34,18 @@ nav li a{display:flex;gap:6px;justify-content:space-between;padding:2px 6px;bord
 nav li a span:first-child{min-width:0;overflow-wrap:anywhere}
 nav small{display:block;color:var(--muted);font-size:.75rem}
 .n{color:var(--muted);font-variant-numeric:tabular-nums}
-.on,nav li a:hover,.rows a:hover{background:var(--on)}
-.rows a{display:block;padding:6px 12px;border-bottom:1px solid var(--line)}
+.on,nav li a:hover,.rows li>a:hover{background:var(--on)}
+.rows li{border-bottom:1px solid var(--line)}
+.rows li>a{display:block;padding:6px 12px}
 .rows .top{display:flex;gap:8px;align-items:baseline;font-size:.8rem;color:var(--muted)}
 .rows .name{color:var(--accent);font-weight:700}
 .rows .title{display:block;overflow-wrap:anywhere}
 .rows .who{display:block;font-size:.75rem;color:var(--muted)}
+.sender{display:block;font-size:.75rem;color:var(--muted);overflow-wrap:anywhere}
+.rows .sender{padding:0 12px 6px}
+.sender a{color:var(--accent)}
+.sender a:hover{text-decoration:underline}
+.sender small{display:block;font-size:.7rem}
 .unread .title::before{content:"● ";color:var(--new)}
 .more,.empty{display:block;padding:10px 12px;color:var(--muted)}
 .more{color:var(--accent)}
@@ -92,7 +98,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
 <div class="middle">
 <div id="list" role="region" aria-label="一覧の列">
 <ul class="rows">
-{% for r in rows %}<li data-path="{{ r.path }}" data-at="{{ r.created_at }}"{% if !r.reply.is_empty() %} data-reply="{{ r.reply }}"{% endif %}><a href="{{ r.href }}"{% if r.active %} class="on" aria-current="true"{% endif %}><span class="top"><time datetime="{{ r.created_at }}">{{ r.time }}</time><span>{{ r.key }}</span><span class="name">{{ r.name }}</span>{% if !r.reply.is_empty() %}<span class="reply {{ r.reply }}">{{ r.reply_label }}</span>{% endif %}</span><span class="title">{% if r.title.is_empty() %}（題なし）{% else %}{{ r.title }}{% endif %}</span><span class="who">{{ r.role }}{% if !r.workspace.is_empty() %} ・ {{ r.workspace }}{% endif %}</span></a></li>
+{% for r in rows %}<li data-path="{{ r.path }}" data-at="{{ r.created_at }}"{% if !r.reply.is_empty() %} data-reply="{{ r.reply }}"{% endif %}><a href="{{ r.href }}"{% if r.active %} class="on" aria-current="true"{% endif %}><span class="top"><time datetime="{{ r.created_at }}">{{ r.time }}</time><span>{{ r.key }}</span><span class="name">{{ r.name }}</span>{% if !r.reply.is_empty() %}<span class="reply {{ r.reply }}">{{ r.reply_label }}</span>{% endif %}</span><span class="title">{% if r.title.is_empty() %}（題なし）{% else %}{{ r.title }}{% endif %}</span><span class="who">{{ r.role }}{% if !r.workspace.is_empty() %} ・ {{ r.workspace }}{% endif %}</span></a>{% if let Some(s) = r.sender %}<span class="sender">{% if let Some(href) = s.href %}<a class="actor" href="{{ href }}" target="_blank" rel="noopener">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}<small>{{ s.reference }}</small></span>{% endif %}</li>
 {% endfor %}</ul>
 {% if rows.is_empty() %}<span class="empty">合うページは無い</span>{% endif %}
 {% if let Some(href) = more_href %}<a class="more" href="{{ href }}">続きを出す</a>{% endif %}
@@ -100,7 +106,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
 {% if let Some(k) = key_view %}<div id="files" class="box" role="region" aria-label="file の枠">
 <h2>この Key の file</h2>
 <ul class="files">
-{% for f in k.files %}<li data-file="{{ f.path }}"><a class="thumb" href="{{ f.path }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">{% if f.image %}<img src="{{ f.path }}" loading="lazy" alt="">{% else %}{{ f.ext }}{% endif %}</a><span class="meta"><a class="name" href="{{ f.path }}" target="_blank" rel="noopener">{{ f.name }}</a><span class="who">{{ f.size }} ・ {{ f.role }} ・ <time datetime="{{ f.created_at }}">{{ f.time }}</time></span><code class="ref">{{ f.reference }}</code></span></li>
+{% for f in k.files %}<li data-file="{{ f.path }}"><a class="thumb" href="{{ f.path }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">{% if f.image %}<img src="{{ f.path }}" loading="lazy" alt="">{% else %}{{ f.ext }}{% endif %}</a><span class="meta"><a class="name" href="{{ f.path }}" target="_blank" rel="noopener">{{ f.name }}</a><span class="who">{{ f.size }} ・ {{ f.role }} ・ <time datetime="{{ f.created_at }}">{{ f.time }}</time></span><code class="ref">{{ f.reference }}</code>{% if let Some(s) = f.sender %}<span class="sender">{% if let Some(href) = s.href %}<a class="actor" href="{{ href }}" target="_blank" rel="noopener">{{ s.name }}</a>{% else %}{{ s.name }}{% endif %}<small>{{ s.reference }}</small></span>{% endif %}</span></li>
 {% endfor %}</ul>
 {% if k.files.is_empty() %}<span class="empty">この Key の file は無い</span>{% endif %}
 </div>

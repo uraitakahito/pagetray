@@ -1,11 +1,14 @@
 //! 接続・移行・SQL。SQL は `query!` が build の時に検査する（`.sqlx/` の file を使う）。
 
-use pagetray_api::{FileRecord, file_path};
+use pagetray_api::{ActorRecord, FileRecord, SenderRecord, file_path};
 use serde::Serialize;
-use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
+use sqlx::{SqliteConnection, SqlitePool};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
+
+/// 読む接続の数。
+const READS: u32 = 4;
 
 #[derive(Clone)]
 pub struct Db {
@@ -27,6 +30,8 @@ pub struct NewPage<'a> {
     /// 取り込みの時だけ。無ければサーバーが決める。
     pub n: Option<i64>,
     pub created_at: Option<&'a str>,
+    /// 送り手。あれば senders に 1 行足し、ページから指す（同じ取引）。
+    pub sender: Option<&'a SenderRecord>,
 }
 
 #[derive(Debug, Serialize)]
@@ -46,6 +51,109 @@ pub struct PageMeta {
     /// 答えた時刻。まだ答えていなければ無い。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub answered_at: Option<String>,
+    /// 送り手。置いた時に付随する id が無ければ無い。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender: Option<SenderRecord>,
+}
+
+/// SQL から読んだページの行（送り手の列は senders を left join した物）。
+struct PageRow {
+    project: String,
+    key: String,
+    kind: String,
+    n: i64,
+    title: String,
+    role: String,
+    workspace: String,
+    created_at: String,
+    size: i64,
+    asked_at: Option<String>,
+    answered_at: Option<String>,
+    sender_issuer: Option<String>,
+    sender_ref: Option<String>,
+    actor_id: Option<String>,
+    actor_name: Option<String>,
+    actor_kind: Option<String>,
+    resolved_at: Option<String>,
+}
+
+impl From<PageRow> for PageMeta {
+    fn from(r: PageRow) -> Self {
+        Self {
+            sender: sender(
+                r.sender_issuer,
+                r.sender_ref,
+                r.actor_id,
+                r.actor_name,
+                r.actor_kind,
+                r.resolved_at,
+            ),
+            project: r.project,
+            key: r.key,
+            kind: r.kind,
+            n: r.n,
+            title: r.title,
+            role: r.role,
+            workspace: r.workspace,
+            created_at: r.created_at,
+            size: r.size,
+            asked_at: r.asked_at,
+            answered_at: r.answered_at,
+        }
+    }
+}
+
+/// senders の列から、送り手の記録を組む。付随する id が無ければ（送り手の無い行）無い。
+/// アクターの列が揃っていなければ、castlist に聞いていない（未確認）。
+fn sender(
+    issuer: Option<String>,
+    actor_ref: Option<String>,
+    id: Option<String>,
+    name: Option<String>,
+    kind: Option<String>,
+    resolved_at: Option<String>,
+) -> Option<SenderRecord> {
+    let actor = match (id, name, kind) {
+        (Some(id), Some(name), Some(kind)) => Some(ActorRecord { id, name, kind }),
+        _ => None,
+    };
+    Some(SenderRecord {
+        issuer: issuer?,
+        actor_ref: actor_ref?,
+        actor,
+        resolved_at,
+    })
+}
+
+/// 送り手があれば senders に 1 行足し、その id を返す。ページや file と同じ取引の中で呼ぶ。
+async fn add_sender(
+    tx: &mut SqliteConnection,
+    s: Option<&SenderRecord>,
+) -> Result<Option<i64>, sqlx::Error> {
+    let Some(s) = s else {
+        return Ok(None);
+    };
+    let actor = s.actor.as_ref();
+    let (id, name, kind) = (
+        actor.map(|a| a.id.as_str()),
+        actor.map(|a| a.name.as_str()),
+        actor.map(|a| a.kind.as_str()),
+    );
+    sqlx::query_scalar!(
+        r#"insert into senders(actor_issuer, actor_ref, actor_id, actor_name, actor_kind, resolved_at,
+                               created_at)
+           values(?1, ?2, ?3, ?4, ?5, ?6, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+           returning id as "id!: i64""#,
+        s.issuer,
+        s.actor_ref,
+        id,
+        name,
+        kind,
+        s.resolved_at,
+    )
+    .fetch_one(tx)
+    .await
+    .map(Some)
 }
 
 /// ページの返事の状態。返事待ち（求めて、まだ答えていない）か、答えたか。
@@ -83,6 +191,8 @@ pub struct Filter {
     pub q: Option<String>,
     /// 返事の状態で絞る。
     pub reply: Option<Reply>,
+    /// 送り手（castlist のアクターの id）で絞る。
+    pub actor: Option<String>,
     pub before: Option<String>,
     pub after: Option<String>,
     pub oldest_first: bool,
@@ -110,6 +220,8 @@ pub struct NewFile<'a> {
     /// 取り込みの時だけ。無ければサーバーが決める。
     pub n: Option<i64>,
     pub created_at: Option<&'a str>,
+    /// 送り手。あれば senders に 1 行足し、file から指す（同じ取引）。
+    pub sender: Option<&'a SenderRecord>,
 }
 
 /// file を探す時の絞り込み。
@@ -121,6 +233,8 @@ pub struct FileFilter {
     pub workspace: Option<String>,
     /// 名（`<語>.<拡張子>`）に含まれる字。
     pub q: Option<String>,
+    /// 送り手（castlist のアクターの id）で絞る。
+    pub actor: Option<String>,
     pub before: Option<String>,
     pub after: Option<String>,
     pub oldest_first: bool,
@@ -147,6 +261,8 @@ pub struct Count {
 /// 絞り込みの候補。DB にある値から作る。
 #[derive(Debug)]
 pub struct Facets {
+    /// 送り手（値は castlist のアクターの id、添える字はその名）。castlist に聞けた送り手だけ。
+    pub senders: Vec<Count>,
     pub roles: Vec<Count>,
     pub workspaces: Vec<Count>,
     pub kinds: Vec<Count>,
@@ -167,17 +283,31 @@ pub enum PutError {
 
 impl Db {
     pub async fn open(path: &Path) -> Result<Self, sqlx::Error> {
+        // 外部キーと trigger の決まりは接続ごとに効くので、読む接続にも書く接続にも、はっきり付ける。
         let options = SqliteConnectOptions::new()
             .filename(path)
             .create_if_missing(true)
-            .journal_mode(SqliteJournalMode::Wal);
+            .journal_mode(SqliteJournalMode::Wal)
+            .foreign_keys(true)
+            .pragma("recursive_triggers", "ON");
         let write = SqlitePoolOptions::new()
             .max_connections(1)
             .connect_with(options.clone())
             .await?;
         sqlx::migrate!().run(&write).await?;
+        // 外部キーの合わない行があれば起きない（外部キーを切った接続で書かれた DB を、そのまま使わない）。
+        let broken = sqlx::query("pragma foreign_key_check")
+            .fetch_all(&write)
+            .await?;
+        if !broken.is_empty() {
+            write.close().await;
+            return Err(sqlx::Error::Protocol(format!(
+                "外部キーの合わない行が {} ある（PRAGMA foreign_key_check）。起きない",
+                broken.len()
+            )));
+        }
         let read = SqlitePoolOptions::new()
-            .max_connections(4)
+            .max_connections(READS)
             .connect_with(options.read_only(true))
             .await?;
         Ok(Self {
@@ -210,8 +340,11 @@ impl Db {
                 return Err(PutError::Taken);
             }
         }
+        let sender_id = add_sender(&mut tx, page.sender)
+            .await
+            .map_err(PutError::Db)?;
         let row = sqlx::query!(
-            r#"insert into pages(project, key, kind, n, title, role, workspace, created_at, body)
+            r#"insert into pages(project, key, kind, n, title, role, workspace, created_at, body, sender_id)
                values(?1, ?2, ?3,
                       coalesce(?4, (select coalesce(max(n), 0) + 1 from
                                       (select n from pages where project = ?1 and key = ?2 and kind = ?3
@@ -219,7 +352,7 @@ impl Db {
                                        select n from removed where project = ?1 and key = ?2 and kind = ?3))),
                       ?5, ?6, ?7,
                       coalesce(?8, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-                      ?9)
+                      ?9, ?10)
                returning id as "id!: i64", n as "n!: i64", created_at as "created_at!: String""#,
             page.project,
             page.key,
@@ -230,6 +363,7 @@ impl Db {
             page.workspace,
             page.created_at,
             page.body,
+            sender_id,
         )
         .fetch_one(&mut *tx)
         .await
@@ -259,6 +393,7 @@ impl Db {
             size: page.body.len() as i64,
             asked_at: None,
             answered_at: None,
+            sender: page.sender.cloned(),
         })
     }
 
@@ -274,8 +409,8 @@ impl Db {
         reply: Reply,
     ) -> Result<Option<PageMeta>, sqlx::Error> {
         let answered = reply == Reply::Answered;
-        sqlx::query_as!(
-            PageMeta,
+        let mut tx = self.write.begin().await?;
+        let id = sqlx::query_scalar!(
             r#"update pages
                set asked_at = case when asked_at is not null and (?5 or answered_at is null)
                                    then asked_at
@@ -284,16 +419,34 @@ impl Db {
                                       then coalesce(answered_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
                                  end
                where project = ?1 and key = ?2 and kind = ?3 and n = ?4
-               returning project, key, kind, n, title, role, workspace, created_at,
-                         length(body) as "size!: i64", asked_at, answered_at"#,
+               returning id as "id!: i64""#,
             project,
             key,
             kind,
             n,
             answered,
         )
-        .fetch_optional(&self.write)
-        .await
+        .fetch_optional(&mut *tx)
+        .await?;
+        let Some(id) = id else {
+            return Ok(None);
+        };
+        // 返す記録には送り手も入れる（update の returning では senders を引けない）。
+        let row = sqlx::query_as!(
+            PageRow,
+            r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
+                      length(p.body) as "size!: i64", p.asked_at, p.answered_at,
+                      s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
+                      s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
+                      s.actor_kind as "actor_kind?: String", s.resolved_at as "resolved_at?: String"
+               from pages p left join senders s on s.id = p.sender_id
+               where p.id = ?1"#,
+            id,
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(Some(row.into()))
     }
 
     pub async fn body(
@@ -383,27 +536,31 @@ impl Db {
     pub async fn list(&self, f: &Filter) -> Result<Vec<PageMeta>, sqlx::Error> {
         let (fts, scan) = search(f.q.as_deref());
         let reply = f.reply.map(Reply::name);
-        sqlx::query_as!(
-            PageMeta,
-            r#"select project, key, kind, n, title, role, workspace, created_at,
-                      length(body) as "size!: i64", asked_at, answered_at
-               from pages
-               where (?1 is null or project = ?1)
-                 and (?2 is null or key = ?2)
-                 and (?3 is null or kind = ?3)
-                 and (?4 is null or role = ?4)
-                 and (?5 is null or workspace = ?5)
-                 and (?6 is null or id in (select rowid from pages_fts where pages_fts match ?6))
-                 and (?7 is null or id in (select rowid from pages_fts
-                                           where instr(title, ?7) > 0 or instr(text, ?7) > 0))
-                 and (?8 is null or created_at < ?8)
-                 and (?9 is null or created_at > ?9)
+        let rows = sqlx::query_as!(
+            PageRow,
+            r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
+                      length(p.body) as "size!: i64", p.asked_at, p.answered_at,
+                      s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
+                      s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
+                      s.actor_kind as "actor_kind?: String", s.resolved_at as "resolved_at?: String"
+               from pages p left join senders s on s.id = p.sender_id
+               where (?1 is null or p.project = ?1)
+                 and (?2 is null or p.key = ?2)
+                 and (?3 is null or p.kind = ?3)
+                 and (?4 is null or p.role = ?4)
+                 and (?5 is null or p.workspace = ?5)
+                 and (?6 is null or p.id in (select rowid from pages_fts where pages_fts match ?6))
+                 and (?7 is null or p.id in (select rowid from pages_fts
+                                             where instr(title, ?7) > 0 or instr(text, ?7) > 0))
+                 and (?8 is null or p.created_at < ?8)
+                 and (?9 is null or p.created_at > ?9)
                  and (?12 is null
-                      or (?12 = 'waiting' and asked_at is not null and answered_at is null)
-                      or (?12 = 'answered' and answered_at is not null))
-               order by case when ?10 then created_at end asc,
-                        case when ?10 then id end asc,
-                        created_at desc, id desc
+                      or (?12 = 'waiting' and p.asked_at is not null and p.answered_at is null)
+                      or (?12 = 'answered' and p.answered_at is not null))
+                 and (?13 is null or p.sender_id in (select id from senders where actor_id = ?13))
+               order by case when ?10 then p.created_at end asc,
+                        case when ?10 then p.id end asc,
+                        p.created_at desc, p.id desc
                limit ?11"#,
             f.project,
             f.key,
@@ -417,9 +574,11 @@ impl Db {
             f.oldest_first,
             f.limit,
             reply,
+            f.actor,
         )
         .fetch_all(&self.read)
-        .await
+        .await?;
+        Ok(rows.into_iter().map(PageMeta::from).collect())
     }
 
     /// file を置く。番号はページと同じく「置いてある分と消した分の最大 ＋ 1」。
@@ -444,9 +603,12 @@ impl Db {
             }
         }
         let size = file.body.len() as i64;
+        let sender_id = add_sender(&mut tx, file.sender)
+            .await
+            .map_err(PutError::Db)?;
         let row = sqlx::query!(
             r#"insert into files(project, key, name, ext, n, type, size, sha256, role, workspace,
-                                 created_at, body)
+                                 created_at, body, sender_id)
                values(?1, ?2, ?3, ?4,
                       coalesce(?5, (select coalesce(max(n), 0) + 1 from
                                       (select n from files
@@ -456,7 +618,7 @@ impl Db {
                                        where project = ?1 and key = ?2 and name = ?3 and ext = ?4))),
                       ?6, ?7, ?8, ?9, ?10,
                       coalesce(?11, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
-                      ?12)
+                      ?12, ?13)
                returning n as "n!: i64", created_at as "created_at!: String""#,
             file.project,
             file.key,
@@ -470,6 +632,7 @@ impl Db {
             file.workspace,
             file.created_at,
             file.body,
+            sender_id,
         )
         .fetch_one(&mut *tx)
         .await
@@ -492,6 +655,7 @@ impl Db {
             created_at: row.created_at,
             path: file_path(file.project, file.key, file.name, file.ext, row.n),
             url: None,
+            sender: file.sender.cloned(),
         })
     }
 
@@ -580,18 +744,23 @@ impl Db {
     pub async fn list_files(&self, f: &FileFilter) -> Result<Vec<FileRecord>, sqlx::Error> {
         let q = f.q.as_deref().map(str::trim).filter(|q| !q.is_empty());
         let rows = sqlx::query!(
-            r#"select project, key, name, ext, n, type, size, sha256, role, workspace, created_at
-               from files
-               where (?1 is null or project = ?1)
-                 and (?2 is null or key = ?2)
-                 and (?3 is null or role = ?3)
-                 and (?4 is null or workspace = ?4)
-                 and (?5 is null or instr(name || '.' || ext, lower(?5)) > 0)
-                 and (?6 is null or created_at < ?6)
-                 and (?7 is null or created_at > ?7)
-               order by case when ?8 then created_at end asc,
-                        case when ?8 then id end asc,
-                        created_at desc, id desc
+            r#"select f.project, f.key, f.name, f.ext, f.n, f.type, f.size, f.sha256, f.role,
+                      f.workspace, f.created_at,
+                      s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
+                      s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
+                      s.actor_kind as "actor_kind?: String", s.resolved_at as "resolved_at?: String"
+               from files f left join senders s on s.id = f.sender_id
+               where (?1 is null or f.project = ?1)
+                 and (?2 is null or f.key = ?2)
+                 and (?3 is null or f.role = ?3)
+                 and (?4 is null or f.workspace = ?4)
+                 and (?5 is null or instr(f.name || '.' || f.ext, lower(?5)) > 0)
+                 and (?6 is null or f.created_at < ?6)
+                 and (?7 is null or f.created_at > ?7)
+                 and (?10 is null or f.sender_id in (select id from senders where actor_id = ?10))
+               order by case when ?8 then f.created_at end asc,
+                        case when ?8 then f.id end asc,
+                        f.created_at desc, f.id desc
                limit ?9"#,
             f.project,
             f.key,
@@ -602,12 +771,21 @@ impl Db {
             f.after,
             f.oldest_first,
             f.limit,
+            f.actor,
         )
         .fetch_all(&self.read)
         .await?;
         Ok(rows
             .into_iter()
             .map(|r| FileRecord {
+                sender: sender(
+                    r.sender_issuer,
+                    r.sender_ref,
+                    r.actor_id,
+                    r.actor_name,
+                    r.actor_kind,
+                    r.resolved_at,
+                ),
                 path: file_path(&r.project, &r.key, &r.name, &r.ext, r.n),
                 project: r.project,
                 key: r.key,
@@ -627,6 +805,14 @@ impl Db {
 
     pub async fn facets(&self) -> Result<Facets, sqlx::Error> {
         let db = &self.read;
+        let senders = sqlx::query_as!(
+            Count,
+            r#"select s.actor_id as "value!: String", count(*) as "count!: i64",
+                      max(s.actor_name) as "note!: String"
+               from pages p join senders s on s.id = p.sender_id
+               where s.actor_id is not null
+               group by s.actor_id order by 2 desc, 3 limit 100"#
+        );
         let roles = sqlx::query_as!(
             Count,
             r#"select role as "value!: String", count(*) as "count!: i64", '' as "note!: String"
@@ -661,7 +847,8 @@ impl Db {
                       count(answered_at) as "answered!: i64"
                from pages"#
         );
-        let (roles, workspaces, kinds, keys, projects, replies) = tokio::try_join!(
+        let (senders, roles, workspaces, kinds, keys, projects, replies) = tokio::try_join!(
+            senders.fetch_all(db),
             roles.fetch_all(db),
             workspaces.fetch_all(db),
             kinds.fetch_all(db),
@@ -670,6 +857,7 @@ impl Db {
             replies.fetch_one(db),
         )?;
         Ok(Facets {
+            senders,
             roles,
             workspaces,
             kinds,
@@ -717,7 +905,113 @@ fn search(q: Option<&str>) -> (Option<String>, Option<String>) {
 
 #[cfg(test)]
 mod tests {
-    use super::search;
+    use super::*;
+
+    /// 試験ごとの一時の DB。終わったら消す。
+    struct Temp(PathBuf);
+
+    impl Temp {
+        fn new(name: &str) -> Self {
+            static SEQ: AtomicU64 = AtomicU64::new(0);
+            Self(std::env::temp_dir().join(format!(
+                "pagetray-db-{name}-{}-{}.db",
+                std::process::id(),
+                SEQ.fetch_add(1, Ordering::Relaxed)
+            )))
+        }
+    }
+
+    impl Drop for Temp {
+        fn drop(&mut self) {
+            for suffix in ["", "-wal", "-shm"] {
+                let _ = std::fs::remove_file(format!("{}{suffix}", self.0.display()));
+            }
+        }
+    }
+
+    const SENDER: &str = "insert into senders(actor_issuer, actor_ref, created_at)
+                          values('tpm', 'claude.session:a', '2026-11-22T00:00:00.000Z')";
+
+    #[tokio::test]
+    async fn senders_are_append_only() {
+        let temp = Temp::new("append");
+        let db = Db::open(&temp.0).await.unwrap();
+        let _ = sqlx::query(SENDER).execute(&db.write).await;
+        for sql in ["update senders set actor_name = 'x'", "delete from senders"] {
+            let err = sqlx::query(sql).execute(&db.write).await.unwrap_err();
+            assert!(
+                err.to_string().contains("append-only: senders"),
+                "{sql}: {err}"
+            );
+        }
+        db.close().await;
+    }
+
+    #[tokio::test]
+    async fn a_page_cannot_point_to_a_missing_sender() {
+        let temp = Temp::new("fk");
+        let db = Db::open(&temp.0).await.unwrap();
+        for sql in [
+            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body, sender_id)
+             values('p', 'K', 'plan', 1, '', 'tpm', '', '2026-11-22T00:00:00.000Z', x'00', 999)",
+            "insert into files(project, key, name, ext, n, type, size, sha256, role, workspace, created_at, body, sender_id)
+             values('p', 'K', 'a', 'txt', 1, 'text/plain', 1, '', 'tpm', '', '2026-11-22T00:00:00.000Z', x'00', 999)",
+        ] {
+            let err = sqlx::query(sql).execute(&db.write).await.unwrap_err();
+            assert!(err.to_string().contains("FOREIGN KEY constraint failed"), "{err}");
+        }
+        db.close().await;
+    }
+
+    /// 読む接続をみな同時に借り、書く接続と合わせて、どれも外部キーと trigger の決まりが効いているか。
+    #[tokio::test]
+    async fn every_connection_enforces_foreign_keys_and_recursive_triggers() {
+        let temp = Temp::new("pragma");
+        let db = Db::open(&temp.0).await.unwrap();
+        let mut held = Vec::new();
+        for _ in 0..READS {
+            held.push(db.read.acquire().await.unwrap());
+        }
+        held.push(db.write.acquire().await.unwrap());
+        assert_eq!(held.len() as u32, READS + 1);
+        for conn in &mut held {
+            for pragma in ["pragma foreign_keys", "pragma recursive_triggers"] {
+                let on: i64 = sqlx::query_scalar(pragma)
+                    .fetch_one(&mut **conn)
+                    .await
+                    .unwrap();
+                assert_eq!(on, 1, "{pragma}");
+            }
+        }
+        drop(held);
+        db.close().await;
+    }
+
+    /// 外部キーの合わない行がある DB では、起きない。
+    #[tokio::test]
+    async fn opening_refuses_a_database_with_broken_foreign_keys() {
+        let temp = Temp::new("check");
+        Db::open(&temp.0).await.unwrap().close().await;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(
+                SqliteConnectOptions::new()
+                    .filename(&temp.0)
+                    .foreign_keys(false),
+            )
+            .await
+            .unwrap();
+        sqlx::query(
+            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body, sender_id)
+             values('p', 'K', 'plan', 1, '', 'tpm', '', '2026-11-22T00:00:00.000Z', x'00', 999)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool.close().await;
+        let opened = Db::open(&temp.0).await;
+        assert!(opened.is_err(), "外部キーの合わない DB で起きた");
+    }
 
     #[test]
     fn long_terms_become_quoted_phrases() {

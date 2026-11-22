@@ -8,9 +8,19 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 | container | `pagetray`（`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
 | URL | `http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
 | DB | 名前つきの volume `pagetray-data`（中の `/data/pages.db`）。Mac の folder は mount しない |
-| 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい |
+| 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）は下の「送り手を castlist に聞く」 |
 
 roster の `tpm` を使う Mac では、container と volume に触る命令を `tpm infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
+
+## 送り手を castlist に聞く
+
+環境変数 `PAGETRAY_CASTLIST_URL` に castlist の URL（`http://<host>:<port>` の形だけ。本番の castlist は `http://127.0.0.1:8802`）を書くと、付随する id を付けて置かれたページと file の送り手を、受けたその時に castlist に聞いて残す（[API の仕様](api.md) の「送り手」）。
+
+- 書かなければ、castlist に聞かず、付随する id だけを残す（一覧の UI では「未確認」）。
+- 書いた時は、castlist が止まっている・1 秒で答えない間、付随する id を付けた置く要求は `503` で断られる（何も置かない）。付けない要求は前のまま置ける。
+- 一覧の UI の送り手の名は、同じ URL の `/actors/<アクターの id>` への link になる。
+- 形が `http://<host>:<port>` でなければ、サーバーは起きない。起きた時の log の頭の行の後ろに ` castlist=<URL>` が付く。
+- castlist へは、つなぐ先に関わらず `Host: 127.0.0.1` で送る。container の中から castlist に届く host と port を書く（container の中の `127.0.0.1` は container 自身）。
 
 ## 起こす
 

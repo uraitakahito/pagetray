@@ -3,12 +3,13 @@
 //! 上げることに使う。
 
 use crate::api::{is_segment, page_path};
+use crate::castlist::Castlist;
 use crate::db::{Count, FileFilter, Filter, PageMeta, Reply};
 use crate::{AppState, MAX_FILE, internal, pages};
 use askama::Template;
 use axum::extract::{Path, Query, State};
 use axum::response::{Html, IntoResponse, Response};
-use pagetray_api::FILE_TYPES;
+use pagetray_api::{FILE_TYPES, SenderRecord};
 use serde::Deserialize;
 
 /// 1 度に出す件数。続きは「続きを出す」の link で出す。
@@ -24,6 +25,8 @@ pub struct View {
     q: Option<String>,
     /// 返事の状態（`waiting`・`answered`）。
     reply: Option<String>,
+    /// 送り手（castlist のアクターの id）。
+    actor: Option<String>,
     sort: Option<String>,
     /// 並びの続きを出す時の境の時刻。
     at: Option<String>,
@@ -46,6 +49,7 @@ impl View {
             ("workspace", &self.workspace),
             ("q", &self.q),
             ("reply", &self.reply),
+            ("actor", &self.actor),
             ("sort", &self.sort),
             ("at", &self.at),
             ("open", &self.open),
@@ -100,6 +104,29 @@ struct Row {
     reply: &'static str,
     /// 返事の印の字（返事待ち・答えた）。
     reply_label: &'static str,
+    sender: Option<SenderView>,
+}
+
+/// 行に出す送り手: castlist の名（castlist のアクターの画面への link）と、その下に小さく付随する id。
+struct SenderView {
+    /// castlist の名。castlist に聞いていなければ「未確認」。
+    name: String,
+    /// castlist のアクターの画面（`<castlist の URL>/actors/<id>`）。castlist の URL が無い・未確認なら無い。
+    href: Option<String>,
+    /// 付随する id。
+    reference: String,
+}
+
+fn sender_view(castlist: Option<&Castlist>, sender: Option<SenderRecord>) -> Option<SenderView> {
+    let sender = sender?;
+    let href = castlist
+        .zip(sender.actor.as_ref())
+        .map(|(c, a)| format!("{}/actors/{}", c.base(), a.id));
+    Some(SenderView {
+        name: sender.actor.map_or_else(|| "未確認".to_owned(), |a| a.name),
+        href,
+        reference: sender.actor_ref,
+    })
 }
 
 /// 返事の状態の、画面に出す字。
@@ -123,6 +150,7 @@ struct FileRow {
     role: String,
     created_at: String,
     time: String,
+    sender: Option<SenderView>,
 }
 
 /// Key の画面だけに出す物（file の枠と上げる枠）。
@@ -205,6 +233,7 @@ async fn render(state: AppState, mut view: View) -> Response {
         &mut view.role,
         &mut view.q,
         &mut view.reply,
+        &mut view.actor,
     ] {
         *field = field.take().filter(|v| !v.trim().is_empty());
     }
@@ -226,6 +255,7 @@ async fn render(state: AppState, mut view: View) -> Response {
         workspace: view.workspace.clone(),
         q: view.q.clone(),
         reply,
+        actor: view.actor.clone(),
         before,
         after,
         oldest_first,
@@ -289,6 +319,25 @@ async fn render(state: AppState, mut view: View) -> Response {
         })
         .collect(),
     };
+    // 送り手の候補は、値（castlist のアクターの id）でなく、castlist の名で出す。
+    let senders = FilterGroup {
+        title: "送り手",
+        choices: facets
+            .senders
+            .into_iter()
+            .map(|c| {
+                let active = view.actor.as_deref() == Some(c.value.as_str());
+                let next = (!active).then(|| c.value.clone());
+                Choice {
+                    label: c.note,
+                    note: String::new(),
+                    count: c.count,
+                    href: view.with(|v| v.actor = next),
+                    active,
+                }
+            })
+            .collect(),
+    };
     let waiting_only = View {
         reply: Some(Reply::Waiting.name().to_owned()),
         sort: view.sort.clone(),
@@ -303,6 +352,7 @@ async fn render(state: AppState, mut view: View) -> Response {
             ("role", &view.role),
             ("workspace", &view.workspace),
             ("reply", &view.reply),
+            ("actor", &view.actor),
             ("sort", &view.sort),
         ]
         .into_iter()
@@ -328,6 +378,7 @@ async fn render(state: AppState, mut view: View) -> Response {
             &view.workspace,
             &view.q,
             &view.reply,
+            &view.actor,
         ]
         .iter()
         .any(|v| v.is_some()),
@@ -336,13 +387,17 @@ async fn render(state: AppState, mut view: View) -> Response {
         waiting_active: reply == Some(Reply::Waiting),
         filters: vec![
             replies,
+            senders,
             group("担当者（役割）", facets.roles, |v| &mut v.role),
             group("workspace", facets.workspaces, |v| &mut v.workspace),
             group("種類", facets.kinds, |v| &mut v.kind),
             group("Key", facets.keys, |v| &mut v.key),
             group("project", facets.projects, |v| &mut v.project),
         ],
-        rows: pages.into_iter().map(|meta| row(&view, meta)).collect(),
+        rows: pages
+            .into_iter()
+            .map(|meta| row(&view, state.castlist.as_ref(), meta))
+            .collect(),
         more_href,
         viewer: view.open.clone(),
         key_view,
@@ -353,7 +408,7 @@ async fn render(state: AppState, mut view: View) -> Response {
     }
 }
 
-fn row(view: &View, meta: PageMeta) -> Row {
+fn row(view: &View, castlist: Option<&Castlist>, meta: PageMeta) -> Row {
     let path = page_path(&meta.project, &meta.key, &meta.kind, meta.n);
     let mut next = view.clone();
     next.open = Some(path.clone());
@@ -375,6 +430,7 @@ fn row(view: &View, meta: PageMeta) -> Row {
         created_at: meta.created_at,
         reply: state.map_or("", Reply::name),
         reply_label: state.map_or("", reply_label),
+        sender: sender_view(castlist, meta.sender),
     }
 }
 
@@ -392,6 +448,7 @@ async fn key_view(state: &AppState, view: &View) -> Result<Option<KeyView>, sqlx
         role: None,
         workspace: None,
         q: None,
+        actor: None,
         before: None,
         after: None,
         oldest_first: false,
@@ -423,6 +480,7 @@ async fn key_view(state: &AppState, view: &View) -> Result<Option<KeyView>, sqlx
                     ext: f.ext,
                     role: f.role,
                     created_at: f.created_at,
+                    sender: sender_view(state.castlist.as_ref(), f.sender),
                 }
             })
             .collect(),

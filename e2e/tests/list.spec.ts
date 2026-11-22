@@ -2,7 +2,7 @@
 // ここは browser でしか見えない物（script の動き・色・並び）と、人が押してたどる道を見る。
 // 試験は同じ置き場に順に置く。ほかの試験のページを見ないように、試験ごとに別の project を使う。
 import { expect, test } from '@playwright/test';
-import { choice, collectErrors, filters, fresh, list, listAtTop, openLive, place, rows, scrollList, toolbar, viewer } from './helpers';
+import { CASTLIST_PORT, choice, collectErrors, filters, fresh, list, listAtTop, openLive, place, rows, scrollList, startCastlist, toolbar, viewer } from './helpers';
 
 const NEW_LIGHT = 'rgb(31, 122, 77)'; // --new: #1f7a4d
 const NEW_DARK = 'rgb(92, 193, 143)'; // --new: #5cc18f
@@ -289,4 +289,46 @@ test('幅: 900px 以下では、絞り込みの列・一覧の列・本文の枠
   const narrow = await top();
   expect(narrow.list.y).toBeGreaterThanOrEqual(narrow.filters.y + narrow.filters.height - 1);
   expect(narrow.viewer.y).toBeGreaterThanOrEqual(narrow.list.y + narrow.list.height - 1);
+});
+
+// 送り手のある行が出ると、絞り込みの列に「送り手」の見出しが足される。見出しの並びを見る試験より後に流す。
+test('一覧の列: 送り手の castlist の名が行の下に出て、castlist のアクターの画面へ link する。付随する id は名の下に小さく。「送り手」で絞れる', async ({ page, request }) => {
+  const errors = collectErrors(page);
+  const actor = { id: '019a0000-0000-7000-8000-0000000000e2', name: 'e2e.swe.1', kind: 'ai' };
+  const castlist = await startCastlist({ 'claude.session:e2e': actor });
+  let sent = '';
+  try {
+    sent = await place(
+      request,
+      { project: 'senders', key: 'S-1', kind: 'plan', role: 'software-engineer', actor_issuer: 'tpm', actor_ref: 'claude.session:e2e' },
+      '<title>送り手あり</title>',
+    );
+    await place(request, { project: 'senders', key: 'S-1', kind: 'note', role: 'tpm' }, '<title>送り手なし</title>');
+  } finally {
+    castlist.close();
+  }
+
+  await page.goto('/?project=senders');
+  const row = list(page).locator(`li[data-path="${sent}"]`);
+  const name = row.locator('.sender a.actor');
+  const ref = row.locator('.sender small');
+  await expect(name).toHaveText('e2e.swe.1');
+  await expect(name).toHaveAttribute('href', `http://127.0.0.1:${CASTLIST_PORT}/actors/${actor.id}`);
+  await expect(name).toHaveAttribute('target', '_blank');
+  await expect(ref).toHaveText('claude.session:e2e');
+  const nameBox = (await name.boundingBox())!;
+  const refBox = (await ref.boundingBox())!;
+  expect(refBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1);
+  const px = (el: typeof name) => el.evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+  expect(await px(ref)).toBeLessThan(await px(name));
+  await expect(rows(page).filter({ hasText: '送り手なし' }).locator('.sender')).toHaveCount(0);
+
+  // 行を押すと、前と同じく本文の枠に出る（送り手の link は、行の link の外にある）。
+  await row.locator('.title').click();
+  await expect(viewer(page)).toContainText(sent);
+
+  await choice(page, '送り手', 'e2e.swe.1').click();
+  await expect(page).toHaveURL(new RegExp(`[?&]actor=${actor.id}`));
+  await expect(rows(page).locator('.title')).toHaveText(['送り手あり']);
+  expect(errors).toEqual([]);
 });
