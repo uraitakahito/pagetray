@@ -13,7 +13,7 @@ API の版: 1（変わらない。エンドポイントを 1 つ足しただけ�
   - 記録の file（`server.log`）には、今までの行に加えて、問い合わせごとの 1 行（method・path・status・かかった時間）を書く。
   - **ディスクの上限**: 記録は 1 MiB × 4 file で回し、終わり方の印は 64 KiB まで。合わせて 4 MiB と 64 KiB を超えない。書けない時も pagetray は動く（行を捨てる）。
   - `GET /api/logs` が、印と記録を古い順の字で返す（止めずに読める）。
-- **log の行の形が変わった**: `container logs` に出るどの行も、頭に時刻（UTC）と重さ（`INFO` など）が付く（`2026-01-02T03:04:05.000000Z  INFO pagetray: pagetray 0.7.0 listen=… db=…`）。行の中の文（`pagetray <版> listen=… db=…`・`put …`・`remove …` など）は変わらない。初めの行は、前回の終わり方になった。問い合わせごとの行は `container logs` には出ない（量を増やさないため）。誤りの行（`error: …`・`castlist: …`）は、stderr でなく stdout に出る。
+- **log の行の形が変わった**: `container logs` に出るどの行も、頭に時刻（UTC）と重さ（`INFO` など）が付く（`2026-01-02T03:04:05.000000Z  INFO pagetray_server: pagetray 0.7.0 listen=… db=…`）。行の中の文（`pagetray <版> listen=… db=…`・`put …`・`remove …` など）は変わらない。初めの行は、前回の終わり方になった。問い合わせごとの行は `container logs` には出ない（量を増やさないため）。誤りの行（`error: …`・`castlist: …`）は、stderr でなく stdout に出る。
 - 止める合図で終わる時、止まる前に `signal SIGTERM`（か `SIGINT`）の行を出す。起きられずに終わる時の code は、前と同じ 1。
 - CLI は変えていない。
 
