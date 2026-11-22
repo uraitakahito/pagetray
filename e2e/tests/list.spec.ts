@@ -2,7 +2,7 @@
 // ここは browser でしか見えない物（script の動き・色・並び）と、人が押してたどる道を見る。
 // 試験は同じ置き場に順に置く。ほかの試験のページを見ないように、試験ごとに別の project を使う。
 import { expect, test } from '@playwright/test';
-import { CASTLIST_LINK, choice, collectErrors, filters, fresh, list, listAtTop, openLive, place, rows, scrollList, startCastlist, toolbar, viewer } from './helpers';
+import { CASTLIST_LINK, choice, collectErrors, filters, fresh, list, listAtTop, openLive, pageLink, place, rows, scrollList, startCastlist, toolbar, viewer } from './helpers';
 
 const NEW_LIGHT = 'rgb(31, 122, 77)'; // --new: #1f7a4d
 const NEW_DARK = 'rgb(92, 193, 143)'; // --new: #5cc18f
@@ -223,9 +223,9 @@ test('一覧の列・本文の枠: 初めて開いた後に置かれたページ
   await expect(row).toHaveClass(/unread/);
   await expect(page.locator('li.unread')).toHaveCount(1);
 
-  await row.getByRole('link').click();
+  await pageLink(row).click();
   await expect(page.locator('body')).toHaveAttribute('data-viewer', path);
-  await expect(row.getByRole('link')).toHaveAttribute('aria-current', 'true');
+  await expect(pageLink(row)).toHaveAttribute('aria-current', 'true');
   const frame = viewer(page).locator('iframe[title="選んだページ"]');
   await expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
   await expect(frame.contentFrame().locator('#body')).toHaveText('本文の字');
@@ -323,8 +323,8 @@ test('一覧の列: 送り手の castlist の名が行の下に出て、castlist
   expect(await px(ref)).toBeLessThan(await px(name));
   await expect(rows(page).filter({ hasText: '送り手なし' }).locator('.sender')).toHaveCount(0);
 
-  // 行を押すと、前と同じく本文の枠に出る（送り手の link は、行の link の外にある）。
-  await row.locator('.title').click();
+  // 行のページの link を押すと、前と同じく本文の枠に出る（送り手の link は、行の link の外にある）。
+  await pageLink(row).click();
   await expect(viewer(page)).toContainText(sent);
 
   await choice(page, '送り手', 'e2e.swe.1').click();

@@ -2,7 +2,7 @@
 // 何も置かず、何が置かれていても通る物だけを見る。版を上げた後の確かめに使う（docs/src/run.md の「確かめる」）。
 // 流している間にほかの人がページを置いても落ちないように、数は「前と後の間」で見る。
 import { expect, test } from '@playwright/test';
-import { collectErrors, filters, openLive, place, rows, viewer } from './helpers';
+import { collectErrors, filters, openLive, pageLink, place, rows, viewer } from './helpers';
 
 type Listed = { pages: { path: string }[] };
 
@@ -47,7 +47,7 @@ test('@smoke 一覧の UI が出る。API の答えと合う。絞れる。選�
   // 本文の枠: 行を選ぶと、そのページが出る。
   const row = rows(page).first();
   const path = (await row.getAttribute('data-path'))!;
-  await row.getByRole('link').click();
+  await pageLink(row).click();
   await expect(page.locator('body')).toHaveAttribute('data-viewer', path);
   const frame = viewer(page).locator('iframe[title="選んだページ"]');
   await expect(frame).toHaveAttribute('src', path);
