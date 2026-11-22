@@ -64,6 +64,27 @@ export const list = (page: Page) => page.locator('#list');
 export const rows = (page: Page) => list(page).locator('li[data-path]');
 export const viewer = (page: Page) => page.locator('#viewer');
 export const fresh = (page: Page) => page.locator('#fresh');
+
+/**
+ * 一覧の列を、頭から y px 下へ送る。幅が広い時は真ん中の列（.middle）が、狭い時は画面全体が送られる。
+ */
+export async function scrollList(page: Page, y: number): Promise<void> {
+  await page.evaluate((y) => {
+    const list = document.getElementById('list')!;
+    const box = list.parentElement!;
+    if (box.scrollHeight > box.clientHeight) box.scrollTop = y;
+    else window.scrollTo(0, list.getBoundingClientRect().top + window.scrollY + y);
+  }, y);
+}
+
+/** 一覧の列の頭が、見えている所の頭にあるか（頭へ送られているか）。 */
+export const listAtTop = (page: Page) =>
+  page.evaluate(() => {
+    const list = document.getElementById('list')!;
+    const box = list.parentElement!;
+    const top = box.scrollHeight > box.clientHeight ? box.getBoundingClientRect().top : 0;
+    return list.getBoundingClientRect().top >= top - 1;
+  });
 // Key の画面だけの区画: file の枠（files）・上げる枠（upload）。
 export const files = (page: Page) => page.locator('#files');
 export const fileRows = (page: Page) => files(page).locator('li[data-file]');
