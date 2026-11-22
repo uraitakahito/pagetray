@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-22T00:57:16+09:00\n"
+"POT-Creation-Date: 2026-11-22T17:31:06+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -707,7 +707,8 @@ msgstr ""
 
 #: src/run.md
 msgid "写しの中の表と列は [DB の作り](db.md) にある。"
-msgstr "The tables and columns inside the backup are described in [DB schema](db.md)."
+msgstr ""
+"The tables and columns inside the backup are described in [DB schema](db.md)."
 
 #: src/run.md
 msgid "上げてはいけない file を上げてしまった時"
@@ -1836,6 +1837,35 @@ msgstr ""
 "`path` is a path within this server. `<server URL><path>` opens the body."
 
 #: src/api.md
+msgid ""
+"返事の状態を書いたページ（下の `POST /api/pages/reply`）の記録には、次の欄も"
+"出る（0.5.0 から。書いていないページには出ない）。"
+msgstr ""
+"The record of a page whose reply state has been written (`POST /api/pages/"
+"reply` below) also carries the following fields (since 0.5.0; they are "
+"absent on pages where it has not been written)."
+
+#: src/api.md
+msgid "欄"
+msgstr "Field"
+
+#: src/api.md src/db.md
+msgid "`asked_at`"
+msgstr "`asked_at`"
+
+#: src/api.md
+msgid "返事待ちにした時刻"
+msgstr "When the page was marked as waiting for a reply"
+
+#: src/api.md src/db.md
+msgid "`answered_at`"
+msgstr "`answered_at`"
+
+#: src/api.md
+msgid "答えた時刻。返事待ちの間は出ない"
+msgstr "When it was answered. Absent while the page is waiting for a reply"
+
+#: src/api.md
 msgid "file の記録"
 msgstr "File record"
 
@@ -2089,13 +2119,15 @@ msgid ""
 "引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だ"
 "け）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・"
 "`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・"
-"`after`（`created_at` がそれより前・後）。"
+"`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返"
+"事待ち、`answered` は答えた物だけ。0.5.0 から）。"
 msgstr ""
 "Parameters (all optional): `project`, `key`, `kind`, `role`, `workspace` "
 "(exact match only), `q` (searches the text of the title and body), `sort` (`-"
 "created_at` newest first = default, `created_at` oldest first), `limit` "
 "(default 100; clamped to 1–1000), `before`, `after` (`created_at` earlier or "
-"later than the given value)."
+"later than the given value), `reply` (the reply state: `waiting` for pages "
+"waiting for a reply only, `answered` for answered pages only; since 0.5.0)."
 
 #: src/api.md
 msgid "`200`: `{\"pages\":[<ページの記録>, …]}`。合う物が無ければ空の配列。"
@@ -2103,8 +2135,81 @@ msgstr ""
 "`200`: `{\"pages\":[<page record>, …]}`. An empty array if nothing matches."
 
 #: src/api.md
-msgid "`400`: `sort` がどちらでもない。"
-msgstr "`400`: `sort` is neither of the two values."
+msgid "`400`: `sort` がどちらでもない・`reply` がどちらでもない。"
+msgstr ""
+"`400`: `sort` is neither of the two values, or `reply` is neither of the two "
+"values."
+
+#: src/api.md
+msgid "`POST /api/pages/reply` — 返事の状態を書く"
+msgstr "`POST /api/pages/reply` — write the reply state"
+
+#: src/api.md
+msgid ""
+"Product Manager の返事が要るページに、返事待ち・答えたの状態を書く（0.5.0 か"
+"ら）。roster の `tpm ask pm` が返事待ちにし、`tpm answer` が答えたにする。一"
+"覧の UI は、この状態で印と件数を出す。"
+msgstr ""
+"Writes the waiting / answered state on a page that needs a reply from the "
+"Product Manager (since 0.5.0). In roster, `tpm ask pm` marks a page as "
+"waiting and `tpm answer` marks it as answered. The list UI shows its marks "
+"and counts from this state."
+
+#: src/api.md
+msgid ""
+"引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指"
+"す）、`state`（`waiting` 返事待ち・`answered` 答えた）。本文は読まない。"
+msgstr ""
+"Parameters (query; all required): `project`, `key`, `kind`, `n` (naming one "
+"page), `state` (`waiting` or `answered`). The body is not read."
+
+#: src/api.md
+msgid ""
+"`waiting`: 返事待ちにする。もう返事待ちなら何も変えない。答えた後にもう 1 度"
+"書くと、`asked_at` が今になり、`answered_at` が消える。"
+msgstr ""
+"`waiting`: marks the page as waiting for a reply. Changes nothing if it is "
+"already waiting. Written again after an answer, `asked_at` becomes the "
+"current time and `answered_at` is cleared."
+
+#: src/api.md
+msgid ""
+"`answered`: 答えたにする。もう答えていれば何も変えない。返事待ちにしていない"
+"ページなら、`asked_at` にも同じ時刻が入る。"
+msgstr ""
+"`answered`: marks the page as answered. Changes nothing if it is already "
+"answered. On a page that was never marked as waiting, `asked_at` gets the "
+"same time."
+
+#: src/api.md
+msgid ""
+"`200`: そのページの記録（`asked_at`・`answered_at` が付く）。同じ状態を 2 度"
+"書いても同じ答え。"
+msgstr ""
+"`200`: the record of that page (with `asked_at` and `answered_at`). Writing "
+"the same state twice gives the same response."
+
+#: src/api.md
+msgid "`404`: そのページは無い（消した物も）。`400`: 引数が決まりに合わない。"
+msgstr ""
+"`404`: there is no such page (deleted pages included). `400`: a parameter "
+"violates the rules."
+
+#: src/api.md
+msgid ""
+"だれが書いてよいかは見ない（呼ぶ側が決める）。browser の中のページからは書け"
+"ない（「共通」の `Origin` の決まり）。"
+msgstr ""
+"Who may write is not checked (the caller decides). A page inside a browser "
+"cannot write (the `Origin` rule under \"Common\")."
+
+#: src/api.md
+msgid ""
+"0.5.0 より前のサーバーには、このエンドポイントが無い（`404` か `405` が返"
+"る）。呼ぶ側は、それを「状態を書けない置き場」として扱う。"
+msgstr ""
+"Servers before 0.5.0 do not have this endpoint (they return `404` or `405`). "
+"A caller treats that as a store that cannot hold the state."
 
 #: src/api.md
 msgid "`DELETE /api/pages` — 消す"
@@ -2250,6 +2355,10 @@ msgstr ""
 "`200`: `{\"files\":[<file record>, …]}`. An empty array if nothing matches."
 
 #: src/api.md
+msgid "`400`: `sort` がどちらでもない。"
+msgstr "`400`: `sort` is neither of the two values."
+
+#: src/api.md
 msgid "`DELETE /api/files` — file を消す"
 msgstr "`DELETE /api/files` — delete files"
 
@@ -2313,11 +2422,14 @@ msgstr "Backup of the DB (a single SQLite file)"
 
 #: src/api.md
 msgid ""
-"置かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、"
-"file は `event: file` で file の記録"
+"置かれるたび・返事の状態が書かれるたびに 1 件を push（SSE）。ページは名の無"
+"い event でページの記録、file は `event: file` で file の記録、返事の状態は "
+"`event: reply` でページの記録（0.5.0 から）"
 msgstr ""
-"Pushes one event each time something is put (SSE): an unnamed event with the "
-"page record for a page, `event: file` with the file record for a file"
+"Pushes one event each time something is put or a reply state is written "
+"(SSE): an unnamed event with the page record for a page, `event: file` with "
+"the file record for a file, `event: reply` with the page record for a reply "
+"state (since 0.5.0)"
 
 #: src/api.md src/glossary.md
 msgid "一覧の UI"
@@ -3517,11 +3629,12 @@ msgstr "`pages` — pages"
 
 #: src/db.md
 msgid ""
-"置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。行を書き換え"
-"る SQL は無い。"
+"置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。置いた後に書"
+"き換わるのは、返事の状態の 2 つの列（`asked_at`・`answered_at`）だけ。"
 msgstr ""
 "One row per stored page. Putting it again makes a different row with a "
-"different number. No SQL rewrites a row."
+"different number. After a page is put, only the two reply-state columns "
+"(`asked_at`, `answered_at`) are ever rewritten."
 
 #: src/db.md
 msgid "列"
@@ -3624,6 +3737,20 @@ msgid "本文。置かれた HTML をそのまま"
 msgstr "The body: the HTML exactly as put"
 
 #: src/db.md
+msgid "可"
+msgstr "yes"
+
+#: src/db.md
+msgid "返事待ちにした時刻。返事を求めていなければ空（0.5.0 から）"
+msgstr ""
+"When the page was marked as waiting for a reply. Null if no reply was asked "
+"for (since 0.5.0)"
+
+#: src/db.md
+msgid "答えた時刻。まだ答えていなければ空（0.5.0 から）"
+msgstr "When it was answered. Null if not answered yet (since 0.5.0)"
+
+#: src/db.md
 msgid "主キー: `(id)`"
 msgstr "Primary key: `(id)`"
 
@@ -3636,12 +3763,35 @@ msgid "索引: `pages_created` `(created_at)`"
 msgstr "Index: `pages_created` `(created_at)`"
 
 #: src/db.md
+msgid "索引: `pages_waiting` `(asked_at)`"
+msgstr "Index: `pages_waiting` `(asked_at)`"
+
+#: src/db.md
 msgid ""
-"書く所: `Db::put`。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: "
-"`Db::remove`。"
+"`pages_waiting` は、返事待ち（`asked_at` があり、`answered_at` が空）の行だけ"
+"の索引。"
 msgstr ""
-"Written by `Db::put`. Read by `Db::body`, `Db::list`, `Db::facets`. Deleted "
-"by `Db::remove`."
+"`pages_waiting` is an index over only the rows waiting for a reply "
+"(`asked_at` set, `answered_at` null)."
+
+#: src/db.md
+msgid ""
+"書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）。読む所: `Db::body`・"
+"`Db::list`・`Db::facets`。消す所: `Db::remove`。"
+msgstr ""
+"Written by `Db::put` and `Db::set_reply` (the reply state only). Read by "
+"`Db::body`, `Db::list`, `Db::facets`. Deleted by `Db::remove`."
+
+#: src/db.md
+msgid ""
+"**返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないペー"
+"ジ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば"
+"答えた。0.5.0 より前に置かれたページは、どちらも空。"
+msgstr ""
+"**Reply state**: with both `asked_at` and `answered_at` null, no reply was "
+"asked for. With `asked_at` set and `answered_at` null, the page is waiting "
+"for a reply. With `answered_at` set, it has been answered. Pages put before "
+"0.5.0 have both null."
 
 #: src/db.md
 msgid "`pages_fts` — 全文の索引"
@@ -3656,10 +3806,6 @@ msgstr ""
 "The [full-text index](glossary.md) (an SQLite FTS5 virtual table). "
 "`tokenize='trigram'` splits text into 3-character pieces, so Japanese words "
 "can be looked up too. One row per page, and `rowid` is `pages.id`."
-
-#: src/db.md
-msgid "可"
-msgstr "yes"
 
 #: src/db.md
 msgid "`pages.title` の写し"
@@ -4007,14 +4153,33 @@ msgstr "`PageRecord`"
 #: src/glossary.md
 msgid ""
 "ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・"
-"workspace・時刻・大きさ・path）"
+"workspace・時刻・大きさ・path。返事の状態を書いたページには、その時刻も）"
 msgstr ""
 "The fields of one page other than its body (project, Key, kind, number, "
-"title, role, workspace, time, size, path)"
+"title, role, workspace, time, size, path; plus the reply-state times on "
+"pages where that state has been written)"
 
 #: src/glossary.md
 msgid "メタデータ"
 msgstr "metadata"
+
+#: src/glossary.md
+msgid "返事の状態（reply state）"
+msgstr "Reply state"
+
+#: src/glossary.md
+msgid "`asked_at`・`answered_at`"
+msgstr "`asked_at`, `answered_at`"
+
+#: src/glossary.md
+msgid ""
+"Product Manager の返事が要るページに、呼ぶ側が書く状態。返事待ち（`waiting`。"
+"求めて、まだ答えていない）か、答えた（`answered`）。書いていないページは、返"
+"事を求めていない"
+msgstr ""
+"The state a caller writes on a page that needs a reply from the Product "
+"Manager: waiting (`waiting`: asked, not answered yet) or answered "
+"(`answered`). A page where it has not been written asks for no reply"
 
 #: src/glossary.md
 msgid "project"

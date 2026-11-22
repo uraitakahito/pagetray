@@ -27,6 +27,12 @@ pub struct PageRecord {
     /// 置いた答えにだけ付く、要求の `Host` で組んだ URL。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub asked_at: Option<String>,
+    /// 答えた時刻。まだ答えていなければ無い。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub answered_at: Option<String>,
 }
 
 /// ページの本文の path。

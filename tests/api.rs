@@ -1234,3 +1234,187 @@ async fn a_put_file_is_pushed_as_a_named_event_and_pages_stay_unnamed() {
     let json: Value = serde_json::from_str(text.strip_prefix("data: ").unwrap().trim()).unwrap();
     assert_eq!(json["path"], "/p/SKILLS-14/result-1.html");
 }
+
+/// 返事の状態を書く道。答えは、そのページの記録。
+async fn reply(s: &Server, query: &str) -> (StatusCode, Value) {
+    let uri = format!("/api/pages/reply?{query}");
+    let (status, _, body) = s.send(request("POST", &uri, Body::empty())).await;
+    (status, serde_json::from_slice(&body).unwrap())
+}
+
+const CONFIRM: &str = "project=p&key=SKILLS-14&kind=confirm";
+
+#[tokio::test]
+async fn a_page_waits_for_a_reply_until_it_is_answered() {
+    let s = Server::start().await;
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"))
+        .await;
+    s.place(&format!("{SE}&kind=result"), &html("結果", "できた"))
+        .await;
+
+    // 置いただけでは、返事の状態は無い（欄も出ない）。
+    let listed = s.json("/api/pages?project=p&kind=confirm").await;
+    assert!(listed["pages"][0].get("asked_at").is_none());
+    assert!(listed["pages"][0].get("answered_at").is_none());
+    assert!(s.paths("project=p&reply=waiting").await.is_empty());
+    assert!(s.paths("project=p&reply=answered").await.is_empty());
+
+    let (status, waiting) = reply(&s, &format!("{CONFIRM}&n=1&state=waiting")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(waiting["path"], "/p/SKILLS-14/confirm-1.html");
+    let asked_at = waiting["asked_at"].as_str().unwrap().to_owned();
+    assert!(pagetray_api::is_timestamp(&asked_at));
+    assert!(waiting.get("answered_at").is_none());
+    assert_eq!(
+        s.paths("project=p&reply=waiting").await,
+        ["/p/SKILLS-14/confirm-1.html"]
+    );
+    assert!(s.paths("project=p&reply=answered").await.is_empty());
+
+    // 同じ状態を 2 度書いても、時刻は初めの物を保つ。
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    let (_, again) = reply(&s, &format!("{CONFIRM}&n=1&state=waiting")).await;
+    assert_eq!(again, waiting);
+
+    let (status, answered) = reply(&s, &format!("{CONFIRM}&n=1&state=answered")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(answered["asked_at"], asked_at.as_str());
+    let answered_at = answered["answered_at"].as_str().unwrap().to_owned();
+    assert!(answered_at > asked_at);
+    assert!(s.paths("project=p&reply=waiting").await.is_empty());
+    assert_eq!(
+        s.paths("project=p&reply=answered").await,
+        ["/p/SKILLS-14/confirm-1.html"]
+    );
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    let (_, again) = reply(&s, &format!("{CONFIRM}&n=1&state=answered")).await;
+    assert_eq!(again, answered);
+
+    // 一覧の記録にも出て、呼ぶ側の型で読める。
+    let listed = s.json("/api/pages?project=p&kind=confirm").await;
+    let record: pagetray_api::PageRecord =
+        serde_json::from_value(listed["pages"][0].clone()).unwrap();
+    assert_eq!(record.asked_at.as_deref(), Some(asked_at.as_str()));
+    assert_eq!(record.answered_at.as_deref(), Some(answered_at.as_str()));
+
+    // 答えた後にもう 1 度求めると、求めた時刻は今になり、答えた時刻は消える。
+    tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    let (_, asked_again) = reply(&s, &format!("{CONFIRM}&n=1&state=waiting")).await;
+    assert!(asked_again["asked_at"].as_str().unwrap() > answered_at.as_str());
+    assert!(asked_again.get("answered_at").is_none());
+}
+
+#[tokio::test]
+async fn a_page_nobody_asked_about_can_be_marked_answered() {
+    let s = Server::start().await;
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"))
+        .await;
+    let (status, answered) = reply(&s, &format!("{CONFIRM}&n=1&state=answered")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(answered["asked_at"], answered["answered_at"]);
+    assert!(answered["answered_at"].is_string());
+}
+
+#[tokio::test]
+async fn bad_reply_arguments_are_refused_and_a_missing_page_is_not_found() {
+    let s = Server::start().await;
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"))
+        .await;
+    for query in [
+        "project=p&key=SKILLS-14&kind=confirm&n=1",
+        "project=p&key=SKILLS-14&kind=confirm&state=waiting",
+        "project=p&key=SKILLS-14&n=1&state=waiting",
+        "project=p&kind=confirm&n=1&state=waiting",
+        "key=SKILLS-14&kind=confirm&n=1&state=waiting",
+        "project=p&key=SKILLS-14&kind=confirm&n=1&state=done",
+        "project=p&key=SKILLS-14&kind=confirm&n=0&state=waiting",
+        "project=p&key=SKILLS-14&kind=Confirm&n=1&state=waiting",
+        "project=p&key=a/b&kind=confirm&n=1&state=waiting",
+    ] {
+        let uri = format!("/api/pages/reply?{query}");
+        let (status, _, _) = s.send(request("POST", &uri, Body::empty())).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{query}");
+    }
+    for query in [
+        "project=p&key=SKILLS-14&kind=confirm&n=2&state=waiting",
+        "project=other&key=SKILLS-14&kind=confirm&n=1&state=answered",
+    ] {
+        let (status, body) = reply(&s, query).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{query}");
+        assert!(body["error"].is_string());
+    }
+    let (status, _, _) = s.get("/api/pages?reply=done").await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(s.paths("project=p&reply=waiting").await.is_empty());
+
+    // 消したページには書けない。
+    reply(&s, &format!("{CONFIRM}&n=1&state=waiting")).await;
+    s.remove("project=p&key=SKILLS-14&kind=confirm&n=1").await;
+    let (status, _) = reply(&s, &format!("{CONFIRM}&n=1&state=answered")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(s.paths("reply=waiting").await.is_empty());
+}
+
+#[tokio::test]
+async fn a_page_in_a_browser_cannot_write_a_reply() {
+    let s = Server::start().await;
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"))
+        .await;
+    for origin in ["null", "http://127.0.0.1:8801", "https://evil.example"] {
+        let request = Request::builder()
+            .method("POST")
+            .uri(format!("/api/pages/reply?{CONFIRM}&n=1&state=waiting"))
+            .header(header::HOST, "127.0.0.1:8801")
+            .header(header::ORIGIN, origin)
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(s.send(request).await.0, StatusCode::FORBIDDEN, "{origin}");
+    }
+    assert!(s.paths("reply=waiting").await.is_empty());
+}
+
+#[tokio::test]
+async fn a_reply_survives_a_restart_and_is_in_the_backup() {
+    let s = Server::start().await;
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"))
+        .await;
+    reply(&s, &format!("{CONFIRM}&n=1&state=waiting")).await;
+    s.db.close().await;
+    let db = Db::open(&s.path).await.unwrap();
+    let app = router(AppState::new(db));
+    let response = app
+        .oneshot(request("GET", "/api/pages?reply=waiting", Body::empty()))
+        .await
+        .unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let json: Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(json["pages"][0]["path"], "/p/SKILLS-14/confirm-1.html");
+}
+
+#[tokio::test]
+async fn a_reply_is_pushed_as_a_named_event() {
+    let s = Server::start().await;
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"))
+        .await;
+    let response = s
+        .app
+        .clone()
+        .oneshot(request("GET", "/api/events", Body::empty()))
+        .await
+        .unwrap();
+    let mut body = response.into_body();
+    let mut next = async || {
+        let frame = tokio::time::timeout(std::time::Duration::from_secs(5), body.frame())
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        String::from_utf8(frame.into_data().unwrap().to_vec()).unwrap()
+    };
+    reply(&s, &format!("{CONFIRM}&n=1&state=waiting")).await;
+    let text = next().await;
+    let data = text.strip_prefix("event: reply\ndata: ").unwrap();
+    let json: Value = serde_json::from_str(data.trim()).unwrap();
+    assert_eq!(json["path"], "/p/SKILLS-14/confirm-1.html");
+    assert!(json["asked_at"].is_string());
+}

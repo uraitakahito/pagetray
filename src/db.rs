@@ -40,6 +40,37 @@ pub struct PageMeta {
     pub workspace: String,
     pub created_at: String,
     pub size: i64,
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asked_at: Option<String>,
+    /// 答えた時刻。まだ答えていなければ無い。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub answered_at: Option<String>,
+}
+
+/// ページの返事の状態。返事待ち（求めて、まだ答えていない）か、答えたか。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reply {
+    Waiting,
+    Answered,
+}
+
+impl Reply {
+    /// API の引数と SQL で使う名。
+    pub fn name(self) -> &'static str {
+        match self {
+            Reply::Waiting => "waiting",
+            Reply::Answered => "answered",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "waiting" => Some(Reply::Waiting),
+            "answered" => Some(Reply::Answered),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -50,6 +81,8 @@ pub struct Filter {
     pub role: Option<String>,
     pub workspace: Option<String>,
     pub q: Option<String>,
+    /// 返事の状態で絞る。
+    pub reply: Option<Reply>,
     pub before: Option<String>,
     pub after: Option<String>,
     pub oldest_first: bool,
@@ -220,7 +253,43 @@ impl Db {
             workspace: page.workspace.to_owned(),
             created_at: row.created_at,
             size: page.body.len() as i64,
+            asked_at: None,
+            answered_at: None,
         })
+    }
+
+    /// ページ 1 枚の返事の状態を書く。無いページなら None。同じ状態を 2 度書いても、時刻は初めの物を保つ。
+    /// - 返事待ち: 答えた時刻を空にする。答えた後にもう 1 度求めた時は、求めた時刻を今にする。
+    /// - 答えた: 答えた時刻を入れる（求めた時刻が空なら、同じ時刻を入れる）。
+    pub async fn set_reply(
+        &self,
+        project: &str,
+        key: &str,
+        kind: &str,
+        n: i64,
+        reply: Reply,
+    ) -> Result<Option<PageMeta>, sqlx::Error> {
+        let answered = reply == Reply::Answered;
+        sqlx::query_as!(
+            PageMeta,
+            r#"update pages
+               set asked_at = case when asked_at is not null and (?5 or answered_at is null)
+                                   then asked_at
+                                   else strftime('%Y-%m-%dT%H:%M:%fZ', 'now') end,
+                   answered_at = case when ?5
+                                      then coalesce(answered_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                                 end
+               where project = ?1 and key = ?2 and kind = ?3 and n = ?4
+               returning project, key, kind, n, title, role, workspace, created_at,
+                         length(body) as "size!: i64", asked_at, answered_at"#,
+            project,
+            key,
+            kind,
+            n,
+            answered,
+        )
+        .fetch_optional(&self.write)
+        .await
     }
 
     pub async fn body(
@@ -309,10 +378,11 @@ impl Db {
 
     pub async fn list(&self, f: &Filter) -> Result<Vec<PageMeta>, sqlx::Error> {
         let (fts, scan) = search(f.q.as_deref());
+        let reply = f.reply.map(Reply::name);
         sqlx::query_as!(
             PageMeta,
             r#"select project, key, kind, n, title, role, workspace, created_at,
-                      length(body) as "size!: i64"
+                      length(body) as "size!: i64", asked_at, answered_at
                from pages
                where (?1 is null or project = ?1)
                  and (?2 is null or key = ?2)
@@ -324,6 +394,9 @@ impl Db {
                                            where instr(title, ?7) > 0 or instr(text, ?7) > 0))
                  and (?8 is null or created_at < ?8)
                  and (?9 is null or created_at > ?9)
+                 and (?12 is null
+                      or (?12 = 'waiting' and asked_at is not null and answered_at is null)
+                      or (?12 = 'answered' and answered_at is not null))
                order by case when ?10 then created_at end asc,
                         case when ?10 then id end asc,
                         created_at desc, id desc
@@ -339,6 +412,7 @@ impl Db {
             f.after,
             f.oldest_first,
             f.limit,
+            reply,
         )
         .fetch_all(&self.read)
         .await

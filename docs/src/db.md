@@ -24,7 +24,7 @@ erDiagram
 
 ## `pages` — ページ
 
-置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。行を書き換える SQL は無い。
+置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。置いた後に書き換わるのは、返事の状態の 2 つの列（`asked_at`・`answered_at`）だけ。
 
 | 列 | 型 | 空 | 意味 |
 |---|---|---|---|
@@ -38,11 +38,16 @@ erDiagram
 | `workspace` | text | 不可 | 置いた人の workspace の ID（わからなければ空の字） |
 | `created_at` | text | 不可 | 置いた時刻 |
 | `body` | blob | 不可 | 本文。置かれた HTML をそのまま |
+| `asked_at` | text | 可 | 返事待ちにした時刻。返事を求めていなければ空（0.5.0 から） |
+| `answered_at` | text | 可 | 答えた時刻。まだ答えていなければ空（0.5.0 から） |
 
 - 主キー: `(id)`
 - 一意: `(project, key, kind, n)`
 - 索引: `pages_created` `(created_at)`
-- 書く所: `Db::put`。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
+- 索引: `pages_waiting` `(asked_at)`
+- `pages_waiting` は、返事待ち（`asked_at` があり、`answered_at` が空）の行だけの索引。
+- 書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
+- **返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないページ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば答えた。0.5.0 より前に置かれたページは、どちらも空。
 
 ## `pages_fts` — 全文の索引
 

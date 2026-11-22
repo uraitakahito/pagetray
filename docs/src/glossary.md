@@ -17,7 +17,8 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | CLI | `pagetray` | 置き場を端末から操作する命令 | — |
 | ページ（page） | `pages` | 置き場に置く HTML 1 枚。置き直すと、別の番号の別のページになる | Artifact |
 | 本文（body） | `body` | ページの HTML そのもの | — |
-| ページの記録（page record） | `PageRecord` | ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・workspace・時刻・大きさ・path） | メタデータ |
+| ページの記録（page record） | `PageRecord` | ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・workspace・時刻・大きさ・path。返事の状態を書いたページには、その時刻も） | メタデータ |
+| 返事の状態（reply state） | `asked_at`・`answered_at` | Product Manager の返事が要るページに、呼ぶ側が書く状態。返事待ち（`waiting`。求めて、まだ答えていない）か、答えた（`answered`）。書いていないページは、返事を求めていない | — |
 | project | `project` | ページをまとめる、いちばん上の名。`tpm` は、project の folder の path から作る | — |
 | Key | `key` | 課題の名（`AI-22` など）。project の下でページをまとめる | 鍵 |
 | 種類（kind） | `kind` | ページの種類の名（`plan`・`result` など）。名の一覧は、呼ぶ側が決める | type |

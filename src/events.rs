@@ -1,4 +1,4 @@
-//! 新着の push（SSE）。ページか file が置かれるたびに、その記録を 1 件送る。
+//! 新着の push（SSE）。ページか file が置かれるたび・ページの返事の状態が変わるたびに、その記録を 1 件送る。
 
 use crate::AppState;
 use axum::extract::State;
@@ -14,6 +14,8 @@ pub enum Note {
     Page(String),
     /// `event: file` で送る。
     File(String),
+    /// ページの返事の状態が変わった。`event: reply` で送る。
+    Reply(String),
 }
 
 pub async fn stream(
@@ -26,6 +28,7 @@ pub async fn stream(
             Ok(match note {
                 Note::Page(json) => Event::default().data(json),
                 Note::File(json) => Event::default().event("file").data(json),
+                Note::Reply(json) => Event::default().event("reply").data(json),
             })
         });
     Sse::new(stream).keep_alive(KeepAlive::default())
