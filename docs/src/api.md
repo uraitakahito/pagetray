@@ -74,7 +74,7 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 
 ## 送り手
 
-ページと file を置く時に、呼ぶ側は、置く人を指す付随する id（`actor_issuer`・`actor_ref`）を書ける（0.6.0 から。書かなくてよい）。置き場は、受けたその時に [castlist](glossary.md)（アクターの本当の id と名を持つ、この Mac の中のサーバー）に送り手を聞き、答えを残す。後から castlist の答えが変わっても、残した物は変えない。
+ページと file を置く時に、呼ぶ側は、置く人を指す付随する id（`actor_issuer`・`actor_ref`）を書ける（0.6.0 から。書かなくてよい）。置き場は、受けたその時に [castlist](glossary.md)（アクターの本当の id と名を持つ、pagetray を動かす機械の別の container のサーバー。聞く先は `PAGETRAY_CASTLIST_URL`）に送り手を聞き、答えを残す。後から castlist の答えが変わっても、残した物は変えない。
 
 ```json
 "sender": {
