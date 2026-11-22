@@ -33,6 +33,24 @@ pub struct PageRecord {
     /// 答えた時刻。まだ答えていなければ無い。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub answered_at: Option<String>,
+    /// 送り手。置いた時に付随する id を書いていなければ無い（0.6.0 から）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sender: Option<SenderRecord>,
+}
+
+/// ページと file の送り手。置いた時の付随する id と、その時に castlist が答えたアクター。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SenderRecord {
+    /// 付随する id を出した物（`tpm` など）。
+    pub issuer: String,
+    /// 付随する id（`<種類>:<値>`）。
+    #[serde(rename = "ref")]
+    pub actor_ref: String,
+    /// castlist が答えたアクター。castlist に聞かなかった（置き場に castlist の URL が無い）時は null（未確認）。
+    pub actor: Option<ActorRecord>,
+    /// castlist が答えた時刻。聞かなかった時は無い。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_at: Option<String>,
 }
 
 /// castlist が答えた、送り手のアクター（本当の id・名・種類）。
@@ -71,6 +89,30 @@ pub fn is_workspace(s: &str) -> bool {
     s.len() <= 64
         && s.bytes()
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b':' | b'.' | b'_' | b'-'))
+}
+
+/// 付随する id を出した物の名（`actor_issuer`）。英小文字・数字・`-` `.` で 1〜64 字（castlist の名の形）。
+pub fn is_issuer(s: &str) -> bool {
+    (1..=64).contains(&s.len())
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'-' | b'.'))
+}
+
+/// 付随する id（`actor_ref`）: `<種類>:<値>`。種類は [`is_issuer`] と同じ形。値は英数字と `:` `.` `_` `-` で
+/// 1〜256 字（初めの `:` で分けるので、値に `:` があってよい）。
+pub fn is_actor_ref(s: &str) -> bool {
+    s.split_once(':').is_some_and(|(kind, value)| {
+        is_issuer(kind)
+            && (1..=256).contains(&value.len())
+            && value
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b':' | b'.' | b'_' | b'-'))
+    })
+}
+
+/// castlist のアクターの id の形（UUID など）。英数字と `-` で 1〜64 字。URL の 1 段にそのまま入れられる。
+pub fn is_actor_id(s: &str) -> bool {
+    (1..=64).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
 }
 
 /// `2026-01-02T03:04:05Z` か、秒の小数（3 桁まで）が付いた形。字の順が時刻の順になる形だけを受ける。
@@ -136,6 +178,9 @@ pub struct FileRecord {
     /// 置いた答えにだけ付く、要求の `Host` で組んだ URL。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+    /// 送り手。置いた時に付随する id を書いていなければ無い（0.6.0 から）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sender: Option<SenderRecord>,
 }
 
 /// 中身の見方。拡張子と合わなければ受けない。
@@ -252,6 +297,35 @@ mod tests {
         assert!(is_workspace(""));
         assert!(is_workspace("workspace:1000090098"));
         assert!(!is_workspace("a b"));
+    }
+
+    #[test]
+    fn actor_refs_are_a_kind_and_a_value() {
+        for ok in [
+            "claude.session:5f0c2a8e-1",
+            "tpm.person:pm",
+            "cmux.workspace.ref:workspace:3",
+            &format!("a:{}", "x".repeat(256)),
+        ] {
+            assert!(is_actor_ref(ok), "{ok}");
+        }
+        for ng in [
+            "",
+            "claude.session",
+            "claude.session:",
+            ":a",
+            "Claude:a",
+            "a:b c",
+            "a:b/c",
+            "a:字",
+            &format!("a:{}", "x".repeat(257)),
+        ] {
+            assert!(!is_actor_ref(ng), "{ng}");
+        }
+        assert!(is_issuer("tpm") && is_issuer("a.b-1"));
+        assert!(!is_issuer("") && !is_issuer("TPM") && !is_issuer("a_b"));
+        assert!(is_actor_id("019a0000-0000-7000-8000-00000000000a"));
+        assert!(!is_actor_id("../x") && !is_actor_id("") && !is_actor_id("a b"));
     }
 
     #[test]

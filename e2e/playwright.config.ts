@@ -1,6 +1,6 @@
 // 一覧の UI の試験の設定。同じ commit の pagetray-server を、空いている port と一時の DB で起こして向ける。
 //   PAGETRAY_E2E_SERVER   起こす binary（既定は ../target/debug/pagetray-server。先に cargo build --bin pagetray-server）
-//   PAGETRAY_E2E_PORT     待ち受ける port（既定 18801）
+//   PAGETRAY_E2E_PORT     待ち受ける port（既定 18801）。その次の port に、試験が偽の castlist を立てる（helpers.ts の startCastlist）
 //   PAGETRAY_E2E_CHANNEL  この機械に入っている browser を使う時の名（chrome など）。無ければ Playwright の Chromium
 //   PAGETRAY_E2E_URL      動いている置き場に向ける（http://127.0.0.1:8801 など）。サーバーは起こさず、
 //                         読むだけの試験（題に @smoke が付いた物）だけを流す。browser は、この機械の Chrome を使う
@@ -36,7 +36,8 @@ export default defineConfig({
   webServer: store ? undefined : {
     // 前の回の DB を消してから起こす（試験は、いつも空の置き場から始まる）。
     command: `rm -f "${db}" "${db}-wal" "${db}-shm" && exec "${server}"`,
-    env: { PAGETRAY_LISTEN: `127.0.0.1:${port}`, PAGETRAY_DB: db },
+    // 送り手は、次の port の偽の castlist に聞く。偽の castlist は、送り手を見る試験の間だけ立つ。
+    env: { PAGETRAY_LISTEN: `127.0.0.1:${port}`, PAGETRAY_DB: db, PAGETRAY_CASTLIST_URL: `http://127.0.0.1:${port + 1}` },
     url: `http://127.0.0.1:${port}/healthz`,
     reuseExistingServer: false,
   },

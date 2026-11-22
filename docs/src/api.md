@@ -39,6 +39,8 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 | `name`（file） | `<語>.<拡張子>`。語は英小文字・数字・`-` `_` で 1〜64 字（英小文字か数字で始まる）。拡張子は下の「受ける file の種類」の物だけ |
 | `n` | 1 以上の整数 |
 | `created_at` | `2026-01-02T03:04:05Z` か、秒の小数（3 桁まで）が付いた形。UTC だけ |
+| `actor_issuer` | 英小文字・数字・`-` `.` で 1〜64 字（castlist の名の形） |
+| `actor_ref` | `<種類>:<値>`。種類は `actor_issuer` と同じ形、値は英数字と `:` `.` `_` `-` で 1〜256 字（初めの `:` で分けるので、値に `:` があってよい） |
 
 ## ページの記録
 
@@ -67,6 +69,41 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 |---|---|
 | `asked_at` | 返事待ちにした時刻 |
 | `answered_at` | 答えた時刻。返事待ちの間は出ない |
+
+送り手を記録したページ（下の「送り手」）の記録には、`sender` の欄も出る（0.6.0 から。記録していないページには出ない）。
+
+## 送り手
+
+ページと file を置く時に、呼ぶ側は、置く人を指す付随する id（`actor_issuer`・`actor_ref`）を書ける（0.6.0 から。書かなくてよい）。置き場は、受けたその時に [castlist](glossary.md)（アクターの本当の id と名を持つ、この Mac の中のサーバー）に送り手を聞き、答えを残す。後から castlist の答えが変わっても、残した物は変えない。
+
+```json
+"sender": {
+  "issuer": "tpm",
+  "ref": "claude.session:5f0c2a8e-…",
+  "actor": { "id": "019a…", "name": "t-23zs.swe.1", "kind": "ai" },
+  "resolved_at": "2026-11-22T04:00:02.000Z"
+}
+```
+
+| 欄 | 中身 |
+|---|---|
+| `issuer`・`ref` | 置く時に書いた `actor_issuer`・`actor_ref` |
+| `actor` | castlist が答えたアクター（id・名・種類）。置き場に castlist の URL が無かった時は `null`（未確認） |
+| `resolved_at` | castlist が答えた時刻（castlist の答えの `as_of`）。聞かなかった時は出ない |
+
+置き場が castlist に聞くかどうかと、答えで、置く要求の答えが決まる。
+
+| 場合 | 答え |
+|---|---|
+| `actor_issuer`・`actor_ref` が無い | 前と同じに置く（`sender` は出ない） |
+| 置き場に castlist の URL（`PAGETRAY_CASTLIST_URL`）が無い | 置く。`sender.actor` は `null` |
+| castlist がアクターを答えた | 置く。`sender.actor` にその答え |
+| castlist が `actor: null`（登録の無い送り手）を答えた | `422`。何も置かない |
+| castlist につながらない・1 秒で答えない・`200` でない・答えが読めない | `503`。何も置かない。少し待ってから送り直す |
+
+- 片方だけ書いた・形が違う時は `400`（castlist には聞かない）。
+- castlist には `POST /v1/resolve` で、`{"issuer":"<actor_issuer>","refs":["<actor_ref>"]}` を送る。`Host: 127.0.0.1` で送り、`Origin` は付けない（castlist がほかの物を断る）。
+- castlist を待つ間は、書く取引を始めない（ほかの置く要求を待たせない）。
 
 ## file の記録
 
@@ -113,16 +150,17 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 
 ### `POST /api/pages` — 置く
 
-- 引数（query）: `project`・`key`・`kind`・`role`（要る）、`workspace`（無ければ空）、`n`・`created_at`（取り込みの時だけ）。
+- 引数（query）: `project`・`key`・`kind`・`role`（要る）、`workspace`（無ければ空）、`n`・`created_at`（取り込みの時だけ）、`actor_issuer`・`actor_ref`（送り手。両方書くか、両方書かない。0.6.0 から）。
 - 本文: HTML（1 枚 16 MiB まで。空は駄目）。
 - `n` が無ければ、その `project`・`key`・`kind` の「今の最大 ＋ 1」を付ける。最大は、消したページの番号も数える（同じ番号を 2 度使わない）。
 - `201`: ページの記録に `url`（要求の `Host` で組んだ URL）を足した JSON。header `Location` も同じ URL。
 - `409`: `n` を名指して、その番号が使われている（置いてある・消した）。
-- `400`: 引数が決まりに合わない・本文が空。`413`: 本文が大きすぎる。
+- `400`: 引数が決まりに合わない・本文が空・`actor_issuer` と `actor_ref` の片方だけ。`413`: 本文が大きすぎる。
+- `422`: castlist に登録の無い送り手。`503`: castlist に聞けない（上の「送り手」）。どちらも何も置かない。
 
 ### `GET /api/pages` — 探す
 
-- 引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だけ）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ。0.5.0 から）。
+- 引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だけ）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ。0.5.0 から）、`actor`（castlist のアクターの id。その送り手が置いた物だけ。未確認の送り手は当たらない。0.6.0 から）。
 - `200`: `{"pages":[<ページの記録>, …]}`。合う物が無ければ空の配列。
 - `400`: `sort` がどちらでもない・`reply` がどちらでもない。
 
@@ -153,18 +191,20 @@ Product Manager の返事が要るページに、返事待ち・答えたの状�
 
 ### `POST /api/files` — file を置く
 
-- 引数（query）: `project`・`key`・`name`（`<語>.<拡張子>`）・`role`（要る）、`workspace`（無ければ空）、`n`・`created_at`（取り込みの時だけ）。
+- 引数（query）: `project`・`key`・`name`（`<語>.<拡張子>`）・`role`（要る）、`workspace`（無ければ空）、`n`・`created_at`（取り込みの時だけ）、`actor_issuer`・`actor_ref`（送り手。`POST /api/pages` と同じ。0.6.0 から）。
 - 本文: file の中身そのもの（1 つ 16 MiB まで。空は駄目）。header `Content-Type` が要る。
 - `n` が無ければ、その `project`・`key`・語・拡張子の「今の最大 ＋ 1」を付ける（`screen.png` を置くと `screen-1.png`、もう 1 度置くと `screen-2.png`。前の物は残る）。最大は、消した file の番号も数える。
 - `201`: file の記録に `url`（要求の `Host` で組んだ URL）を足した JSON。header `Location` も同じ URL。
 - `409`: `n` を名指して、その番号が使われている（置いてある file・消した file）。
-- `400`: 引数が決まりに合わない・本文が空・`Content-Type` が無い。`413`: 本文が大きすぎる。
+- `400`: 引数が決まりに合わない・本文が空・`Content-Type` が無い・`actor_issuer` と `actor_ref` の片方だけ。`413`: 本文が大きすぎる。
+- `422`・`503`: 送り手を castlist に聞いた答え（上の「送り手」）。castlist には、ほかの決まり（`400`・`415`）を見終えてから聞く。
 - `415`: 拡張子を受けない、`Content-Type` の種類（`;` の前。大文字・小文字は問わない）が拡張子の物と違う、中身が拡張子の形でない。
-- 一覧の UI から上げた物（上の「共通」の例外）は、引数に何が書いてあっても、`role` を `product-manager`、`workspace` を空で記録する（browser から担当を名乗らせない）。`n`・`created_at` も読まない（番号と時刻は置き場が決める）。`role` は書かなくてよい。
+- 一覧の UI から上げた物（上の「共通」の例外）は、引数に何が書いてあっても、`role` を `product-manager`、`workspace` を空で記録する（browser から担当を名乗らせない）。`n`・`created_at`・`actor_issuer`・`actor_ref` も読まない（番号と時刻は置き場が決め、送り手は記録しない）。`role` は書かなくてよい。
 
 ### `GET /api/files` — file を探す
 
-- 引数（みな任意）: `project`・`key`・`role`・`workspace`（同じ物だけ）、`q`（名 `<語>.<拡張子>` の字を探す）、`sort`・`limit`・`before`・`after`（`GET /api/pages` と同じ）。
+- 引数（みな任意）: `project`・`key`・`role`・`workspace`（同じ物だけ）、`q`（名 `<語>.<拡張子>` の字を探す）、`actor`・`sort`・`limit`・`before`・`after`（`GET /api/pages` と同じ）。
+- file の記録にも、送り手を記録した物には `sender` が出る（0.6.0 から）。
 - `200`: `{"files":[<file の記録>, …]}`。合う物が無ければ空の配列。
 - `400`: `sort` がどちらでもない。
 

@@ -14,9 +14,14 @@ erDiagram
   pages }o..o{ removed : "同じ project・Key・種類で番号を分ける"
   pages }o..o{ files : "同じ project・Key"
   files }o..o{ files_removed : "同じ project・Key・名・拡張子で番号を分ける"
+  senders |o--o{ pages : "pages.sender_id = id"
+  senders |o--o{ files : "files.sender_id = id"
 ```
 
-**外部キーは無い。** 表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `src/db.rs` の SQL が守る。
+**外部キーは 2 つだけ**（0.6.0 から）: `pages.sender_id` と `files.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `src/db.rs` の SQL が守る。
+
+- **接続ごとの決まり**: `Db::open` が、読む接続にも書く接続にも `PRAGMA foreign_keys = ON` と `PRAGMA recursive_triggers = ON` を付ける（SQLite では、どちらも接続ごとに効く）。移行を当てた後に `PRAGMA foreign_key_check` を流し、合わない行が 1 つでもあれば、サーバーは起きない。
+- **送り手**: ページや file を置く時に、呼ぶ側が付随する id を書けば、`senders` に 1 行足し、ページや file の行から指す（同じ取引）。`senders` は足すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り手の行は残る。
 
 - **番号**: ページの番号は、`pages` と `removed` の両方の、同じ project・Key・種類の番号の最大 ＋ 1。file も同じく、`files` と `files_removed` から取る。だから消した番号は 2 度使わない。書く接続は 1 本なので、番号を取る所は 1 列に並ぶ。
 - **消す**: 1 つの取引で、番号を `removed`（file は `files_removed`）に写し、`pages_fts` と `pages`（file は `files`）の行を消す。本文は残さない。
@@ -40,11 +45,13 @@ erDiagram
 | `body` | blob | 不可 | 本文。置かれた HTML をそのまま |
 | `asked_at` | text | 可 | 返事待ちにした時刻。返事を求めていなければ空（0.5.0 から） |
 | `answered_at` | text | 可 | 答えた時刻。まだ答えていなければ空（0.5.0 から） |
+| `sender_id` | integer | 可 | 送り手（`senders.id`）。付随する id を書かずに置いたページと、0.6.0 より前に置かれたページは空 |
 
 - 主キー: `(id)`
 - 一意: `(project, key, kind, n)`
 - 索引: `pages_created` `(created_at)`
 - 索引: `pages_waiting` `(asked_at)`
+- 索引: `pages_sender` `(sender_id)`
 - `pages_waiting` は、返事待ち（`asked_at` があり、`answered_at` が空）の行だけの索引。
 - 書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
 - **返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないページ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば答えた。0.5.0 より前に置かれたページは、どちらも空。
@@ -95,10 +102,12 @@ erDiagram
 | `workspace` | text | 不可 | 置いた人の workspace の ID（わからなければ空の字） |
 | `created_at` | text | 不可 | 置いた時刻 |
 | `body` | blob | 不可 | 中身をそのまま |
+| `sender_id` | integer | 可 | 送り手（`senders.id`）。付随する id を書かずに置いた file・一覧の UI から上げた file・0.6.0 より前に置かれた file は空 |
 
 - 主キー: `(id)`
 - 一意: `(project, key, name, ext, n)`
 - 索引: `files_created` `(created_at)`
+- 索引: `files_sender` `(sender_id)`
 - 書く所: `Db::put_file`。読む所: `Db::file_body`・`Db::list_files`。消す所: `Db::remove_files`。
 
 ## `files_removed` — 消した file の番号
@@ -116,6 +125,28 @@ erDiagram
 
 - 主キー: `(project, key, name, ext, n)`
 - 書く所: `Db::remove_files`。読む所: `Db::put_file`・`Db::file_removed_at`。
+
+## `senders` — 送り手
+
+ページか file を置いた時の送り手 1 つが 1 行（0.6.0 から）。置く時に、呼ぶ側が付随する id（`actor_issuer`・`actor_ref`）を書けば、置くたびに 1 行足す。置き場に castlist の URL（[動かす](run.md) の表の「設定」）があれば、その時に castlist に聞いた答え（アクターの id・名・種類）も残す。
+
+| 列 | 型 | 空 | 意味 |
+|---|---|---|---|
+| `id` | integer | 不可 | 行の番号。`pages.sender_id`・`files.sender_id` が指す |
+| `actor_issuer` | text | 不可 | 付随する id を出した物（`tpm` など） |
+| `actor_ref` | text | 不可 | 付随する id（`<種類>:<値>`。`claude.session:…` など） |
+| `actor_id` | text | 可 | castlist のアクターの id。castlist に聞かなかった（置き場に castlist の URL が無かった）時は空 |
+| `actor_name` | text | 可 | castlist のアクターの名（その時の物）。聞かなかった時は空 |
+| `actor_kind` | text | 可 | castlist のアクターの種類（`ai`・`human`）。聞かなかった時は空 |
+| `resolved_at` | text | 可 | castlist が答えた時刻（答えの `as_of`）。聞かなかった時は空 |
+| `created_at` | text | 不可 | 行を足した時刻 |
+
+- 主キー: `(id)`
+- 索引: `senders_actor` `(actor_id)`
+- 書く所: `Db::put`・`Db::put_file`（ページや file と同じ取引）。読む所: `Db::list`・`Db::list_files`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込みの候補）。
+- **足すだけ**: trigger `senders_no_update`・`senders_no_delete` が、書き換えと消しを `append-only: senders` で断る。前からある表（`pages`・`files` など）には trigger を付けていない（返事の状態の書き換え・消すは前のまま）。
+- **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の `POST /api/pages`）。
+- `actor_id` に外部キーは無い（アクターは castlist の DB にある）。
 
 ## ほかの表
 

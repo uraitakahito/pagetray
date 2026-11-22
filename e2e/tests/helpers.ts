@@ -1,5 +1,6 @@
 // 試験の材料を置く・一覧の UI の区画を選ぶ。
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
+import { createServer, type Server } from 'node:http';
 
 export type Placing = {
   project: string;
@@ -10,6 +11,9 @@ export type Placing = {
   /** 取り込みの時だけ: 番号と置いた時刻を決める。 */
   n?: string;
   created_at?: string;
+  /** 送り手の付随する id。書けば、置き場が castlist（試験では startCastlist の偽物）に聞く。 */
+  actor_issuer?: string;
+  actor_ref?: string;
 };
 
 /** API でページを 1 枚置き、置き場の中の path を返す（browser の外から送るので Origin は付かない）。 */
@@ -39,6 +43,30 @@ export async function reply(request: APIRequestContext, path: string, state: 'wa
   const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
   const response = await request.post(`/api/pages/reply?${new URLSearchParams({ project, key, kind, n, state })}`);
   expect(response.ok(), await response.text()).toBeTruthy();
+}
+
+/** 偽の castlist の port（試験の置き場の次の port。playwright.config.ts が置き場に渡す）。 */
+export const CASTLIST_PORT = Number(process.env.PAGETRAY_E2E_PORT ?? 18801) + 1;
+
+export type Actor = { id: string; name: string; kind: string };
+
+/**
+ * 偽の castlist を立てる。`POST /v1/resolve` に、`actors` にある付随する id はそのアクター、ほかは null と答える。
+ * 置き終えたら close する（ほかの試験は、送り手を書かないので、castlist に聞かない）。
+ */
+export async function startCastlist(actors: Record<string, Actor>): Promise<Server> {
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      const asked = JSON.parse(body || '{}');
+      const results = (asked.refs ?? []).map((ref: string) => ({ ref, actor: actors[ref] ?? null }));
+      res.writeHead(200, { 'content-type': 'application/json', connection: 'close' });
+      res.end(JSON.stringify({ as_of: new Date().toISOString(), results }));
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(CASTLIST_PORT, '127.0.0.1', resolve));
+  return server;
 }
 
 /** 1×1 の PNG。 */
@@ -102,7 +130,7 @@ export const fileRows = (page: Page) => files(page).locator('li[data-file]');
 export const upload = (page: Page) => page.locator('#upload');
 
 /**
- * 絞り込みの列の候補。見出し（返事・担当者（役割）・workspace・種類・Key・project）と、候補の名で選ぶ。
+ * 絞り込みの列の候補。見出し（返事・送り手・担当者（役割）・workspace・種類・Key・project）と、候補の名で選ぶ。
  * link の先では選ばない（ほかの見出しの候補も、今の条件を link の先に持つ）。
  */
 export const choice = (page: Page, heading: string, label: string) =>

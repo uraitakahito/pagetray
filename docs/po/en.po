@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-22T17:37:09+09:00\n"
+"POT-Creation-Date: 2026-11-22T22:56:38+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -466,10 +466,13 @@ msgstr "Settings"
 #: src/run.md
 msgid ""
 "環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 "
-"`0.0.0.0:8080`）。image の既定のままでよい"
+"`0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 か"
+"ら。既定は無し）は下の「送り手を castlist に聞く」"
 msgstr ""
 "Environment variables `PAGETRAY_DB` (default `/data/pages.db`) and "
-"`PAGETRAY_LISTEN` (default `0.0.0.0:8080`). The image defaults are fine as is"
+"`PAGETRAY_LISTEN` (default `0.0.0.0:8080`). The image defaults are fine as "
+"is. For `PAGETRAY_CASTLIST_URL` (since 0.6.0; no default), see \"Asking "
+"castlist for the sender\" below"
 
 #: src/run.md
 msgid ""
@@ -485,6 +488,67 @@ msgstr ""
 "`pagetray` with the \"consult the TPM\" procedure). The commands below are "
 "written without that prefix. The version to use is the one in the roster "
 "`.pagetray-version` (the version matched to the roster cli)."
+
+#: src/run.md
+msgid "送り手を castlist に聞く"
+msgstr "Asking castlist for the sender"
+
+#: src/run.md
+msgid ""
+"環境変数 `PAGETRAY_CASTLIST_URL` に castlist の URL（`http://<host>:<port>` "
+"の形だけ。本番の castlist は `http://127.0.0.1:8802`）を書くと、付随する id "
+"を付けて置かれたページと file の送り手を、受けたその時に castlist に聞いて残"
+"す（[API の仕様](api.md) の「送り手」）。"
+msgstr ""
+"When the environment variable `PAGETRAY_CASTLIST_URL` is set to the castlist "
+"URL (only in the form `http://<host>:<port>`; the production castlist is "
+"`http://127.0.0.1:8802`), the store asks castlist for the sender of each "
+"page and file put with an attached id at the moment it receives them, and "
+"records the answer (\"Senders\" in the [API specification](api.md))."
+
+#: src/run.md
+msgid ""
+"書かなければ、castlist に聞かず、付随する id だけを残す（一覧の UI では「未確"
+"認」）。"
+msgstr ""
+"If it is not set, castlist is not asked and only the attached id is recorded "
+"(shown as \"unconfirmed\" in the list UI)."
+
+#: src/run.md
+msgid ""
+"書いた時は、castlist が止まっている・1 秒で答えない間、付随する id を付けた置"
+"く要求は `503` で断られる（何も置かない）。付けない要求は前のまま置ける。"
+msgstr ""
+"If it is set, then while castlist is down or does not answer within 1 "
+"second, put requests that carry an attached id are rejected with `503` "
+"(nothing is stored). Requests without one are stored as before."
+
+#: src/run.md
+msgid ""
+"一覧の UI の送り手の名は、同じ URL の `/actors/<アクターの id>` への link に"
+"なる。"
+msgstr ""
+"In the list UI, the sender's name is a link to `/actors/<actor id>` on that "
+"same URL."
+
+#: src/run.md
+msgid ""
+"形が `http://<host>:<port>` でなければ、サーバーは起きない。起きた時の log の"
+"頭の行の後ろに ` castlist=<URL>` が付く。"
+msgstr ""
+"If the value is not in the form `http://<host>:<port>`, the server does not "
+"start. On startup, ` castlist=<URL>` is appended to the first log line."
+
+#: src/run.md
+msgid ""
+"castlist へは、つなぐ先に関わらず `Host: 127.0.0.1` で送る。container の中か"
+"ら castlist に届く host と port を書く（container の中の `127.0.0.1` は "
+"container 自身）。"
+msgstr ""
+"Requests to castlist are always sent with `Host: 127.0.0.1`, whatever the "
+"destination. Set the host and port at which castlist can be reached from "
+"inside the container (`127.0.0.1` inside the container is the container "
+"itself)."
 
 #: src/run.md
 msgid "起こす"
@@ -1804,6 +1868,29 @@ msgstr ""
 "`2026-01-02T03:04:05Z`, or the same form with fractional seconds (up to 3 "
 "digits). UTC only"
 
+#: src/api.md src/db.md
+msgid "`actor_issuer`"
+msgstr "`actor_issuer`"
+
+#: src/api.md
+msgid "英小文字・数字・`-` `.` で 1〜64 字（castlist の名の形）"
+msgstr ""
+"1–64 characters of lowercase letters, digits, `-` and `.` (the form of a "
+"castlist name)"
+
+#: src/api.md src/db.md
+msgid "`actor_ref`"
+msgstr "`actor_ref`"
+
+#: src/api.md
+msgid ""
+"`<種類>:<値>`。種類は `actor_issuer` と同じ形、値は英数字と `:` `.` `_` `-` "
+"で 1〜256 字（初めの `:` で分けるので、値に `:` があってよい）"
+msgstr ""
+"`<type>:<value>`. The type has the same form as `actor_issuer`; the value is "
+"1–256 characters of letters, digits, `:`, `.`, `_`, and `-` (it is split at "
+"the first `:`, so the value may contain `:`)"
+
 #: src/api.md
 msgid "ページの記録"
 msgstr "Page record"
@@ -1922,6 +2009,195 @@ msgid "答えた時刻。返事待ちの間は出ない"
 msgstr "When it was answered. Absent while the page is waiting for a reply"
 
 #: src/api.md
+msgid ""
+"送り手を記録したページ（下の「送り手」）の記録には、`sender` の欄も出る"
+"（0.6.0 から。記録していないページには出ない）。"
+msgstr ""
+"The record of a page whose sender was recorded (\"Senders\" below) also "
+"carries the `sender` field (since 0.6.0; it is absent on pages without a "
+"recorded sender)."
+
+#: src/api.md
+msgid "送り手"
+msgstr "Senders"
+
+#: src/api.md
+msgid ""
+"ページと file を置く時に、呼ぶ側は、置く人を指す付随する id（`actor_issuer`・"
+"`actor_ref`）を書ける（0.6.0 から。書かなくてよい）。置き場は、受けたその時"
+"に [castlist](glossary.md)（アクターの本当の id と名を持つ、この Mac の中の"
+"サーバー）に送り手を聞き、答えを残す。後から castlist の答えが変わっても、残"
+"した物は変えない。"
+msgstr ""
+"When putting a page or a file, the caller may write an attached id that "
+"points to whoever puts it (`actor_issuer`, `actor_ref`) (since 0.6.0; "
+"optional). At the moment it receives the request, the store asks [castlist]"
+"(glossary.md) (a server on this Mac that holds the true id and name of each "
+"actor) for the sender and records the answer. Even if castlist's answer "
+"changes later, what was recorded is not changed."
+
+#: src/api.md
+msgid "\"sender\""
+msgstr "\"sender\""
+
+#: src/api.md
+msgid "\"issuer\""
+msgstr "\"issuer\""
+
+#: src/api.md
+msgid "\"tpm\""
+msgstr "\"tpm\""
+
+#: src/api.md
+msgid "\"ref\""
+msgstr "\"ref\""
+
+#: src/api.md
+msgid "\"claude.session:5f0c2a8e-…\""
+msgstr "\"claude.session:5f0c2a8e-…\""
+
+#: src/api.md
+msgid "\"actor\""
+msgstr "\"actor\""
+
+#: src/api.md
+msgid "\"id\""
+msgstr "\"id\""
+
+#: src/api.md
+msgid "\"019a…\""
+msgstr "\"019a…\""
+
+#: src/api.md
+msgid "\"name\""
+msgstr "\"name\""
+
+#: src/api.md
+msgid "\"t-23zs.swe.1\""
+msgstr "\"t-23zs.swe.1\""
+
+#: src/api.md
+msgid "\"ai\""
+msgstr "\"ai\""
+
+#: src/api.md
+msgid "\"resolved_at\""
+msgstr "\"resolved_at\""
+
+#: src/api.md
+msgid "\"2026-11-22T04:00:02.000Z\""
+msgstr "\"2026-11-22T04:00:02.000Z\""
+
+#: src/api.md
+msgid "`issuer`・`ref`"
+msgstr "`issuer`, `ref`"
+
+#: src/api.md
+msgid "置く時に書いた `actor_issuer`・`actor_ref`"
+msgstr "The `actor_issuer` and `actor_ref` written when it was put"
+
+#: src/api.md src/glossary.md
+msgid "`actor`"
+msgstr "`actor`"
+
+#: src/api.md
+msgid ""
+"castlist が答えたアクター（id・名・種類）。置き場に castlist の URL が無かっ"
+"た時は `null`（未確認）"
+msgstr ""
+"The actor castlist answered with (id, name, kind). `null` (unconfirmed) when "
+"the store had no castlist URL"
+
+#: src/api.md src/db.md
+msgid "`resolved_at`"
+msgstr "`resolved_at`"
+
+#: src/api.md
+msgid ""
+"castlist が答えた時刻（castlist の答えの `as_of`）。聞かなかった時は出ない"
+msgstr ""
+"When castlist answered (`as_of` in castlist's answer). Absent when castlist "
+"was not asked"
+
+#: src/api.md
+msgid "置き場が castlist に聞くかどうかと、答えで、置く要求の答えが決まる。"
+msgstr ""
+"Whether the store asks castlist, and what castlist answers, decide the "
+"response to a put request."
+
+#: src/api.md
+msgid "場合"
+msgstr "Case"
+
+#: src/api.md
+msgid "答え"
+msgstr "Response"
+
+#: src/api.md
+msgid "`actor_issuer`・`actor_ref` が無い"
+msgstr "No `actor_issuer` or `actor_ref`"
+
+#: src/api.md
+msgid "前と同じに置く（`sender` は出ない）"
+msgstr "Stored as before (no `sender`)"
+
+#: src/api.md
+msgid "置き場に castlist の URL（`PAGETRAY_CASTLIST_URL`）が無い"
+msgstr "The store has no castlist URL (`PAGETRAY_CASTLIST_URL`)"
+
+#: src/api.md
+msgid "置く。`sender.actor` は `null`"
+msgstr "Stored. `sender.actor` is `null`"
+
+#: src/api.md
+msgid "castlist がアクターを答えた"
+msgstr "castlist answered with an actor"
+
+#: src/api.md
+msgid "置く。`sender.actor` にその答え"
+msgstr "Stored. `sender.actor` holds that answer"
+
+#: src/api.md
+msgid "castlist が `actor: null`（登録の無い送り手）を答えた"
+msgstr "castlist answered `actor: null` (an unregistered sender)"
+
+#: src/api.md
+msgid "`422`。何も置かない"
+msgstr "`422`. Nothing is stored"
+
+#: src/api.md
+msgid "castlist につながらない・1 秒で答えない・`200` でない・答えが読めない"
+msgstr ""
+"castlist cannot be reached, does not answer within 1 second, does not return "
+"`200`, or its answer cannot be read"
+
+#: src/api.md
+msgid "`503`。何も置かない。少し待ってから送り直す"
+msgstr "`503`. Nothing is stored. Wait a little and send it again"
+
+#: src/api.md
+msgid "片方だけ書いた・形が違う時は `400`（castlist には聞かない）。"
+msgstr ""
+"If only one of the two is written, or the form is wrong, the response is "
+"`400` (castlist is not asked)."
+
+#: src/api.md
+msgid ""
+"castlist には `POST /v1/resolve` で、`{\"issuer\":\"<actor_issuer>\","
+"\"refs\":[\"<actor_ref>\"]}` を送る。`Host: 127.0.0.1` で送り、`Origin` は付"
+"けない（castlist がほかの物を断る）。"
+msgstr ""
+"castlist is sent `POST /v1/resolve` with `{\"issuer\":\"<actor_issuer>\","
+"\"refs\":[\"<actor_ref>\"]}`, with `Host: 127.0.0.1` and without `Origin` "
+"(castlist rejects anything else)."
+
+#: src/api.md
+msgid "castlist を待つ間は、書く取引を始めない（ほかの置く要求を待たせない）。"
+msgstr ""
+"No write transaction is started while waiting for castlist (other put "
+"requests are not kept waiting)."
+
+#: src/api.md
 msgid "file の記録"
 msgstr "File record"
 
@@ -1933,10 +2209,6 @@ msgstr ""
 "The record of a single file, as it appears in put and list responses (the "
 "contents are not included). Files are the images, PDFs and text files that "
 "pages refer to."
-
-#: src/api.md
-msgid "\"name\""
-msgstr "\"name\""
 
 #: src/api.md
 msgid "\"screen\""
@@ -2128,10 +2400,12 @@ msgstr "`POST /api/pages` — put"
 #: src/api.md
 msgid ""
 "引数（query）: `project`・`key`・`kind`・`role`（要る）、`workspace`（無けれ"
-"ば空）、`n`・`created_at`（取り込みの時だけ）。"
+"ば空）、`n`・`created_at`（取り込みの時だけ）、`actor_issuer`・`actor_ref`"
+"（送り手。両方書くか、両方書かない。0.6.0 から）。"
 msgstr ""
 "Parameters (query): `project`, `key`, `kind`, `role` (required); `workspace` "
-"(empty if omitted); `n`, `created_at` (import only)."
+"(empty if omitted); `n`, `created_at` (import only); `actor_issuer`, "
+"`actor_ref` (the sender; write both or neither; since 0.6.0)."
 
 #: src/api.md
 msgid "本文: HTML（1 枚 16 MiB まで。空は駄目）。"
@@ -2161,10 +2435,20 @@ msgstr ""
 "that is stored or was deleted)."
 
 #: src/api.md
-msgid "`400`: 引数が決まりに合わない・本文が空。`413`: 本文が大きすぎる。"
+msgid ""
+"`400`: 引数が決まりに合わない・本文が空・`actor_issuer` と `actor_ref` の片方"
+"だけ。`413`: 本文が大きすぎる。"
 msgstr ""
-"`400`: a parameter violates the rules, or the body is empty. `413`: the body "
-"is too large."
+"`400`: a parameter violates the rules, the body is empty, or only one of "
+"`actor_issuer` and `actor_ref` is given. `413`: the body is too large."
+
+#: src/api.md
+msgid ""
+"`422`: castlist に登録の無い送り手。`503`: castlist に聞けない（上の「送り"
+"手」）。どちらも何も置かない。"
+msgstr ""
+"`422`: a sender not registered in castlist. `503`: castlist cannot be asked "
+"(\"Senders\" above). In both cases nothing is stored."
 
 #: src/api.md
 msgid "`GET /api/pages` — 探す"
@@ -2176,14 +2460,17 @@ msgid ""
 "け）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・"
 "`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・"
 "`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返"
-"事待ち、`answered` は答えた物だけ。0.5.0 から）。"
+"事待ち、`answered` は答えた物だけ。0.5.0 から）、`actor`（castlist のアクター"
+"の id。その送り手が置いた物だけ。未確認の送り手は当たらない。0.6.0 から）。"
 msgstr ""
 "Parameters (all optional): `project`, `key`, `kind`, `role`, `workspace` "
 "(exact match only), `q` (searches the text of the title and body), `sort` (`-"
 "created_at` newest first = default, `created_at` oldest first), `limit` "
 "(default 100; clamped to 1–1000), `before`, `after` (`created_at` earlier or "
 "later than the given value), `reply` (the reply state: `waiting` for pages "
-"waiting for a reply only, `answered` for answered pages only; since 0.5.0)."
+"waiting for a reply only, `answered` for answered pages only; since 0.5.0), "
+"`actor` (a castlist actor id: only what that sender put; unconfirmed senders "
+"never match; since 0.6.0)."
 
 #: src/api.md
 msgid "`200`: `{\"pages\":[<ページの記録>, …]}`。合う物が無ければ空の配列。"
@@ -2321,10 +2608,13 @@ msgstr "`POST /api/files` — put a file"
 #: src/api.md
 msgid ""
 "引数（query）: `project`・`key`・`name`（`<語>.<拡張子>`）・`role`（要る）、"
-"`workspace`（無ければ空）、`n`・`created_at`（取り込みの時だけ）。"
+"`workspace`（無ければ空）、`n`・`created_at`（取り込みの時だけ）、"
+"`actor_issuer`・`actor_ref`（送り手。`POST /api/pages` と同じ。0.6.0 から）。"
 msgstr ""
 "Parameters (query): `project`, `key`, `name` (`<stem>.<ext>`), `role` "
-"(required); `workspace` (empty if omitted); `n`, `created_at` (import only)."
+"(required); `workspace` (empty if omitted); `n`, `created_at` (import only); "
+"`actor_issuer`, `actor_ref` (the sender; same as `POST /api/pages`; since "
+"0.6.0)."
 
 #: src/api.md
 msgid ""
@@ -2363,11 +2653,21 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"`400`: 引数が決まりに合わない・本文が空・`Content-Type` が無い。`413`: 本文が"
-"大きすぎる。"
+"`400`: 引数が決まりに合わない・本文が空・`Content-Type` が無い・"
+"`actor_issuer` と `actor_ref` の片方だけ。`413`: 本文が大きすぎる。"
 msgstr ""
-"`400`: a parameter violates the rules, the body is empty, or `Content-Type` "
-"is missing. `413`: the body is too large."
+"`400`: a parameter violates the rules, the body is empty, `Content-Type` is "
+"missing, or only one of `actor_issuer` and `actor_ref` is given. `413`: the "
+"body is too large."
+
+#: src/api.md
+msgid ""
+"`422`・`503`: 送り手を castlist に聞いた答え（上の「送り手」）。castlist に"
+"は、ほかの決まり（`400`・`415`）を見終えてから聞く。"
+msgstr ""
+"`422`, `503`: the result of asking castlist for the sender (\"Senders\" "
+"above). castlist is asked only after the other rules (`400`, `415`) have "
+"been checked."
 
 #: src/api.md
 msgid ""
@@ -2382,14 +2682,14 @@ msgstr ""
 msgid ""
 "一覧の UI から上げた物（上の「共通」の例外）は、引数に何が書いてあっても、"
 "`role` を `product-manager`、`workspace` を空で記録する（browser から担当を名"
-"乗らせない）。`n`・`created_at` も読まない（番号と時刻は置き場が決める）。"
-"`role` は書かなくてよい。"
+"乗らせない）。`n`・`created_at`・`actor_issuer`・`actor_ref` も読まない（番号"
+"と時刻は置き場が決め、送り手は記録しない）。`role` は書かなくてよい。"
 msgstr ""
 "An upload from the list UI (the exception under \"Common rules\" above) is "
 "recorded with `role` `product-manager` and an empty `workspace`, whatever "
-"the arguments say (a browser cannot claim to be a role). `n` and "
-"`created_at` are ignored too (the store decides the number and the time). "
-"`role` may be left out."
+"the arguments say (a browser cannot claim to be a role). `n`, `created_at`, "
+"`actor_issuer`, and `actor_ref` are ignored too (the store decides the "
+"number and the time, and no sender is recorded). `role` may be left out."
 
 #: src/api.md
 msgid "`GET /api/files` — file を探す"
@@ -2398,12 +2698,17 @@ msgstr "`GET /api/files` — list files"
 #: src/api.md
 msgid ""
 "引数（みな任意）: `project`・`key`・`role`・`workspace`（同じ物だけ）、`q`"
-"（名 `<語>.<拡張子>` の字を探す）、`sort`・`limit`・`before`・`after`（`GET /"
-"api/pages` と同じ）。"
+"（名 `<語>.<拡張子>` の字を探す）、`actor`・`sort`・`limit`・`before`・"
+"`after`（`GET /api/pages` と同じ）。"
 msgstr ""
 "Parameters (all optional): `project`, `key`, `role`, `workspace` (exact "
-"match only), `q` (searches the name `<stem>.<ext>`), `sort`, `limit`, "
-"`before`, `after` (same as `GET /api/pages`)."
+"match only), `q` (searches the name `<stem>.<ext>`), `actor`, `sort`, "
+"`limit`, `before`, `after` (same as `GET /api/pages`)."
+
+#: src/api.md
+msgid "file の記録にも、送り手を記録した物には `sender` が出る（0.6.0 から）。"
+msgstr ""
+"File records, too, carry `sender` when a sender was recorded (since 0.6.0)."
 
 #: src/api.md
 msgid "`200`: `{\"files\":[<file の記録>, …]}`。合う物が無ければ空の配列。"
@@ -2888,6 +3193,18 @@ msgid "ページと file を置く・探す・消す・DB の写し"
 msgstr "Store, search and delete pages and files; DB backup"
 
 #: src/development.md
+msgid "`src/castlist.rs`"
+msgstr "`src/castlist.rs`"
+
+#: src/development.md
+msgid ""
+"置かれる時に、送り手を castlist に聞く（HTTP/1.1 を TCP の上で直に話す。1 秒"
+"まで待つ）"
+msgstr ""
+"Asks castlist for the sender when something is put (speaks HTTP/1.1 directly "
+"over TCP; waits up to 1 second)"
+
+#: src/development.md
 msgid "`src/pages.rs`"
 msgstr "`src/pages.rs`"
 
@@ -3313,6 +3630,21 @@ msgstr ""
 
 #: src/development.md
 msgid ""
+"**送り手を見る試験**（`e2e/tests/list.spec.ts` の終わり）: 試験の置き場は、次"
+"の port の偽の castlist に送り手を聞く（`playwright.config.ts`）。偽の "
+"castlist は `helpers.ts` の `startCastlist` で、送り手を書いて置く間だけ立て"
+"る。送り手のある行が 1 つでもあると、絞り込みの列に見出し「送り手」が出るの"
+"で、見出しの並びを見る試験より後に置く。"
+msgstr ""
+"**Tests of senders** (at the end of `e2e/tests/list.spec.ts`): the test "
+"store asks a fake castlist on the next port for senders "
+"(`playwright.config.ts`). The fake castlist is `startCastlist` in "
+"`helpers.ts`, and it runs only while pages with a sender are being put. The "
+"filter-column heading for senders appears as soon as one row has a sender, "
+"so these tests come after the test that checks the order of the headings."
+
+#: src/development.md
+msgid ""
 "**template を変えた時**: `templates/index.html` を変えたら、この試験も流す。"
 "試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・"
 "`files`・`upload`、`#fresh`・`#waiting`、`li[data-path]`・`.reply`、絞り込み"
@@ -3646,6 +3978,8 @@ msgid ""
 "  pages }o..o{ files : \"同じ project・Key\"\n"
 "  files }o..o{ files_removed : \"同じ project・Key・名・拡張子で番号を分ける"
 "\"\n"
+"  senders |o--o{ pages : \"pages.sender_id = id\"\n"
+"  senders |o--o{ files : \"files.sender_id = id\"\n"
 "```"
 msgstr ""
 "```mermaid\n"
@@ -3655,15 +3989,46 @@ msgstr ""
 "  pages }o..o{ files : \"same project and Key\"\n"
 "  files }o..o{ files_removed : \"share numbers per project, Key, name, and "
 "extension\"\n"
+"  senders |o--o{ pages : \"pages.sender_id = id\"\n"
+"  senders |o--o{ files : \"files.sender_id = id\"\n"
 "```"
 
 #: src/db.md
 msgid ""
-"**外部キーは無い。** 表どうしは、同じ値（project・Key など）で結ぶだけで、結"
-"びは `src/db.rs` の SQL が守る。"
+"**外部キーは 2 つだけ**（0.6.0 から）: `pages.sender_id` と "
+"`files.sender_id` が `senders.id` を指す（`on delete restrict on update "
+"restrict`）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結び"
+"は `src/db.rs` の SQL が守る。"
 msgstr ""
-"**There are no foreign keys.** Tables relate only by sharing values "
-"(project, Key, and so on), and the SQL in `src/db.rs` keeps them consistent."
+"**There are only two foreign keys** (since 0.6.0): `pages.sender_id` and "
+"`files.sender_id` reference `senders.id` (`on delete restrict on update "
+"restrict`). Other tables relate only by sharing values (project, Key, and so "
+"on), and the SQL in `src/db.rs` keeps them consistent."
+
+#: src/db.md
+msgid ""
+"**接続ごとの決まり**: `Db::open` が、読む接続にも書く接続にも `PRAGMA "
+"foreign_keys = ON` と `PRAGMA recursive_triggers = ON` を付ける（SQLite で"
+"は、どちらも接続ごとに効く）。移行を当てた後に `PRAGMA foreign_key_check` を"
+"流し、合わない行が 1 つでもあれば、サーバーは起きない。"
+msgstr ""
+"**Per-connection settings**: `Db::open` sets `PRAGMA foreign_keys = ON` and "
+"`PRAGMA recursive_triggers = ON` on both the reading and the writing "
+"connections (in SQLite, both take effect per connection). After applying the "
+"migrations it runs `PRAGMA foreign_key_check`, and if even one row fails the "
+"check, the server does not start."
+
+#: src/db.md
+msgid ""
+"**送り手**: ページや file を置く時に、呼ぶ側が付随する id を書けば、"
+"`senders` に 1 行足し、ページや file の行から指す（同じ取引）。`senders` は足"
+"すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り"
+"手の行は残る。"
+msgstr ""
+"**Senders**: when a page or a file is put and the caller writes an attached "
+"id, one row is added to `senders` and the page or file row points to it (in "
+"the same transaction). `senders` is an append-only table; triggers reject "
+"both updates and deletes. Deleting a page or a file leaves its sender row."
 
 #: src/db.md
 msgid ""
@@ -3824,6 +4189,18 @@ msgid "答えた時刻。まだ答えていなければ空（0.5.0 から）"
 msgstr "When it was answered. Null if not answered yet (since 0.5.0)"
 
 #: src/db.md
+msgid "`sender_id`"
+msgstr "`sender_id`"
+
+#: src/db.md
+msgid ""
+"送り手（`senders.id`）。付随する id を書かずに置いたページと、0.6.0 より前に"
+"置かれたページは空"
+msgstr ""
+"Sender (`senders.id`). Null for pages put without an attached id and for "
+"pages put before 0.6.0"
+
+#: src/db.md
 msgid "主キー: `(id)`"
 msgstr "Primary key: `(id)`"
 
@@ -3838,6 +4215,10 @@ msgstr "Index: `pages_created` `(created_at)`"
 #: src/db.md
 msgid "索引: `pages_waiting` `(asked_at)`"
 msgstr "Index: `pages_waiting` `(asked_at)`"
+
+#: src/db.md
+msgid "索引: `pages_sender` `(sender_id)`"
+msgstr "Index: `pages_sender` `(sender_id)`"
 
 #: src/db.md
 msgid ""
@@ -4030,12 +4411,24 @@ msgid "中身をそのまま"
 msgstr "The contents exactly as put"
 
 #: src/db.md
+msgid ""
+"送り手（`senders.id`）。付随する id を書かずに置いた file・一覧の UI から上げ"
+"た file・0.6.0 より前に置かれた file は空"
+msgstr ""
+"Sender (`senders.id`). Null for files put without an attached id, files "
+"uploaded from the list UI, and files put before 0.6.0"
+
+#: src/db.md
 msgid "一意: `(project, key, name, ext, n)`"
 msgstr "Unique: `(project, key, name, ext, n)`"
 
 #: src/db.md
 msgid "索引: `files_created` `(created_at)`"
 msgstr "Index: `files_created` `(created_at)`"
+
+#: src/db.md
+msgid "索引: `files_sender` `(sender_id)`"
+msgstr "Index: `files_sender` `(sender_id)`"
 
 #: src/db.md
 msgid ""
@@ -4085,6 +4478,118 @@ msgid ""
 msgstr ""
 "Written by `Db::remove_files`. Read by `Db::put_file` and "
 "`Db::file_removed_at`."
+
+#: src/db.md
+msgid "`senders` — 送り手"
+msgstr "`senders` — senders"
+
+#: src/db.md
+msgid ""
+"ページか file を置いた時の送り手 1 つが 1 行（0.6.0 から）。置く時に、呼ぶ側"
+"が付随する id（`actor_issuer`・`actor_ref`）を書けば、置くたびに 1 行足す。置"
+"き場に castlist の URL（[動かす](run.md) の表の「設定」）があれば、その時に "
+"castlist に聞いた答え（アクターの id・名・種類）も残す。"
+msgstr ""
+"One row per sender of a put page or file (since 0.6.0). When the caller "
+"writes an attached id (`actor_issuer`, `actor_ref`) at put time, one row is "
+"added for each put. If the store has a castlist URL (\"Settings\" in the "
+"table in [Running](run.md)), the answer castlist gave at that time (the "
+"actor's id, name, and kind) is recorded too."
+
+#: src/db.md
+msgid "行の番号。`pages.sender_id`・`files.sender_id` が指す"
+msgstr "Row number. Referenced by `pages.sender_id` and `files.sender_id`"
+
+#: src/db.md
+msgid "付随する id を出した物（`tpm` など）"
+msgstr "What issued the attached id (such as `tpm`)"
+
+#: src/db.md
+msgid "付随する id（`<種類>:<値>`。`claude.session:…` など）"
+msgstr "The attached id (`<type>:<value>`, such as `claude.session:…`)"
+
+#: src/db.md
+msgid "`actor_id`"
+msgstr "`actor_id`"
+
+#: src/db.md
+msgid ""
+"castlist のアクターの id。castlist に聞かなかった（置き場に castlist の URL "
+"が無かった）時は空"
+msgstr ""
+"The castlist actor's id. Null when castlist was not asked (the store had no "
+"castlist URL)"
+
+#: src/db.md
+msgid "`actor_name`"
+msgstr "`actor_name`"
+
+#: src/db.md
+msgid "castlist のアクターの名（その時の物）。聞かなかった時は空"
+msgstr ""
+"The castlist actor's name (as of that time). Null when castlist was not asked"
+
+#: src/db.md
+msgid "`actor_kind`"
+msgstr "`actor_kind`"
+
+#: src/db.md
+msgid "castlist のアクターの種類（`ai`・`human`）。聞かなかった時は空"
+msgstr ""
+"The castlist actor's kind (`ai`, `human`). Null when castlist was not asked"
+
+#: src/db.md
+msgid "castlist が答えた時刻（答えの `as_of`）。聞かなかった時は空"
+msgstr ""
+"When castlist answered (`as_of` in the answer). Null when castlist was not "
+"asked"
+
+#: src/db.md
+msgid "行を足した時刻"
+msgstr "Time the row was added"
+
+#: src/db.md
+msgid "索引: `senders_actor` `(actor_id)`"
+msgstr "Index: `senders_actor` `(actor_id)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::put`・`Db::put_file`（ページや file と同じ取引）。読む所: "
+"`Db::list`・`Db::list_files`・`Db::set_reply`（記録に添える）・`Db::facets`"
+"（絞り込みの候補）。"
+msgstr ""
+"Written by `Db::put` and `Db::put_file` (in the same transaction as the page "
+"or file). Read by `Db::list`, `Db::list_files`, `Db::set_reply` (added to "
+"the record), `Db::facets` (filter choices)."
+
+#: src/db.md
+msgid ""
+"**足すだけ**: trigger `senders_no_update`・`senders_no_delete` が、書き換えと"
+"消しを `append-only: senders` で断る。前からある表（`pages`・`files` など）に"
+"は trigger を付けていない（返事の状態の書き換え・消すは前のまま）。"
+msgstr ""
+"**Append-only**: the triggers `senders_no_update` and `senders_no_delete` "
+"reject updates and deletes with `append-only: senders`. The existing tables "
+"(`pages`, `files`, and so on) have no triggers (rewriting the reply state "
+"and deleting work as before)."
+
+#: src/db.md
+msgid ""
+"**聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・"
+"`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確"
+"認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも "
+"file も送り手の行も、何も残さない（[API の仕様](api.md) の `POST /api/"
+"pages`）。"
+msgstr ""
+"**Asked or not asked**: a row whose `actor_id`, `actor_name`, `actor_kind`, "
+"and `resolved_at` are null is a sender for which castlist was not asked "
+"(\"unconfirmed\" in the UI). When castlist could not be asked, or castlist "
+"does not know the sender, nothing is kept: no page, no file, and no sender "
+"row (`POST /api/pages` in the [API specification](api.md))."
+
+#: src/db.md
+msgid "`actor_id` に外部キーは無い（アクターは castlist の DB にある）。"
+msgstr "`actor_id` has no foreign key (actors live in castlist's DB)."
 
 #: src/db.md
 msgid "ほかの表"
@@ -4226,11 +4731,13 @@ msgstr "`PageRecord`"
 #: src/glossary.md
 msgid ""
 "ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・"
-"workspace・時刻・大きさ・path。返事の状態を書いたページには、その時刻も）"
+"workspace・時刻・大きさ・path。返事の状態を書いたページには、その時刻も。送り"
+"手を記録したページには、送り手も）"
 msgstr ""
 "The fields of one page other than its body (project, Key, kind, number, "
 "title, role, workspace, time, size, path; plus the reply-state times on "
-"pages where that state has been written)"
+"pages where that state has been written, and the sender on pages where a "
+"sender was recorded)"
 
 #: src/glossary.md
 msgid "メタデータ"
@@ -4327,6 +4834,71 @@ msgstr "workspace"
 #: src/glossary.md
 msgid "ページを置いた人の居場所の ID"
 msgstr "The ID of the workspace of whoever put the page"
+
+#: src/glossary.md
+msgid "castlist"
+msgstr "castlist"
+
+#: src/glossary.md
+msgid "`PAGETRAY_CASTLIST_URL`"
+msgstr "`PAGETRAY_CASTLIST_URL`"
+
+#: src/glossary.md
+msgid ""
+"この Mac の中で動く別のサーバー。アクター（Claude Code の session 1 つ・"
+"Product Manager）ごとに、本当の id と名を持つ。置き場は、置かれる時に、送り手"
+"が誰かを castlist に聞く"
+msgstr ""
+"Another server that runs on this Mac. It holds the true id and name of each "
+"actor (one Claude Code session, or the Product Manager). When something is "
+"put, the store asks castlist who the sender is"
+
+#: src/glossary.md
+msgid "アクター（actor）"
+msgstr "actor"
+
+#: src/glossary.md
+msgid ""
+"castlist が本当の id と名を付けた、置く人 1 人（Claude Code の session 1 つ"
+"か、Product Manager）"
+msgstr ""
+"One person who puts things, given a true id and name by castlist (one Claude "
+"Code session, or the Product Manager)"
+
+#: src/glossary.md
+msgid "付随する id（attached id）"
+msgstr "attached id"
+
+#: src/glossary.md
+msgid "`actor_issuer`・`actor_ref`"
+msgstr "`actor_issuer`, `actor_ref`"
+
+#: src/glossary.md
+msgid ""
+"ほかの道具が持つ、アクターを指す id（`<種類>:<値>`。`claude.session:…` など）"
+"と、それを出した物（`tpm` など）。本当の id への引き当ては castlist がする"
+msgstr ""
+"An id held by another tool that points to an actor (`<type>:<value>`, such "
+"as `claude.session:…`), and what issued it (such as `tpm`). castlist maps it "
+"to the true id"
+
+#: src/glossary.md
+msgid "送り手（sender）"
+msgstr "sender"
+
+#: src/glossary.md
+msgid "`senders`"
+msgstr "`senders`"
+
+#: src/glossary.md
+msgid ""
+"ページか file を置いた時の、付随する id と、その時に castlist が答えたアク"
+"ター（id・名・種類）。castlist に聞かなかった送り手は「未確認」。足すだけで、"
+"書き換えも消しもしない"
+msgstr ""
+"The attached id given when a page or a file was put, and the actor castlist "
+"answered with at that time (id, name, kind). A sender for which castlist was "
+"not asked is \"unconfirmed\". Only added, never rewritten or deleted"
 
 #: src/glossary.md
 msgid "file"
@@ -4529,11 +5101,11 @@ msgstr "`#filters`"
 
 #: src/glossary.md
 msgid ""
-"返事・役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補を押す"
-"と、一覧の列が絞られる"
+"返事・送り手・役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補"
+"を押すと、一覧の列が絞られる"
 msgstr ""
-"The column listing the choices and counts for reply state, role, workspace, "
-"kind, Key, and project. Pressing a choice narrows the list column"
+"The column listing the choices and counts for reply state, sender, role, "
+"workspace, kind, Key, and project. Pressing a choice narrows the list column"
 
 #: src/glossary.md
 msgid "サイドメニュー"
@@ -4682,10 +5254,11 @@ msgstr "`.rows`"
 #: src/glossary.md
 msgid ""
 "一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・返事の印・題・役割・"
-"workspace）"
+"workspace。送り手を記録したページには、送り手の castlist の名と付随する id）"
 msgstr ""
 "One page's worth of the list column (time, Key, kind and number, reply mark, "
-"title, role, workspace)"
+"title, role, workspace; on pages where a sender was recorded, also the "
+"sender's castlist name and attached id)"
 
 #: src/glossary.md
 msgid "並び（sort order）"
