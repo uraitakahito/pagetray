@@ -31,7 +31,28 @@ pub struct Answer {
     pub as_of: String,
 }
 
+/// 画面の link の頭の既定（TODO: 実装の前の仮）。
+pub const DEFAULT_LINK: &str = "http://127.0.0.1:8802";
+
 impl Castlist {
+    /// TODO: 実装の前の仮（link の頭を読まない）。
+    pub fn configure(api: Option<&str>, _link: Option<&str>) -> Result<Option<Self>, String> {
+        match api {
+            Some(url) if !url.is_empty() => Self::parse(url).map(Some),
+            _ => Ok(None),
+        }
+    }
+
+    /// TODO: 実装の前の仮。
+    pub fn api(&self) -> &str {
+        &self.base
+    }
+
+    /// TODO: 実装の前の仮。
+    pub fn link(&self) -> &str {
+        &self.base
+    }
+
     /// `http://<host>:<port>`（後ろの `/` は無くてよい）。path・利用者の名・`https://` は受けない。
     pub fn parse(url: &str) -> Result<Self, String> {
         let rule = || format!("castlist の URL は http://<host>:<port> の形（{url}）");
@@ -195,6 +216,8 @@ fn parse_answer(raw: &[u8], actor_ref: &str) -> Result<Answer, String> {
 mod tests {
     use super::*;
 
+    const API: &str = "http://castlist.box:8080";
+
     #[test]
     fn only_http_host_and_port_is_taken() {
         for ok in [
@@ -202,12 +225,16 @@ mod tests {
             "http://127.0.0.1:8802/",
             "http://192.168.64.1:8802",
             "http://localhost:8802",
+            "http://castlist.box:8080",
         ] {
-            let c = Castlist::parse(ok).unwrap_or_else(|e| panic!("{ok}: {e}"));
-            assert_eq!(c.base(), ok.trim_end_matches('/'));
+            // castlist の URL も、画面の link の頭も、同じ決まりで受ける。
+            let c = Castlist::configure(Some(ok), Some(ok))
+                .unwrap_or_else(|e| panic!("{ok}: {e}"))
+                .unwrap();
+            assert_eq!(c.api(), ok.trim_end_matches('/'));
+            assert_eq!(c.link(), ok.trim_end_matches('/'));
         }
         for ng in [
-            "",
             "127.0.0.1:8802",
             "https://127.0.0.1:8802",
             "http://127.0.0.1",
@@ -219,8 +246,55 @@ mod tests {
             "http://127.0.0.1:99999",
             "http://:8802",
         ] {
-            assert!(Castlist::parse(ng).is_err(), "{ng}");
+            let api = Castlist::configure(Some(ng), None).map(|_| ());
+            assert!(
+                api.as_ref()
+                    .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_URL") && e.contains(ng)),
+                "{ng}: {api:?}"
+            );
+            let link = Castlist::configure(Some(API), Some(ng)).map(|_| ());
+            assert!(
+                link.as_ref()
+                    .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_LINK_URL") && e.contains(ng)),
+                "{ng}: {link:?}"
+            );
         }
+    }
+
+    /// 聞く先（container の中から届く所）と、画面の link の頭（Product Manager の browser から開く所）は別に決める。
+    #[test]
+    fn the_link_base_is_separate_from_the_api() {
+        let c = Castlist::configure(Some(API), Some("http://localhost:18802/"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(c.api(), API);
+        assert_eq!(c.link(), "http://localhost:18802");
+    }
+
+    /// 画面の link の頭を書かなければ（空でも）、本番の castlist を host から開く `http://127.0.0.1:8802`。
+    #[test]
+    fn the_link_base_defaults_to_127_0_0_1_8802() {
+        assert_eq!(DEFAULT_LINK, "http://127.0.0.1:8802");
+        for link in [None, Some("")] {
+            let c = Castlist::configure(Some(API), link).unwrap().unwrap();
+            assert_eq!(c.api(), API);
+            assert_eq!(c.link(), DEFAULT_LINK, "{link:?}");
+        }
+    }
+
+    /// castlist の URL が無ければ（空でも）、castlist に聞かず、link も無い。
+    #[test]
+    fn without_the_api_url_there_is_no_castlist() {
+        for api in [None, Some("")] {
+            for link in [None, Some("http://localhost:18802")] {
+                assert!(
+                    Castlist::configure(api, link).unwrap().is_none(),
+                    "{api:?} {link:?}"
+                );
+            }
+        }
+        // 形の違う link の頭は、castlist の URL が無くても、起きる前に断る（書き間違いを黙って捨てない）。
+        assert!(Castlist::configure(None, Some("https://127.0.0.1:8802")).is_err());
     }
 
     const BODY: &str = r#"{"as_of":"2026-11-22T04:00:02.000Z","results":[{"ref":"claude.session:a","actor":{"id":"019a0000-0000-7000-8000-00000000000a","name":"t-23zs.swe.1","kind":"ai"}}]}"#;

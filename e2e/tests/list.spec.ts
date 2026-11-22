@@ -2,7 +2,7 @@
 // ここは browser でしか見えない物（script の動き・色・並び）と、人が押してたどる道を見る。
 // 試験は同じ置き場に順に置く。ほかの試験のページを見ないように、試験ごとに別の project を使う。
 import { expect, test } from '@playwright/test';
-import { CASTLIST_PORT, choice, collectErrors, filters, fresh, list, listAtTop, openLive, place, rows, scrollList, startCastlist, toolbar, viewer } from './helpers';
+import { CASTLIST_LINK, choice, collectErrors, filters, fresh, list, listAtTop, openLive, place, rows, scrollList, startCastlist, toolbar, viewer } from './helpers';
 
 const NEW_LIGHT = 'rgb(31, 122, 77)'; // --new: #1f7a4d
 const NEW_DARK = 'rgb(92, 193, 143)'; // --new: #5cc18f
@@ -313,7 +313,7 @@ test('一覧の列: 送り手の castlist の名が行の下に出て、castlist
   const name = row.locator('.sender a.actor');
   const ref = row.locator('.sender small');
   await expect(name).toHaveText('e2e.swe.1');
-  await expect(name).toHaveAttribute('href', `http://127.0.0.1:${CASTLIST_PORT}/actors/${actor.id}`);
+  await expect(name).toHaveAttribute('href', `${CASTLIST_LINK}/actors/${actor.id}`);
   await expect(name).toHaveAttribute('target', '_blank');
   await expect(ref).toHaveText('claude.session:e2e');
   const nameBox = (await name.boundingBox())!;
