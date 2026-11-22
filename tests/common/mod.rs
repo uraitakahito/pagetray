@@ -46,6 +46,11 @@ impl Server {
         Self::start_with(|state| state.with_castlist(castlist)).await
     }
 
+    /// 記録を、この置き場から読む置き場。
+    pub async fn with_runlog(runlog: pagetray::runlog::RunLog) -> Self {
+        Self::start_with(|state| state.with_runlog(runlog)).await
+    }
+
     async fn start_with(configure: impl FnOnce(AppState) -> AppState) -> Self {
         static SEQ: AtomicU32 = AtomicU32::new(0);
         let path = std::env::temp_dir().join(format!(

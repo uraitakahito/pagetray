@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-23T03:48:47+09:00\n"
+"POT-Creation-Date: 2026-11-23T06:44:39+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -103,7 +103,7 @@ msgstr "Chapters"
 msgid "章"
 msgstr "Chapter"
 
-#: src/index.md src/cli.md src/api.md src/development.md
+#: src/index.md src/run.md src/cli.md src/api.md src/development.md
 msgid "中身"
 msgstr "Contents"
 
@@ -459,6 +459,18 @@ msgstr ""
 "The named volume `pagetray-data` (`/data/pages.db` inside). No Mac folder is "
 "mounted"
 
+#: src/run.md
+msgid "記録"
+msgstr "Logs"
+
+#: src/run.md
+msgid ""
+"同じ volume の `/data/logs/`（0.7.0 から。合わせて 4 MiB と 64 KiB まで）。下"
+"の「落ちた後に調べる」"
+msgstr ""
+"`/data/logs/` in the same volume (since 0.7.0; at most 4 MiB plus 64 KiB in "
+"total). See \"Investigating after a crash\" below"
+
 #: src/run.md src/cli.md src/release.md
 msgid "設定"
 msgstr "Settings"
@@ -702,13 +714,18 @@ msgstr ""
 
 #: src/run.md
 msgid ""
-"`container logs pagetray` の頭に `pagetray <version> listen=0.0.0.0:8080 db=/"
-"data/pages.db` が出ている（castlist に聞く時は、後ろに ` castlist=http://"
-"castlist.box:8080 castlist_link=http://127.0.0.1:8802`）。"
+"`container logs pagetray` の頭の 2 行が、前回の終わり方（`previous: …`。下の"
+"「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/"
+"pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付"
+"く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 "
+"castlist_link=http://127.0.0.1:8802`）。"
 msgstr ""
-"`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` appears at the "
-"top of `container logs pagetray` (when asking castlist, followed by ` "
-"castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8802`)."
+"The first two lines of `container logs pagetray` are how the previous run "
+"ended (`previous: …`; see \"Investigating after a crash\" below) and a line "
+"ending with `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` "
+"(since 0.7.0 every line starts with a timestamp and a level such as `INFO`; "
+"when asking castlist, followed by ` castlist=http://castlist.box:8080 "
+"castlist_link=http://127.0.0.1:8802`)."
 
 #: src/run.md
 msgid ""
@@ -909,6 +926,208 @@ msgstr ""
 "If there is no backup, start with an empty volume. The roster `tpm page "
 "import` puts the pages in the local copy folder back under the same numbers "
 "(the record of which role put them is not restored)."
+
+#: src/run.md
+msgid "落ちた後に調べる"
+msgstr "Investigating after a crash"
+
+#: src/run.md
+msgid ""
+"0.7.0 から、pagetray は自分の終わり方と、時刻つきの記録を volume の `/data/"
+"logs/` に残す。`container logs` は container を起こし直すと頭から書き直される"
+"が、こちらは起こし直しても、版を上げても残る。"
+msgstr ""
+"Since 0.7.0, pagetray keeps a record of how it ended, and timestamped logs, "
+"in `/data/logs/` on the volume. `container logs` starts over whenever the "
+"container is restarted; these files survive restarts and upgrades."
+
+#: src/run.md src/glossary.md
+msgid "file"
+msgstr "file"
+
+#: src/run.md
+msgid "上限"
+msgstr "Limit"
+
+#: src/run.md
+msgid "`server.log`・`server.log.1`〜`server.log.3`"
+msgstr "`server.log`, `server.log.1` to `server.log.3`"
+
+#: src/run.md
+msgid ""
+"時刻（UTC）つきの行。`container logs` に出る行と、問い合わせごとの 1 行"
+"（method・path・status・かかった時間）"
+msgstr ""
+"Timestamped (UTC) lines: the lines shown by `container logs`, plus one line "
+"per request (method, path, status, time taken)"
+
+#: src/run.md
+msgid "1 つ 1 MiB、合わせて 4 MiB。超える前に回し、一番古い物を消す"
+msgstr ""
+"1 MiB each, 4 MiB in total. Rotated before the limit is exceeded; the oldest "
+"file is deleted"
+
+#: src/run.md
+msgid "`runs.log`"
+msgstr "`runs.log`"
+
+#: src/run.md
+msgid ""
+"終わり方の印。起きた・止める合図を受けた・閉じ終えた・panic・誤りで終わった、"
+"を 1 行ずつ"
+msgstr ""
+"Run marks, one line each: started, got a stop signal, finished closing, "
+"panicked, failed"
+
+#: src/run.md
+msgid "64 KiB。超える前に、古い半分を落とす"
+msgstr "64 KiB. The older half is dropped before the limit is exceeded"
+
+#: src/run.md
+msgid "`alive`"
+msgstr "`alive`"
+
+#: src/run.md
+msgid "生きている印の時刻。30 秒ごとに上書きする"
+msgstr "The time of the last heartbeat. Overwritten every 30 seconds"
+
+#: src/run.md
+msgid "数十 byte"
+msgstr "A few dozen bytes"
+
+#: src/run.md
+msgid ""
+"読むのは `curl -s http://127.0.0.1:8801/api/logs`（止めなくてよい。印と記録"
+"を、古い順の字で返す）。pagetray が起きない時は、止めたまま volume を別の "
+"container に付けて読む（volume は、動いている container と同時には付けられな"
+"い）:"
+msgstr ""
+"Read them with `curl -s http://127.0.0.1:8801/api/logs` (no need to stop; it "
+"returns the marks and the logs as text, oldest first). If pagetray does not "
+"start, keep it stopped and attach the volume to another container to read "
+"them (a volume cannot be attached to a second container while one is running "
+"with it):"
+
+#: src/run.md
+msgid ""
+"起きるたびに、前回の終わり方を 1 行で出す（`container logs pagetray` の頭と、"
+"`server.log`）。"
+msgstr ""
+"On every start, pagetray prints one line about how the previous run ended "
+"(at the top of `container logs pagetray`, and in `server.log`)."
+
+#: src/run.md
+msgid "行"
+msgstr "Line"
+
+#: src/run.md
+msgid "前回に起きたこと"
+msgstr "What happened last time"
+
+#: src/run.md
+msgid "次に見る所"
+msgstr "Where to look next"
+
+#: src/run.md
+msgid "`previous: none (first start)`"
+msgstr "`previous: none (first start)`"
+
+#: src/run.md
+msgid "印が無い。初めて起きた"
+msgstr "No marks. This is the first start"
+
+#: src/run.md src/cli.md src/db.md src/glossary.md
+msgid "—"
+msgstr "—"
+
+#: src/run.md
+msgid "`previous: stopped cleanly (…)`"
+msgstr "`previous: stopped cleanly (…)`"
+
+#: src/run.md
+msgid "止める合図（`container stop` など）を受けて、閉じ終えた"
+msgstr "Got a stop signal (`container stop` and the like) and finished closing"
+
+#: src/run.md
+msgid "誰が止めたかは、pagetray からは見えない。機械の側の記録を見る"
+msgstr "pagetray cannot see who stopped it. Check the host's own logs"
+
+#: src/run.md
+msgid "`previous: got a stop signal but did not finish (…)`"
+msgstr "`previous: got a stop signal but did not finish (…)`"
+
+#: src/run.md
+msgid "止める合図は受けたが、閉じ終える前に切られた"
+msgstr "Got a stop signal, but was cut off before it finished closing"
+
+#: src/run.md src/api.md
+msgid "同じ"
+msgstr "Same"
+
+#: src/run.md
+msgid "`previous: panicked (…)`"
+msgstr "`previous: panicked (…)`"
+
+#: src/run.md
+msgid "pagetray の中の誤り。行に、場所（file と行の番号）と文が入る"
+msgstr ""
+"A bug inside pagetray. The line carries the location (file and line number) "
+"and the message"
+
+#: src/run.md
+msgid "その場所と、`server.log` のその時刻の前の行"
+msgstr "That location, and the lines in `server.log` just before that time"
+
+#: src/run.md
+msgid "`previous: failed (…)`"
+msgstr "`previous: failed (…)`"
+
+#: src/run.md
+msgid ""
+"起きられずに終わった（DB を開けない・移行に落ちた・待ち受けられない）。行に訳"
+"が入る"
+msgstr ""
+"It ended without starting (could not open the DB, a migration failed, could "
+"not listen). The line carries the reason"
+
+#: src/run.md
+msgid "行の訳"
+msgstr "The reason in the line"
+
+#: src/run.md
+msgid "`previous: no stop mark (…; last alive …)`"
+msgstr "`previous: no stop mark (…; last alive …)`"
+
+#: src/run.md
+msgid ""
+"合図も来ず、何も書けずに終わった（SIGKILL・メモリ不足・VM ごと切られた）。"
+"`last alive` は最後に生きていた時刻で、落ちたのはその後の 30 秒の内"
+msgstr ""
+"It ended with no signal and no chance to write anything (SIGKILL, out of "
+"memory, the VM was cut off). `last alive` is the last heartbeat; it went "
+"down within 30 seconds after that"
+
+#: src/run.md
+msgid "`server.log` のその時刻の前の行と、機械の側の記録"
+msgstr ""
+"The lines in `server.log` just before that time, and the host's own logs"
+
+#: src/run.md
+msgid "4 MiB に入るのは、問い合わせの行でおよそ 2 万行。"
+msgstr "4 MiB holds roughly 20,000 request lines."
+
+#: src/run.md
+msgid ""
+"記録を書けない時（volume が満ちた、など）も pagetray は動く。行は捨て、"
+"`container logs` には、書けなくなった時と戻った時に 1 行ずつ出る。"
+msgstr ""
+"pagetray keeps running even when it cannot write the logs (a full volume, "
+"for example). The lines are dropped, and `container logs` shows one line "
+"when writing stops working and one when it works again."
+
+#: src/run.md
+msgid "「DB の写しを取る」の写しに、記録は入らない。"
+msgstr "The backup made by \"Back up the DB\" does not include the logs."
 
 #: src/run.md
 msgid "止める・Mac を起こし直した後"
@@ -1565,10 +1784,6 @@ msgstr "`human`"
 #: src/cli.md
 msgid "`page put`・`file put` で置く人の役割"
 msgstr "Role of the person storing with `page put` and `file put`"
-
-#: src/cli.md src/db.md src/glossary.md
-msgid "—"
-msgstr "—"
 
 #: src/cli.md
 msgid "`PAGETRAY_NO_DELETE`"
@@ -2452,10 +2667,6 @@ msgid "`text/markdown; charset=utf-8`"
 msgstr "`text/markdown; charset=utf-8`"
 
 #: src/api.md
-msgid "同じ"
-msgstr "Same"
-
-#: src/api.md
 msgid "`csv`"
 msgstr "`csv`"
 
@@ -2858,6 +3069,27 @@ msgstr "Server version and API version"
 #: src/api.md
 msgid "DB の写し（SQLite の file 1 つ）"
 msgstr "Backup of the DB (a single SQLite file)"
+
+#: src/api.md
+msgid "`GET /api/logs`"
+msgstr "`GET /api/logs`"
+
+#: src/api.md
+msgid ""
+"残した記録（終わり方の印と、時刻つきの行）を、古い順の字で返す（0.7.0 から。"
+"`text/plain`。多くて 4 MiB と 64 KiB）。中身の形は [動かす](run.md) の「落ち"
+"た後に調べる」"
+msgstr ""
+"Returns the kept logs (the run marks and the timestamped lines) as text, "
+"oldest first (since 0.7.0; `text/plain`; at most 4 MiB plus 64 KiB). The "
+"contents are described in \"Investigating after a crash\" in [Running]"
+"(run.md)"
+
+#: src/api.md
+msgid "URL が開くことと、字で返ることだけ。行の形は入らない"
+msgstr ""
+"Only that the URL opens and returns text. The format of the lines is not "
+"covered"
 
 #: src/api.md
 msgid ""
@@ -3540,6 +3772,28 @@ msgstr ""
 "update [DB schema](db.md) in the same PR, and the [Glossary](glossary.md) "
 "too if you add a table. `tests/schema_doc.rs` compares the migrated DB with "
 "the chapter and fails if they differ."
+
+#: src/development.md
+msgid ""
+"**記録（`src/runlog.rs`）**: 終わり方の印と、大きさで回す記録の file（[動か"
+"す](run.md) の「落ちた後に調べる」）。ここだけは、tokio の糸を塞ぐ同期の書き"
+"方をする（`panic = \"abort\"` で、落ちる直前の行を残すため）。上限"
+"（`LOG_FILE_MAX`・`LOG_FILES`・`RUNS_MAX`）を変えたら、「落ちた後に調べる」の"
+"表も直す。binary を起こして終わり方を見る試験は `tests/server.rs`（試験ごとに"
+"空の folder を作り、その中に DB を置く。記録が DB の隣の `logs/` にできるた"
+"め）、本物の image での確かめは `ci/smoke-image.sh`。log に出す行は、今までの"
+"行と同じく英語の `名=値` の形で書く。"
+msgstr ""
+"**Logs (`src/runlog.rs`)**: the run marks and the size-rotated log files "
+"(\"Investigating after a crash\" in [Running](run.md)). This is the one "
+"place that writes synchronously and blocks a tokio thread (with `panic = "
+"\"abort\"`, that is what keeps the last lines before a crash). If you change "
+"the limits (`LOG_FILE_MAX`, `LOG_FILES`, `RUNS_MAX`), update the table in "
+"\"Investigating after a crash\" too. The tests that start the binary and "
+"check how it ended are in `tests/server.rs` (each test makes an empty folder "
+"and puts its DB there, because the logs go to `logs/` next to the DB); the "
+"check against the real image is `ci/smoke-image.sh`. Write log lines in "
+"English, in the same `name=value` style as the existing ones."
 
 #: src/development.md
 msgid ""
@@ -4987,10 +5241,6 @@ msgstr ""
 "The attached id given when a page or a file was put, and the actor castlist "
 "answered with at that time (id, name, kind). A sender for which castlist was "
 "not asked is \"unconfirmed\". Only added, never rewritten or deleted"
-
-#: src/glossary.md
-msgid "file"
-msgstr "file"
 
 #: src/glossary.md
 msgid "`files`"

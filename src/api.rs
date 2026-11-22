@@ -117,9 +117,12 @@ pub async fn put(
     match placed {
         Ok(meta) => {
             let page = Page::from(meta);
-            println!(
+            tracing::info!(
                 "put {} role={} workspace={} size={}",
-                page.path, page.meta.role, page.meta.workspace, page.meta.size
+                page.path,
+                page.meta.role,
+                page.meta.workspace,
+                page.meta.size
             );
             let url = url_of(&headers, &page.path);
             let mut value = serde_json::to_value(&page).unwrap_or_default();
@@ -188,7 +191,7 @@ async fn ask(
             format!("castlist に登録の無い送り手（{actor_ref}）"),
         )),
         Err(why) => {
-            eprintln!("castlist: {why} ref={actor_ref}");
+            tracing::warn!("castlist: {why} ref={actor_ref}");
             Err((
                 StatusCode::SERVICE_UNAVAILABLE,
                 format!("castlist に聞けない（{why}）。少し待ってから送り直す"),
@@ -301,7 +304,7 @@ pub async fn reply(State(state): State<AppState>, Query(p): Query<ReplyParams>) 
     {
         Ok(Some(meta)) => {
             let page = Page::from(meta);
-            println!("reply {} state={}", page.path, wanted.name());
+            tracing::info!("reply {} state={}", page.path, wanted.name());
             let value = serde_json::to_value(&page).unwrap_or_default();
             // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
             let _ = state.events.send(Note::Reply(value.to_string()));
@@ -355,7 +358,7 @@ pub async fn remove(State(state): State<AppState>, Query(p): Query<RemoveParams>
     match state.db.remove(&target).await {
         Ok(removed) => {
             for path in &removed {
-                println!("remove {path}");
+                tracing::info!("remove {path}");
             }
             Json(serde_json::json!({ "removed": removed })).into_response()
         }
@@ -484,9 +487,12 @@ pub async fn put_file(
         .await;
     match placed {
         Ok(mut file) => {
-            println!(
+            tracing::info!(
                 "put {} role={} workspace={} size={}",
-                file.path, file.role, file.workspace, file.size
+                file.path,
+                file.role,
+                file.workspace,
+                file.size
             );
             // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
             let json = serde_json::to_string(&file).unwrap_or_default();
@@ -596,7 +602,7 @@ pub async fn remove_files(
     match state.db.remove_files(&target).await {
         Ok(removed) => {
             for path in &removed {
-                println!("remove {path}");
+                tracing::info!("remove {path}");
             }
             Json(serde_json::json!({ "removed": removed })).into_response()
         }
@@ -625,6 +631,18 @@ pub async fn backup(State(state): State<AppState>) -> Response {
             Body::from_stream(ReaderStream::new(file)),
         )
             .into_response(),
+        Err(e) => internal(e),
+    }
+}
+
+/// 残した記録（終わり方の印と、時刻つきの行）を、古い順の字で返す（`curl <URL>/api/logs`）。
+/// 落ちた後に、道具を止めずに読むための道。多くて 4 MiB と 64 KiB。
+pub async fn logs(State(state): State<AppState>) -> Response {
+    let Some(runlog) = state.runlog else {
+        return error(StatusCode::NOT_FOUND, "記録の置き場が無い");
+    };
+    match tokio::task::spawn_blocking(move || runlog.read_all()).await {
+        Ok(text) => ([(header::CONTENT_TYPE, "text/plain; charset=utf-8")], text).into_response(),
         Err(e) => internal(e),
     }
 }

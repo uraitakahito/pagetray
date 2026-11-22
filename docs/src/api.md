@@ -228,5 +228,6 @@ Product Manager の返事が要るページに、返事待ち・答えたの状�
 | `GET /healthz` | `200` と `ok` | 入る |
 | `GET /api/version` | サーバーの版と API の版 | 入る |
 | `GET /api/backup` | DB の写し（SQLite の file 1 つ） | 入る |
+| `GET /api/logs` | 残した記録（終わり方の印と、時刻つきの行）を、古い順の字で返す（0.7.0 から。`text/plain`。多くて 4 MiB と 64 KiB）。中身の形は [動かす](run.md) の「落ちた後に調べる」 | URL が開くことと、字で返ることだけ。行の形は入らない |
 | `GET /api/events` | 置かれるたび・返事の状態が書かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、file は `event: file` で file の記録、返事の状態は `event: reply` でページの記録（0.5.0 から） | 入る |
 | `GET /`・`/<project>/`・`/<project>/<key>/` | 一覧の UI | URL が開くことだけ。HTML の作りは入らない |

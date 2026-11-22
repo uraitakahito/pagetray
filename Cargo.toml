@@ -17,7 +17,7 @@ members = ["crates/api", "crates/cli"]
 
 # 版はここだけに書く（release の workflow が、この file の初めの `version = "…"` の行を tag と突き合わせる）。
 [workspace.package]
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 rust-version = "1.100"
 license = "MIT"
@@ -32,9 +32,14 @@ serde_json = "1"
 # file の中身の SHA-256。sqlx が使う版と同じ物（lock に前からある）。
 sha2 = { version = "0.11.1", default-features = false }
 sqlx = { version = "0.9.1", default-features = false, features = ["sqlite", "runtime-tokio", "macros", "migrate"] }
-tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "fs"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "fs", "time"] }
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 tokio-util = { version = "0.7", features = ["io"] }
+# 問い合わせごとの記録（method・path・status・かかった時間）。
+tower-http = { version = "0.7", default-features = false, features = ["trace"] }
+# 時刻つきの記録。書き先は stdout と、大きさで回す file（src/runlog.rs）。
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "registry"] }
 
 [dev-dependencies]
 http-body-util = "0.1"
