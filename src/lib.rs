@@ -8,6 +8,7 @@ pub mod db;
 pub mod events;
 pub mod files;
 pub mod pages;
+pub mod runlog;
 pub mod text;
 pub mod ui;
 
@@ -18,6 +19,8 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_json::json;
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
+use tracing::Level;
 
 /// API の版（決まりは docs/src/api.md。値は、CLI と共に使う crates/api にある）。
 pub use pagetray_api::{API_VERSION, MAX_FILE};
@@ -35,6 +38,8 @@ pub struct AppState {
     /// 送り手を聞く castlist（`PAGETRAY_CASTLIST_URL`）と、画面の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）。
     /// 無ければ、付随する id だけを残す。
     pub castlist: Option<castlist::Castlist>,
+    /// 記録の置き場（`GET /api/logs` が読む）。無ければ、その道は 404。
+    pub runlog: Option<runlog::RunLog>,
 }
 
 impl AppState {
@@ -44,6 +49,15 @@ impl AppState {
             db,
             events,
             castlist: None,
+            runlog: None,
+        }
+    }
+
+    /// 記録を、この置き場から読む。
+    pub fn with_runlog(self, runlog: runlog::RunLog) -> Self {
+        Self {
+            runlog: Some(runlog),
+            ..self
         }
     }
 
@@ -73,6 +87,7 @@ pub fn router(state: AppState) -> Router {
                 .delete(api::remove_files),
         )
         .route("/api/backup", get(api::backup))
+        .route("/api/logs", get(api::logs))
         .route("/api/version", get(version))
         .route("/api/events", get(events::stream))
         .route("/", get(ui::index))
@@ -82,6 +97,12 @@ pub fn router(state: AppState) -> Router {
         .route("/{project}/{key}/files/{file}", get(files::show))
         .layer(DefaultBodyLimit::max(MAX_BODY))
         .layer(middleware::from_fn(guard))
+        // 問い合わせごとの 1 行（記録の file にだけ書く。src/runlog.rs の init）。guard が断った物も残る。
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
         // 一番外に置く。guard が断った答えにも付く。
         .layer(middleware::from_fn(stamp))
         .with_state(state)
@@ -163,7 +184,7 @@ pub fn error(status: StatusCode, message: &str) -> Response {
 }
 
 pub(crate) fn internal(e: impl std::fmt::Display) -> Response {
-    eprintln!("error: {e}");
+    tracing::error!("error: {e}");
     error(
         StatusCode::INTERNAL_SERVER_ERROR,
         "サーバーの中で失敗した（log を見る）",
