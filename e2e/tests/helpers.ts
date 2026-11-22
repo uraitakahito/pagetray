@@ -105,10 +105,10 @@ export const list = (page: Page) => page.locator('#list');
 export const rows = (page: Page) => list(page).locator('li[data-path]');
 export const viewer = (page: Page) => page.locator('#viewer');
 /**
- * 行の、ページを本文の枠に開く link。行には送り手の link（`.sender a.actor`）も付くことがあるので、
+ * 行の、ページを本文の枠に開く link（行のすぐ下の a）。行には送り手の link（`.sender a.actor`）も付くことがあるので、
  * 行の中の link を役割だけで選ばず、この関数で選ぶ。
  */
-export const pageLink = (row: Locator) => row.getByRole('link');
+export const pageLink = (row: Locator) => row.locator(':scope > a');
 export const fresh = (page: Page) => page.locator('#fresh');
 /** 操作の帯の、返事待ちの数。 */
 export const waiting = (page: Page) => page.locator('#waiting');
