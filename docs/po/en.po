@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-22T17:31:06+09:00\n"
+"POT-Creation-Date: 2026-11-22T17:37:09+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -798,12 +798,14 @@ msgstr "Upgrading"
 msgid ""
 "[CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
 "CHANGELOG.md) で、API の版が変わるか・移行の SQL が足されるかを見る（移行が足"
-"された版は、当てた後に前の版へ戻せない）。"
+"された版は、当てた後に前の版へ戻せない。0.5.0 がそう: 0.4.2 までの版は、"
+"0.5.0 が起きた後の DB では起きない）。"
 msgstr ""
 "Check [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/"
 "CHANGELOG.md) to see whether the API version changes and whether migration "
 "SQL is added (a version that adds migrations cannot be rolled back to the "
-"previous version once they are applied)."
+"previous version once they are applied. 0.5.0 is one: versions up to 0.4.2 "
+"do not start on a database after 0.5.0 has started on it)."
 
 #: src/run.md
 msgid "新しい版の image を pull し、digest を release の値と見比べる。"
@@ -943,6 +945,17 @@ msgid "ページを消す（戻せない）"
 msgstr "Deletes pages (cannot be undone)"
 
 #: src/cli.md
+msgid "`pagetray page reply <page>`"
+msgstr "`pagetray page reply <page>`"
+
+#: src/cli.md
+msgid ""
+"ページの返事の状態を書く。`--waiting` で返事待ちに、`--answered` で答えたに"
+msgstr ""
+"Writes the reply state of a page: `--waiting` marks it as waiting for a "
+"reply, `--answered` as answered"
+
+#: src/cli.md
 msgid "`pagetray page watch`"
 msgstr "`pagetray page watch`"
 
@@ -1044,12 +1057,14 @@ msgstr "Finding (`page list`)"
 #: src/cli.md
 msgid ""
 "絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本"
-"文の字）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 "
-"50）。"
+"文の字）・`--reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物"
+"だけ）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。"
 msgstr ""
 "Filter flags: `--project`, `--key`, `--kind`, `--role`, `--workspace`, `-q` "
-"(text in the title and body), `--before`, `--after`. `--oldest` sorts oldest "
-"first; `-L` sets the number of results (default 50)."
+"(text in the title and body), `--reply` (the reply state: `waiting` for "
+"pages waiting for a reply only, `answered` for answered pages only), `--"
+"before`, `--after`. `--oldest` sorts oldest first; `-L` sets the number of "
+"results (default 50)."
 
 #: src/cli.md
 msgid ""
@@ -1064,14 +1079,18 @@ msgstr ""
 
 #: src/cli.md
 msgid ""
-"端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。`--"
+"端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。欄は、"
+"置いた時刻・（project）・Key・種類と番号・役割・返事の状態（`waiting`・"
+"`answered`。返事を求めていないページは `-`。0.5.0 から）・URL・題の順。`--"
 "json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のよ"
 "うに欄を名指すと、その欄だけを出す。"
 msgstr ""
 "On a terminal the output is a table with a header; in a pipe it is tab-"
-"separated (without a header). `--json` prints an array of the API's \"Page "
-"record\" with `url` added. Naming fields, as in `--json=key,url`, prints "
-"only those fields."
+"separated (without a header). The columns are, in order: the time it was "
+"put, (project), Key, kind and number, role, reply state (`waiting` or "
+"`answered`; `-` for a page that asks for no reply; since 0.5.0), URL, title. "
+"`--json` prints an array of the API's \"Page record\" with `url` added. "
+"Naming fields, as in `--json=key,url`, prints only those fields."
 
 #: src/cli.md
 msgid "置く（`page put`）"
@@ -1101,6 +1120,43 @@ msgid ""
 msgstr ""
 "The role of the person storing is `--role` (or `PAGETRAY_ROLE`; default "
 "`human`), and their workspace is `--workspace`."
+
+#: src/cli.md
+msgid "返事の状態を書く（`page reply`）"
+msgstr "Writing the reply state (`page reply`)"
+
+#: src/cli.md
+msgid ""
+"Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答え"
+"たにする（`--answered`）。どちらか 1 つが要る。一覧の UI は、この状態で印と件"
+"数を出す（[API の仕様](api.md) の `POST /api/pages/reply`）。"
+msgstr ""
+"Marks a page that needs a reply from the Product Manager as waiting (`--"
+"waiting`), and as answered once it has been answered (`--answered`). Exactly "
+"one of the two is required. The list UI shows its marks and counts from this "
+"state (`POST /api/pages/reply` in the [API specification](api.md))."
+
+#: src/cli.md
+msgid "出すのは、状態と URL の 1 行（tab 区切り）。`--json` で、ページの記録。"
+msgstr ""
+"It prints one line with the state and the URL (tab-separated). `--json` "
+"prints the page record."
+
+#: src/cli.md
+msgid ""
+"無いページ・消したページは code 1。0.5.0 より前の置き場には書けない（code 1 "
+"で、版が古いと出す）。"
+msgstr ""
+"A missing or deleted page exits with code 1. A store before 0.5.0 cannot "
+"hold the state (code 1, saying the store is too old)."
+
+#: src/cli.md
+msgid ""
+"roster の `tpm` を使う project では、`tpm ask pm` と `tpm answer` がこの状態"
+"を書く。手で直す時だけ使う。"
+msgstr ""
+"In a project that uses roster's `tpm`, `tpm ask pm` and `tpm answer` write "
+"this state. Use this command only to fix it by hand."
 
 #: src/cli.md
 msgid "消す（`page delete`）"
@@ -3240,16 +3296,33 @@ msgstr ""
 
 #: src/development.md
 msgid ""
+"**返事の状態を見る試験**（`e2e/tests/reply.spec.ts`）: 返事待ちの数は、絞り込"
+"みに関わらず置き場の全部を数え、tab の題にも出る。試験は同じ置き場に順に流れ"
+"るので、返事待ちにしたページは、試験の終わりまでに答えたにする（残すと、後の"
+"試験の tab の題が変わる）。絞り込みの列の見出し「返事」は、状態を書いたページ"
+"が 1 枚でもあると出るので、この file は、見出しの並びを見る `list.spec.ts` よ"
+"り後に流れる名にしてある。"
+msgstr ""
+"**Tests of the reply state** (`e2e/tests/reply.spec.ts`): the waiting count "
+"covers the whole store regardless of filters and also shows in the tab "
+"title. The tests run in order against the same store, so a page marked as "
+"waiting must be marked as answered by the end of its test (leaving it "
+"changes the tab title for later tests). The filter-column heading for the "
+"reply state appears as soon as one page has that state written, so this file "
+"is named to run after `list.spec.ts`, which checks the order of the headings."
+
+#: src/development.md
+msgid ""
 "**template を変えた時**: `templates/index.html` を変えたら、この試験も流す。"
 "試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・"
-"`files`・`upload`、`#fresh`、`li[data-path]`、絞り込みの列の見出しの字など）"
-"を変える時は、同じ PR で `helpers.ts` も直す。"
+"`files`・`upload`、`#fresh`・`#waiting`、`li[data-path]`・`.reply`、絞り込み"
+"の列の見出しの字など）を変える時は、同じ PR で `helpers.ts` も直す。"
 msgstr ""
 "**When you change the template**: After changing `templates/index.html`, run "
 "these tests too. When you change something the tests select by (the region "
-"ids `toolbar`, `filters`, `list`, `viewer`, `files`, and `upload`, `#fresh`, "
-"`li[data-path]`, the heading text of the filters, and so on), fix "
-"`helpers.ts` in the same PR."
+"ids `toolbar`, `filters`, `list`, `viewer`, `files`, and `upload`, `#fresh` "
+"and `#waiting`, `li[data-path]` and `.reply`, the heading text of the "
+"filters, and so on), fix `helpers.ts` in the same PR."
 
 #: src/development.md
 msgid ""
@@ -4436,10 +4509,11 @@ msgid "`#toolbar`"
 msgstr "`#toolbar`"
 
 #: src/glossary.md
-msgid "画面のいちばん上の横の帯。題・探す欄・並び・新着の印がある"
+msgid ""
+"画面のいちばん上の横の帯。題・探す欄・並び・返事待ちの数・新着の印がある"
 msgstr ""
 "The horizontal bar at the very top of the screen. It holds the title, the "
-"search field, the sort order, and the new-arrival mark"
+"search field, the sort order, the waiting count, and the new-arrival mark"
 
 #: src/glossary.md
 msgid "ヘッダー"
@@ -4455,11 +4529,11 @@ msgstr "`#filters`"
 
 #: src/glossary.md
 msgid ""
-"役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補を押すと、一覧"
-"の列が絞られる"
+"返事・役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補を押す"
+"と、一覧の列が絞られる"
 msgstr ""
-"The column listing the choices and counts for role, workspace, kind, Key, "
-"and project. Pressing a choice narrows the list column"
+"The column listing the choices and counts for reply state, role, workspace, "
+"kind, Key, and project. Pressing a choice narrows the list column"
 
 #: src/glossary.md
 msgid "サイドメニュー"
@@ -4607,10 +4681,11 @@ msgstr "`.rows`"
 
 #: src/glossary.md
 msgid ""
-"一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・題・役割・workspace）"
+"一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・返事の印・題・役割・"
+"workspace）"
 msgstr ""
-"One page's worth of the list column (time, Key, kind and number, title, "
-"role, workspace)"
+"One page's worth of the list column (time, Key, kind and number, reply mark, "
+"title, role, workspace)"
 
 #: src/glossary.md
 msgid "並び（sort order）"
@@ -4653,6 +4728,41 @@ msgstr ""
 #: src/glossary.md
 msgid "通知"
 msgstr "notification"
+
+#: src/glossary.md
+msgid "返事待ちの数（waiting count）"
+msgstr "Waiting count"
+
+#: src/glossary.md
+msgid "`#waiting`"
+msgstr "`#waiting`"
+
+#: src/glossary.md
+msgid ""
+"操作の帯に出る「返事待ち N 件」。返事待ちのページが置き場に 1 枚でもあると出"
+"て、押すと返事待ちだけに絞る。数は、絞り込みに関わらず置き場の全部。tab の題"
+"にも同じ数が出る"
+msgstr ""
+"The count of waiting pages shown in the toolbar. It appears when at least "
+"one page in the store is waiting for a reply, and pressing it narrows the "
+"list to the waiting pages. The count covers the whole store regardless of "
+"filters. The tab title shows the same count"
+
+#: src/glossary.md
+msgid "返事の印（reply mark）"
+msgstr "Reply mark"
+
+#: src/glossary.md
+msgid "`.reply`"
+msgstr "`.reply`"
+
+#: src/glossary.md
+msgid ""
+"返事の状態を書いたページの行に付く印。「返事待ち」か「答えた」。状態が書かれ"
+"ると、押さずに替わる"
+msgstr ""
+"The mark on the row of a page whose reply state has been written: waiting or "
+"answered. It changes without a click when the state is written"
 
 #: src/glossary.md
 msgid "未読の印（unread mark）"

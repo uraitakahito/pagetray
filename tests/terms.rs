@@ -28,7 +28,7 @@ fn ids_in_the_glossary_exist_in_the_ui() {
     let glossary = read("docs/src/glossary.md");
     let template = read("templates/index.html");
     for id in [
-        "toolbar", "filters", "list", "viewer", "fresh", "files", "upload",
+        "toolbar", "filters", "list", "viewer", "fresh", "waiting", "files", "upload",
     ] {
         assert!(
             glossary.contains(&format!("`#{id}`")),

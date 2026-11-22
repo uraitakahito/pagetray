@@ -105,7 +105,7 @@ container start pagetray
 
 ## 版を上げる
 
-1. [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/CHANGELOG.md) で、API の版が変わるか・移行の SQL が足されるかを見る（移行が足された版は、当てた後に前の版へ戻せない）。
+1. [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/CHANGELOG.md) で、API の版が変わるか・移行の SQL が足されるかを見る（移行が足された版は、当てた後に前の版へ戻せない。0.5.0 がそう: 0.4.2 までの版は、0.5.0 が起きた後の DB では起きない）。
 2. 新しい版の image を pull し、digest を release の値と見比べる。
 3. 「DB の写しを取る」をする。
 4. `container stop pagetray`・`container delete pagetray` の後、新しい版で「起こす」の `container run` を打ち、「確かめる」をする（volume はそのまま付く）。

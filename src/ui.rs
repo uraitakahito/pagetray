@@ -1,8 +1,9 @@
 //! 一覧の UI。サーバーが HTML を組んで返す。絞り込み・並べ替え・検索は link と form で動き、
-//! 条件は URL に出る。script は、新着の印・未読の印・時刻の表示と、Key の画面で file を上げることに使う。
+//! 条件は URL に出る。script は、新着の印・未読の印・返事の印の差し替え・時刻の表示と、Key の画面で file を
+//! 上げることに使う。
 
 use crate::api::{is_segment, page_path};
-use crate::db::{Count, FileFilter, Filter, PageMeta};
+use crate::db::{Count, FileFilter, Filter, PageMeta, Reply};
 use crate::{AppState, MAX_FILE, internal, pages};
 use askama::Template;
 use axum::extract::{Path, Query, State};
@@ -21,6 +22,8 @@ pub struct View {
     role: Option<String>,
     workspace: Option<String>,
     q: Option<String>,
+    /// 返事の状態（`waiting`・`answered`）。
+    reply: Option<String>,
     sort: Option<String>,
     /// 並びの続きを出す時の境の時刻。
     at: Option<String>,
@@ -42,6 +45,7 @@ impl View {
             ("role", &self.role),
             ("workspace", &self.workspace),
             ("q", &self.q),
+            ("reply", &self.reply),
             ("sort", &self.sort),
             ("at", &self.at),
             ("open", &self.open),
@@ -92,6 +96,18 @@ struct Row {
     created_at: String,
     /// script が動かない時に出す時刻（UTC）。
     time: String,
+    /// 返事の状態の名（`waiting`・`answered`）。返事を求めていないページは空。
+    reply: &'static str,
+    /// 返事の印の字（返事待ち・答えた）。
+    reply_label: &'static str,
+}
+
+/// 返事の状態の、画面に出す字。
+fn reply_label(reply: Reply) -> &'static str {
+    match reply {
+        Reply::Waiting => "返事待ち",
+        Reply::Answered => "答えた",
+    }
 }
 
 /// file の枠の、file 1 つ分。
@@ -131,6 +147,12 @@ struct Index {
     reload_href: String,
     reset_href: String,
     filtered: bool,
+    /// 返事待ちのページの数（絞り込みに関わらず、置き場の全部）。0 なら、操作の帯に出さない。
+    waiting: i64,
+    /// 返事待ちだけに絞った一覧の URL。
+    waiting_href: String,
+    /// 今、返事待ちだけに絞っているか。
+    waiting_active: bool,
     /// 絞り込みの列に出す物。
     filters: Vec<FilterGroup>,
     /// 一覧の列に出す行。
@@ -182,9 +204,12 @@ async fn render(state: AppState, mut view: View) -> Response {
         &mut view.kind,
         &mut view.role,
         &mut view.q,
+        &mut view.reply,
     ] {
         *field = field.take().filter(|v| !v.trim().is_empty());
     }
+    let reply = view.reply.as_deref().and_then(Reply::parse);
+    view.reply = reply.map(|r| r.name().to_owned());
     view.sort = view.sort.filter(|s| s == "created_at");
     view.open = view.open.filter(|path| pages::is_page_path(path));
 
@@ -200,7 +225,7 @@ async fn render(state: AppState, mut view: View) -> Response {
         role: view.role.clone(),
         workspace: view.workspace.clone(),
         q: view.q.clone(),
-        reply: None,
+        reply,
         before,
         after,
         oldest_first,
@@ -242,6 +267,33 @@ async fn render(state: AppState, mut view: View) -> Response {
                 })
                 .collect(),
         };
+    // 返事の候補は、値（waiting・answered）でなく、画面の字で出す。件数が 0 の候補は出さない。
+    let replies = FilterGroup {
+        title: "返事",
+        choices: [
+            (Reply::Waiting, facets.waiting),
+            (Reply::Answered, facets.answered),
+        ]
+        .into_iter()
+        .filter(|(_, count)| *count > 0)
+        .map(|(state, count)| {
+            let active = reply == Some(state);
+            let next = (!active).then(|| state.name().to_owned());
+            Choice {
+                label: reply_label(state).to_owned(),
+                note: String::new(),
+                count,
+                href: view.with(|v| v.reply = next),
+                active,
+            }
+        })
+        .collect(),
+    };
+    let waiting_only = View {
+        reply: Some(Reply::Waiting.name().to_owned()),
+        sort: view.sort.clone(),
+        ..View::default()
+    };
     let page = Index {
         q: view.q.clone().unwrap_or_default(),
         hidden: [
@@ -250,6 +302,7 @@ async fn render(state: AppState, mut view: View) -> Response {
             ("kind", &view.kind),
             ("role", &view.role),
             ("workspace", &view.workspace),
+            ("reply", &view.reply),
             ("sort", &view.sort),
         ]
         .into_iter()
@@ -274,10 +327,15 @@ async fn render(state: AppState, mut view: View) -> Response {
             &view.role,
             &view.workspace,
             &view.q,
+            &view.reply,
         ]
         .iter()
         .any(|v| v.is_some()),
+        waiting: facets.waiting,
+        waiting_href: waiting_only.href(),
+        waiting_active: reply == Some(Reply::Waiting),
         filters: vec![
+            replies,
             group("担当者（役割）", facets.roles, |v| &mut v.role),
             group("workspace", facets.workspaces, |v| &mut v.workspace),
             group("種類", facets.kinds, |v| &mut v.kind),
@@ -299,6 +357,11 @@ fn row(view: &View, meta: PageMeta) -> Row {
     let path = page_path(&meta.project, &meta.key, &meta.kind, meta.n);
     let mut next = view.clone();
     next.open = Some(path.clone());
+    let state = match (&meta.asked_at, &meta.answered_at) {
+        (_, Some(_)) => Some(Reply::Answered),
+        (Some(_), None) => Some(Reply::Waiting),
+        (None, None) => None,
+    };
     Row {
         href: next.href(),
         active: view.open.as_deref() == Some(path.as_str()),
@@ -310,6 +373,8 @@ fn row(view: &View, meta: PageMeta) -> Row {
         workspace: meta.workspace,
         time: short_time(&meta.created_at),
         created_at: meta.created_at,
+        reply: state.map_or("", Reply::name),
+        reply_label: state.map_or("", reply_label),
     }
 }
 

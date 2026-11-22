@@ -2,6 +2,19 @@
 
 版ごとに、API の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
+## 0.5.0
+
+API の版: 1（変わらない。足しただけなので、呼ぶ側は変えなくてよい）
+
+**移行の SQL を足した（`0004_reply.sql`）。この版が起きた後の DB では、0.4.2 までの版は起きない。** 上げる前に、DB の写しを取る（[動かす](https://uraitakahito.github.io/pagetray/run.html) の「版を上げる」）。戻す時は、その写しから戻す。
+
+- Product Manager の返事が要るページを、見分けられるようにした。ページに、返事の状態（返事待ち・答えた）を持たせる。
+  - DB: `pages` に `asked_at`（返事待ちにした時刻）・`answered_at`（答えた時刻）を足した。前からあるページは、どちらも空（返事を求めていない）で、印は付かない。
+  - API: `POST /api/pages/reply?project=…&key=…&kind=…&n=…&state=waiting|answered` で、ページ 1 枚の状態を書く。`GET /api/pages` に `reply=waiting|answered` の絞りを、ページの記録に `asked_at`・`answered_at` を、知らせ（SSE）に `event: reply` を足した。
+  - 一覧の UI: 返事待ちのページの行に「返事待ち」、答えた行に「答えた」の印。操作の帯に「返事待ち N 件」（押すと返事待ちだけに絞る。0 件なら出ない）、tab の題にも件数。絞り込みの列に「返事」。状態が書かれると、押さずに替わる（本文の枠は読み込み直さない）。
+  - CLI: `pagetray page reply <page> --waiting|--answered` と、`pagetray page list --reply waiting|answered`。`page list` の表に、返事の状態の欄（役割の後ろ）を足した。**tab 区切りの出力を欄の位置で読んでいる script は、URL と題が 1 つ後ろへずれる**（`--json` は変わらない）。
+- 状態を書くのは呼ぶ側（roster の `tpm ask pm`・`tpm answer`）。置き場は、だれが書いてよいかを見ない。browser の中のページからは書けない。
+
 ## 0.4.2
 
 API の版: 1（変わらない。呼ぶ側は変えなくてよい）

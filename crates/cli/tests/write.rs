@@ -1,8 +1,8 @@
-//! 書く命令（page put・page delete・page watch・file put・file delete・backup・api）を、同じ commit のサーバーに向けて打つ。
+//! 書く命令（page put・page delete・page reply・page watch・file put・file delete・backup・api）を、同じ commit のサーバーに向けて打つ。
 
 mod common;
 
-use common::{PNG, Server, closed_url, html, run_with};
+use common::{PNG, Server, canned, closed_url, html, run_with};
 use std::io::{BufRead, BufReader};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -665,4 +665,93 @@ fn file_delete_needs_a_target_and_stops_on_no_delete() {
         assert_eq!(ran.stdout, "", "{args:?}");
     }
     assert_eq!(file_count(&s), 4);
+}
+
+const SE: &str = "project=p&key=AI-22&role=software-engineer&workspace=workspace:1";
+
+#[test]
+fn reply_marks_a_page_as_waiting_then_answered_and_list_filters_by_it() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"));
+    s.place(&format!("{SE}&kind=result"), &html("結果", "できた"));
+    let url = format!("{}/p/AI-22/confirm-1.html", s.url);
+    let listed = |args: &[&str]| -> Vec<String> {
+        let ran = s.run(&[&["page", "list", "--project", "p"], args].concat());
+        assert_eq!(ran.code, 0, "{}", ran.stderr);
+        ran.stdout
+            .lines()
+            .map(|line| {
+                // CREATED・KEY・PAGE・ROLE・REPLY・URL・TITLE
+                let cells: Vec<&str> = line.split('\t').collect();
+                format!("{} {}", cells[2], cells[4])
+            })
+            .collect()
+    };
+    assert_eq!(listed(&[]), ["result-1 -", "confirm-1 -"]);
+    assert!(listed(&["--reply", "waiting"]).is_empty());
+
+    // 名指しは、URL でも <project>/<key>/<種類>-<番号> でもよい。
+    let ran = s.run(&["page", "reply", "p/AI-22/confirm-1", "--waiting"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert_eq!(ran.stdout, format!("waiting\t{url}\n"));
+    assert_eq!(listed(&[]), ["result-1 -", "confirm-1 waiting"]);
+    assert_eq!(listed(&["--reply", "waiting"]), ["confirm-1 waiting"]);
+    assert!(listed(&["--reply", "answered"]).is_empty());
+
+    let ran = s.run(&["page", "reply", &url, "--answered", "--json"]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    assert_eq!(json["url"], url.as_str());
+    assert!(json["asked_at"].is_string());
+    assert!(json["answered_at"].is_string());
+    assert_eq!(listed(&["--reply", "answered"]), ["confirm-1 answered"]);
+    assert!(listed(&["--reply", "waiting"]).is_empty());
+
+    // --json の欄にも選べる。書いていないページは null。
+    let ran = s.run(&["page", "list", "--project", "p", "--json=kind,answered_at"]);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    assert_eq!(json[0]["kind"], "result");
+    assert!(json[0]["answered_at"].is_null());
+    assert!(json[1]["answered_at"].is_string());
+}
+
+#[test]
+fn reply_needs_one_state_and_an_existing_page() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"));
+    for args in [
+        &["page", "reply", "p/AI-22/confirm-1"][..],
+        &[
+            "page",
+            "reply",
+            "p/AI-22/confirm-1",
+            "--waiting",
+            "--answered",
+        ],
+        &["page", "reply", "--waiting"],
+        &["page", "reply", "p/AI-22", "--waiting"],
+        &["page", "list", "--reply", "done"],
+    ] {
+        let ran = s.run(args);
+        assert_eq!(ran.code, 2, "{args:?}: {}", ran.stderr);
+    }
+    let ran = s.run(&["page", "reply", "p/AI-22/confirm-2", "--waiting"]);
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("そのページは無い"), "{}", ran.stderr);
+    let ran = s.run(&["page", "list", "--project", "p", "--reply", "waiting"]);
+    assert_eq!(ran.stdout, "");
+}
+
+#[test]
+fn reply_to_a_store_before_0_5_0_says_the_store_is_old() {
+    // 0.5.0 より前の置き場は、POST /api/pages/reply に 405 を返す（その道が無い）。
+    let url = canned("HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n");
+    let ran = run_with(
+        &url,
+        &["page", "reply", "p/AI-22/confirm-1", "--waiting"],
+        &[],
+        None,
+    );
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("版が古く"), "{}", ran.stderr);
 }
