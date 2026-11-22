@@ -8,6 +8,7 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 | container | `pagetray`（`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
 | URL | `http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
 | DB | 名前つきの volume `pagetray-data`（中の `/data/pages.db`）。Mac の folder は mount しない |
+| 記録 | 同じ volume の `/data/logs/`（0.7.0 から。合わせて 4 MiB と 64 KiB まで）。下の「落ちた後に調べる」 |
 | 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://127.0.0.1:8802`）は下の「送り手を castlist に聞く」 |
 
 roster の `tpm` を使う Mac では、container と volume に触る命令を `tpm infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
@@ -56,7 +57,7 @@ container run -d --name pagetray \
 1. `container list` で `pagetray` が `running`。
 2. `lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と `127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。
 3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `ok` を返し、`curl -s http://127.0.0.1:8801/api/version` が、起こした版と `"api":1` を返す。
-4. `container logs pagetray` の頭に `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` が出ている（castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8802`）。
+4. `container logs pagetray` の頭の 2 行が、前回の終わり方（`previous: …`。下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8802`）。
 5. `container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
 6. 一覧の UI を、読むだけの試験で見る（試験のある 0.3.2 から）。本物の browser（この Mac の Chrome）で開き、一覧が出て API の答えと合うこと・新着の知らせにつながること・絞れること・選んだページが本文の枠に出ること・console に誤りが無いことを見る。置き場には何も書かない。pagetray の checkout のある folder で、起こした版の試験を取り出して流す（Node と pnpm が要る。[開発](development.md) の「一覧の UI の試験」）。checkout が無ければ、browser で `http://127.0.0.1:8801/` を開き、一覧が出るのを見る。
 
@@ -113,6 +114,38 @@ container start pagetray
 - 動かす image は空で `cp` も無いので、file を volume に入れる時だけ、shell のある image を借りる（上は `Containerfile` の build の段と同じ物。何でもよい）。
 - 起こしたら「確かめる」をし、`curl -s 'http://127.0.0.1:8801/api/pages?limit=1'` で一番新しいページを見る。
 - 写しが無ければ、空の volume で起こす。roster の `tpm page import` が、控えの folder のページを同じ番号で入れ直す（置いた役割の記録は戻らない）。
+
+## 落ちた後に調べる
+
+0.7.0 から、pagetray は自分の終わり方と、時刻つきの記録を volume の `/data/logs/` に残す。`container logs` は container を起こし直すと頭から書き直されるが、こちらは起こし直しても、版を上げても残る。
+
+| file | 中身 | 上限 |
+|---|---|---|
+| `server.log`・`server.log.1`〜`server.log.3` | 時刻（UTC）つきの行。`container logs` に出る行と、問い合わせごとの 1 行（method・path・status・かかった時間） | 1 つ 1 MiB、合わせて 4 MiB。超える前に回し、一番古い物を消す |
+| `runs.log` | 終わり方の印。起きた・止める合図を受けた・閉じ終えた・panic・誤りで終わった、を 1 行ずつ | 64 KiB。超える前に、古い半分を落とす |
+| `alive` | 生きている印の時刻。30 秒ごとに上書きする | 数十 byte |
+
+読むのは `curl -s http://127.0.0.1:8801/api/logs`（止めなくてよい。印と記録を、古い順の字で返す）。pagetray が起きない時は、止めたまま volume を別の container に付けて読む（volume は、動いている container と同時には付けられない）:
+
+```sh
+container run --rm -v pagetray-data:/data docker.io/library/rust:1.100.0-alpine \
+  sh -c 'cat /data/logs/runs.log; tail -n 200 /data/logs/server.log'
+```
+
+起きるたびに、前回の終わり方を 1 行で出す（`container logs pagetray` の頭と、`server.log`）。
+
+| 行 | 前回に起きたこと | 次に見る所 |
+|---|---|---|
+| `previous: none (first start)` | 印が無い。初めて起きた | — |
+| `previous: stopped cleanly (…)` | 止める合図（`container stop` など）を受けて、閉じ終えた | 誰が止めたかは、pagetray からは見えない。機械の側の記録を見る |
+| `previous: got a stop signal but did not finish (…)` | 止める合図は受けたが、閉じ終える前に切られた | 同じ |
+| `previous: panicked (…)` | pagetray の中の誤り。行に、場所（file と行の番号）と文が入る | その場所と、`server.log` のその時刻の前の行 |
+| `previous: failed (…)` | 起きられずに終わった（DB を開けない・移行に落ちた・待ち受けられない）。行に訳が入る | 行の訳 |
+| `previous: no stop mark (…; last alive …)` | 合図も来ず、何も書けずに終わった（SIGKILL・メモリ不足・VM ごと切られた）。`last alive` は最後に生きていた時刻で、落ちたのはその後の 30 秒の内 | `server.log` のその時刻の前の行と、機械の側の記録 |
+
+- 4 MiB に入るのは、問い合わせの行でおよそ 2 万行。
+- 記録を書けない時（volume が満ちた、など）も pagetray は動く。行は捨て、`container logs` には、書けなくなった時と戻った時に 1 行ずつ出る。
+- 「DB の写しを取る」の写しに、記録は入らない。
 
 ## 止める・Mac を起こし直した後
 
