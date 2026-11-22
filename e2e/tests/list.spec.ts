@@ -2,7 +2,7 @@
 // ここは browser でしか見えない物（script の動き・色・並び）と、人が押してたどる道を見る。
 // 試験は同じ置き場に順に置く。ほかの試験のページを見ないように、試験ごとに別の project を使う。
 import { expect, test } from '@playwright/test';
-import { choice, collectErrors, filters, fresh, list, openLive, place, rows, toolbar, viewer } from './helpers';
+import { choice, collectErrors, filters, fresh, list, listAtTop, openLive, place, rows, scrollList, toolbar, viewer } from './helpers';
 
 const NEW_LIGHT = 'rgb(31, 122, 77)'; // --new: #1f7a4d
 const NEW_DARK = 'rgb(92, 193, 143)'; // --new: #5cc18f
@@ -94,28 +94,121 @@ test('一覧の列: 200 枚を越えると「続きを出す」で残りが出�
   await expect(list(page).getByRole('link', { name: '続きを出す' })).toHaveCount(0);
 });
 
-test('操作の帯: ページが置かれると新着の印が出る。押すと一覧の列に出る', async ({ page, request }) => {
+test('一覧の列: 続きを出して古い方を見ている時は差し替えず、新着の印を押すと頭の一覧に戻る', async ({ page, request }) => {
+  const base = Date.parse('2026-11-04T00:00:00Z');
+  for (let n = 1; n <= 201; n += 1) {
+    const created_at = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
+    await place(request, { project: 'paged', key: 'P-1', kind: 'result', role: 'tpm', n: String(n), created_at }, `<title>${n} 枚目</title>`);
+  }
+  await page.goto('/?project=paged');
+  const more = await list(page).getByRole('link', { name: '続きを出す' }).getAttribute('href');
+  await openLive(page, more!);
+  await expect(rows(page).locator('.title')).toHaveText(['1 枚目']);
+
+  // ほかの project のページは数えない。
+  await place(request, { project: 'paged-other', key: 'P-1', kind: 'result', role: 'tpm' }, '<title>ほかの project</title>');
+  await place(request, { project: 'paged', key: 'P-1', kind: 'result', role: 'tpm' }, '<title>新しく置いた</title>');
+  await expect(fresh(page)).toHaveText('● 新着 1 件（読み直す）');
+  await expect(page).toHaveTitle('(1) ページの置き場');
+  await expect(rows(page).locator('.title')).toHaveText(['1 枚目']);
+
+  await fresh(page).click();
+  await expect(page).toHaveURL(/project=paged/);
+  await expect(page).not.toHaveURL(/[?&]at=/);
+  await expect(rows(page).first().locator('.title')).toHaveText('新しく置いた');
+  await expect(fresh(page)).toBeHidden();
+});
+
+test('一覧の列: 置かれると、押さずに頭に入る。数えるのは今の絞り込みに入ったページだけ。console に誤りが無い', async ({ page, request }) => {
+  const errors = collectErrors(page);
   await openLive(page, '/?project=fresh');
   await expect(fresh(page)).toBeHidden();
   await expect(page).toHaveTitle('ページの置き場');
+  // 画面ごと読み直したら消える印。
+  await page.evaluate(() => ((window as any).__kept = true));
 
+  // ほかの project のページは、一覧の列にも数にも入らない。
+  await place(request, { project: 'other-of-fresh', key: 'N-1', kind: 'result', role: 'tpm' }, '<title>ほかの project</title>');
   await place(request, { project: 'fresh', key: 'N-1', kind: 'result', role: 'tpm' }, '<title>一枚目</title>');
-  await expect(fresh(page)).toBeVisible();
-  await expect(fresh(page)).toHaveText('● 新着 1 件（読み直す）');
+  await expect(rows(page).locator('.title')).toHaveText(['一枚目']);
   await expect(page).toHaveTitle('(1) ページの置き場');
-  // 自分では読み直さない（読んでいる所を動かさない）。
-  await expect(rows(page)).toHaveCount(0);
-
-  await place(request, { project: 'fresh', key: 'N-1', kind: 'result', role: 'tpm' }, '<title>二枚目</title>');
-  await expect(fresh(page)).toHaveText('● 新着 2 件（読み直す）');
-  await expect(page).toHaveTitle('(2) ページの置き場');
-
-  await fresh(page).click();
-  // 読み直しても、絞り込みの条件は残る。
-  await expect(page).toHaveURL(/project=fresh/);
-  await expect(rows(page).locator('.title')).toHaveText(['二枚目', '一枚目']);
+  // 頭が見えているので、新着の印は出ない。新しい行には未読の印が付き、時刻はこの機械の時刻で出る。
   await expect(fresh(page)).toBeHidden();
+  await expect(rows(page).first()).toHaveClass(/unread/);
+  await expect(rows(page).first().locator('time')).toHaveText(/^\d\d-\d\d \d\d:\d\d$/);
+  // 絞り込みの列の件数も新しくなる。
+  await expect(choice(page, 'project', 'fresh').locator('.n')).toHaveText('1');
+  await expect(choice(page, 'project', 'other-of-fresh').locator('.n')).toHaveText('1');
+
+  // 続けて置いても、同じ行は 2 度出ない。
+  for (let n = 2; n <= 6; n += 1) {
+    await place(request, { project: 'fresh', key: 'N-1', kind: 'result', role: 'tpm' }, `<title>${n} 枚目</title>`);
+  }
+  await expect(rows(page).locator('.title')).toHaveText(['6 枚目', '5 枚目', '4 枚目', '3 枚目', '2 枚目', '一枚目']);
+  await expect(page).toHaveTitle('(6) ページの置き場');
+  await expect(choice(page, 'project', 'fresh').locator('.n')).toHaveText('6');
+
+  // 題と本文を探す（q）の条件も、サーバーがそのまま当てる。
+  await openLive(page, '/?project=fresh&q=' + encodeURIComponent('りんご'));
+  await expect(rows(page)).toHaveCount(0);
+  await place(request, { project: 'fresh', key: 'N-2', kind: 'result', role: 'tpm' }, '<title>合わない</title><p>みかん</p>');
+  await place(request, { project: 'fresh', key: 'N-2', kind: 'result', role: 'tpm' }, '<title>合う</title><p>りんご</p>');
+  await expect(rows(page).locator('.title')).toHaveText(['合う']);
+  await expect(page).toHaveTitle('(1) ページの置き場');
+  expect(errors).toEqual([]);
 });
+
+test('本文の枠: 一覧の列が差し替わっても、開いているページは読み込み直さない', async ({ page, request }) => {
+  const path = await place(request, { project: 'keep', key: 'K-1', kind: 'plan', role: 'tpm' }, '<title>読んでいる</title><p id="body">本文</p>');
+  const loads: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().endsWith(path)) loads.push(r.url());
+  });
+  await openLive(page, `/?project=keep&open=${encodeURIComponent(path)}`);
+  const frame = viewer(page).locator('iframe[title="選んだページ"]').contentFrame();
+  await expect(frame.locator('#body')).toHaveText('本文');
+  await page.evaluate(() => ((window as any).__kept = true));
+  await frame.locator('body').evaluate(() => ((window as any).__kept = true));
+  const before = loads.length;
+
+  await place(request, { project: 'keep', key: 'K-1', kind: 'result', role: 'tpm' }, '<title>後から置いた</title>');
+  await expect(rows(page).locator('.title')).toHaveText(['後から置いた', '読んでいる']);
+  expect(await page.evaluate(() => (window as any).__kept)).toBe(true);
+  expect(await frame.locator('body').evaluate(() => (window as any).__kept)).toBe(true);
+  expect(loads.length).toBe(before);
+  // 開いている行の印も残る。
+  await expect(page.locator(`li[data-path="${path}"] a`)).toHaveAttribute('aria-current', 'true');
+});
+
+for (const [name, width] of [['広い幅', 1280], ['狭い幅', 800]] as const) {
+  test(`一覧の列（${name}）: 下へ送っている時は、見ている行が動かない。「上へ」を押すと頭へ行く`, async ({ page, request }) => {
+    const project = `scroll-${width}`;
+    const base = Date.parse('2026-11-05T00:00:00Z');
+    for (let n = 1; n <= 40; n += 1) {
+      const created_at = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
+      await place(request, { project, key: 'S-1', kind: 'result', role: 'tpm', n: String(n), created_at }, `<title>${n} 枚目</title>`);
+    }
+    await page.setViewportSize({ width, height: 600 });
+    await openLive(page, `/?project=${project}`);
+    await page.evaluate(() => ((window as any).__kept = true));
+    await scrollList(page, 800);
+    const watched = rows(page).filter({ hasText: '20 枚目' });
+    const before = (await watched.boundingBox())!.y;
+
+    await place(request, { project, key: 'S-1', kind: 'result', role: 'tpm' }, '<title>新しく置いた</title>');
+    await expect(rows(page)).toHaveCount(41);
+    await expect(fresh(page)).toHaveText('● 新着 1 件（上へ）');
+    expect(Math.abs((await watched.boundingBox())!.y - before)).toBeLessThanOrEqual(1);
+
+    await fresh(page).click();
+    expect(await listAtTop(page)).toBe(true);
+    await expect(rows(page).first().locator('.title')).toHaveText('新しく置いた');
+    await expect(rows(page).first()).toBeInViewport();
+    await expect(fresh(page)).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`project=${project}$`));
+    expect(await page.evaluate(() => (window as any).__kept)).toBe(true);
+  });
+}
 
 test('一覧の列・本文の枠: 初めて開いた後に置かれたページに未読の印が付き、開くと消える', async ({ page, request }) => {
   await place(request, { project: 'unread', key: 'U-1', kind: 'plan', role: 'tpm' }, '<title>前からある</title>');
@@ -125,7 +218,7 @@ test('一覧の列・本文の枠: 初めて開いた後に置かれたページ
   await expect(page.locator('li.unread')).toHaveCount(0);
 
   const path = await place(request, { project: 'unread', key: 'U-1', kind: 'result', role: 'tpm' }, '<title>後から置いた</title><p id="body">本文の字</p>');
-  await fresh(page).click();
+  // 押さずに一覧の列に入る。
   const row = page.locator(`li[data-path="${path}"]`);
   await expect(row).toHaveClass(/unread/);
   await expect(page.locator('li.unread')).toHaveCount(1);
@@ -152,6 +245,7 @@ for (const [colorScheme, color] of [['light', NEW_LIGHT], ['dark', NEW_DARK]] as
       if (!localStorage.getItem('pagetray.since')) localStorage.setItem('pagestore.since', '2000-01-01T00:00:00.000Z');
     });
     const page = await context.newPage();
+    await page.setViewportSize({ width: 1280, height: 600 });
     await place(request, { project: `color-${colorScheme}`, key: 'C-1', kind: 'plan', role: 'tpm' }, '<title>色を見る</title>');
     await openLive(page, `/?project=color-${colorScheme}`);
 
@@ -163,6 +257,12 @@ for (const [colorScheme, color] of [['light', NEW_LIGHT], ['dark', NEW_DARK]] as
     });
     expect(dot).toEqual({ content: '"● "', color });
 
+    // 新着の印は、一覧の列を下へ送っている時に出る。
+    for (let n = 2; n <= 40; n += 1) {
+      await place(request, { project: `color-${colorScheme}`, key: 'C-1', kind: 'result', role: 'tpm' }, `<title>${n} 枚目</title>`);
+    }
+    await expect(rows(page)).toHaveCount(40);
+    await scrollList(page, 800);
     await place(request, { project: `color-${colorScheme}`, key: 'C-1', kind: 'result', role: 'tpm' }, '<title>新着</title>');
     await expect(fresh(page)).toBeVisible();
     await expect(fresh(page)).toHaveCSS('color', color);

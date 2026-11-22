@@ -10,7 +10,7 @@
 @media (prefers-color-scheme:dark){:root{--bg:#151a22;--fg:#e4e8ee;--muted:#9aa4b4;--line:#2c3542;--accent:#7fa6e6;--card:#1b212b;--on:#243450;--new:#5cc18f;color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html,body{height:100%}
+html,body{height:100%;overflow-anchor:none}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;display:grid;grid-template-rows:auto 1fr}
 a{color:inherit;text-decoration:none}
 header{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--card)}
@@ -21,7 +21,7 @@ button,.btn{padding:4px 10px;border:1px solid var(--line);border-radius:6px;back
 button:disabled{opacity:.5;cursor:not-allowed}
 #fresh{color:var(--new);font-weight:700;border-color:var(--new)}
 main{display:grid;grid-template-columns:15rem 23rem 1fr;min-height:0}
-main>*{min-height:0;overflow:auto;border-right:1px solid var(--line)}
+main>*{min-height:0;overflow:auto;overflow-anchor:none;border-right:1px solid var(--line)}
 nav{padding:8px 12px}
 nav h2{font-size:.8rem;color:var(--muted);margin:12px 0 2px}
 nav ul,.rows{list-style:none;margin:0;padding:0}
@@ -117,7 +117,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
 {% endif %}</section>
 </main>
 <script>
-// script が無くても一覧は動く。ここでするのは、新着の印・未読の印・時刻をこの Mac の時刻で出すことと、
+// script が無くても一覧は動く。ここでするのは、新着の一覧の列の差し替えと印・未読の印・時刻をこの Mac の時刻で出すことと、
 // Key の画面で file を上げること。
 (() => {
   const two = (n) => String(n).padStart(2, "0");
@@ -129,6 +129,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
   };
   localTimes(document);
   // 未読: 初めて開いた時より後に置かれ、まだ本文の枠に出していないページ。browser が覚える。
+  let markUnread = () => {};
   try {
     const store = localStorage;
     // 前の名（pagestore.*）で覚えた印も読む（名を替えた時に、未読の印を失わない）。
@@ -141,20 +142,124 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
       seen.add(viewer);
       store.setItem("pagetray.seen", JSON.stringify([...seen].slice(-5000)));
     }
-    for (const li of document.querySelectorAll("li[data-path]")) {
-      if (li.dataset.at > since && !seen.has(li.dataset.path)) li.classList.add("unread");
-    }
+    markUnread = (root) => {
+      for (const li of root.querySelectorAll("li[data-path]")) {
+        if (li.dataset.at > since && !seen.has(li.dataset.path)) li.classList.add("unread");
+      }
+    };
   } catch {}
-  // 新着: 置かれるたびにサーバーが知らせる。押すと一覧を読み直す。
+  markUnread(document);
+
+  // 新着: 置かれるたびにサーバーが知らせる。一覧の列と絞り込みの列だけを、サーバーが組んだ HTML に差し替える
+  // （本文の枠は読み込み直さない。読んでいる所を動かさない）。数えるのは、今の絞り込みで一覧に入ったページだけ。
+  // 古い方の続き（URL に at がある）を見ている時は差し替えず、押すと読み直す印を出す。
   const fresh = document.getElementById("fresh");
+  const list = document.getElementById("list");
+  const filters = document.getElementById("filters");
+  const box = list.parentElement;
   const title = document.title;
+  const paged = new URLSearchParams(location.search).has("at");
+  const heard = new Set();
   let count = 0;
-  const events = new EventSource("/api/events");
-  events.onmessage = () => {
-    count += 1;
+  let above = 0;
+  let pulling = false;
+  let again = false;
+  // 一覧の列を送る物: 幅が広い時は真ん中の列、狭い時は画面全体。
+  const scroller = () => (box.scrollHeight > box.clientHeight ? box : document.scrollingElement);
+  const viewTop = (el) => (el === box ? box.getBoundingClientRect().top : 0);
+  const atTop = () => list.getBoundingClientRect().top >= viewTop(scroller()) - 1;
+  const rowsOf = (root) => [...root.querySelectorAll("li[data-path]")];
+  const shape = (root) => rowsOf(root).map((li) => li.dataset.path).join("\n") + "\n" + (root.querySelector(".more")?.getAttribute("href") ?? "");
+  const show = (text) => {
     fresh.hidden = false;
-    fresh.textContent = `● 新着 ${count} 件（読み直す）`;
-    document.title = `(${count}) ${title}`;
+    fresh.textContent = text;
+  };
+  // 一覧の列を下へ送っていた時は、差し替える前に見えていた頭の行を、差し替えた後も同じ所に置く
+  // （絞り込みの列の高さが変わる、狭い幅の時も）。頭にいた時は、そのまま（新しい行が頭に見える）。
+  const swap = (next, nextFilters) => {
+    const el = scroller();
+    const top = viewTop(el);
+    const anchor = atTop() ? null : rowsOf(list).find((li) => li.getBoundingClientRect().bottom > top);
+    const from = anchor?.getBoundingClientRect().top;
+    const focused = document.activeElement?.closest?.("#list li[data-path]")?.dataset.path;
+    if (filters.innerHTML !== nextFilters.innerHTML) filters.innerHTML = nextFilters.innerHTML;
+    if (next) {
+      list.innerHTML = next.innerHTML;
+      localTimes(list);
+      markUnread(list);
+    }
+    const same = anchor && rowsOf(list).find((li) => li.dataset.path === anchor.dataset.path);
+    if (same) el.scrollTop += same.getBoundingClientRect().top - from;
+    if (focused) rowsOf(list).find((li) => li.dataset.path === focused)?.querySelector("a")?.focus({ preventScroll: true });
+  };
+  const pull = async () => {
+    if (pulling) {
+      again = true;
+      return;
+    }
+    pulling = true;
+    do {
+      again = false;
+      // 読む前に来ていた知らせだけを、この回で確かめる（読んでいる間に来た物は、次の回）。
+      const asked = [...heard];
+      heard.clear();
+      try {
+        const response = await fetch(fresh.href, { cache: "no-store" });
+        if (!response.ok) continue;
+        const doc = new DOMParser().parseFromString(await response.text(), "text/html");
+        const next = doc.getElementById("list");
+        const nextFilters = doc.getElementById("filters");
+        if (!next || !nextFilters) continue;
+        const arrived = new Set(rowsOf(next).map((li) => li.dataset.path));
+        const added = asked.filter((path) => arrived.has(path)).length;
+        count += added;
+        if (count) document.title = `(${count}) ${title}`;
+        if (paged) {
+          swap(null, nextFilters);
+          if (count) show(`● 新着 ${count} 件（読み直す）`);
+          continue;
+        }
+        const wasTop = atTop();
+        swap(shape(list) !== shape(next) ? next : null, nextFilters);
+        if (added && !wasTop) {
+          above += added;
+          show(`● 新着 ${above} 件（上へ）`);
+        }
+      } catch {}
+    } while (again);
+    pulling = false;
+  };
+  const toTop = () => {
+    const el = scroller();
+    el.scrollTop += list.getBoundingClientRect().top - viewTop(el);
+  };
+  const seenTop = () => {
+    if (!paged && above && atTop()) {
+      above = 0;
+      fresh.hidden = true;
+    }
+  };
+  fresh.addEventListener("click", (e) => {
+    if (paged) return;
+    e.preventDefault();
+    toTop();
+    seenTop();
+  });
+  box.addEventListener("scroll", seenTop, { passive: true });
+  window.addEventListener("scroll", seenTop, { passive: true });
+  const events = new EventSource("/api/events");
+  let opened = false;
+  // 置き場を起こし直すと、つなぎ直す。切れていた間に置かれた物も入れる（数には入らず、未読の印で見える）。
+  events.onopen = () => {
+    if (opened) pull();
+    opened = true;
+  };
+  events.onmessage = (e) => {
+    try {
+      const path = JSON.parse(e.data).path;
+      if (path) heard.add(path);
+    } catch {}
+    pull();
   };
 
   // 上げる枠（Key の画面だけ）。送る前に、拡張子・大きさを見て、見本を出し、秘密が写っていないか見た印を求める。
