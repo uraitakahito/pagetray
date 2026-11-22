@@ -1,6 +1,8 @@
 //! JSON の API: ページと file を置く・探す・消す・DB の写し。
 
-use crate::db::{FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Target};
+use crate::db::{
+    FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Reply, Target,
+};
 use crate::events::Note;
 use crate::{AppState, FromUi, UI_ROLE, error, internal, text};
 use axum::body::{Body, Bytes};
@@ -131,11 +133,15 @@ pub struct ListParams {
     role: Option<String>,
     workspace: Option<String>,
     q: Option<String>,
+    /// 返事の状態（`waiting`・`answered`）。
+    reply: Option<String>,
     sort: Option<String>,
     limit: Option<i64>,
     before: Option<String>,
     after: Option<String>,
 }
+
+const REPLY_RULE: &str = "reply は waiting か answered";
 
 pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) -> Response {
     let oldest_first = match p.sort.as_deref() {
@@ -145,6 +151,11 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
             return error(StatusCode::BAD_REQUEST, "sort は created_at か -created_at");
         }
     };
+    let reply = match p.reply.as_deref().map(Reply::parse) {
+        None => None,
+        Some(Some(reply)) => Some(reply),
+        Some(None) => return error(StatusCode::BAD_REQUEST, REPLY_RULE),
+    };
     let filter = Filter {
         project: p.project,
         key: p.key,
@@ -152,6 +163,7 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
         role: p.role,
         workspace: p.workspace,
         q: p.q,
+        reply,
         before: p.before,
         after: p.after,
         oldest_first,
@@ -162,6 +174,56 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
             let pages: Vec<Page> = rows.into_iter().map(Page::from).collect();
             Json(serde_json::json!({ "pages": pages })).into_response()
         }
+        Err(e) => internal(e),
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ReplyParams {
+    project: String,
+    key: String,
+    kind: String,
+    n: i64,
+    state: String,
+}
+
+/// ページ 1 枚の返事の状態を書く（`POST /api/pages/reply?project=…&key=…&kind=…&n=…&state=waiting|answered`）。
+/// 本文は読まない。答えは、そのページの記録。同じ状態を 2 度書いても同じ答え（時刻は初めの物を保つ）。
+/// だれが書いてよいかは、呼ぶ側（tpm ask pm・tpm answer）が持つ。ここでは人を見分けない。
+/// browser の中のページからは書けない（`Origin` の付いた要求は guard が断る）。
+pub async fn reply(State(state): State<AppState>, Query(p): Query<ReplyParams>) -> Response {
+    let Some(wanted) = Reply::parse(&p.state) else {
+        return error(StatusCode::BAD_REQUEST, "state は waiting か answered");
+    };
+    let checks = [
+        (
+            is_segment(&p.project),
+            "project は英数字と . _ - で 255 字まで",
+        ),
+        (is_segment(&p.key), "key は英数字と . _ - で 255 字まで"),
+        (
+            is_name(&p.kind),
+            "kind は英小文字で始まり、英小文字・数字・- で 32 字まで",
+        ),
+        (p.n >= 1, "n は 1 以上"),
+    ];
+    if let Some((_, message)) = checks.iter().find(|(ok, _)| !ok) {
+        return error(StatusCode::BAD_REQUEST, message);
+    }
+    match state
+        .db
+        .set_reply(&p.project, &p.key, &p.kind, p.n, wanted)
+        .await
+    {
+        Ok(Some(meta)) => {
+            let page = Page::from(meta);
+            println!("reply {} state={}", page.path, wanted.name());
+            let value = serde_json::to_value(&page).unwrap_or_default();
+            // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
+            let _ = state.events.send(Note::Reply(value.to_string()));
+            Json(value).into_response()
+        }
+        Ok(None) => error(StatusCode::NOT_FOUND, "そのページは無い"),
         Err(e) => internal(e),
     }
 }

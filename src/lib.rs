@@ -47,6 +47,7 @@ pub fn router(state: AppState) -> Router {
             "/api/pages",
             get(api::list).post(api::put).delete(api::remove),
         )
+        .route("/api/pages/reply", post(api::reply))
         .route(
             "/api/files",
             // file の上限は、置く道にだけ掛ける（下の MAX_BODY より内側なので、こちらが効く）。

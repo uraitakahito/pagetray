@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "select project, key, kind, n, title, role, workspace, created_at,\n                      length(body) as \"size!: i64\"\n               from pages\n               where (?1 is null or project = ?1)\n                 and (?2 is null or key = ?2)\n                 and (?3 is null or kind = ?3)\n                 and (?4 is null or role = ?4)\n                 and (?5 is null or workspace = ?5)\n                 and (?6 is null or id in (select rowid from pages_fts where pages_fts match ?6))\n                 and (?7 is null or id in (select rowid from pages_fts\n                                           where instr(title, ?7) > 0 or instr(text, ?7) > 0))\n                 and (?8 is null or created_at < ?8)\n                 and (?9 is null or created_at > ?9)\n               order by case when ?10 then created_at end asc,\n                        case when ?10 then id end asc,\n                        created_at desc, id desc\n               limit ?11",
+  "query": "select project, key, kind, n, title, role, workspace, created_at,\n                      length(body) as \"size!: i64\", asked_at, answered_at\n               from pages\n               where (?1 is null or project = ?1)\n                 and (?2 is null or key = ?2)\n                 and (?3 is null or kind = ?3)\n                 and (?4 is null or role = ?4)\n                 and (?5 is null or workspace = ?5)\n                 and (?6 is null or id in (select rowid from pages_fts where pages_fts match ?6))\n                 and (?7 is null or id in (select rowid from pages_fts\n                                           where instr(title, ?7) > 0 or instr(text, ?7) > 0))\n                 and (?8 is null or created_at < ?8)\n                 and (?9 is null or created_at > ?9)\n                 and (?12 is null\n                      or (?12 = 'waiting' and asked_at is not null and answered_at is null)\n                      or (?12 = 'answered' and answered_at is not null))\n               order by case when ?10 then created_at end asc,\n                        case when ?10 then id end asc,\n                        created_at desc, id desc\n               limit ?11",
   "describe": {
     "columns": [
       {
@@ -96,10 +96,32 @@
         "ordinal": 8,
         "type_info": "Null",
         "origin": "Expression"
+      },
+      {
+        "name": "asked_at",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "asked_at"
+          }
+        }
+      },
+      {
+        "name": "answered_at",
+        "ordinal": 10,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "answered_at"
+          }
+        }
       }
     ],
     "parameters": {
-      "Right": 11
+      "Right": 12
     },
     "nullable": [
       false,
@@ -110,8 +132,10 @@
       false,
       false,
       false,
-      null
+      null,
+      true,
+      true
     ]
   },
-  "hash": "b0bf40f05e618b24cc7ed0ac1cc7828b8300566e008f19c819d580df42fd1763"
+  "hash": "8586b3fab94044d9e6da70b51af659f5d35372b1913bece4ec4cf6a6aa9e6eed"
 }

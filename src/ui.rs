@@ -200,6 +200,7 @@ async fn render(state: AppState, mut view: View) -> Response {
         role: view.role.clone(),
         workspace: view.workspace.clone(),
         q: view.q.clone(),
+        reply: None,
         before,
         after,
         oldest_first,

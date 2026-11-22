@@ -61,6 +61,13 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 
 `path` は、このサーバーの中の path。`<サーバーの URL><path>` で本文が開く。
 
+返事の状態を書いたページ（下の `POST /api/pages/reply`）の記録には、次の欄も出る（0.5.0 から。書いていないページには出ない）。
+
+| 欄 | 中身 |
+|---|---|
+| `asked_at` | 返事待ちにした時刻 |
+| `answered_at` | 答えた時刻。返事待ちの間は出ない |
+
 ## file の記録
 
 置く・探すの答えに出る、file 1 つの記録（中身は入らない）。file は、ページから参照する画像・PDF・字の file。
@@ -115,9 +122,21 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 
 ### `GET /api/pages` — 探す
 
-- 引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だけ）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・`after`（`created_at` がそれより前・後）。
+- 引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だけ）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ。0.5.0 から）。
 - `200`: `{"pages":[<ページの記録>, …]}`。合う物が無ければ空の配列。
-- `400`: `sort` がどちらでもない。
+- `400`: `sort` がどちらでもない・`reply` がどちらでもない。
+
+### `POST /api/pages/reply` — 返事の状態を書く
+
+Product Manager の返事が要るページに、返事待ち・答えたの状態を書く（0.5.0 から）。roster の `tpm ask pm` が返事待ちにし、`tpm answer` が答えたにする。一覧の UI は、この状態で印と件数を出す。
+
+- 引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）、`state`（`waiting` 返事待ち・`answered` 答えた）。本文は読まない。
+- `waiting`: 返事待ちにする。もう返事待ちなら何も変えない。答えた後にもう 1 度書くと、`asked_at` が今になり、`answered_at` が消える。
+- `answered`: 答えたにする。もう答えていれば何も変えない。返事待ちにしていないページなら、`asked_at` にも同じ時刻が入る。
+- `200`: そのページの記録（`asked_at`・`answered_at` が付く）。同じ状態を 2 度書いても同じ答え。
+- `404`: そのページは無い（消した物も）。`400`: 引数が決まりに合わない。
+- だれが書いてよいかは見ない（呼ぶ側が決める）。browser の中のページからは書けない（「共通」の `Origin` の決まり）。
+- 0.5.0 より前のサーバーには、このエンドポイントが無い（`404` か `405` が返る）。呼ぶ側は、それを「状態を書けない置き場」として扱う。
 
 ### `DELETE /api/pages` — 消す
 
@@ -169,5 +188,5 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 | `GET /healthz` | `200` と `ok` | 入る |
 | `GET /api/version` | サーバーの版と API の版 | 入る |
 | `GET /api/backup` | DB の写し（SQLite の file 1 つ） | 入る |
-| `GET /api/events` | 置かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、file は `event: file` で file の記録 | 入る |
+| `GET /api/events` | 置かれるたび・返事の状態が書かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、file は `event: file` で file の記録、返事の状態は `event: reply` でページの記録（0.5.0 から） | 入る |
 | `GET /`・`/<project>/`・`/<project>/<key>/` | 一覧の UI | URL が開くことだけ。HTML の作りは入らない |
