@@ -7,6 +7,9 @@ use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+/// 読む接続の数。
+const READS: u32 = 4;
+
 #[derive(Clone)]
 pub struct Db {
     read: SqlitePool,
@@ -177,7 +180,7 @@ impl Db {
             .await?;
         sqlx::migrate!().run(&write).await?;
         let read = SqlitePoolOptions::new()
-            .max_connections(4)
+            .max_connections(READS)
             .connect_with(options.read_only(true))
             .await?;
         Ok(Self {
@@ -717,7 +720,113 @@ fn search(q: Option<&str>) -> (Option<String>, Option<String>) {
 
 #[cfg(test)]
 mod tests {
-    use super::search;
+    use super::*;
+
+    /// 試験ごとの一時の DB。終わったら消す。
+    struct Temp(PathBuf);
+
+    impl Temp {
+        fn new(name: &str) -> Self {
+            static SEQ: AtomicU64 = AtomicU64::new(0);
+            Self(std::env::temp_dir().join(format!(
+                "pagetray-db-{name}-{}-{}.db",
+                std::process::id(),
+                SEQ.fetch_add(1, Ordering::Relaxed)
+            )))
+        }
+    }
+
+    impl Drop for Temp {
+        fn drop(&mut self) {
+            for suffix in ["", "-wal", "-shm"] {
+                let _ = std::fs::remove_file(format!("{}{suffix}", self.0.display()));
+            }
+        }
+    }
+
+    const SENDER: &str = "insert into senders(actor_issuer, actor_ref, created_at)
+                          values('tpm', 'claude.session:a', '2026-11-22T00:00:00.000Z')";
+
+    #[tokio::test]
+    async fn senders_are_append_only() {
+        let temp = Temp::new("append");
+        let db = Db::open(&temp.0).await.unwrap();
+        let _ = sqlx::query(SENDER).execute(&db.write).await;
+        for sql in ["update senders set actor_name = 'x'", "delete from senders"] {
+            let err = sqlx::query(sql).execute(&db.write).await.unwrap_err();
+            assert!(
+                err.to_string().contains("append-only: senders"),
+                "{sql}: {err}"
+            );
+        }
+        db.close().await;
+    }
+
+    #[tokio::test]
+    async fn a_page_cannot_point_to_a_missing_sender() {
+        let temp = Temp::new("fk");
+        let db = Db::open(&temp.0).await.unwrap();
+        for sql in [
+            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body, sender_id)
+             values('p', 'K', 'plan', 1, '', 'tpm', '', '2026-11-22T00:00:00.000Z', x'00', 999)",
+            "insert into files(project, key, name, ext, n, type, size, sha256, role, workspace, created_at, body, sender_id)
+             values('p', 'K', 'a', 'txt', 1, 'text/plain', 1, '', 'tpm', '', '2026-11-22T00:00:00.000Z', x'00', 999)",
+        ] {
+            let err = sqlx::query(sql).execute(&db.write).await.unwrap_err();
+            assert!(err.to_string().contains("FOREIGN KEY constraint failed"), "{err}");
+        }
+        db.close().await;
+    }
+
+    /// 読む接続をみな同時に借り、書く接続と合わせて、どれも外部キーと trigger の決まりが効いているか。
+    #[tokio::test]
+    async fn every_connection_enforces_foreign_keys_and_recursive_triggers() {
+        let temp = Temp::new("pragma");
+        let db = Db::open(&temp.0).await.unwrap();
+        let mut held = Vec::new();
+        for _ in 0..READS {
+            held.push(db.read.acquire().await.unwrap());
+        }
+        held.push(db.write.acquire().await.unwrap());
+        assert_eq!(held.len() as u32, READS + 1);
+        for conn in &mut held {
+            for pragma in ["pragma foreign_keys", "pragma recursive_triggers"] {
+                let on: i64 = sqlx::query_scalar(pragma)
+                    .fetch_one(&mut **conn)
+                    .await
+                    .unwrap();
+                assert_eq!(on, 1, "{pragma}");
+            }
+        }
+        drop(held);
+        db.close().await;
+    }
+
+    /// 外部キーの合わない行がある DB では、起きない。
+    #[tokio::test]
+    async fn opening_refuses_a_database_with_broken_foreign_keys() {
+        let temp = Temp::new("check");
+        Db::open(&temp.0).await.unwrap().close().await;
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(
+                SqliteConnectOptions::new()
+                    .filename(&temp.0)
+                    .foreign_keys(false),
+            )
+            .await
+            .unwrap();
+        sqlx::query(
+            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body, sender_id)
+             values('p', 'K', 'plan', 1, '', 'tpm', '', '2026-11-22T00:00:00.000Z', x'00', 999)",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+        pool.close().await;
+        let opened = Db::open(&temp.0).await;
+        assert!(opened.is_err(), "外部キーの合わない DB で起きた");
+    }
 
     #[test]
     fn long_terms_become_quoted_phrases() {

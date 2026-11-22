@@ -35,6 +35,15 @@ pub struct PageRecord {
     pub answered_at: Option<String>,
 }
 
+/// castlist が答えた、送り手のアクター（本当の id・名・種類）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ActorRecord {
+    pub id: String,
+    pub name: String,
+    /// `ai` か `human`。
+    pub kind: String,
+}
+
 /// ページの本文の path。
 pub fn page_path(project: &str, key: &str, kind: &str, n: i64) -> String {
     format!("/{project}/{key}/{kind}-{n}.html")

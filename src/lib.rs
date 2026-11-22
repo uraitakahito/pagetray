@@ -3,6 +3,7 @@
 //! 種類と役割の名の一覧は持たない（cli が持つ）。ここでは字の形だけを見る。
 
 pub mod api;
+pub mod castlist;
 pub mod db;
 pub mod events;
 pub mod files;
@@ -31,12 +32,26 @@ pub struct AppState {
     pub db: db::Db,
     /// 置かれたページと file の知らせ。聞いている一覧の UI に push する。
     pub events: tokio::sync::broadcast::Sender<events::Note>,
+    /// 送り手を聞く castlist（`PAGETRAY_CASTLIST_URL`）。無ければ、付随する id だけを残す。
+    pub castlist: Option<castlist::Castlist>,
 }
 
 impl AppState {
     pub fn new(db: db::Db) -> Self {
         let (events, _) = tokio::sync::broadcast::channel(64);
-        Self { db, events }
+        Self {
+            db,
+            events,
+            castlist: None,
+        }
+    }
+
+    /// 送り手を、この castlist に聞く。
+    pub fn with_castlist(self, castlist: castlist::Castlist) -> Self {
+        Self {
+            castlist: Some(castlist),
+            ..self
+        }
     }
 }
 

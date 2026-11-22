@@ -1,6 +1,8 @@
 //! 試験の土台。試験ごとに一時の DB を作り、道筋を直に呼ぶ。
 #![allow(dead_code)]
 
+pub mod castlist;
+
 use axum::Router;
 use axum::body::Body;
 use axum::http::{HeaderMap, Request, StatusCode, header};
@@ -24,6 +26,16 @@ pub struct Server {
 
 impl Server {
     pub async fn start() -> Self {
+        Self::start_with(|state| state).await
+    }
+
+    /// 送り手を、この URL の castlist に聞く置き場。
+    pub async fn with_castlist(url: &str) -> Self {
+        let castlist = pagetray::castlist::Castlist::parse(url).unwrap();
+        Self::start_with(|state| state.with_castlist(castlist)).await
+    }
+
+    async fn start_with(configure: impl FnOnce(AppState) -> AppState) -> Self {
         static SEQ: AtomicU32 = AtomicU32::new(0);
         let path = std::env::temp_dir().join(format!(
             "pagetray-test-{}-{}.db",
@@ -31,7 +43,7 @@ impl Server {
             SEQ.fetch_add(1, Ordering::Relaxed)
         ));
         let db = Db::open(&path).await.unwrap();
-        let app = router(AppState::new(db.clone()));
+        let app = router(configure(AppState::new(db.clone())));
         Self { app, db, path }
     }
 
@@ -136,6 +148,65 @@ impl Server {
             .collect()
     }
 }
+
+impl Server {
+    /// 別の接続で DB を直に読む（置き場の答えでなく、表に何が残ったかを見る）。
+    async fn raw(&self) -> sqlx::SqlitePool {
+        sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect_with(
+                sqlx::sqlite::SqliteConnectOptions::new()
+                    .filename(&self.path)
+                    .read_only(true),
+            )
+            .await
+            .unwrap()
+    }
+
+    /// 表の行の数。表が無ければ -1。
+    pub async fn count(&self, table: &str) -> i64 {
+        let pool = self.raw().await;
+        let n = sqlx::query_scalar(sqlx::AssertSqlSafe(format!("select count(*) from {table}")))
+            .fetch_one(&pool)
+            .await
+            .unwrap_or(-1);
+        pool.close().await;
+        n
+    }
+
+    /// senders の行（issuer・付随する id・アクターの id・名・種類・引き当てた時刻）。表が無ければ空。
+    pub async fn senders(&self) -> Vec<Sender> {
+        let pool = self.raw().await;
+        let rows = sqlx::query_as(
+            "select actor_issuer, actor_ref, actor_id, actor_name, actor_kind, resolved_at from senders order by id",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap_or_default();
+        pool.close().await;
+        rows
+    }
+
+    /// `PRAGMA foreign_key_check` の行の数（0 なら、外部キーの合わない行は無い）。
+    pub async fn foreign_key_violations(&self) -> usize {
+        let pool = self.raw().await;
+        let rows = sqlx::query("pragma foreign_key_check")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+        pool.close().await;
+        rows.len()
+    }
+}
+
+pub type Sender = (
+    String,
+    String,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+);
 
 impl Drop for Server {
     fn drop(&mut self) {
