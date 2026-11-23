@@ -26,6 +26,10 @@ const APPLIED: &[(i64, &str)] = &[
         5,
         "d9b883f0209a6f2280eb07d09f746cefbd994a0e5a9d47d5a2a30725928eebba28ea877228a0ab6a97c1257541e1aeeb",
     ),
+    (
+        6,
+        "d116532ac7509c1bc8ac5108df6fd7c6a89f4e1b14d9dd4a3ab48bbe2ba43be64c08f9c77df0e6c9d10103bb632ff333",
+    ),
 ];
 
 #[test]

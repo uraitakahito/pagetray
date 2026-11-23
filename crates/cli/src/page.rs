@@ -42,6 +42,51 @@ impl ReplyState {
     }
 }
 
+/// 待ちの相手。API の `on` の値と同じ名（0.8.0 から）。
+#[derive(Clone, Copy, ValueEnum)]
+pub enum Party {
+    /// Product Manager（書かない時と同じ）
+    Pm,
+    /// レビューの席（レビューの依頼書）
+    Review,
+    /// TPM 担当（判定を受けずに上げたレビュー）
+    Tpm,
+}
+
+impl Party {
+    fn name(self) -> &'static str {
+        match self {
+            Party::Pm => "pm",
+            Party::Review => "review",
+            Party::Tpm => "tpm",
+        }
+    }
+}
+
+/// レビューの判定。API の `verdict` の値と同じ名（0.8.0 から）。
+#[derive(Clone, Copy, ValueEnum)]
+pub enum Verdict {
+    /// よい
+    Approve,
+    /// 気になる所あり
+    Concerns,
+    /// 直すべき
+    Reject,
+    /// 見られなかった
+    NotAssessed,
+}
+
+impl Verdict {
+    fn name(self) -> &'static str {
+        match self {
+            Verdict::Approve => "approve",
+            Verdict::Concerns => "concerns",
+            Verdict::Reject => "reject",
+            Verdict::NotAssessed => "not-assessed",
+        }
+    }
+}
+
 #[derive(Args)]
 #[command(group(clap::ArgGroup::new("state").required(true).multiple(false).args(["waiting", "answered"])))]
 pub struct ReplyArgs {
@@ -54,6 +99,9 @@ pub struct ReplyArgs {
     /// 答えたにする
     #[arg(long)]
     answered: bool,
+    /// 待ちの相手（既定は pm）。答えたにする時は、この相手を待っているページだけが替わる（0.8.0 から）
+    #[arg(long, value_enum, value_name = "相手")]
+    on: Option<Party>,
     /// ページの記録を JSON で出す（既定は、状態と URL の 1 行）
     #[arg(long)]
     json: bool,
@@ -151,6 +199,12 @@ pub struct ListArgs {
     /// 返事の状態で絞る（waiting は返事待ち、answered は答えた物だけ）
     #[arg(long, value_enum, value_name = "状態")]
     reply: Option<ReplyState>,
+    /// --reply で絞る時の待ちの相手（既定は pm。0.8.0 から）
+    #[arg(long, value_enum, value_name = "相手", requires = "reply")]
+    on: Option<Party>,
+    /// レビューの判定で絞る（0.8.0 から）
+    #[arg(long, value_enum, value_name = "判定")]
+    verdict: Option<Verdict>,
     /// この時刻より前に置いた物（2026-01-02T03:04:05Z の形）
     #[arg(long, value_name = "時刻")]
     before: Option<String>,
@@ -229,6 +283,12 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
     if let Some(state) = args.reply {
         query.push(("reply", state.name()));
     }
+    if let Some(on) = args.on {
+        query.push(("on", on.name()));
+    }
+    if let Some(verdict) = args.verdict {
+        query.push(("verdict", verdict.name()));
+    }
     let listed: Listed = client
         .get("/api/pages", &query)?
         .ok("置き場が一覧を返さなかった")?
@@ -257,7 +317,7 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
     let rows: Vec<Vec<String>> = pages
         .into_iter()
         .map(|p| {
-            let reply = reply_of(&p).to_owned();
+            let reply = reply_of(&p);
             let mut row = vec![
                 p.created_at,
                 p.key,
@@ -276,12 +336,17 @@ fn list(client: &Client, args: ListArgs) -> Result<String, Failure> {
     Ok(output::table(&header, &rows, tty))
 }
 
-/// 一覧に出す、返事の状態の字（返事を求めていないページは `-`）。
-fn reply_of(page: &PageRecord) -> &'static str {
-    match (&page.asked_at, &page.answered_at) {
+/// 一覧に出す、返事の状態の字（返事を求めていないページは `-`）。Product Manager のほかを待つ物は
+/// `waiting:review` のように相手を添える。
+fn reply_of(page: &PageRecord) -> String {
+    let state = match (&page.asked_at, &page.answered_at) {
         (_, Some(_)) => "answered",
         (Some(_), None) => "waiting",
-        (None, None) => "-",
+        (None, None) => return "-".to_owned(),
+    };
+    match &page.waits_on {
+        Some(on) => format!("{state}:{on}"),
+        None => state.to_owned(),
     }
 }
 
@@ -300,13 +365,16 @@ fn reply(client: &Client, args: ReplyArgs) -> Result<String, Failure> {
         ReplyState::Waiting
     };
     let n = n.to_string();
-    let query = [
+    let mut query = vec![
         ("project", project),
         ("key", key),
         ("kind", kind),
         ("n", n.as_str()),
         ("state", state.name()),
     ];
+    if let Some(on) = args.on {
+        query.push(("on", on.name()));
+    }
     let sent = client.send("POST", "/api/pages/reply", &query, None)?;
     // 0.5.0 より前の置き場には、この道が無い。project が api のページは無いので、405 はその印。
     if sent.status == 405 {
@@ -314,6 +382,15 @@ fn reply(client: &Client, args: ReplyArgs) -> Result<String, Failure> {
             1,
             format!(
                 "置き場（{}）の版が古く、返事の状態を書けない（0.5.0 から）",
+                client.base
+            ),
+        ));
+    }
+    if sent.status == 409 {
+        return Err(Failure::new(
+            1,
+            format!(
+                "{}{path} は、その相手（--on）の返事を待っていない。何も替えていない",
                 client.base
             ),
         ));

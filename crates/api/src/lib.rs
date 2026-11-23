@@ -33,6 +33,15 @@ pub struct PageRecord {
     /// 答えた時刻。まだ答えていなければ無い。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub answered_at: Option<String>,
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つページと、返事を求めていないページには無い（0.8.0 から）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub waits_on: Option<String>,
+    /// レビューの判定（`approve`・`concerns`・`reject`・`not-assessed`）。レビューのページで、判定を書いた物だけ（0.8.0 から）。
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub verdict: Option<String>,
+    /// 見た物・見てほしい物（置き場のページの path か https の URL）。書いた順。無ければ欄が無い（0.8.0 から）。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub targets: Vec<String>,
     /// 送り手。置いた時に付随する id を書いていなければ無い（0.6.0 から）。
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sender: Option<SenderRecord>,
@@ -134,6 +143,23 @@ pub fn is_timestamp(s: &str) -> bool {
 /// 置き場の中のページの path（`/<project>/<key>/<kind>-<n>.html`）の形か。
 pub fn is_page_path(path: &str) -> bool {
     parse_page_path(path).is_some()
+}
+
+/// 待ちの相手の名（`on` の値）。`pm` は Product Manager で、記録の `waits_on` には出ない。
+pub const WAITS_ON: [&str; 3] = ["pm", "review", "tpm"];
+/// レビューの判定の名（`verdict` の値）。
+pub const VERDICTS: [&str; 4] = ["approve", "concerns", "reject", "not-assessed"];
+/// 見た物（`targets`）の字の数の上限。
+pub const MAX_TARGET: usize = 2048;
+
+/// 見た物として受ける字か: この置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、
+/// `https://` で始まり、空白と制御の字を含まない、[`MAX_TARGET`] 字までの URL。
+pub fn is_target(target: &str) -> bool {
+    is_page_path(target)
+        || (target.chars().count() <= MAX_TARGET
+            && target.len() > "https://".len()
+            && target.starts_with("https://")
+            && !target.chars().any(|c| c.is_whitespace() || c.is_control()))
 }
 
 /// ページの path（`/<project>/<key>/<kind>-<n>.html`）を、project・Key・種類・番号に分ける。

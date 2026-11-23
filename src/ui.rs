@@ -4,12 +4,12 @@
 
 use crate::api::{is_segment, page_path};
 use crate::castlist::Castlist;
-use crate::db::{Count, FileFilter, Filter, PageMeta, Reply};
+use crate::db::{Count, FileFilter, Filter, PageMeta, Reply, ReviewOf, WaitsOn};
 use crate::{AppState, MAX_FILE, internal, pages};
 use askama::Template;
 use axum::extract::{Path, Query, State};
 use axum::response::{Html, IntoResponse, Response};
-use pagetray_api::{FILE_TYPES, SenderRecord};
+use pagetray_api::{FILE_TYPES, SenderRecord, VERDICTS, parse_page_path};
 use serde::Deserialize;
 
 /// 1 度に出す件数。続きは「続きを出す」の link で出す。
@@ -25,6 +25,10 @@ pub struct View {
     q: Option<String>,
     /// 返事の状態（`waiting`・`answered`）。
     reply: Option<String>,
+    /// 返事の状態の、待ちの相手（`review`・`tpm`。Product Manager は書かない）。
+    on: Option<String>,
+    /// レビューの判定。
+    verdict: Option<String>,
     /// 送り手（castlist のアクターの id）。
     actor: Option<String>,
     sort: Option<String>,
@@ -49,6 +53,8 @@ impl View {
             ("workspace", &self.workspace),
             ("q", &self.q),
             ("reply", &self.reply),
+            ("on", &self.on),
+            ("verdict", &self.verdict),
             ("actor", &self.actor),
             ("sort", &self.sort),
             ("at", &self.at),
@@ -102,9 +108,33 @@ struct Row {
     time: String,
     /// 返事の状態の名（`waiting`・`answered`）。返事を求めていないページは空。
     reply: &'static str,
-    /// 返事の印の字（返事待ち・答えた）。
+    /// 待ちの相手（`review`・`tpm`）。Product Manager と、返事を求めていないページは空。
+    on: &'static str,
+    /// 返事の印の字（返事待ち・答えた・レビュー待ち・レビュー済み・上げた・決まった）。
     reply_label: &'static str,
+    /// レビューの判定の名と字。判定の無いページは空。
+    verdict: &'static str,
+    verdict_label: &'static str,
+    /// 見た物（レビューのページ）・見る物（ほかのページ）の見出しと link。
+    targets_label: &'static str,
+    targets: Vec<LinkView>,
+    /// このページを見たレビュー（古い順）。
+    reviews: Vec<ReviewView>,
     sender: Option<SenderView>,
+}
+
+/// 行の下に出す link 1 つ。置き場のページなら一覧の中の本文の枠に、ほかの URL なら別の tab で開く。
+struct LinkView {
+    href: String,
+    label: String,
+    external: bool,
+}
+
+/// 見られたページの行に出す、そのページを見たレビュー 1 つ。
+struct ReviewView {
+    link: LinkView,
+    verdict: &'static str,
+    verdict_label: &'static str,
 }
 
 /// 行に出す送り手: castlist の名（castlist のアクターの画面への link）と、その下に小さく付随する id。
@@ -129,11 +159,61 @@ fn sender_view(castlist: Option<&Castlist>, sender: Option<SenderRecord>) -> Opt
     })
 }
 
-/// 返事の状態の、画面に出す字。
-fn reply_label(reply: Reply) -> &'static str {
-    match reply {
-        Reply::Waiting => "返事待ち",
-        Reply::Answered => "答えた",
+/// 返事の状態の、画面に出す字（待ちの相手ごと）。
+fn reply_label(reply: Reply, on: WaitsOn) -> &'static str {
+    match (reply, on) {
+        (Reply::Waiting, WaitsOn::Pm) => "返事待ち",
+        (Reply::Answered, WaitsOn::Pm) => "答えた",
+        (Reply::Waiting, WaitsOn::Review) => "レビュー待ち",
+        (Reply::Answered, WaitsOn::Review) => "レビュー済み",
+        (Reply::Waiting, WaitsOn::Tpm) => "上げた",
+        (Reply::Answered, WaitsOn::Tpm) => "決まった",
+    }
+}
+
+/// レビューの判定の名（DB の字を 'static にする）と、画面に出す字。知らない字なら空。
+fn verdict_view(verdict: Option<&str>) -> (&'static str, &'static str) {
+    let name = VERDICTS
+        .into_iter()
+        .find(|v| Some(*v) == verdict)
+        .unwrap_or("");
+    let label = match name {
+        "approve" => "よい",
+        "concerns" => "気になる所あり",
+        "reject" => "直すべき",
+        "not-assessed" => "見られなかった",
+        _ => "",
+    };
+    (name, label)
+}
+
+/// 見た物の link。置き場のページは、行と同じく一覧の中の本文の枠で開く（並びの続きの境も保つ）。
+/// 字は、同じ Key なら `<kind>-<n>`、同じ project なら `<Key>/<kind>-<n>`。PR の URL（`…/<repo>/pull/<番号>`）は
+/// `<repo>#<番号>`（別の repo の同じ番号の PR を見分けるため）。ほかの URL はそのまま。
+fn link_view(view: &View, project: &str, key: &str, target: &str) -> LinkView {
+    if let Some((p, k, kind, n)) = parse_page_path(target) {
+        let mut next = view.clone();
+        next.open = Some(target.to_owned());
+        let label = match (p == project, k == key) {
+            (true, true) => format!("{kind}-{n}"),
+            (true, false) => format!("{k}/{kind}-{n}"),
+            _ => format!("{p}/{k}/{kind}-{n}"),
+        };
+        return LinkView {
+            href: next.href(),
+            label,
+            external: false,
+        };
+    }
+    let pr = target.split_once("/pull/").and_then(|(head, rest)| {
+        let repo = head.rsplit('/').next().filter(|r| !r.is_empty())?;
+        let n = rest.split(['/', '?', '#']).next()?;
+        (!n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())).then(|| format!("{repo}#{n}"))
+    });
+    LinkView {
+        href: target.to_owned(),
+        label: pr.unwrap_or_else(|| target.to_owned()),
+        external: true,
     }
 }
 
@@ -165,6 +245,15 @@ struct KeyView {
     max: usize,
 }
 
+/// 操作の帯の、待ちの数の釦 1 つ（押すと、その待ちだけに絞る）。数が 0 なら隠す。id は template に書く。
+struct Counter {
+    label: &'static str,
+    title: &'static str,
+    count: i64,
+    href: String,
+    active: bool,
+}
+
 #[derive(Template)]
 #[template(path = "index.html")]
 struct Index {
@@ -175,12 +264,13 @@ struct Index {
     reload_href: String,
     reset_href: String,
     filtered: bool,
-    /// 返事待ちのページの数（絞り込みに関わらず、置き場の全部）。0 なら、操作の帯に出さない。
+    /// Product Manager の返事待ちのページの数（絞り込みに関わらず、置き場の全部）。tab の題に出す。
     waiting: i64,
-    /// 返事待ちだけに絞った一覧の URL。
-    waiting_href: String,
-    /// 今、返事待ちだけに絞っているか。
-    waiting_active: bool,
+    /// 操作の帯の、待ちの数の釦（`#waiting` 返事待ち・`#review-waiting` レビュー待ち・`#escalated` 上げた）。
+    /// 数は、絞り込みに関わらず置き場の全部。
+    pm_counter: Counter,
+    review_counter: Counter,
+    tpm_counter: Counter,
     /// 絞り込みの列に出す物。
     filters: Vec<FilterGroup>,
     /// 一覧の列に出す行。
@@ -233,12 +323,23 @@ async fn render(state: AppState, mut view: View) -> Response {
         &mut view.role,
         &mut view.q,
         &mut view.reply,
+        &mut view.on,
+        &mut view.verdict,
         &mut view.actor,
     ] {
         *field = field.take().filter(|v| !v.trim().is_empty());
     }
     let reply = view.reply.as_deref().and_then(Reply::parse);
     view.reply = reply.map(|r| r.name().to_owned());
+    // 待ちの相手は、返事の状態と組の時だけ。Product Manager は書かない（前からの URL と同じ形）。
+    let on = view
+        .on
+        .as_deref()
+        .and_then(WaitsOn::parse)
+        .filter(|_| reply.is_some())
+        .unwrap_or_default();
+    view.on = (on != WaitsOn::Pm).then(|| on.name().to_owned());
+    view.verdict = view.verdict.filter(|v| VERDICTS.contains(&v.as_str()));
     view.sort = view.sort.filter(|s| s == "created_at");
     view.open = view.open.filter(|path| pages::is_page_path(path));
 
@@ -255,6 +356,8 @@ async fn render(state: AppState, mut view: View) -> Response {
         workspace: view.workspace.clone(),
         q: view.q.clone(),
         reply,
+        on,
+        verdict: view.verdict.clone(),
         actor: view.actor.clone(),
         before,
         after,
@@ -266,6 +369,14 @@ async fn render(state: AppState, mut view: View) -> Response {
         state.db.facets(),
         key_view(&state, &view)
     ) {
+        Ok(found) => found,
+        Err(e) => return internal(e),
+    };
+    let paths: Vec<String> = pages
+        .iter()
+        .map(|m| page_path(&m.project, &m.key, &m.kind, m.n))
+        .collect();
+    let reviews = match state.db.reviews_of(&paths).await {
         Ok(found) => found,
         Err(e) => return internal(e),
     };
@@ -297,27 +408,50 @@ async fn render(state: AppState, mut view: View) -> Response {
                 })
                 .collect(),
         };
-    // 返事の候補は、値（waiting・answered）でなく、画面の字で出す。件数が 0 の候補は出さない。
+    // 返事の候補は、値（waiting・answered と待ちの相手）でなく、画面の字で出す。件数が 0 の候補は出さない。
     let replies = FilterGroup {
         title: "返事",
         choices: [
-            (Reply::Waiting, facets.waiting),
-            (Reply::Answered, facets.answered),
+            (Reply::Waiting, WaitsOn::Pm, facets.waiting),
+            (Reply::Answered, WaitsOn::Pm, facets.answered),
+            (Reply::Waiting, WaitsOn::Review, facets.review_waiting),
+            (Reply::Waiting, WaitsOn::Tpm, facets.escalated),
         ]
         .into_iter()
-        .filter(|(_, count)| *count > 0)
-        .map(|(state, count)| {
-            let active = reply == Some(state);
-            let next = (!active).then(|| state.name().to_owned());
+        .filter(|(_, _, count)| *count > 0)
+        .map(|(state, party, count)| {
+            let active = reply == Some(state) && on == party;
             Choice {
-                label: reply_label(state).to_owned(),
+                label: reply_label(state, party).to_owned(),
                 note: String::new(),
                 count,
-                href: view.with(|v| v.reply = next),
+                href: view.with(|v| {
+                    v.reply = (!active).then(|| state.name().to_owned());
+                    v.on = (!active && party != WaitsOn::Pm).then(|| party.name().to_owned());
+                }),
                 active,
             }
         })
         .collect(),
+    };
+    // 判定の候補も、画面の字で出す。
+    let verdicts = FilterGroup {
+        title: "判定",
+        choices: facets
+            .verdicts
+            .into_iter()
+            .map(|c| {
+                let active = view.verdict.as_deref() == Some(c.value.as_str());
+                let next = (!active).then(|| c.value.clone());
+                Choice {
+                    label: verdict_view(Some(&c.value)).1.to_owned(),
+                    note: String::new(),
+                    count: c.count,
+                    href: view.with(|v| v.verdict = next),
+                    active,
+                }
+            })
+            .collect(),
     };
     // 送り手の候補は、値（castlist のアクターの id）でなく、castlist の名で出す。
     let senders = FilterGroup {
@@ -338,11 +472,40 @@ async fn render(state: AppState, mut view: View) -> Response {
             })
             .collect(),
     };
-    let waiting_only = View {
-        reply: Some(Reply::Waiting.name().to_owned()),
-        sort: view.sort.clone(),
-        ..View::default()
+    // 操作の帯の釦は、ほかの絞り込みを外して、その待ちだけに絞る（並びは保つ）。
+    let counter = |label, title, party: WaitsOn, count| {
+        let only = View {
+            reply: Some(Reply::Waiting.name().to_owned()),
+            on: (party != WaitsOn::Pm).then(|| party.name().to_owned()),
+            sort: view.sort.clone(),
+            ..View::default()
+        };
+        Counter {
+            label,
+            title,
+            count,
+            href: only.href(),
+            active: reply == Some(Reply::Waiting) && on == party,
+        }
     };
+    let pm_counter = counter(
+        "返事待ち",
+        "Product Manager の返事を待っているページだけに絞る",
+        WaitsOn::Pm,
+        facets.waiting,
+    );
+    let review_counter = counter(
+        "レビュー待ち",
+        "レビューの判定を待っている依頼書だけに絞る",
+        WaitsOn::Review,
+        facets.review_waiting,
+    );
+    let tpm_counter = counter(
+        "上げた",
+        "判定を受けずに TPM 担当へ上げ、まだ決まっていないレビューだけに絞る",
+        WaitsOn::Tpm,
+        facets.escalated,
+    );
     let page = Index {
         q: view.q.clone().unwrap_or_default(),
         hidden: [
@@ -352,6 +515,8 @@ async fn render(state: AppState, mut view: View) -> Response {
             ("role", &view.role),
             ("workspace", &view.workspace),
             ("reply", &view.reply),
+            ("on", &view.on),
+            ("verdict", &view.verdict),
             ("actor", &view.actor),
             ("sort", &view.sort),
         ]
@@ -378,15 +543,18 @@ async fn render(state: AppState, mut view: View) -> Response {
             &view.workspace,
             &view.q,
             &view.reply,
+            &view.verdict,
             &view.actor,
         ]
         .iter()
         .any(|v| v.is_some()),
         waiting: facets.waiting,
-        waiting_href: waiting_only.href(),
-        waiting_active: reply == Some(Reply::Waiting),
+        pm_counter,
+        review_counter,
+        tpm_counter,
         filters: vec![
             replies,
+            verdicts,
             senders,
             group("担当者（役割）", facets.roles, |v| &mut v.role),
             group("workspace", facets.workspaces, |v| &mut v.workspace),
@@ -396,7 +564,7 @@ async fn render(state: AppState, mut view: View) -> Response {
         ],
         rows: pages
             .into_iter()
-            .map(|meta| row(&view, state.castlist.as_ref(), meta))
+            .map(|meta| row(&view, state.castlist.as_ref(), &reviews, meta))
             .collect(),
         more_href,
         viewer: view.open.clone(),
@@ -408,7 +576,7 @@ async fn render(state: AppState, mut view: View) -> Response {
     }
 }
 
-fn row(view: &View, castlist: Option<&Castlist>, meta: PageMeta) -> Row {
+fn row(view: &View, castlist: Option<&Castlist>, reviews: &[ReviewOf], meta: PageMeta) -> Row {
     let path = page_path(&meta.project, &meta.key, &meta.kind, meta.n);
     let mut next = view.clone();
     next.open = Some(path.clone());
@@ -417,9 +585,38 @@ fn row(view: &View, castlist: Option<&Castlist>, meta: PageMeta) -> Row {
         (Some(_), None) => Some(Reply::Waiting),
         (None, None) => None,
     };
+    let party = WaitsOn::of(meta.waits_on.as_deref());
+    let (verdict, verdict_label) = verdict_view(meta.verdict.as_deref());
+    let targets = meta
+        .targets
+        .iter()
+        .map(|t| link_view(view, &meta.project, &meta.key, t))
+        .collect();
+    let reviews = reviews
+        .iter()
+        .filter(|r| r.target == path)
+        .map(|r| {
+            let (verdict, verdict_label) = verdict_view(r.verdict.as_deref());
+            ReviewView {
+                link: link_view(
+                    view,
+                    &meta.project,
+                    &meta.key,
+                    &page_path(&r.project, &r.key, "review", r.n),
+                ),
+                verdict,
+                verdict_label,
+            }
+        })
+        .collect();
     Row {
         href: next.href(),
         active: view.open.as_deref() == Some(path.as_str()),
+        targets_label: if meta.kind == "review" {
+            "見た物"
+        } else {
+            "見る物"
+        },
         path,
         key: meta.key,
         name: format!("{}-{}", meta.kind, meta.n),
@@ -429,7 +626,16 @@ fn row(view: &View, castlist: Option<&Castlist>, meta: PageMeta) -> Row {
         time: short_time(&meta.created_at),
         created_at: meta.created_at,
         reply: state.map_or("", Reply::name),
-        reply_label: state.map_or("", reply_label),
+        on: if state.is_some() && party != WaitsOn::Pm {
+            party.name()
+        } else {
+            ""
+        },
+        reply_label: state.map_or("", |s| reply_label(s, party)),
+        verdict,
+        verdict_label,
+        targets,
+        reviews,
         sender: sender_view(castlist, meta.sender),
     }
 }

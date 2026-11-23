@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-23T06:44:39+09:00\n"
+"POT-Creation-Date: 2026-11-23T09:20:52+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -1314,10 +1314,11 @@ msgstr "`pagetray page reply <page>`"
 
 #: src/cli.md
 msgid ""
-"ページの返事の状態を書く。`--waiting` で返事待ちに、`--answered` で答えたに"
+"ページの返事の状態を書く。`--waiting` で返事待ちに、`--answered` で答えたに。"
+"`--on` で待ちの相手を名指す"
 msgstr ""
 "Writes the reply state of a page: `--waiting` marks it as waiting for a "
-"reply, `--answered` as answered"
+"reply, `--answered` as answered. `--on` names the waiting party"
 
 #: src/cli.md
 msgid "`pagetray page watch`"
@@ -1422,13 +1423,18 @@ msgstr "Finding (`page list`)"
 msgid ""
 "絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本"
 "文の字）・`--reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物"
-"だけ）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。"
+"だけ）・`--on`（`--reply` で絞る時の待ちの相手。`pm`＝既定・`review`・`tpm`。"
+"0.8.0 から）・`--verdict`（レビューの判定。`approve`・`concerns`・`reject`・"
+"`not-assessed`。0.8.0 から）・`--before`・`--after`。`--oldest` で古い順、`-"
+"L` で件数（既定 50）。"
 msgstr ""
 "Filter flags: `--project`, `--key`, `--kind`, `--role`, `--workspace`, `-q` "
 "(text in the title and body), `--reply` (the reply state: `waiting` for "
-"pages waiting for a reply only, `answered` for answered pages only), `--"
-"before`, `--after`. `--oldest` sorts oldest first; `-L` sets the number of "
-"results (default 50)."
+"pages waiting for a reply only, `answered` for answered pages only), `--on` "
+"(the waiting party when filtering with `--reply`: `pm` = default, `review`, "
+"`tpm`; since 0.8.0), `--verdict` (the review verdict: `approve`, `concerns`, "
+"`reject`, `not-assessed`; since 0.8.0), `--before`, `--after`. `--oldest` "
+"sorts oldest first; `-L` sets the number of results (default 50)."
 
 #: src/cli.md
 msgid ""
@@ -1445,16 +1451,19 @@ msgstr ""
 msgid ""
 "端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。欄は、"
 "置いた時刻・（project）・Key・種類と番号・役割・返事の状態（`waiting`・"
-"`answered`。返事を求めていないページは `-`。0.5.0 から）・URL・題の順。`--"
-"json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のよ"
-"うに欄を名指すと、その欄だけを出す。"
+"`answered`。返事を求めていないページは `-`。0.5.0 から。Product Manager のほ"
+"かを待つ物は `waiting:review` のように相手を添える。0.8.0 から）・URL・題の"
+"順。`--json` は、API の「ページの記録」に `url` を足した配列。`--"
+"json=key,url` のように欄を名指すと、その欄だけを出す。"
 msgstr ""
 "On a terminal the output is a table with a header; in a pipe it is tab-"
 "separated (without a header). The columns are, in order: the time it was "
 "put, (project), Key, kind and number, role, reply state (`waiting` or "
-"`answered`; `-` for a page that asks for no reply; since 0.5.0), URL, title. "
-"`--json` prints an array of the API's \"Page record\" with `url` added. "
-"Naming fields, as in `--json=key,url`, prints only those fields."
+"`answered`; `-` for a page that asks for no reply; since 0.5.0; for a page "
+"waiting on someone other than the Product Manager, the party is added, as in "
+"`waiting:review`; since 0.8.0), URL, title. `--json` prints an array of the "
+"API's \"Page record\" with `url` added. Naming fields, as in `--"
+"json=key,url`, prints only those fields."
 
 #: src/cli.md
 msgid "置く（`page put`）"
@@ -1508,19 +1517,44 @@ msgstr ""
 
 #: src/cli.md
 msgid ""
-"無いページ・消したページは code 1。0.5.0 より前の置き場には書けない（code 1 "
-"で、版が古いと出す）。"
+"`--on review|tpm` で、待ちの相手（レビューの席・TPM 担当）を名指す（0.8.0 か"
+"ら。書かなければ Product Manager）。答えたにする時は、その相手を待っている"
+"ページだけが替わり、違えば何も替えずに code 1。"
 msgstr ""
-"A missing or deleted page exits with code 1. A store before 0.5.0 cannot "
-"hold the state (code 1, saying the store is too old)."
+"`--on review|tpm` names the waiting party (the review seat or the TPM role; "
+"since 0.8.0; the Product Manager if left out). When marking as answered, "
+"only a page waiting on that party changes; otherwise nothing changes and it "
+"exits with code 1."
 
 #: src/cli.md
 msgid ""
-"roster の `tpm` を使う project では、`tpm ask pm` と `tpm answer` がこの状態"
-"を書く。手で直す時だけ使う。"
+"無いページ・消したページは code 1。0.5.0 より前の置き場には書けない（code 1 "
+"で、版が古いと出す）。0.8.0 より前の置き場は `--on` を読まずに捨て、Product "
+"Manager の返事待ちにしてしまうので、`--on` は 0.8.0 からの置き場にだけ使う。"
 msgstr ""
-"In a project that uses roster's `tpm`, `tpm ask pm` and `tpm answer` write "
-"this state. Use this command only to fix it by hand."
+"A missing or deleted page exits with code 1. A store before 0.5.0 cannot "
+"hold the state (code 1, saying the store is too old). A store before 0.8.0 "
+"ignores `--on` and marks the page as waiting for the Product Manager "
+"instead, so use `--on` only with a store from 0.8.0 on."
+
+#: src/cli.md
+msgid ""
+"roster の `tpm` を使う project では、`tpm ask pm`・`tpm answer`・`tpm ask "
+"review`・`tpm report review`・`tpm ask tpm --review` がこの状態を書く。手で直"
+"す時だけ使う。"
+msgstr ""
+"In a project that uses roster's `tpm`, `tpm ask pm`, `tpm answer`, `tpm ask "
+"review`, `tpm report review`, and `tpm ask tpm --review` write this state. "
+"Use this command only to fix it by hand."
+
+#: src/cli.md
+msgid ""
+"判定と見た物（[API の仕様](api.md) の `POST /api/pages/review`）を書く命令は"
+"無い（書くのは roster の命令だけ）。"
+msgstr ""
+"There is no command that writes the verdict and targets (`POST /api/pages/"
+"review` in the [API specification](api.md)); only roster's commands write "
+"them."
 
 #: src/cli.md
 msgid "消す（`page delete`）"
@@ -2300,6 +2334,51 @@ msgstr "`answered_at`"
 msgid "答えた時刻。返事待ちの間は出ない"
 msgstr "When it was answered. Absent while the page is waiting for a reply"
 
+#: src/api.md src/db.md
+msgid "`waits_on`"
+msgstr "`waits_on`"
+
+#: src/api.md
+msgid ""
+"誰の返事を待つか（`review`・`tpm`）。Product Manager を待つページには出ない"
+"（0.8.0 から）"
+msgstr ""
+"Whose reply the page is waiting for (`review` or `tpm`). Absent on pages "
+"waiting for the Product Manager (since 0.8.0)"
+
+#: src/api.md
+msgid ""
+"レビューの印を書いたページ（下の `POST /api/pages/review`）の記録には、次の欄"
+"も出る（0.8.0 から。書いていないページには出ない）。"
+msgstr ""
+"The record of a page whose review marks have been written (`POST /api/pages/"
+"review` below) also carries the following fields (since 0.8.0; they are "
+"absent on pages where they have not been written)."
+
+#: src/api.md src/db.md src/glossary.md
+msgid "`verdict`"
+msgstr "`verdict`"
+
+#: src/api.md
+msgid ""
+"レビューの判定（`approve`・`concerns`・`reject`・`not-assessed`）。`kind` が "
+"`review` のページだけ"
+msgstr ""
+"The review verdict (`approve`, `concerns`, `reject`, `not-assessed`). Only "
+"on pages whose `kind` is `review`"
+
+#: src/api.md
+msgid "`targets`"
+msgstr "`targets`"
+
+#: src/api.md
+msgid ""
+"見た物・見てほしい物の配列（書いた順）。置き場のページの path か、`https://` "
+"の URL"
+msgstr ""
+"An array of what was reviewed or is to be reviewed (in the order written): a "
+"path of a page in the store, or an `https://` URL"
+
 #: src/api.md
 msgid ""
 "送り手を記録したページ（下の「送り手」）の記録には、`sender` の欄も出る"
@@ -2749,8 +2828,10 @@ msgid ""
 "け）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・"
 "`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・"
 "`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返"
-"事待ち、`answered` は答えた物だけ。0.5.0 から）、`actor`（castlist のアクター"
-"の id。その送り手が置いた物だけ。未確認の送り手は当たらない。0.6.0 から）。"
+"事待ち、`answered` は答えた物だけ。0.5.0 から）、`on`（`reply` で絞る時の待ち"
+"の相手。`pm`＝既定・`review`・`tpm`。0.8.0 から）、`verdict`（レビューの判"
+"定。0.8.0 から）、`actor`（castlist のアクターの id。その送り手が置いた物だ"
+"け。未確認の送り手は当たらない。0.6.0 から）。"
 msgstr ""
 "Parameters (all optional): `project`, `key`, `kind`, `role`, `workspace` "
 "(exact match only), `q` (searches the text of the title and body), `sort` (`-"
@@ -2758,6 +2839,8 @@ msgstr ""
 "(default 100; clamped to 1–1000), `before`, `after` (`created_at` earlier or "
 "later than the given value), `reply` (the reply state: `waiting` for pages "
 "waiting for a reply only, `answered` for answered pages only; since 0.5.0), "
+"`on` (the waiting party when filtering with `reply`: `pm` = default, "
+"`review`, `tpm`; since 0.8.0), `verdict` (the review verdict; since 0.8.0), "
 "`actor` (a castlist actor id: only what that sender put; unconfirmed senders "
 "never match; since 0.6.0)."
 
@@ -2767,10 +2850,21 @@ msgstr ""
 "`200`: `{\"pages\":[<page record>, …]}`. An empty array if nothing matches."
 
 #: src/api.md
-msgid "`400`: `sort` がどちらでもない・`reply` がどちらでもない。"
+msgid ""
+"`400`: `sort` がどちらでもない・`reply` がどちらでもない・`on` か `verdict` "
+"が決まった名でない・`reply` の無い `on`。"
 msgstr ""
-"`400`: `sort` is neither of the two values, or `reply` is neither of the two "
-"values."
+"`400`: `sort` is neither of the two values, `reply` is neither of the two "
+"values, `on` or `verdict` is not one of the defined names, or `on` is given "
+"without `reply`."
+
+#: src/api.md
+msgid ""
+"`on` を書かない `reply` は、今までどおり Product Manager の返事だけを見る（レ"
+"ビューの待ちと上げた件は入らない）。"
+msgstr ""
+"`reply` without `on` looks only at replies from the Product Manager, as "
+"before (reviews awaited and escalated items are not included)."
 
 #: src/api.md
 msgid "`POST /api/pages/reply` — 返事の状態を書く"
@@ -2789,43 +2883,72 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指"
-"す）、`state`（`waiting` 返事待ち・`answered` 答えた）。本文は読まない。"
+"引数（query）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）、`state`"
+"（`waiting` 返事待ち・`answered` 答えた）は要る。`on`（待ちの相手。`pm` "
+"Product Manager＝既定・`review` レビューの席・`tpm` TPM 担当。0.8.0 から）は"
+"任意。本文は読まない。"
 msgstr ""
-"Parameters (query; all required): `project`, `key`, `kind`, `n` (naming one "
-"page), `state` (`waiting` or `answered`). The body is not read."
+"Parameters (query): `project`, `key`, `kind`, `n` (naming one page), and "
+"`state` (`waiting` or `answered`) are required. `on` (the waiting party: "
+"`pm` the Product Manager = default, `review` the review seat, `tpm` the TPM "
+"role; since 0.8.0) is optional. The body is not read."
 
 #: src/api.md
 msgid ""
-"`waiting`: 返事待ちにする。もう返事待ちなら何も変えない。答えた後にもう 1 度"
-"書くと、`asked_at` が今になり、`answered_at` が消える。"
+"`waiting`: `on` の相手の返事待ちにする。もう同じ相手の返事待ちなら何も変えな"
+"い。今ほかの相手の返事待ちなら、何も変えずに `409`（待ちを黙って移さない）。"
+"答えた後にもう 1 度書くと、`asked_at` が今になり、`answered_at` が消える（相"
+"手も替えてよい）。"
 msgstr ""
-"`waiting`: marks the page as waiting for a reply. Changes nothing if it is "
-"already waiting. Written again after an answer, `asked_at` becomes the "
-"current time and `answered_at` is cleared."
+"`waiting`: marks the page as waiting for a reply from the `on` party. "
+"Changes nothing if it is already waiting for the same party. If it is "
+"waiting for another party, changes nothing and returns `409` (a wait is "
+"never moved silently). Written again after an answer, `asked_at` becomes "
+"the current time and `answered_at` is cleared (the party may change too)."
 
 #: src/api.md
 msgid ""
-"`answered`: 答えたにする。もう答えていれば何も変えない。返事待ちにしていない"
-"ページなら、`asked_at` にも同じ時刻が入る。"
+"`answered`: 答えたにする。もう答えていれば何も変えない。`on` の相手と、その"
+"ページの待ちの相手が違えば、何も変えずに `409`。"
 msgstr ""
 "`answered`: marks the page as answered. Changes nothing if it is already "
-"answered. On a page that was never marked as waiting, `asked_at` gets the "
-"same time."
+"answered. If the `on` party differs from the waiting party of the page, "
+"nothing changes and the response is `409`."
 
 #: src/api.md
 msgid ""
-"`200`: そのページの記録（`asked_at`・`answered_at` が付く）。同じ状態を 2 度"
-"書いても同じ答え。"
+"`on` が `pm`（書かない時）: 返事待ちにしていないページも答えたにでき、"
+"`asked_at` にも同じ時刻が入る（0.5.0 からの形）。"
 msgstr ""
-"`200`: the record of that page (with `asked_at` and `answered_at`). Writing "
-"the same state twice gives the same response."
+"With `on` set to `pm` (or left out): a page that was never marked as waiting "
+"can also be marked as answered, and `asked_at` gets the same time (the "
+"behavior since 0.5.0)."
 
 #: src/api.md
-msgid "`404`: そのページは無い（消した物も）。`400`: 引数が決まりに合わない。"
+msgid ""
+"`on` が `review`・`tpm`: その相手の返事待ちにしたページだけ。返事待ちにしてい"
+"ないページは `409`（Product Manager の「答えた」に入れないため）。"
 msgstr ""
-"`404`: there is no such page (deleted pages included). `400`: a parameter "
-"violates the rules."
+"With `on` set to `review` or `tpm`: only a page marked as waiting for that "
+"party. A page never marked as waiting gets `409` (so that it is not counted "
+"as \"Answered\" for the Product Manager)."
+
+#: src/api.md
+msgid ""
+"`200`: そのページの記録（`asked_at`・`answered_at` と、Product Manager のほか"
+"を待つ物は `waits_on` が付く）。同じ状態を 2 度書いても同じ答え。"
+msgstr ""
+"`200`: the record of that page (with `asked_at` and `answered_at`, plus "
+"`waits_on` on a page waiting on someone other than the Product Manager). "
+"Writing the same state twice gives the same response."
+
+#: src/api.md
+msgid ""
+"`404`: そのページは無い（消した物も）。`409`: 待ちの相手が違う（何も変えてい"
+"ない）。`400`: 引数が決まりに合わない。"
+msgstr ""
+"`404`: there is no such page (deleted pages included). `409`: the waiting "
+"party differs (nothing changed). `400`: a parameter violates the rules."
 
 #: src/api.md
 msgid ""
@@ -2842,6 +2965,87 @@ msgid ""
 msgstr ""
 "Servers before 0.5.0 do not have this endpoint (they return `404` or `405`). "
 "A caller treats that as a store that cannot hold the state."
+
+#: src/api.md
+msgid ""
+"0.8.0 より前のサーバーは、知らない `on` を読まずに捨て、Product Manager の返"
+"事待ちにしてしまう。`on` を書く呼ぶ側は、先に `GET /api/version` で 0.8.0 以"
+"上かを見る。"
+msgstr ""
+"Servers before 0.8.0 ignore an unknown `on` and mark the page as waiting for "
+"the Product Manager instead. A caller that writes `on` first checks with "
+"`GET /api/version` that the server is 0.8.0 or later."
+
+#: src/api.md
+msgid "`POST /api/pages/review` — レビューの印を書く"
+msgstr "`POST /api/pages/review` — write the review marks"
+
+#: src/api.md
+msgid ""
+"レビューのページに判定と見た物を、レビューの依頼書に見てほしい物を書く"
+"（0.8.0 から）。roster の `tpm ask review`・`tpm report review` が書く。一覧"
+"の UI は、判定の印・見た物の link・見られたページの「レビュー:」を出す。"
+msgstr ""
+"Writes the verdict and targets on a review page, and the items to review on "
+"a review brief (since 0.8.0). Written by roster's `tpm ask review` and `tpm "
+"report review`. The list UI shows the verdict mark, the target links, and "
+"\"Review:\" on the pages that were reviewed."
+
+#: src/api.md
+msgid ""
+"引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指"
+"す）。"
+msgstr ""
+"Parameters (query; all required): `project`, `key`, `kind`, `n` (naming one "
+"page)."
+
+#: src/api.md
+msgid ""
+"本文（JSON。無くてもよい）: `{\"verdict\": \"<判定>\", \"targets\": [\"<見た"
+"物>\", …]}`。どちらの欄も任意で、ほかの欄は受けない。"
+msgstr ""
+"Body (JSON; may be absent): `{\"verdict\": \"<verdict>\", \"targets\": "
+"[\"<target>\", …]}`. Both fields are optional, and no other fields are "
+"accepted."
+
+#: src/api.md
+msgid ""
+"`verdict`: `approve`・`concerns`・`reject`・`not-assessed` のどれか。`kind` "
+"が `review` のページだけに書ける。書けば替わり、書かなければ前の物のまま。"
+msgstr ""
+"`verdict`: one of `approve`, `concerns`, `reject`, `not-assessed`. Can be "
+"written only on a page whose `kind` is `review`. When written, it replaces "
+"the old one; when left out, the previous one stays."
+
+#: src/api.md
+msgid ""
+"`targets`: 置き場のページの path（`/<project>/<key>/<kind>-<n>.html`。"
+"`http://…` の URL のままは受けない）か、`https://` で始まる URL（2048 字ま"
+"で。空白と制御の字は駄目）。足すだけで、同じ物は 1 つ。ページ 1 枚に 100 個ま"
+"で（足すと超える要求は、判定も含めて何も変えずに `400`）。外す道は無い。ペー"
+"ジを消すと一緒に消える。"
+msgstr ""
+"`targets`: each either a path of a page in the store (`/<project>/<key>/"
+"<kind>-<n>.html`; the `http://…` URL of it is not accepted as is) or a URL "
+"starting with `https://` (up to 2048 characters; no whitespace or control "
+"characters). They are only ever added, and duplicates are kept once. A page "
+"holds up to 100 (a request that would exceed this changes nothing, the "
+"verdict included, and returns `400`). There is no way to remove them. They "
+"are deleted together with the page."
+
+#: src/api.md
+msgid "`200`: そのページの記録（`verdict`・`targets` が付く）。"
+msgstr "`200`: the record of that page (with `verdict` and `targets`)."
+
+#: src/api.md
+msgid "`404`: そのページは無い。`400`: 引数・本文が決まりに合わない。"
+msgstr ""
+"`404`: there is no such page. `400`: a parameter or the body violates the "
+"rules."
+
+#: src/api.md
+msgid "0.8.0 より前のサーバーには、このエンドポイントが無い（`405` が返る）。"
+msgstr "Servers before 0.8.0 do not have this endpoint (they return `405`)."
 
 #: src/api.md
 msgid "`DELETE /api/pages` — 消す"
@@ -3095,12 +3299,14 @@ msgstr ""
 msgid ""
 "置かれるたび・返事の状態が書かれるたびに 1 件を push（SSE）。ページは名の無"
 "い event でページの記録、file は `event: file` で file の記録、返事の状態は "
-"`event: reply` でページの記録（0.5.0 から）"
+"`event: reply` でページの記録（0.5.0 から）、レビューの印は `event: review` "
+"でページの記録（0.8.0 から）"
 msgstr ""
 "Pushes one event each time something is put or a reply state is written "
 "(SSE): an unnamed event with the page record for a page, `event: file` with "
 "the file record for a file, `event: reply` with the page record for a reply "
-"state (since 0.5.0)"
+"state (since 0.5.0), and `event: review` with the page record for review "
+"marks (since 0.8.0)"
 
 #: src/api.md src/glossary.md
 msgid "一覧の UI"
@@ -3963,6 +4169,19 @@ msgstr ""
 
 #: src/development.md
 msgid ""
+"**レビューの印を見る試験**（`e2e/tests/review.spec.ts`）: 返事の状態を見る試"
+"験と同じく、レビュー待ち・上げたにしたページは、試験の終わりまでに答えたにす"
+"る。絞り込みの列の見出し「判定」は、判定を書いたページが 1 枚でもあると出るの"
+"で、この file も `list.spec.ts` より後に流れる名にしてある。"
+msgstr ""
+"**Tests of the review marks** (`e2e/tests/review.spec.ts`): as in the tests "
+"of the reply state, a page marked as awaiting review or escalated must be "
+"marked as answered by the end of its test. The filter-column heading for the "
+"verdict appears as soon as one page has a verdict written, so this file too "
+"is named to run after `list.spec.ts`."
+
+#: src/development.md
+msgid ""
 "**送り手を見る試験**（`e2e/tests/list.spec.ts` の終わり）: 試験の置き場は、次"
 "の port の偽の castlist に送り手を聞き、一覧の UI の link の頭"
 "（`PAGETRAY_CASTLIST_LINK_URL`）は、聞く先と別の値（`helpers.ts` の "
@@ -3984,14 +4203,16 @@ msgstr ""
 msgid ""
 "**template を変えた時**: `templates/index.html` を変えたら、この試験も流す。"
 "試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・"
-"`files`・`upload`、`#fresh`・`#waiting`、`li[data-path]`・`.reply`、絞り込み"
-"の列の見出しの字など）を変える時は、同じ PR で `helpers.ts` も直す。"
+"`files`・`upload`、`#fresh`・`#waiting`・`#review-waiting`・`#escalated`、"
+"`li[data-path]`・`.reply`・`.verdict`・`.links`、絞り込みの列の見出しの字な"
+"ど）を変える時は、同じ PR で `helpers.ts` も直す。"
 msgstr ""
 "**When you change the template**: After changing `templates/index.html`, run "
 "these tests too. When you change something the tests select by (the region "
-"ids `toolbar`, `filters`, `list`, `viewer`, `files`, and `upload`, `#fresh` "
-"and `#waiting`, `li[data-path]` and `.reply`, the heading text of the "
-"filters, and so on), fix `helpers.ts` in the same PR."
+"ids `toolbar`, `filters`, `list`, `viewer`, `files`, and `upload`, `#fresh`, "
+"`#waiting`, `#review-waiting`, and `#escalated`, `li[data-path]`, `.reply`, "
+"`.verdict`, and `.links`, the heading text of the filters, and so on), fix "
+"`helpers.ts` in the same PR."
 
 #: src/development.md
 msgid ""
@@ -4317,6 +4538,7 @@ msgid ""
 "\"\n"
 "  senders |o--o{ pages : \"pages.sender_id = id\"\n"
 "  senders |o--o{ files : \"files.sender_id = id\"\n"
+"  pages ||--o{ page_targets : \"page_targets.page_id = id\"\n"
 "```"
 msgstr ""
 "```mermaid\n"
@@ -4328,19 +4550,24 @@ msgstr ""
 "extension\"\n"
 "  senders |o--o{ pages : \"pages.sender_id = id\"\n"
 "  senders |o--o{ files : \"files.sender_id = id\"\n"
+"  pages ||--o{ page_targets : \"page_targets.page_id = id\"\n"
 "```"
 
 #: src/db.md
 msgid ""
-"**外部キーは 2 つだけ**（0.6.0 から）: `pages.sender_id` と "
-"`files.sender_id` が `senders.id` を指す（`on delete restrict on update "
-"restrict`）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結び"
-"は `src/db.rs` の SQL が守る。"
+"**外部キーは 3 つだけ**: `pages.sender_id` と `files.sender_id` が "
+"`senders.id` を指す（`on delete restrict on update restrict`。0.6.0 から）。"
+"`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update "
+"restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうし"
+"は、同じ値（project・Key など）で結ぶだけで、結びは `src/db.rs` の SQL が守"
+"る。"
 msgstr ""
-"**There are only two foreign keys** (since 0.6.0): `pages.sender_id` and "
+"**There are only three foreign keys**: `pages.sender_id` and "
 "`files.sender_id` reference `senders.id` (`on delete restrict on update "
-"restrict`). Other tables relate only by sharing values (project, Key, and so "
-"on), and the SQL in `src/db.rs` keeps them consistent."
+"restrict`; since 0.6.0). `page_targets.page_id` references `pages.id` (`on "
+"delete cascade on update restrict`: deleting a page deletes its target rows "
+"too; since 0.8.0). Other tables relate only by sharing values (project, Key, "
+"and so on), and the SQL in `src/db.rs` keeps them consistent."
 
 #: src/db.md
 msgid ""
@@ -4405,11 +4632,13 @@ msgstr "`pages` — pages"
 #: src/db.md
 msgid ""
 "置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。置いた後に書"
-"き換わるのは、返事の状態の 2 つの列（`asked_at`・`answered_at`）だけ。"
+"き換わるのは、返事の状態の 3 つの列（`asked_at`・`answered_at`・`waits_on`）"
+"と、レビューの判定（`verdict`）だけ。"
 msgstr ""
 "One row per stored page. Putting it again makes a different row with a "
-"different number. After a page is put, only the two reply-state columns "
-"(`asked_at`, `answered_at`) are ever rewritten."
+"different number. After a page is put, only the three reply-state columns "
+"(`asked_at`, `answered_at`, `waits_on`) and the review verdict (`verdict`) "
+"are ever rewritten."
 
 #: src/db.md
 msgid "列"
@@ -4538,6 +4767,22 @@ msgstr ""
 "pages put before 0.6.0"
 
 #: src/db.md
+msgid ""
+"誰の返事を待つか（`review`・`tpm`）。空は Product Manager（0.8.0 から。前から"
+"あるページは空）"
+msgstr ""
+"Whose reply the page is waiting for (`review` or `tpm`). Null means the "
+"Product Manager (since 0.8.0; null on pages that existed before)"
+
+#: src/db.md
+msgid ""
+"レビューの判定（`approve`・`concerns`・`reject`・`not-assessed`）。書いていな"
+"ければ空（0.8.0 から）"
+msgstr ""
+"The review verdict (`approve`, `concerns`, `reject`, `not-assessed`). Null "
+"if not written (since 0.8.0)"
+
+#: src/db.md
 msgid "主キー: `(id)`"
 msgstr "Primary key: `(id)`"
 
@@ -4567,22 +4812,32 @@ msgstr ""
 
 #: src/db.md
 msgid ""
-"書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）。読む所: `Db::body`・"
-"`Db::list`・`Db::facets`。消す所: `Db::remove`。"
+"書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）・`Db::set_review`（判定"
+"だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。"
 msgstr ""
-"Written by `Db::put` and `Db::set_reply` (the reply state only). Read by "
-"`Db::body`, `Db::list`, `Db::facets`. Deleted by `Db::remove`."
+"Written by `Db::put`, `Db::set_reply` (the reply state only), and "
+"`Db::set_review` (the verdict only). Read by `Db::body`, `Db::list`, "
+"`Db::facets`. Deleted by `Db::remove`."
 
 #: src/db.md
 msgid ""
 "**返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないペー"
 "ジ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば"
-"答えた。0.5.0 より前に置かれたページは、どちらも空。"
+"答えた。0.5.0 より前に置かれたページは、どちらも空。誰の返事かは `waits_on` "
+"で読み、「返事待ち」「答えた」の数と絞り込み（`on` の無い `reply`）は、"
+"`waits_on` が空（Product Manager）の行だけを見る。"
 msgstr ""
 "**Reply state**: with both `asked_at` and `answered_at` null, no reply was "
 "asked for. With `asked_at` set and `answered_at` null, the page is waiting "
 "for a reply. With `answered_at` set, it has been answered. Pages put before "
-"0.5.0 have both null."
+"0.5.0 have both null. Whose reply it is comes from `waits_on`; the counts "
+"and filters for \"Waiting for reply\" and \"Answered\" (`reply` without "
+"`on`) look only at rows whose `waits_on` is null (the Product Manager)."
+
+#: src/db.md
+msgid "`waits_on`・`verdict` は、SQL の `check` で上の名だけを受ける。"
+msgstr ""
+"`waits_on` and `verdict` accept only the names above, through an SQL `check`."
 
 #: src/db.md
 msgid "`pages_fts` — 全文の索引"
@@ -4929,6 +5184,70 @@ msgid "`actor_id` に外部キーは無い（アクターは castlist の DB に
 msgstr "`actor_id` has no foreign key (actors live in castlist's DB)."
 
 #: src/db.md
+msgid "`page_targets` — 見た物"
+msgstr "`page_targets` — targets"
+
+#: src/db.md
+msgid ""
+"ページが見た物（レビューのページ）・見てほしい物（レビューの依頼書）1 つが 1 "
+"行（0.8.0 から）。依頼書 1 枚が頼みをいくつも持つので、1 枚に何行でもある。"
+msgstr ""
+"One row per target of a page: something a review page looked at, or "
+"something a review brief asks to be looked at (since 0.8.0). One brief can "
+"carry several requests, so a page can have any number of rows."
+
+#: src/db.md
+msgid "`page_id`"
+msgstr "`page_id`"
+
+#: src/db.md
+msgid "見たページ（`pages.id`）"
+msgstr "The page that has the target (`pages.id`)"
+
+#: src/db.md
+msgid "`target`"
+msgstr "`target`"
+
+#: src/db.md
+msgid ""
+"見た物: この置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、"
+"`https://` の URL（PR など）"
+msgstr ""
+"The target: a path of a page in this store (`/<project>/<key>/<kind>-"
+"<n>.html`) or an `https://` URL (such as a PR)"
+
+#: src/db.md
+msgid "主キー: `(page_id, target)`"
+msgstr "Primary key: `(page_id, target)`"
+
+#: src/db.md
+msgid "索引: `page_targets_target` `(target)`"
+msgstr "Index: `page_targets_target` `(target)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::set_review`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録"
+"の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのペー"
+"ジを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、"
+"外部キーの `on delete cascade` で一緒に消える。"
+msgstr ""
+"Written by `Db::set_review` (only added; duplicates are kept once). Read by "
+"`Db::list` (the `targets` of the record, in the order added) and "
+"`Db::reviews_of` (from the side of the reviewed page, finds the reviews that "
+"looked at it: \"Review:\" in the list UI). Deleted together with the page, "
+"through the foreign key's `on delete cascade`."
+
+#: src/db.md
+msgid ""
+"見られたページを消しても、その path を見た物に持つ行は残る（一覧の UI の「見"
+"た物:」の link は、消したページの `410` を開く）。消すのは TPM 担当だけで数も"
+"少ないので、そのままにしている。"
+msgstr ""
+"Deleting a reviewed page leaves the rows that hold its path as a target (the "
+"list UI's \"Reviewed:\" link then opens the deleted page's `410`). Only the "
+"TPM deletes pages and rarely, so this is left as is."
+
+#: src/db.md
 msgid "ほかの表"
 msgstr "Other tables"
 
@@ -5090,13 +5409,93 @@ msgstr "`asked_at`, `answered_at`"
 
 #: src/glossary.md
 msgid ""
-"Product Manager の返事が要るページに、呼ぶ側が書く状態。返事待ち（`waiting`。"
-"求めて、まだ答えていない）か、答えた（`answered`）。書いていないページは、返"
-"事を求めていない"
+"返事が要るページに、呼ぶ側が書く状態。返事待ち（`waiting`。求めて、まだ答えて"
+"いない）か、答えた（`answered`）。書いていないページは、返事を求めていない"
 msgstr ""
-"The state a caller writes on a page that needs a reply from the Product "
-"Manager: waiting (`waiting`: asked, not answered yet) or answered "
-"(`answered`). A page where it has not been written asks for no reply"
+"The state a caller writes on a page that needs a reply: waiting (`waiting`: "
+"asked, not answered yet) or answered (`answered`). A page where it has not "
+"been written asks for no reply"
+
+#: src/glossary.md
+msgid "待ちの相手（waiting party）"
+msgstr "waiting party"
+
+#: src/glossary.md
+msgid "`waits_on`・`on`"
+msgstr "`waits_on`, `on`"
+
+#: src/glossary.md
+msgid ""
+"返事の状態が、誰の返事を待つか。Product Manager（`pm`。DB では空）・レビュー"
+"の席（`review`）・TPM 担当（`tpm`）。「返事待ち」「答えた」と言う時は、"
+"Product Manager の物"
+msgstr ""
+"Whose reply a reply state waits for: the Product Manager (`pm`; null in the "
+"DB), the review seat (`review`), or the TPM role (`tpm`). \"Waiting for "
+"reply\" and \"Answered\" on their own refer to the Product Manager"
+
+#: src/glossary.md
+msgid "レビューの判定（verdict）"
+msgstr "verdict"
+
+#: src/glossary.md
+msgid ""
+"レビューのページに、呼ぶ側が書く判定。よい（`approve`）・気になる所あり"
+"（`concerns`）・直すべき（`reject`）・見られなかった（`not-assessed`）"
+msgstr ""
+"The verdict a caller writes on a review page: good (`approve`), has concerns "
+"(`concerns`), should be fixed (`reject`), or could not be assessed (`not-"
+"assessed`)"
+
+#: src/glossary.md
+msgid "見た物（target）"
+msgstr "target"
+
+#: src/glossary.md
+msgid "`page_targets`・`targets`"
+msgstr "`page_targets`, `targets`"
+
+#: src/glossary.md
+msgid ""
+"レビューのページが見た物・レビューの依頼書が見てほしい物。置き場のページの "
+"path か、`https://` の URL（PR など）。1 枚にいくつでも"
+msgstr ""
+"What a review page looked at, or what a review brief asks to be looked at: a "
+"path of a page in the store, or an `https://` URL (such as a PR). Any number "
+"per page"
+
+#: src/glossary.md
+msgid "レビュー待ち（awaiting review）"
+msgstr "awaiting review"
+
+#: src/glossary.md
+msgid "`on=review`"
+msgstr "`on=review`"
+
+#: src/glossary.md
+msgid ""
+"レビューの席の判定を待っている状態。レビューの依頼書に付き、判定が返ると「レ"
+"ビュー済み」になる"
+msgstr ""
+"The state of waiting for the verdict of the review seat. It is set on a "
+"review brief, and becomes \"Reviewed\" when the verdict comes back"
+
+#: src/glossary.md
+msgid "上げた（escalated）"
+msgstr "escalated"
+
+#: src/glossary.md
+msgid "`on=tpm`"
+msgstr "`on=tpm`"
+
+#: src/glossary.md
+msgid ""
+"レビューの判定を受けずに、課題の担当が TPM 担当へ上げ、まだ決まっていない状"
+"態。レビューのページに付き、決まると「決まった」になる"
+msgstr ""
+"The state where the role in charge of the issue did not accept the review "
+"verdict and escalated it to the TPM role, and it is not decided yet. It is "
+"set on a review page, and becomes \"Decided\" once decided"
 
 #: src/glossary.md
 msgid "project"
@@ -5420,10 +5819,12 @@ msgstr "`#toolbar`"
 
 #: src/glossary.md
 msgid ""
-"画面のいちばん上の横の帯。題・探す欄・並び・返事待ちの数・新着の印がある"
+"画面のいちばん上の横の帯。題・探す欄・並び・返事待ちの数・レビュー待ちの数・"
+"上げた数・新着の印がある"
 msgstr ""
 "The horizontal bar at the very top of the screen. It holds the title, the "
-"search field, the sort order, the waiting count, and the new-arrival mark"
+"search field, the sort order, the waiting count, the review-waiting count, "
+"the escalated count, and the new-arrival mark"
 
 #: src/glossary.md
 msgid "ヘッダー"
@@ -5439,11 +5840,12 @@ msgstr "`#filters`"
 
 #: src/glossary.md
 msgid ""
-"返事・送り手・役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補"
-"を押すと、一覧の列が絞られる"
+"返事・判定・送り手・役割・workspace・種類・Key・project の候補と件数が並ぶ"
+"列。候補を押すと、一覧の列が絞られる"
 msgstr ""
-"The column listing the choices and counts for reply state, sender, role, "
-"workspace, kind, Key, and project. Pressing a choice narrows the list column"
+"The column listing the choices and counts for reply state, verdict, sender, "
+"role, workspace, kind, Key, and project. Pressing a choice narrows the list "
+"column"
 
 #: src/glossary.md
 msgid "サイドメニュー"
@@ -5591,12 +5993,16 @@ msgstr "`.rows`"
 
 #: src/glossary.md
 msgid ""
-"一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・返事の印・題・役割・"
-"workspace。送り手を記録したページには、送り手の castlist の名と付随する id）"
+"一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・判定の印・返事の印・"
+"題・役割・workspace。見た物を書いたページには見た物の link、レビューで見られ"
+"たページにはそのレビューの link。送り手を記録したページには、送り手の "
+"castlist の名と付随する id）"
 msgstr ""
-"One page's worth of the list column (time, Key, kind and number, reply mark, "
-"title, role, workspace; on pages where a sender was recorded, also the "
-"sender's castlist name and attached id)"
+"One page's worth of the list column (time, Key, kind and number, verdict "
+"mark, reply mark, title, role, workspace; on pages where targets were "
+"written, also the target links, and on pages that a review looked at, links "
+"to those reviews; on pages where a sender was recorded, also the sender's "
+"castlist name and attached id)"
 
 #: src/glossary.md
 msgid "並び（sort order）"
@@ -5660,6 +6066,40 @@ msgstr ""
 "filters. The tab title shows the same count"
 
 #: src/glossary.md
+msgid "レビュー待ちの数（review-waiting count）"
+msgstr "Review-waiting count"
+
+#: src/glossary.md
+msgid "`#review-waiting`"
+msgstr "`#review-waiting`"
+
+#: src/glossary.md
+msgid ""
+"操作の帯に出る「レビュー待ち N 件」。レビュー待ちの依頼書が置き場に 1 枚でも"
+"あると出て、押すとそれだけに絞る。数は、絞り込みに関わらず置き場の全部"
+msgstr ""
+"The \"Awaiting review: N\" count shown in the toolbar. It appears when at "
+"least one brief in the store is awaiting review, and pressing it narrows the "
+"list to those briefs. The count covers the whole store regardless of filters"
+
+#: src/glossary.md
+msgid "上げた数（escalated count）"
+msgstr "Escalated count"
+
+#: src/glossary.md
+msgid "`#escalated`"
+msgstr "`#escalated`"
+
+#: src/glossary.md
+msgid ""
+"操作の帯に出る「上げた N 件」。上げて、まだ決まっていないレビューが 1 つでも"
+"あると出て、押すとそれだけに絞る"
+msgstr ""
+"The \"Escalated: N\" count shown in the toolbar. It appears when at least "
+"one review has been escalated and not decided yet, and pressing it narrows "
+"the list to those reviews"
+
+#: src/glossary.md
 msgid "返事の印（reply mark）"
 msgstr "Reply mark"
 
@@ -5669,11 +6109,49 @@ msgstr "`.reply`"
 
 #: src/glossary.md
 msgid ""
-"返事の状態を書いたページの行に付く印。「返事待ち」か「答えた」。状態が書かれ"
+"返事の状態を書いたページの行に付く印。待ちの相手ごとに「返事待ち」「答え"
+"た」・「レビュー待ち」「レビュー済み」・「上げた」「決まった」。状態が書かれ"
 "ると、押さずに替わる"
 msgstr ""
-"The mark on the row of a page whose reply state has been written: waiting or "
-"answered. It changes without a click when the state is written"
+"The mark on the row of a page whose reply state has been written. Depending "
+"on the waiting party, it reads \"Waiting for reply\" or \"Answered\", "
+"\"Awaiting review\" or \"Reviewed\", or \"Escalated\" or \"Decided\". It "
+"changes without a click when the state is written"
+
+#: src/glossary.md
+msgid "判定の印（verdict mark）"
+msgstr "Verdict mark"
+
+#: src/glossary.md
+msgid "`.verdict`"
+msgstr "`.verdict`"
+
+#: src/glossary.md
+msgid ""
+"判定を書いたレビューのページの行と、見られたページの行の「レビュー:」に付く"
+"印。「よい」「気になる所あり」「直すべき」「見られなかった」を、字と色で出す"
+msgstr ""
+"The mark on the row of a review page with a verdict, and on \"Review:\" in "
+"the row of a reviewed page. It shows \"Good\", \"Concerns\", \"Fix needed\", "
+"or \"Not assessed\" in text and color"
+
+#: src/glossary.md
+msgid "見た物の link（target links）"
+msgstr "target links"
+
+#: src/glossary.md
+msgid "`.links`"
+msgstr "`.links`"
+
+#: src/glossary.md
+msgid ""
+"行の下に出る link の並び。レビューのページは「見た物:」、依頼書は「見る"
+"物:」、見られたページは「レビュー:」。置き場のページは本文の枠に、PR は別の "
+"tab に開く"
+msgstr ""
+"The row of links shown below a row: \"Reviewed:\" on a review page, \"To "
+"review:\" on a brief, and \"Review:\" on a reviewed page. A page in the "
+"store opens in the viewer, and a PR opens in another tab"
 
 #: src/glossary.md
 msgid "未読の印（unread mark）"

@@ -51,6 +51,15 @@ pub struct PageMeta {
     /// 答えた時刻。まだ答えていなければ無い。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub answered_at: Option<String>,
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub waits_on: Option<String>,
+    /// レビューの判定。判定を書いていなければ無い。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub verdict: Option<String>,
+    /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub targets: Vec<String>,
     /// 送り手。置いた時に付随する id が無ければ無い。
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sender: Option<SenderRecord>,
@@ -69,6 +78,10 @@ struct PageRow {
     size: i64,
     asked_at: Option<String>,
     answered_at: Option<String>,
+    waits_on: Option<String>,
+    verdict: Option<String>,
+    /// 見た物を改行でつないだ物（無ければ空）。
+    targets: Option<String>,
     sender_issuer: Option<String>,
     sender_ref: Option<String>,
     actor_id: Option<String>,
@@ -99,8 +112,34 @@ impl From<PageRow> for PageMeta {
             size: r.size,
             asked_at: r.asked_at,
             answered_at: r.answered_at,
+            waits_on: r.waits_on,
+            verdict: r.verdict,
+            targets: r
+                .targets
+                .map(|t| t.split('\n').map(str::to_owned).collect())
+                .unwrap_or_default(),
         }
     }
+}
+
+/// 取引の中で、ページ 1 枚の記録を読む（送り手と見た物も入れる。update の returning では引けないため）。
+async fn page_by_id(tx: &mut SqliteConnection, id: i64) -> Result<PageMeta, sqlx::Error> {
+    sqlx::query_as!(
+        PageRow,
+        r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
+                  length(p.body) as "size!: i64", p.asked_at, p.answered_at, p.waits_on, p.verdict,
+                  (select group_concat(target, char(10) order by rowid) from page_targets where page_id = p.id)
+                    as "targets?: String",
+                  s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
+                  s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
+                  s.actor_kind as "actor_kind?: String", s.resolved_at as "resolved_at?: String"
+           from pages p left join senders s on s.id = p.sender_id
+           where p.id = ?1"#,
+        id,
+    )
+    .fetch_one(tx)
+    .await
+    .map(PageMeta::from)
 }
 
 /// senders の列から、送り手の記録を組む。付随する id が無ければ（送り手の無い行）無い。
@@ -181,6 +220,63 @@ impl Reply {
     }
 }
 
+/// 誰の返事を待つか。DB では Product Manager を空で持つ（前からあるページと同じ）。
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum WaitsOn {
+    #[default]
+    Pm,
+    Review,
+    Tpm,
+}
+
+impl WaitsOn {
+    /// API の引数（`on`）の名。
+    pub fn name(self) -> &'static str {
+        match self {
+            WaitsOn::Pm => "pm",
+            WaitsOn::Review => "review",
+            WaitsOn::Tpm => "tpm",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "pm" => Some(WaitsOn::Pm),
+            "review" => Some(WaitsOn::Review),
+            "tpm" => Some(WaitsOn::Tpm),
+            _ => None,
+        }
+    }
+
+    /// DB の `waits_on` の値（Product Manager は空）。
+    fn column(self) -> Option<&'static str> {
+        (self != WaitsOn::Pm).then(|| self.name())
+    }
+
+    /// DB の `waits_on` の値から読む。
+    pub fn of(column: Option<&str>) -> Self {
+        column.and_then(Self::parse).unwrap_or_default()
+    }
+}
+
+/// レビューの印を書いた結果。
+pub enum ReviewOutcome {
+    Done(Box<PageMeta>),
+    /// そのページは無い。
+    Missing,
+    /// 足すと、ページ 1 枚の見た物が上限を超える（何も替えていない）。
+    TooMany,
+}
+
+/// 返事の状態を書いた結果。
+pub enum ReplyOutcome {
+    Done(Box<PageMeta>),
+    /// そのページは無い。
+    Missing,
+    /// 答えた相手が、そのページの待ちの相手と違う（何も替えていない）。
+    Conflict,
+}
+
 #[derive(Default)]
 pub struct Filter {
     pub project: Option<String>,
@@ -191,6 +287,10 @@ pub struct Filter {
     pub q: Option<String>,
     /// 返事の状態で絞る。
     pub reply: Option<Reply>,
+    /// 返事の状態で絞る時の、待ちの相手。
+    pub on: WaitsOn,
+    /// レビューの判定で絞る。
+    pub verdict: Option<String>,
     /// 送り手（castlist のアクターの id）で絞る。
     pub actor: Option<String>,
     pub before: Option<String>,
@@ -268,10 +368,27 @@ pub struct Facets {
     pub kinds: Vec<Count>,
     pub keys: Vec<Count>,
     pub projects: Vec<Count>,
-    /// 返事待ちのページの数。
+    /// Product Manager の返事待ちのページの数。
     pub waiting: i64,
-    /// 答えたページの数。
+    /// Product Manager が答えたページの数。
     pub answered: i64,
+    /// レビュー待ちのページ（レビューの依頼書）の数。
+    pub review_waiting: i64,
+    /// TPM 担当に上げて、まだ決まっていないページ（レビューのページ）の数。
+    pub escalated: i64,
+    /// レビューの判定ごとの数。
+    pub verdicts: Vec<Count>,
+}
+
+/// 見られたページから見た、そのページを見たレビュー 1 つ。
+#[derive(Debug)]
+pub struct ReviewOf {
+    /// 見られたページの path。
+    pub target: String,
+    pub project: String,
+    pub key: String,
+    pub n: i64,
+    pub verdict: Option<String>,
 }
 
 #[derive(Debug)]
@@ -393,13 +510,18 @@ impl Db {
             size: page.body.len() as i64,
             asked_at: None,
             answered_at: None,
+            waits_on: None,
+            verdict: None,
+            targets: Vec::new(),
             sender: page.sender.cloned(),
         })
     }
 
-    /// ページ 1 枚の返事の状態を書く。無いページなら None。同じ状態を 2 度書いても、時刻は初めの物を保つ。
-    /// - 返事待ち: 答えた時刻を空にする。答えた後にもう 1 度求めた時は、求めた時刻を今にする。
-    /// - 答えた: 答えた時刻を入れる（求めた時刻が空なら、同じ時刻を入れる）。
+    /// ページ 1 枚の返事の状態を書く。同じ状態を 2 度書いても、時刻は初めの物を保つ。
+    /// - 返事待ち: 待ちの相手を `on` にし、答えた時刻を空にする。答えた後にもう 1 度求めた時は、求めた時刻を今にする。
+    ///   今ほかの相手の返事待ちなら、何も替えない（[`ReplyOutcome::Conflict`]）。
+    /// - 答えた: 答えた時刻を入れる（求めた時刻が空なら、同じ時刻を入れる）。待ちの相手が `on` と違えば何も替えない
+    ///   （[`ReplyOutcome::Conflict`]）。Product Manager のほかの相手は、返事待ちにしたページだけを答えたにできる。
     pub async fn set_reply(
         &self,
         project: &str,
@@ -407,46 +529,128 @@ impl Db {
         kind: &str,
         n: i64,
         reply: Reply,
-    ) -> Result<Option<PageMeta>, sqlx::Error> {
+        on: WaitsOn,
+    ) -> Result<ReplyOutcome, sqlx::Error> {
         let answered = reply == Reply::Answered;
         let mut tx = self.write.begin().await?;
-        let id = sqlx::query_scalar!(
+        let Some(now) = sqlx::query!(
+            r#"select id as "id!: i64", waits_on, asked_at, answered_at from pages
+               where project = ?1 and key = ?2 and kind = ?3 and n = ?4"#,
+            project,
+            key,
+            kind,
+            n,
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(ReplyOutcome::Missing);
+        };
+        let party = WaitsOn::of(now.waits_on.as_deref());
+        let waiting = now.asked_at.is_some() && now.answered_at.is_none();
+        // 答えた: 相手が違う・相手が Product Manager でないのに待ちにしていない。返事待ち: 今ほかの相手を待っている
+        // （待ちを黙って移さない。答えた後の求め直しは、相手を替えてよい）。
+        let conflict = if answered {
+            party != on || (on != WaitsOn::Pm && now.asked_at.is_none())
+        } else {
+            waiting && party != on
+        };
+        if conflict {
+            return Ok(ReplyOutcome::Conflict);
+        }
+        let waits_on = on.column();
+        sqlx::query!(
             r#"update pages
-               set asked_at = case when asked_at is not null and (?5 or answered_at is null)
+               set asked_at = case when asked_at is not null and (?2 or answered_at is null)
                                    then asked_at
                                    else strftime('%Y-%m-%dT%H:%M:%fZ', 'now') end,
-                   answered_at = case when ?5
+                   answered_at = case when ?2
                                       then coalesce(answered_at, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
-                                 end
+                                 end,
+                   waits_on = case when ?2 then waits_on else ?3 end
+               where id = ?1"#,
+            now.id,
+            answered,
+            waits_on,
+        )
+        .execute(&mut *tx)
+        .await?;
+        let meta = page_by_id(&mut tx, now.id).await?;
+        tx.commit().await?;
+        Ok(ReplyOutcome::Done(Box::new(meta)))
+    }
+
+    /// レビューの印を書く: 判定（書けば替える）と見た物（足すだけ。同じ物は 1 つ）。
+    /// 足した後の見た物が `max` を超えるなら、何も替えない（[`ReviewOutcome::TooMany`]）。
+    /// 判定を書けるページの種類と、見た物の形は、呼ぶ側（API）が見る。
+    #[allow(clippy::too_many_arguments)]
+    pub async fn set_review(
+        &self,
+        project: &str,
+        key: &str,
+        kind: &str,
+        n: i64,
+        verdict: Option<&str>,
+        targets: &[String],
+        max: i64,
+    ) -> Result<ReviewOutcome, sqlx::Error> {
+        let mut tx = self.write.begin().await?;
+        let Some(id) = sqlx::query_scalar!(
+            r#"update pages set verdict = coalesce(?5, verdict)
                where project = ?1 and key = ?2 and kind = ?3 and n = ?4
                returning id as "id!: i64""#,
             project,
             key,
             kind,
             n,
-            answered,
+            verdict,
         )
         .fetch_optional(&mut *tx)
-        .await?;
-        let Some(id) = id else {
-            return Ok(None);
+        .await?
+        else {
+            return Ok(ReviewOutcome::Missing);
         };
-        // 返す記録には送り手も入れる（update の returning では senders を引けない）。
-        let row = sqlx::query_as!(
-            PageRow,
-            r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
-                      length(p.body) as "size!: i64", p.asked_at, p.answered_at,
-                      s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
-                      s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
-                      s.actor_kind as "actor_kind?: String", s.resolved_at as "resolved_at?: String"
-               from pages p left join senders s on s.id = p.sender_id
-               where p.id = ?1"#,
-            id,
+        for target in targets {
+            sqlx::query!(
+                "insert into page_targets(page_id, target) values(?1, ?2) on conflict do nothing",
+                id,
+                target,
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+        let count = sqlx::query_scalar!(
+            r#"select count(*) as "n!: i64" from page_targets where page_id = ?1"#,
+            id
         )
         .fetch_one(&mut *tx)
         .await?;
+        if count > max {
+            // 取引を commit せずに落とすと、判定も見た物も替わらない。
+            return Ok(ReviewOutcome::TooMany);
+        }
+        let meta = page_by_id(&mut tx, id).await?;
         tx.commit().await?;
-        Ok(Some(row.into()))
+        Ok(ReviewOutcome::Done(Box::new(meta)))
+    }
+
+    /// 見られたページ（path）ごとに、そのページを見たレビューのページ（kind が review。古い順）。
+    pub async fn reviews_of(&self, paths: &[String]) -> Result<Vec<ReviewOf>, sqlx::Error> {
+        if paths.is_empty() {
+            return Ok(Vec::new());
+        }
+        let paths = serde_json::to_string(paths).unwrap_or_default();
+        sqlx::query_as!(
+            ReviewOf,
+            r#"select t.target as "target!: String", p.project as "project!: String",
+                      p.key as "key!: String", p.n as "n!: i64", p.verdict
+               from page_targets t join pages p on p.id = t.page_id
+               where p.kind = 'review' and t.target in (select value from json_each(?1))
+               order by p.created_at, p.id"#,
+            paths,
+        )
+        .fetch_all(&self.read)
+        .await
     }
 
     pub async fn body(
@@ -536,10 +740,13 @@ impl Db {
     pub async fn list(&self, f: &Filter) -> Result<Vec<PageMeta>, sqlx::Error> {
         let (fts, scan) = search(f.q.as_deref());
         let reply = f.reply.map(Reply::name);
+        let on = f.on.name();
         let rows = sqlx::query_as!(
             PageRow,
             r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
-                      length(p.body) as "size!: i64", p.asked_at, p.answered_at,
+                      length(p.body) as "size!: i64", p.asked_at, p.answered_at, p.waits_on, p.verdict,
+                      (select group_concat(target, char(10) order by rowid) from page_targets where page_id = p.id)
+                        as "targets?: String",
                       s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
                       s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
                       s.actor_kind as "actor_kind?: String", s.resolved_at as "resolved_at?: String"
@@ -555,9 +762,11 @@ impl Db {
                  and (?8 is null or p.created_at < ?8)
                  and (?9 is null or p.created_at > ?9)
                  and (?12 is null
-                      or (?12 = 'waiting' and p.asked_at is not null and p.answered_at is null)
-                      or (?12 = 'answered' and p.answered_at is not null))
+                      or (coalesce(p.waits_on, 'pm') = ?14
+                          and ((?12 = 'waiting' and p.asked_at is not null and p.answered_at is null)
+                               or (?12 = 'answered' and p.answered_at is not null))))
                  and (?13 is null or p.sender_id in (select id from senders where actor_id = ?13))
+                 and (?15 is null or p.verdict = ?15)
                order by case when ?10 then p.created_at end asc,
                         case when ?10 then p.id end asc,
                         p.created_at desc, p.id desc
@@ -575,6 +784,8 @@ impl Db {
             f.limit,
             reply,
             f.actor,
+            on,
+            f.verdict,
         )
         .fetch_all(&self.read)
         .await?;
@@ -841,13 +1052,23 @@ impl Db {
             r#"select project as "value!: String", count(*) as "count!: i64", '' as "note!: String"
                from pages group by project order by 2 desc, 1"#
         );
+        // 返事の数は、待ちの相手ごと（Product Manager の数に、レビューと上げた件を混ぜない）。
         let replies = sqlx::query!(
-            r#"select count(*) filter (where asked_at is not null and answered_at is null)
+            r#"select count(*) filter (where waits_on is null and asked_at is not null and answered_at is null)
                         as "waiting!: i64",
-                      count(answered_at) as "answered!: i64"
+                      count(answered_at) filter (where waits_on is null) as "answered!: i64",
+                      count(*) filter (where waits_on = 'review' and asked_at is not null
+                                         and answered_at is null) as "review_waiting!: i64",
+                      count(*) filter (where waits_on = 'tpm' and asked_at is not null
+                                         and answered_at is null) as "escalated!: i64"
                from pages"#
         );
-        let (senders, roles, workspaces, kinds, keys, projects, replies) = tokio::try_join!(
+        let verdicts = sqlx::query_as!(
+            Count,
+            r#"select verdict as "value!: String", count(*) as "count!: i64", '' as "note!: String"
+               from pages where verdict is not null group by verdict order by 2 desc, 1"#
+        );
+        let (senders, roles, workspaces, kinds, keys, projects, replies, verdicts) = tokio::try_join!(
             senders.fetch_all(db),
             roles.fetch_all(db),
             workspaces.fetch_all(db),
@@ -855,6 +1076,7 @@ impl Db {
             keys.fetch_all(db),
             projects.fetch_all(db),
             replies.fetch_one(db),
+            verdicts.fetch_all(db),
         )?;
         Ok(Facets {
             senders,
@@ -865,6 +1087,9 @@ impl Db {
             projects,
             waiting: replies.waiting,
             answered: replies.answered,
+            review_waiting: replies.review_waiting,
+            escalated: replies.escalated,
+            verdicts,
         })
     }
 

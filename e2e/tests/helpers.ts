@@ -45,6 +45,20 @@ export async function reply(request: APIRequestContext, path: string, state: 'wa
   expect(response.ok(), await response.text()).toBeTruthy();
 }
 
+/** API で、ページ 1 枚の返事の状態を、待ちの相手を名指して書く（0.8.0 から）。 */
+export async function replyOn(request: APIRequestContext, path: string, state: 'waiting' | 'answered', on: 'pm' | 'review' | 'tpm'): Promise<void> {
+  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
+  const response = await request.post(`/api/pages/reply?${new URLSearchParams({ project, key, kind, n, state, on })}`);
+  expect(response.ok(), await response.text()).toBeTruthy();
+}
+
+/** API で、レビューの印（判定・見た物）を書く（0.8.0 から）。 */
+export async function reviewMarks(request: APIRequestContext, path: string, marks: { verdict?: string; targets?: string[] }): Promise<void> {
+  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
+  const response = await request.post(`/api/pages/review?${new URLSearchParams({ project, key, kind, n })}`, { data: marks });
+  expect(response.ok(), await response.text()).toBeTruthy();
+}
+
 /** 偽の castlist の port（試験の置き場の次の port。playwright.config.ts が置き場に渡す）。 */
 export const CASTLIST_PORT = Number(process.env.PAGETRAY_E2E_PORT ?? 18801) + 1;
 
@@ -114,6 +128,13 @@ export const fresh = (page: Page) => page.locator('#fresh');
 export const waiting = (page: Page) => page.locator('#waiting');
 /** 行の、返事の印。 */
 export const replyMark = (page: Page, path: string) => list(page).locator(`li[data-path="${path}"] .reply`);
+/** 操作の帯の、レビュー待ちの数と、上げた数。 */
+export const reviewWaiting = (page: Page) => page.locator('#review-waiting');
+export const escalated = (page: Page) => page.locator('#escalated');
+/** 行の、判定の印（行の上の段の物。見られたページの「レビュー:」の物は入らない）。 */
+export const verdictMark = (page: Page, path: string) => list(page).locator(`li[data-path="${path}"] .top .verdict`);
+/** 行の下の link の並び（`targets` は見た物・見る物、`reviews` はそのページを見たレビュー）。 */
+export const links = (page: Page, path: string, which: 'targets' | 'reviews') => list(page).locator(`li[data-path="${path}"] .links.${which}`);
 
 /**
  * 一覧の列を、頭から y px 下へ送る。幅が広い時は真ん中の列（.middle）が、狭い時は画面全体が送られる。

@@ -1,0 +1,40 @@
+{
+  "db_name": "SQLite",
+  "query": "select verdict as \"value!: String\", count(*) as \"count!: i64\", '' as \"note!: String\"\n               from pages where verdict is not null group by verdict order by 2 desc, 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "value!: String",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "verdict"
+          }
+        }
+      },
+      {
+        "name": "count!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "note!: String",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "8cbdeaee8cb3452c08f240b0eca918cc8755bc6f730a56fde9bfe0d448dc1c12"
+}

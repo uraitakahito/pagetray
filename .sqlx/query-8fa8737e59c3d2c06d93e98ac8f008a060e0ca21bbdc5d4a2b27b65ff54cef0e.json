@@ -1,0 +1,42 @@
+{
+  "db_name": "SQLite",
+  "query": "select count(*) filter (where waits_on is null and asked_at is not null and answered_at is null)\n                        as \"waiting!: i64\",\n                      count(answered_at) filter (where waits_on is null) as \"answered!: i64\",\n                      count(*) filter (where waits_on = 'review' and asked_at is not null\n                                         and answered_at is null) as \"review_waiting!: i64\",\n                      count(*) filter (where waits_on = 'tpm' and asked_at is not null\n                                         and answered_at is null) as \"escalated!: i64\"\n               from pages",
+  "describe": {
+    "columns": [
+      {
+        "name": "waiting!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "answered!: i64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "review_waiting!: i64",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": "Expression"
+      },
+      {
+        "name": "escalated!: i64",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8fa8737e59c3d2c06d93e98ac8f008a060e0ca21bbdc5d4a2b27b65ff54cef0e"
+}

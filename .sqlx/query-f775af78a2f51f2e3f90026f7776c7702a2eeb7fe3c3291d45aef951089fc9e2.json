@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "select t.target as \"target!: String\", p.project as \"project!: String\",\n                      p.key as \"key!: String\", p.n as \"n!: i64\", p.verdict\n               from page_targets t join pages p on p.id = t.page_id\n               where p.kind = 'review' and t.target in (select value from json_each(?1))\n               order by p.created_at, p.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "target!: String",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "page_targets",
+            "name": "target"
+          }
+        }
+      },
+      {
+        "name": "project!: String",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "project"
+          }
+        }
+      },
+      {
+        "name": "key!: String",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "name": "n!: i64",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "n"
+          }
+        }
+      },
+      {
+        "name": "verdict",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "verdict"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "f775af78a2f51f2e3f90026f7776c7702a2eeb7fe3c3291d45aef951089fc9e2"
+}

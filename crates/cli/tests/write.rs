@@ -743,6 +743,72 @@ fn reply_needs_one_state_and_an_existing_page() {
 }
 
 #[test]
+fn reply_names_who_the_page_waits_on_and_list_filters_by_it() {
+    let s = Server::start();
+    s.place(&format!("{SE}&kind=confirm"), &html("確認", "どの案か"));
+    s.place(&format!("{SE}&kind=brief"), &html("依頼書", "見てほしい"));
+    let url = format!("{}/p/AI-22/brief-1.html", s.url);
+    let listed = |args: &[&str]| -> Vec<String> {
+        let ran = s.run(&[&["page", "list", "--project", "p"], args].concat());
+        assert_eq!(ran.code, 0, "{}", ran.stderr);
+        ran.stdout
+            .lines()
+            .map(|line| {
+                let cells: Vec<&str> = line.split('\t').collect();
+                format!("{} {}", cells[2], cells[4])
+            })
+            .collect()
+    };
+    let ran = s.run(&[
+        "page",
+        "reply",
+        "p/AI-22/brief-1",
+        "--waiting",
+        "--on",
+        "review",
+    ]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert_eq!(ran.stdout, format!("waiting:review\t{url}\n"));
+    s.run(&["page", "reply", "p/AI-22/confirm-1", "--waiting"]);
+    // --on が無ければ Product Manager の待ちだけ。
+    assert_eq!(listed(&["--reply", "waiting"]), ["confirm-1 waiting"]);
+    assert_eq!(
+        listed(&["--reply", "waiting", "--on", "review"]),
+        ["brief-1 waiting:review"]
+    );
+    // 待ちの相手が違えば、何も替えずに止まる。
+    let ran = s.run(&["page", "reply", "p/AI-22/brief-1", "--answered"]);
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("待っていない"), "{}", ran.stderr);
+    let ran = s.run(&[
+        "page",
+        "reply",
+        "p/AI-22/brief-1",
+        "--answered",
+        "--on",
+        "review",
+        "--json",
+    ]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let page: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    assert_eq!(page["waits_on"], "review");
+    assert!(page["answered_at"].is_string());
+    assert!(listed(&["--reply", "answered"]).is_empty());
+    // 判定で絞れる（判定を書くのは呼ぶ側の API だけ）。--on は --reply と組で。
+    assert!(listed(&["--verdict", "not-assessed"]).is_empty());
+    let ran = s.run(&["page", "list", "--on", "review"]);
+    assert_eq!(ran.code, 2, "{}", ran.stderr);
+    let ran = s.run(&[
+        "page",
+        "list",
+        "--project",
+        "p",
+        "--json=waits_on,verdict,targets",
+    ]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+}
+
+#[test]
 fn reply_to_a_store_before_0_5_0_says_the_store_is_old() {
     // 0.5.0 より前の置き場は、POST /api/pages/reply に 405 を返す（その道が無い）。
     let url = canned("HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n");

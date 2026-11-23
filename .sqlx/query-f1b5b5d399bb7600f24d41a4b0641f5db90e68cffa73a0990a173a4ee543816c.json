@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "update pages set verdict = coalesce(?5, verdict)\n               where project = ?1 and key = ?2 and kind = ?3 and n = ?4\n               returning id as \"id!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f1b5b5d399bb7600f24d41a4b0641f5db90e68cffa73a0990a173a4ee543816c"
+}
