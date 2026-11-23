@@ -156,7 +156,7 @@ pub const MAX_TARGET: usize = 2048;
 /// `https://` で始まり、空白と制御の字を含まない、[`MAX_TARGET`] 字までの URL。
 pub fn is_target(target: &str) -> bool {
     is_page_path(target)
-        || (target.len() <= MAX_TARGET
+        || (target.chars().count() <= MAX_TARGET
             && target.len() > "https://".len()
             && target.starts_with("https://")
             && !target.chars().any(|c| c.is_whitespace() || c.is_control()))

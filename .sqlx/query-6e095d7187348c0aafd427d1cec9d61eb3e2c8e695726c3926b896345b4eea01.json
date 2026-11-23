@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "select id as \"id!: i64\", waits_on, asked_at from pages\n               where project = ?1 and key = ?2 and kind = ?3 and n = ?4",
+  "query": "select id as \"id!: i64\", waits_on, asked_at, answered_at from pages\n               where project = ?1 and key = ?2 and kind = ?3 and n = ?4",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,17 @@
             "name": "asked_at"
           }
         }
+      },
+      {
+        "name": "answered_at",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "answered_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -43,8 +54,9 @@
     "nullable": [
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "2cfa7eb094d9282b430e923ccf757c3bc1ef8002a86bce1037facd4e034aae4e"
+  "hash": "6e095d7187348c0aafd427d1cec9d61eb3e2c8e695726c3926b896345b4eea01"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,\n                      length(p.body) as \"size!: i64\", p.asked_at, p.answered_at, p.waits_on, p.verdict,\n                      (select group_concat(target, char(10)) from\n                         (select target from page_targets where page_id = p.id order by rowid))\n                        as \"targets?: String\",\n                      s.actor_issuer as \"sender_issuer?: String\", s.actor_ref as \"sender_ref?: String\",\n                      s.actor_id as \"actor_id?: String\", s.actor_name as \"actor_name?: String\",\n                      s.actor_kind as \"actor_kind?: String\", s.resolved_at as \"resolved_at?: String\"\n               from pages p left join senders s on s.id = p.sender_id\n               where (?1 is null or p.project = ?1)\n                 and (?2 is null or p.key = ?2)\n                 and (?3 is null or p.kind = ?3)\n                 and (?4 is null or p.role = ?4)\n                 and (?5 is null or p.workspace = ?5)\n                 and (?6 is null or p.id in (select rowid from pages_fts where pages_fts match ?6))\n                 and (?7 is null or p.id in (select rowid from pages_fts\n                                             where instr(title, ?7) > 0 or instr(text, ?7) > 0))\n                 and (?8 is null or p.created_at < ?8)\n                 and (?9 is null or p.created_at > ?9)\n                 and (?12 is null\n                      or (coalesce(p.waits_on, 'pm') = ?14\n                          and ((?12 = 'waiting' and p.asked_at is not null and p.answered_at is null)\n                               or (?12 = 'answered' and p.answered_at is not null))))\n                 and (?13 is null or p.sender_id in (select id from senders where actor_id = ?13))\n                 and (?15 is null or p.verdict = ?15)\n               order by case when ?10 then p.created_at end asc,\n                        case when ?10 then p.id end asc,\n                        p.created_at desc, p.id desc\n               limit ?11",
+  "query": "select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,\n                  length(p.body) as \"size!: i64\", p.asked_at, p.answered_at, p.waits_on, p.verdict,\n                  (select group_concat(target, char(10) order by rowid) from page_targets where page_id = p.id)\n                    as \"targets?: String\",\n                  s.actor_issuer as \"sender_issuer?: String\", s.actor_ref as \"sender_ref?: String\",\n                  s.actor_id as \"actor_id?: String\", s.actor_name as \"actor_name?: String\",\n                  s.actor_kind as \"actor_kind?: String\", s.resolved_at as \"resolved_at?: String\"\n           from pages p left join senders s on s.id = p.sender_id\n           where p.id = ?1",
   "describe": {
     "columns": [
       {
@@ -215,7 +215,7 @@
       }
     ],
     "parameters": {
-      "Right": 15
+      "Right": 1
     },
     "nullable": [
       false,
@@ -240,5 +240,5 @@
       true
     ]
   },
-  "hash": "02013fecccb7aa2878cbc52688e54d0bdfe02720e35eea6e72c9b99fb7d7537c"
+  "hash": "ceab300137e487cf27a56cf8327bb44e25a85012a81b1ca9deae7949fd4db84a"
 }

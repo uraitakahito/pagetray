@@ -3,7 +3,7 @@
 use crate::castlist::Answer;
 use crate::db::{
     FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Reply, ReplyOutcome,
-    Target, WaitsOn,
+    ReviewOutcome, Target, WaitsOn,
 };
 use crate::events::Note;
 use crate::{AppState, FromUi, UI_ROLE, error, internal, text};
@@ -260,6 +260,12 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
     if p.verdict.as_deref().is_some_and(|v| !VERDICTS.contains(&v)) {
         return error(StatusCode::BAD_REQUEST, VERDICT_RULE);
     }
+    if p.on.is_some() && reply.is_none() {
+        return error(
+            StatusCode::BAD_REQUEST,
+            "on は reply と一緒に書く（返事の状態を、待ちの相手で絞る）",
+        );
+    }
     let filter = Filter {
         project: p.project,
         key: p.key,
@@ -375,7 +381,7 @@ struct ReviewMarks {
     targets: Vec<String>,
 }
 
-/// 1 度に書ける見た物の数。
+/// ページ 1 枚が持てる見た物の数（1 度の要求にも、足した後の数にも掛かる）。
 const MAX_TARGETS: usize = 100;
 
 /// レビューの印を書く（`POST /api/pages/review?project=…&key=…&kind=…&n=…`、本文は
@@ -429,11 +435,12 @@ pub async fn review(
             p.n,
             marks.verdict.as_deref(),
             &marks.targets,
+            MAX_TARGETS as i64,
         )
         .await
     {
-        Ok(Some(meta)) => {
-            let page = Page::from(meta);
+        Ok(ReviewOutcome::Done(meta)) => {
+            let page = Page::from(*meta);
             tracing::info!(
                 "review {} verdict={} targets={}",
                 page.path,
@@ -444,7 +451,11 @@ pub async fn review(
             let _ = state.events.send(Note::Review(value.to_string()));
             Json(value).into_response()
         }
-        Ok(None) => error(StatusCode::NOT_FOUND, "そのページは無い"),
+        Ok(ReviewOutcome::Missing) => error(StatusCode::NOT_FOUND, "そのページは無い"),
+        Ok(ReviewOutcome::TooMany) => error(
+            StatusCode::BAD_REQUEST,
+            "足すと、ページ 1 枚の見た物が 100 個を超える（何も替えていない）",
+        ),
         Err(e) => internal(e),
     }
 }

@@ -128,8 +128,7 @@ async fn page_by_id(tx: &mut SqliteConnection, id: i64) -> Result<PageMeta, sqlx
         PageRow,
         r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
                   length(p.body) as "size!: i64", p.asked_at, p.answered_at, p.waits_on, p.verdict,
-                  (select group_concat(target, char(10)) from
-                     (select target from page_targets where page_id = p.id order by rowid))
+                  (select group_concat(target, char(10) order by rowid) from page_targets where page_id = p.id)
                     as "targets?: String",
                   s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
                   s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",
@@ -258,6 +257,15 @@ impl WaitsOn {
     pub fn of(column: Option<&str>) -> Self {
         column.and_then(Self::parse).unwrap_or_default()
     }
+}
+
+/// レビューの印を書いた結果。
+pub enum ReviewOutcome {
+    Done(Box<PageMeta>),
+    /// そのページは無い。
+    Missing,
+    /// 足すと、ページ 1 枚の見た物が上限を超える（何も替えていない）。
+    TooMany,
 }
 
 /// 返事の状態を書いた結果。
@@ -511,6 +519,7 @@ impl Db {
 
     /// ページ 1 枚の返事の状態を書く。同じ状態を 2 度書いても、時刻は初めの物を保つ。
     /// - 返事待ち: 待ちの相手を `on` にし、答えた時刻を空にする。答えた後にもう 1 度求めた時は、求めた時刻を今にする。
+    ///   今ほかの相手の返事待ちなら、何も替えない（[`ReplyOutcome::Conflict`]）。
     /// - 答えた: 答えた時刻を入れる（求めた時刻が空なら、同じ時刻を入れる）。待ちの相手が `on` と違えば何も替えない
     ///   （[`ReplyOutcome::Conflict`]）。Product Manager のほかの相手は、返事待ちにしたページだけを答えたにできる。
     pub async fn set_reply(
@@ -525,7 +534,7 @@ impl Db {
         let answered = reply == Reply::Answered;
         let mut tx = self.write.begin().await?;
         let Some(now) = sqlx::query!(
-            r#"select id as "id!: i64", waits_on, asked_at from pages
+            r#"select id as "id!: i64", waits_on, asked_at, answered_at from pages
                where project = ?1 and key = ?2 and kind = ?3 and n = ?4"#,
             project,
             key,
@@ -537,10 +546,16 @@ impl Db {
         else {
             return Ok(ReplyOutcome::Missing);
         };
-        if answered
-            && (WaitsOn::of(now.waits_on.as_deref()) != on
-                || (on != WaitsOn::Pm && now.asked_at.is_none()))
-        {
+        let party = WaitsOn::of(now.waits_on.as_deref());
+        let waiting = now.asked_at.is_some() && now.answered_at.is_none();
+        // 答えた: 相手が違う・相手が Product Manager でないのに待ちにしていない。返事待ち: 今ほかの相手を待っている
+        // （待ちを黙って移さない。答えた後の求め直しは、相手を替えてよい）。
+        let conflict = if answered {
+            party != on || (on != WaitsOn::Pm && now.asked_at.is_none())
+        } else {
+            waiting && party != on
+        };
+        if conflict {
             return Ok(ReplyOutcome::Conflict);
         }
         let waits_on = on.column();
@@ -565,8 +580,10 @@ impl Db {
         Ok(ReplyOutcome::Done(Box::new(meta)))
     }
 
-    /// レビューの印を書く: 判定（書けば替える）と見た物（足すだけ。同じ物は 1 つ）。無いページなら None。
+    /// レビューの印を書く: 判定（書けば替える）と見た物（足すだけ。同じ物は 1 つ）。
+    /// 足した後の見た物が `max` を超えるなら、何も替えない（[`ReviewOutcome::TooMany`]）。
     /// 判定を書けるページの種類と、見た物の形は、呼ぶ側（API）が見る。
+    #[allow(clippy::too_many_arguments)]
     pub async fn set_review(
         &self,
         project: &str,
@@ -575,7 +592,8 @@ impl Db {
         n: i64,
         verdict: Option<&str>,
         targets: &[String],
-    ) -> Result<Option<PageMeta>, sqlx::Error> {
+        max: i64,
+    ) -> Result<ReviewOutcome, sqlx::Error> {
         let mut tx = self.write.begin().await?;
         let Some(id) = sqlx::query_scalar!(
             r#"update pages set verdict = coalesce(?5, verdict)
@@ -590,7 +608,7 @@ impl Db {
         .fetch_optional(&mut *tx)
         .await?
         else {
-            return Ok(None);
+            return Ok(ReviewOutcome::Missing);
         };
         for target in targets {
             sqlx::query!(
@@ -601,9 +619,19 @@ impl Db {
             .execute(&mut *tx)
             .await?;
         }
+        let count = sqlx::query_scalar!(
+            r#"select count(*) as "n!: i64" from page_targets where page_id = ?1"#,
+            id
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if count > max {
+            // 取引を commit せずに落とすと、判定も見た物も替わらない。
+            return Ok(ReviewOutcome::TooMany);
+        }
         let meta = page_by_id(&mut tx, id).await?;
         tx.commit().await?;
-        Ok(Some(meta))
+        Ok(ReviewOutcome::Done(Box::new(meta)))
     }
 
     /// 見られたページ（path）ごとに、そのページを見たレビューのページ（kind が review。古い順）。
@@ -717,8 +745,7 @@ impl Db {
             PageRow,
             r#"select p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
                       length(p.body) as "size!: i64", p.asked_at, p.answered_at, p.waits_on, p.verdict,
-                      (select group_concat(target, char(10)) from
-                         (select target from page_targets where page_id = p.id order by rowid))
+                      (select group_concat(target, char(10) order by rowid) from page_targets where page_id = p.id)
                         as "targets?: String",
                       s.actor_issuer as "sender_issuer?: String", s.actor_ref as "sender_ref?: String",
                       s.actor_id as "actor_id?: String", s.actor_name as "actor_name?: String",

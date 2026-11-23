@@ -188,7 +188,8 @@ fn verdict_view(verdict: Option<&str>) -> (&'static str, &'static str) {
 }
 
 /// 見た物の link。置き場のページは、行と同じく一覧の中の本文の枠で開く（並びの続きの境も保つ）。
-/// 字は、同じ Key なら `<kind>-<n>`、同じ project なら `<Key>/<kind>-<n>`。PR の URL は `PR #<番号>`。
+/// 字は、同じ Key なら `<kind>-<n>`、同じ project なら `<Key>/<kind>-<n>`。PR の URL（`…/<repo>/pull/<番号>`）は
+/// `<repo>#<番号>`（別の repo の同じ番号の PR を見分けるため）。ほかの URL はそのまま。
 fn link_view(view: &View, project: &str, key: &str, target: &str) -> LinkView {
     if let Some((p, k, kind, n)) = parse_page_path(target) {
         let mut next = view.clone();
@@ -204,13 +205,14 @@ fn link_view(view: &View, project: &str, key: &str, target: &str) -> LinkView {
             external: false,
         };
     }
-    let pr = target
-        .split_once("/pull/")
-        .map(|(_, rest)| rest.split(['/', '?', '#']).next().unwrap_or(""))
-        .filter(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+    let pr = target.split_once("/pull/").and_then(|(head, rest)| {
+        let repo = head.rsplit('/').next().filter(|r| !r.is_empty())?;
+        let n = rest.split(['/', '?', '#']).next()?;
+        (!n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())).then(|| format!("{repo}#{n}"))
+    });
     LinkView {
         href: target.to_owned(),
-        label: pr.map_or_else(|| target.to_owned(), |n| format!("PR #{n}")),
+        label: pr.unwrap_or_else(|| target.to_owned()),
         external: true,
     }
 }

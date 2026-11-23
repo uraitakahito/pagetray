@@ -39,7 +39,7 @@ test('レビュー: 頼むと依頼書にレビュー待ち、判定が返ると
     await expect(reviewWaiting(page)).toHaveText('レビュー待ち 1 件');
     await expect(waiting(page)).toBeHidden();
     await expect(page).toHaveTitle('ページの置き場');
-    await expect(links(page, brief, 'targets').locator('a')).toHaveText(['plan-1', 'PR #7']);
+    await expect(links(page, brief, 'targets').locator('a')).toHaveText(['plan-1', 'r#7']);
     await expect(links(page, brief, 'targets').locator('a').nth(1)).toHaveAttribute('target', '_blank');
 
     // 判定が返る: レビューの行に判定と見た物、計画の行に「レビュー:」。依頼書はレビュー済み。

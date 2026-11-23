@@ -521,7 +521,7 @@ async fn reviews_show_their_verdict_what_they_reviewed_and_who_waits() {
     assert!(page.contains(r#"<li data-path="/p/K-1/brief-1.html" data-at="2026-11-03T00:00:00Z" data-reply="waiting" data-on="review">"#), "{page}");
     assert!(page.contains(r#"<span class="reply waiting review">レビュー待ち</span>"#));
     // 依頼書の行に、見る物の link（置き場のページは一覧の中で開き、PR は別の tab）。
-    assert!(page.contains(r#"<span class="links targets">見る物: <a href="/?sort=created_at&#38;open=%2Fp%2FK-1%2Fplan-1.html">plan-1</a> <a href="https://github.com/o/r/pull/191" target="_blank" rel="noopener">PR #191</a></span>"#), "{page}");
+    assert!(page.contains(r#"<span class="links targets">見る物: <a href="/?sort=created_at&#38;open=%2Fp%2FK-1%2Fplan-1.html">plan-1</a> <a href="https://github.com/o/r/pull/191" target="_blank" rel="noopener">r#191</a></span>"#), "{page}");
     // 判定がまだ無いので、判定の見出しも、見られた側の「レビュー:」も出ない。
     assert!(!page.contains("<h2>判定</h2>"));
     assert!(!page.contains("links reviews"));

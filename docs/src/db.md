@@ -164,6 +164,7 @@ erDiagram
 - 主キー: `(page_id, target)`
 - 索引: `page_targets_target` `(target)`
 - 書く所: `Db::set_review`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
+- 見られたページを消しても、その path を見た物に持つ行は残る（一覧の UI の「見た物:」の link は、消したページの `410` を開く）。消すのは TPM 担当だけで数も少ないので、そのままにしている。
 
 ## ほかの表
 

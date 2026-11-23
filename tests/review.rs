@@ -131,10 +131,35 @@ async fn answering_for_the_wrong_party_changes_nothing() {
         ["/p/SKILLS-14/confirm-1.html"]
     );
 
-    // 誤った相手の名は 400。
+    // 待ちの側も、今ほかの相手を待っているページは替えない（待ちを黙って移さない）。
+    for query in [
+        format!("{BRIEF}&n=1&state=waiting"),
+        format!("{BRIEF}&n=1&state=waiting&on=tpm"),
+        format!("{CONFIRM}&n=1&state=waiting&on=review"),
+    ] {
+        let (status, _) = reply(&s, &query).await;
+        assert_eq!(status, StatusCode::CONFLICT, "{query}");
+    }
+    assert_eq!(
+        s.paths("reply=waiting&on=review").await,
+        ["/p/SKILLS-14/brief-1.html"]
+    );
+    assert_eq!(
+        s.paths("reply=waiting").await,
+        ["/p/SKILLS-14/confirm-1.html"]
+    );
+    // 答えた後の求め直しは、相手を替えてよい。
+    reply(&s, &format!("{BRIEF}&n=1&state=answered&on=review")).await;
+    let (status, again) = reply(&s, &format!("{BRIEF}&n=1&state=waiting&on=tpm")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(again["waits_on"], "tpm");
+
+    // 誤った相手の名と、reply の無い on は 400。
     let (status, _) = reply(&s, &format!("{BRIEF}&n=1&state=waiting&on=staff")).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     let (status, _, _) = s.get("/api/pages?reply=waiting&on=staff").await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let (status, _, _) = s.get("/api/pages?on=review").await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }
 
@@ -231,6 +256,26 @@ async fn bad_review_marks_are_refused_and_a_missing_page_is_not_found() {
     )
     .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
+    // 字の数は byte でなく字で数える（2048 字の URL は受ける）。
+    let long = format!("https://example.com/{}", "字".repeat(2048 - 20));
+    let (status, page) = review(&s, &format!("{REVIEW}&n=1"), json!({ "targets": [long] })).await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    // ページ 1 枚の見た物は 100 個まで。超える要求は、判定も含めて何も替えない。
+    let many: Vec<String> = (0..99)
+        .map(|i| format!("https://github.com/o/r/pull/{i}"))
+        .collect();
+    let (status, _) = review(&s, &format!("{REVIEW}&n=1"), json!({ "targets": many })).await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, _) = review(
+        &s,
+        &format!("{REVIEW}&n=1"),
+        json!({ "verdict": "reject", "targets": [PR] }),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let listed = s.json("/api/pages?kind=review").await;
+    assert_eq!(listed["pages"][0]["targets"].as_array().unwrap().len(), 100);
+    assert!(listed["pages"][0].get("verdict").is_none());
     let (status, _, _) = s.get("/api/pages?verdict=done").await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(s.paths("verdict=approve").await.is_empty());
