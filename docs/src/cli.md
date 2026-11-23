@@ -52,7 +52,7 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 ### 探す（`page list`）
 
 - 絞る旗: `--project`・`--key`・`--kind`・`--role`・`--workspace`・`-q`（題と本文の字）・`--reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ）・`--on`（`--reply` で絞る時の待ちの相手。`pm`＝既定・`review`・`tpm`。0.8.0 から）・`--verdict`（レビューの判定。`approve`・`concerns`・`reject`・`not-assessed`。0.8.0 から）・`--before`・`--after`。`--oldest` で古い順、`-L` で件数（既定 50）。
-- `--project` が無ければ、どの project のページも出す。`--project .` は、今いる folder の path から project の名を作る（英数字と `._-` のほかを `-` にする。roster の `tpm` と同じ作り方）。
+- `--project` が無ければ、どの project のページも出す。`--project .` は、今いる folder の path から project の名を作る（英数字と `._-` のほかを `-` にする。`roster` と同じ作り方）。
 - 端末には見出しの付いた表、pipe には tab 区切り（見出しは無い）で出す。欄は、置いた時刻・（project）・Key・種類と番号・役割・返事の状態（`waiting`・`answered`。返事を求めていないページは `-`。0.5.0 から。Product Manager のほかを待つ物は `waiting:review` のように相手を添える。0.8.0 から）・URL・題の順。`--json` は、API の「ページの記録」に `url` を足した配列。`--json=key,url` のように欄を名指すと、その欄だけを出す。
 
 ### 置く（`page put`）
@@ -67,16 +67,16 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 - 出すのは、状態と URL の 1 行（tab 区切り）。`--json` で、ページの記録。
 - `--on review|tpm` で、待ちの相手（レビューの席・TPM 担当）を名指す（0.8.0 から。書かなければ Product Manager）。答えたにする時は、その相手を待っているページだけが替わり、違えば何も替えずに code 1。
 - 無いページ・消したページは code 1。0.5.0 より前の置き場には書けない（code 1 で、版が古いと出す）。0.8.0 より前の置き場は `--on` を読まずに捨て、Product Manager の返事待ちにしてしまうので、`--on` は 0.8.0 からの置き場にだけ使う。
-- roster の `tpm` を使う project では、`tpm ask pm`・`tpm answer`・`tpm ask review`・`tpm report review`・`tpm ask tpm --review` がこの状態を書く。手で直す時だけ使う。
+- `roster` を使う project では、`roster ask pm`・`roster answer`・`roster ask review`・`roster report review`・`roster ask tpm --review` がこの状態を書く。手で直す時だけ使う。
 - 判定と見た物（[API の仕様](api.md) の `POST /api/pages/review`）を書く命令は無い（書くのは roster の命令だけ）。
 
 ### 消す（`page delete`）
 
 - 戻せない。まず消すページを一覧で出し、**`--yes` を付けた時だけ**消す。`--yes` が無ければ、何も消さずに終わる（終わりの code は 0）。
 - 消す先は、命令に書いた物だけ: ページの名指し（いくつでも）か、`--project <name> [--key <key> [--kind <kind>]]`。環境変数の project は、消す先にならない。
-- `-` で始まる project の名（`tpm` の project の名）は、URL で書くか、`--` の後ろに書く: `pagetray page delete --yes -- -Users-me-x/AI-22/plan-1`。
+- `-` で始まる project の名（`roster` の project の名）は、URL で書くか、`--` の後ろに書く: `pagetray page delete --yes -- -Users-me-x/AI-22/plan-1`。
 - 消したページの URL は `410` を返し、同じ番号は 2 度使われない。
-- **`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、`page delete`・`file delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う（roster の `tpm` は、担当を起こす時に付ける）。
+- **`PAGETRAY_NO_DELETE`**: この環境変数が付いていると（空と `0` のほか）、`page delete`・`file delete` と `api` の `DELETE` は、何もせずに code 1 で止まる。置き場は、だれが消してよいかを見ない。消してよい人を呼ぶ側が決める時に、これを使う（`roster` は、担当を起こす時に付ける）。
 
 ### file（`file list`・`file view`・`file put`・`file delete`）
 
@@ -123,6 +123,6 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 
 `pagetray` は、置き場のどの答えでも header `Pagetray-Api`（[API の版](api.md#版)）を見る。自分の話せる版と違えば、答えを使わずに code 4 で止まる。`pagetray status` が、サーバーの版と API の版を出す。その時は、`pagetray` か置き場のどちらかを上げて、版を合わせる。
 
-## `tpm page` との関わり
+## `roster page` との関わり
 
-roster の `tpm` を使う project では、担当は `tpm page`（put・path・list・delete）を使う。`tpm page` は、project・Key・役割・控えの folder・消してよい人という `tpm` の決まりを持ち、同じ API を呼ぶ。`pagetray` は、その決まりを持たない道具で、`tpm` を通さない場面（人の手元・`tpm` の project でない folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。
+`roster` を使う project では、担当は `roster page`（put・path・list・delete）を使う。`roster page` は、project・Key・役割・控えの folder・消してよい人という `roster` の決まりを持ち、同じ API を呼ぶ。`pagetray` は、その決まりを持たない道具で、`roster` を通さない場面（人の手元・`roster` の project でない folder）で使う。どちらで置いたページも、同じ置き場に入り、どちらからも探せる。

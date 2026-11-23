@@ -305,7 +305,7 @@ pub struct ReplyParams {
 /// ページ 1 枚の返事の状態を書く（`POST /api/pages/reply?project=…&key=…&kind=…&n=…&state=waiting|answered[&on=pm|review|tpm]`）。
 /// 本文は読まない。答えは、そのページの記録。同じ状態を 2 度書いても同じ答え（時刻は初めの物を保つ）。
 /// 答えたにする時、待ちの相手が `on` と違えば何も替えず 409（Product Manager のほかの相手は、返事待ちにしたページだけ）。
-/// だれが書いてよいかは、呼ぶ側（tpm ask pm・tpm answer・tpm ask review など）が持つ。ここでは人を見分けない。
+/// だれが書いてよいかは、呼ぶ側（roster ask pm・roster answer・roster ask review など）が持つ。ここでは人を見分けない。
 /// browser の中のページからは書けない（`Origin` の付いた要求は guard が断る）。
 pub async fn reply(State(state): State<AppState>, Query(p): Query<ReplyParams>) -> Response {
     let Some(wanted) = Reply::parse(&p.state) else {
@@ -470,7 +470,7 @@ pub struct RemoveParams {
 
 /// 合うページを消す（`DELETE /api/pages?project=…[&key=…][&kind=…[&n=…]]`）。戻せない。
 /// 消した番号は残り、同じ番号は 2 度使わない。消したページの path の一覧を返す（合う物が無ければ空）。
-/// 消してよいのは TPM 担当だけという決まりは、cli（tpm page delete）と guard が持つ。ここでは人を見分けない。
+/// 消してよいのは TPM 担当だけという決まりは、cli（roster page delete）と guard が持つ。ここでは人を見分けない。
 pub async fn remove(State(state): State<AppState>, Query(p): Query<RemoveParams>) -> Response {
     let checks = [
         (

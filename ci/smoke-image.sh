@@ -46,7 +46,7 @@ test "$(code -X DELETE -H "Origin: $url" "$url/api/pages?project=ci")" = 403
 # 一覧の UI の form は通り、引数の役割でなく product-manager で記録される。
 test "$(code -X POST -H "Origin: $url" -H 'Sec-Fetch-Site: same-origin' "${png[@]}" "$put")" = 201
 grep -q '"role":"product-manager","workspace":""' "$tmp/answer.json"
-# Origin の無い要求（CLI・tpm）は、前のまま引数の役割で記録される。
+# Origin の無い要求（CLI・roster）は、前のまま引数の役割で記録される。
 test "$(code -X POST "${png[@]}" "$put")" = 201
 grep -q '"role":"tpm","workspace":"w:1"' "$tmp/answer.json"
 # 断った物は、何も置かず、何も消していない。

@@ -11,7 +11,7 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 | 記録 | 同じ volume の `/data/logs/`（0.7.0 から。合わせて 4 MiB と 64 KiB まで）。下の「落ちた後に調べる」 |
 | 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://127.0.0.1:8802`）は下の「送り手を castlist に聞く」 |
 
-roster の `tpm` を使う Mac では、container と volume に触る命令を `tpm infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
+`roster` を使う Mac では、container と volume に触る命令を `roster infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
 
 ## 送り手を castlist に聞く
 
@@ -70,7 +70,7 @@ container run -d --name pagetray \
 
 ## 一覧の UI から file を上げる
 
-人（Product Manager）が、画面の絵などを担当に渡す道。担当は `tpm file put` で上げる。
+人（Product Manager）が、画面の絵などを担当に渡す道。担当は `roster file put` で上げる。
 
 1. browser で Key の画面（`http://127.0.0.1:8801/<project>/<key>/`。一覧で project と Key の候補を 1 つずつ押してもよい）を開く。一覧の列の下に、file の枠（その Key の file）と上げる枠が出る。
 2. 上げる枠で file を選ぶか、枠に落とす。受けるのは png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json で、1 つ 16 MiB まで（ほかは送る前に断る）。名は、元の名から CLI と同じ作り方で付く（`Screen Shot 1.PNG` → `screen-shot-1.png`）。
@@ -96,7 +96,7 @@ sqlite3 ~/pagetray-<timestamp>.db 'select count(*) from pages'    # 開けて、
 
 ### 上げてはいけない file を上げてしまった時
 
-秘密（token・鍵・個人の情報など）が写った file を上げてしまったら、TPM 担当に URL を送って消してもらう（`tpm file delete <URL> --yes`）。消しても、**消す前に取った写しには残る**。消した後に写しを取り直し、それより前の写し（`~/pagetray-*.db`）を消す。秘密そのもの（token・鍵）は、すぐ替える。
+秘密（token・鍵・個人の情報など）が写った file を上げてしまったら、TPM 担当に URL を送って消してもらう（`roster file delete <URL> --yes`）。消しても、**消す前に取った写しには残る**。消した後に写しを取り直し、それより前の写し（`~/pagetray-*.db`）を消す。秘密そのもの（token・鍵）は、すぐ替える。
 
 ## 写しから戻す
 
@@ -113,7 +113,7 @@ container start pagetray
 
 - 動かす image は空で `cp` も無いので、file を volume に入れる時だけ、shell のある image を借りる（上は `Containerfile` の build の段と同じ物。何でもよい）。
 - 起こしたら「確かめる」をし、`curl -s 'http://127.0.0.1:8801/api/pages?limit=1'` で一番新しいページを見る。
-- 写しが無ければ、空の volume で起こす。roster の `tpm page import` が、控えの folder のページを同じ番号で入れ直す（置いた役割の記録は戻らない）。
+- 写しが無ければ、空の volume で起こす。`roster page import` が、控えの folder のページを同じ番号で入れ直す（置いた役割の記録は戻らない）。
 
 ## 落ちた後に調べる
 

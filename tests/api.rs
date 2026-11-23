@@ -1047,7 +1047,7 @@ async fn only_the_list_ui_may_put_files_from_a_browser() {
 }
 
 /// 一覧の UI から上げた file は、引数に何が書いてあっても、役割 product-manager・workspace 空で記録する。
-/// 番号と時刻も、置き場が決める（browser から取り込みはできない）。`Origin` の無い要求（CLI・tpm）は前のまま。
+/// 番号と時刻も、置き場が決める（browser から取り込みはできない）。`Origin` の無い要求（CLI・roster）は前のまま。
 #[tokio::test]
 async fn files_from_the_list_ui_are_recorded_as_the_product_manager() {
     let s = Server::start().await;

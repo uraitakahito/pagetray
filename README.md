@@ -1,7 +1,7 @@
 # pagetray
 
 ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を付け、絞って探せる一覧の UI を出す。
-この Mac の中（`127.0.0.1`）だけで使う物で、[roster](https://github.com/uraitakahito/roster) の `tpm page` の命令が、ここの API を `curl` で呼ぶ。
+この Mac の中（`127.0.0.1`）だけで使う物で、`roster page` の命令（[roster](https://github.com/uraitakahito/roster)）が、ここの API を `curl` で呼ぶ。
 
 A local-only server that stores HTML pages in SQLite, numbers them, and serves a searchable list UI.
 
