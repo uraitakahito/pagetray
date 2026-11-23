@@ -2117,8 +2117,10 @@ msgstr ""
 "anything)."
 
 #: src/api.md
-msgid "誤りの答えは `{\"error\":\"<人が読む文>\"}`。"
-msgstr "An error response is `{\"error\":\"<human-readable message>\"}`."
+msgid ""
+"誤りの答えは `{\"error\":\"<人が読む文>\"}`。ただし、axum が自分で返す誤りはこの形でない: 引数を読めない（`limit=abc` など）`400` は平文（`text/plain`）、道の無い path の `404` と、道にない method の `405`（`Allow` に受ける method）は本文が空。"
+msgstr ""
+"An error response is `{\"error\":\"<human-readable message>\"}`. The exception is errors that axum returns on its own: a `400` for parameters that cannot be read (such as `limit=abc`) is plain text (`text/plain`), and a `404` for a path with no route and a `405` for a method the route does not take (`Allow` lists the methods it takes) have an empty body."
 
 #: src/api.md
 msgid "字の決まり:"

@@ -28,7 +28,7 @@ pagetray を呼ぶ側（`roster page` など）が頼ってよい形を書く。
 
 - 受けるのは、この Mac の中からの要求だけ。`Host` が `127.0.0.1`・`localhost`（port は何でもよい）でなければ `403`。`GET`・`HEAD` のほかの要求に `Origin` が付いていれば `403`（browser の中のページからは書けない）。
 - その例外は 1 つだけ: 一覧の UI の Key の画面から file を上げる要求。`POST /api/files` で、`Origin` が `http://<要求の Host（port も）>` とそのまま同じで、header `Sec-Fetch-Site` が無いか `same-origin` の時だけ通す。`Origin: null`（本文の枠の中のページ）・ほかの port・ほかの名・`https://`・`Sec-Fetch-Site: cross-site` は `403`。同じ `Origin` でも、ほかの道（`POST /api/pages`・どの `DELETE` も）は `403`（一覧の UI からは、ページを置けず、何も消せない）。
-- 誤りの答えは `{"error":"<人が読む文>"}`。
+- 誤りの答えは `{"error":"<人が読む文>"}`。ただし、axum が自分で返す誤りはこの形でない: 引数を読めない（`limit=abc` など）`400` は平文（`text/plain`）、道の無い path の `404` と、道にない method の `405`（`Allow` に受ける method）は本文が空。
 - 字の決まり:
 
 | 引数 | 決まり |
