@@ -172,7 +172,7 @@ pub struct WatchArgs {
 #[derive(Args)]
 pub struct ListArgs {
     /// project の名（`.` は、今いる folder の path から作る）。無ければ、どの project も
-    // tpm の project の名は `-` で始まる（folder の path から作るため）ので、`-` で始まる値も受ける。
+    // roster の project の名は `-` で始まる（folder の path から作るため）ので、`-` で始まる値も受ける。
     #[arg(
         short,
         long,
@@ -624,7 +624,7 @@ fn watch(client: &Client, args: WatchArgs) -> Result<(), Failure> {
 }
 
 /// `--project` の値を、置き場の project の名にする。`.` は、今いる folder の path の、英数字と `._-` のほかを `-` にした名
-/// （roster の tpm が project の名を作る形と同じ）。
+/// （roster が project の名を作る形と同じ）。
 pub fn project_name(value: &str) -> Result<String, Failure> {
     let name = if value == "." {
         let here = std::env::current_dir()

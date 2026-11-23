@@ -6,7 +6,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 - **code の名**: HTML の id（`#…`）・class（`.…`）・型・欄・命令など。無ければ「—」。
 - **使わない言い方**: 前に使っていた語や、ほかの物と紛れる語。文書にも註にも書かない。
 
-[roster](https://github.com/uraitakahito/roster) の `tpm` の語（担当・依頼書・控えなど）は、roster の docs にある。
+[roster](https://github.com/uraitakahito/roster) の語（担当・依頼書・控えなど）は、roster の docs にある。
 
 ## 置き場の物
 
@@ -24,7 +24,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | 見た物（target） | `page_targets`・`targets` | レビューのページが見た物・レビューの依頼書が見てほしい物。置き場のページの path か、`https://` の URL（PR など）。1 枚にいくつでも | — |
 | レビュー待ち（awaiting review） | `on=review` | レビューの席の判定を待っている状態。レビューの依頼書に付き、判定が返ると「レビュー済み」になる | — |
 | 上げた（escalated） | `on=tpm` | レビューの判定を受けずに、課題の担当が TPM 担当へ上げ、まだ決まっていない状態。レビューのページに付き、決まると「決まった」になる | — |
-| project | `project` | ページをまとめる、いちばん上の名。`tpm` は、project の folder の path から作る | — |
+| project | `project` | ページをまとめる、いちばん上の名。`roster` は、project の folder の path から作る | — |
 | Key | `key` | 課題の名（`AI-22` など）。project の下でページをまとめる | 鍵 |
 | 種類（kind） | `kind` | ページの種類の名（`plan`・`result` など）。名の一覧は、呼ぶ側が決める | type |
 | 番号（number） | `n` | project・Key・種類ごとに、置き場が 1 から付ける数。消した番号は 2 度使わない | version |
@@ -48,7 +48,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | エンドポイント（endpoint） | — | API の受け先の 1 つ 1 つ（`POST /api/pages` など） | 口 |
 | API の仕様（API specification） | `docs/src/api.md` | 呼ぶ側が頼ってよい形を書いた章 | 口の約束 |
 | API の版（API version） | `API_VERSION` | API の形を、前からある呼ぶ側が困るように変えた時だけ上げる数。どの答えにも header `Pagetray-Api` で付く | 口の版 |
-| 呼ぶ側（caller） | — | API を呼ぶ物（CLI・roster の `tpm page` など） | クライアント |
+| 呼ぶ側（caller） | — | API を呼ぶ物（CLI・`roster page` など） | クライアント |
 
 ## 一覧の UI
 

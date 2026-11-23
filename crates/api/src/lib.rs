@@ -76,7 +76,7 @@ pub fn page_path(project: &str, key: &str, kind: &str, n: i64) -> String {
     format!("/{project}/{key}/{kind}-{n}.html")
 }
 
-/// URL の 1 段になる字（project・key）。project は tpm の状態の folder の名（project の path から作る）なので、
+/// URL の 1 段になる字（project・key）。project は roster の状態の folder の名（project の path から作る）なので、
 /// folder の名の長さの上限（255 字）まで受ける。
 pub fn is_segment(s: &str) -> bool {
     (1..=255).contains(&s.len())

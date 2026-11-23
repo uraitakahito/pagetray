@@ -286,7 +286,7 @@ fn browse(client: &Client, args: &BrowseArgs) -> Result<Vec<u8>, Failure> {
 }
 
 /// `PAGETRAY_NO_DELETE` が付いていれば（空と `0` のほか）、消す命令（page delete・file delete・api の DELETE）は
-/// 何もせずに止まる。消してよい人を呼ぶ側が決める時に使う（roster の tpm は、担当を起こす時にこれを付ける）。
+/// 何もせずに止まる。消してよい人を呼ぶ側が決める時に使う（roster は、担当を起こす時にこれを付ける）。
 pub fn refuse_delete() -> Result<(), Failure> {
     match std::env::var("PAGETRAY_NO_DELETE") {
         Ok(value) if !value.is_empty() && value != "0" => Err(Failure::new(

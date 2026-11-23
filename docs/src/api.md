@@ -1,6 +1,6 @@
 # API の仕様（API の版 1）
 
-pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を書く。ここに書いた形を、前からある呼ぶ側が困るように変える時は、API の版を上げる。
+pagetray を呼ぶ側（`roster page` など）が頼ってよい形を書く。ここに書いた形を、前からある呼ぶ側が困るように変える時は、API の版を上げる。
 
 ## 版
 
@@ -175,7 +175,7 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 
 ### `POST /api/pages/reply` — 返事の状態を書く
 
-Product Manager の返事が要るページに、返事待ち・答えたの状態を書く（0.5.0 から）。roster の `tpm ask pm` が返事待ちにし、`tpm answer` が答えたにする。一覧の UI は、この状態で印と件数を出す。
+Product Manager の返事が要るページに、返事待ち・答えたの状態を書く（0.5.0 から）。`roster ask pm` が返事待ちにし、`roster answer` が答えたにする。一覧の UI は、この状態で印と件数を出す。
 
 - 引数（query）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）、`state`（`waiting` 返事待ち・`answered` 答えた）は要る。`on`（待ちの相手。`pm` Product Manager＝既定・`review` レビューの席・`tpm` TPM 担当。0.8.0 から）は任意。本文は読まない。
 - `waiting`: `on` の相手の返事待ちにする。もう同じ相手の返事待ちなら何も変えない。今ほかの相手の返事待ちなら、何も変えずに `409`（待ちを黙って移さない）。答えた後にもう 1 度書くと、`asked_at` が今になり、`answered_at` が消える（相手も替えてよい）。
@@ -190,7 +190,7 @@ Product Manager の返事が要るページに、返事待ち・答えたの状�
 
 ### `POST /api/pages/review` — レビューの印を書く
 
-レビューのページに判定と見た物を、レビューの依頼書に見てほしい物を書く（0.8.0 から）。roster の `tpm ask review`・`tpm report review` が書く。一覧の UI は、判定の印・見た物の link・見られたページの「レビュー:」を出す。
+レビューのページに判定と見た物を、レビューの依頼書に見てほしい物を書く（0.8.0 から）。`roster ask review`・`roster report review` が書く。一覧の UI は、判定の印・見た物の link・見られたページの「レビュー:」を出す。
 
 - 引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）。
 - 本文（JSON。無くてもよい）: `{"verdict": "<判定>", "targets": ["<見た物>", …]}`。どちらの欄も任意で、ほかの欄は受けない。
