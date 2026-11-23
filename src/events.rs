@@ -16,6 +16,8 @@ pub enum Note {
     File(String),
     /// ページの返事の状態が変わった。`event: reply` で送る。
     Reply(String),
+    /// レビューの印（判定・見た物）を書いた。
+    Review(String),
 }
 
 pub async fn stream(
@@ -29,6 +31,7 @@ pub async fn stream(
                 Note::Page(json) => Event::default().data(json),
                 Note::File(json) => Event::default().event("file").data(json),
                 Note::Reply(json) => Event::default().event("reply").data(json),
+                Note::Review(json) => Event::default().event("review").data(json),
             })
         });
     Sse::new(stream).keep_alive(KeepAlive::default())

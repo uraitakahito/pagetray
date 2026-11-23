@@ -69,6 +69,14 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 |---|---|
 | `asked_at` | 返事待ちにした時刻 |
 | `answered_at` | 答えた時刻。返事待ちの間は出ない |
+| `waits_on` | 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つページには出ない（0.8.0 から） |
+
+レビューの印を書いたページ（下の `POST /api/pages/review`）の記録には、次の欄も出る（0.8.0 から。書いていないページには出ない）。
+
+| 欄 | 中身 |
+|---|---|
+| `verdict` | レビューの判定（`approve`・`concerns`・`reject`・`not-assessed`）。`kind` が `review` のページだけ |
+| `targets` | 見た物・見てほしい物の配列（書いた順）。置き場のページの path か、`https://` の URL |
 
 送り手を記録したページ（下の「送り手」）の記録には、`sender` の欄も出る（0.6.0 から。記録していないページには出ない）。
 
@@ -160,21 +168,38 @@ pagetray を呼ぶ側（roster の `tpm page` など）が頼ってよい形を�
 
 ### `GET /api/pages` — 探す
 
-- 引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だけ）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ。0.5.0 から）、`actor`（castlist のアクターの id。その送り手が置いた物だけ。未確認の送り手は当たらない。0.6.0 から）。
+- 引数（みな任意）: `project`・`key`・`kind`・`role`・`workspace`（同じ物だけ）、`q`（題と本文の字を探す）、`sort`（`-created_at` 新しい順＝既定・`created_at` 古い順）、`limit`（既定 100・1〜1000 に丸める）、`before`・`after`（`created_at` がそれより前・後）、`reply`（返事の状態。`waiting` は返事待ち、`answered` は答えた物だけ。0.5.0 から）、`on`（`reply` で絞る時の待ちの相手。`pm`＝既定・`review`・`tpm`。0.8.0 から）、`verdict`（レビューの判定。0.8.0 から）、`actor`（castlist のアクターの id。その送り手が置いた物だけ。未確認の送り手は当たらない。0.6.0 から）。
 - `200`: `{"pages":[<ページの記録>, …]}`。合う物が無ければ空の配列。
-- `400`: `sort` がどちらでもない・`reply` がどちらでもない。
+- `400`: `sort` がどちらでもない・`reply` がどちらでもない・`on` か `verdict` が決まった名でない。
+- `on` を書かない `reply` は、今までどおり Product Manager の返事だけを見る（レビューの待ちと上げた件は入らない）。
 
 ### `POST /api/pages/reply` — 返事の状態を書く
 
 Product Manager の返事が要るページに、返事待ち・答えたの状態を書く（0.5.0 から）。roster の `tpm ask pm` が返事待ちにし、`tpm answer` が答えたにする。一覧の UI は、この状態で印と件数を出す。
 
-- 引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）、`state`（`waiting` 返事待ち・`answered` 答えた）。本文は読まない。
-- `waiting`: 返事待ちにする。もう返事待ちなら何も変えない。答えた後にもう 1 度書くと、`asked_at` が今になり、`answered_at` が消える。
-- `answered`: 答えたにする。もう答えていれば何も変えない。返事待ちにしていないページなら、`asked_at` にも同じ時刻が入る。
-- `200`: そのページの記録（`asked_at`・`answered_at` が付く）。同じ状態を 2 度書いても同じ答え。
-- `404`: そのページは無い（消した物も）。`400`: 引数が決まりに合わない。
+- 引数（query）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）、`state`（`waiting` 返事待ち・`answered` 答えた）は要る。`on`（待ちの相手。`pm` Product Manager＝既定・`review` レビューの席・`tpm` TPM 担当。0.8.0 から）は任意。本文は読まない。
+- `waiting`: `on` の相手の返事待ちにする。もう返事待ちなら何も変えない。答えた後にもう 1 度書くと、`asked_at` が今になり、`answered_at` が消える。
+- `answered`: 答えたにする。もう答えていれば何も変えない。`on` の相手と、そのページの待ちの相手が違えば、何も変えずに `409`。
+  - `on` が `pm`（書かない時）: 返事待ちにしていないページも答えたにでき、`asked_at` にも同じ時刻が入る（0.5.0 からの形）。
+  - `on` が `review`・`tpm`: その相手の返事待ちにしたページだけ。返事待ちにしていないページは `409`（Product Manager の「答えた」に入れないため）。
+- `200`: そのページの記録（`asked_at`・`answered_at` と、Product Manager のほかを待つ物は `waits_on` が付く）。同じ状態を 2 度書いても同じ答え。
+- `404`: そのページは無い（消した物も）。`409`: 待ちの相手が違う。`400`: 引数が決まりに合わない。
 - だれが書いてよいかは見ない（呼ぶ側が決める）。browser の中のページからは書けない（「共通」の `Origin` の決まり）。
 - 0.5.0 より前のサーバーには、このエンドポイントが無い（`404` か `405` が返る）。呼ぶ側は、それを「状態を書けない置き場」として扱う。
+- 0.8.0 より前のサーバーは、知らない `on` を読まずに捨て、Product Manager の返事待ちにしてしまう。`on` を書く呼ぶ側は、先に `GET /api/version` で 0.8.0 以上かを見る。
+
+### `POST /api/pages/review` — レビューの印を書く
+
+レビューのページに判定と見た物を、レビューの依頼書に見てほしい物を書く（0.8.0 から）。roster の `tpm ask review`・`tpm report review` が書く。一覧の UI は、判定の印・見た物の link・見られたページの「レビュー:」を出す。
+
+- 引数（query。みな要る）: `project`・`key`・`kind`・`n`（ページ 1 枚を名指す）。
+- 本文（JSON。無くてもよい）: `{"verdict": "<判定>", "targets": ["<見た物>", …]}`。どちらの欄も任意で、ほかの欄は受けない。
+  - `verdict`: `approve`・`concerns`・`reject`・`not-assessed` のどれか。`kind` が `review` のページだけに書ける。書けば替わり、書かなければ前の物のまま。
+  - `targets`: 置き場のページの path（`/<project>/<key>/<kind>-<n>.html`。`http://…` の URL のままは受けない）か、`https://` で始まる URL（2048 字まで。空白と制御の字は駄目）を、1 度に 100 個まで。足すだけで、同じ物は 1 つ。ページを消すと一緒に消える。
+- `200`: そのページの記録（`verdict`・`targets` が付く）。
+- `404`: そのページは無い。`400`: 引数・本文が決まりに合わない。
+- だれが書いてよいかは見ない（呼ぶ側が決める）。browser の中のページからは書けない（「共通」の `Origin` の決まり）。
+- 0.8.0 より前のサーバーには、このエンドポイントが無い（`405` が返る）。
 
 ### `DELETE /api/pages` — 消す
 
@@ -229,5 +254,5 @@ Product Manager の返事が要るページに、返事待ち・答えたの状�
 | `GET /api/version` | サーバーの版と API の版 | 入る |
 | `GET /api/backup` | DB の写し（SQLite の file 1 つ） | 入る |
 | `GET /api/logs` | 残した記録（終わり方の印と、時刻つきの行）を、古い順の字で返す（0.7.0 から。`text/plain`。多くて 4 MiB と 64 KiB）。中身の形は [動かす](run.md) の「落ちた後に調べる」 | URL が開くことと、字で返ることだけ。行の形は入らない |
-| `GET /api/events` | 置かれるたび・返事の状態が書かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、file は `event: file` で file の記録、返事の状態は `event: reply` でページの記録（0.5.0 から） | 入る |
+| `GET /api/events` | 置かれるたび・返事の状態が書かれるたびに 1 件を push（SSE）。ページは名の無い event でページの記録、file は `event: file` で file の記録、返事の状態は `event: reply` でページの記録（0.5.0 から）、レビューの印は `event: review` でページの記録（0.8.0 から） | 入る |
 | `GET /`・`/<project>/`・`/<project>/<key>/` | 一覧の UI | URL が開くことだけ。HTML の作りは入らない |

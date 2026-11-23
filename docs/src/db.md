@@ -16,9 +16,10 @@ erDiagram
   files }o..o{ files_removed : "同じ project・Key・名・拡張子で番号を分ける"
   senders |o--o{ pages : "pages.sender_id = id"
   senders |o--o{ files : "files.sender_id = id"
+  pages ||--o{ page_targets : "page_targets.page_id = id"
 ```
 
-**外部キーは 2 つだけ**（0.6.0 から）: `pages.sender_id` と `files.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `src/db.rs` の SQL が守る。
+**外部キーは 3 つだけ**: `pages.sender_id` と `files.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`。0.6.0 から）。`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `src/db.rs` の SQL が守る。
 
 - **接続ごとの決まり**: `Db::open` が、読む接続にも書く接続にも `PRAGMA foreign_keys = ON` と `PRAGMA recursive_triggers = ON` を付ける（SQLite では、どちらも接続ごとに効く）。移行を当てた後に `PRAGMA foreign_key_check` を流し、合わない行が 1 つでもあれば、サーバーは起きない。
 - **送り手**: ページや file を置く時に、呼ぶ側が付随する id を書けば、`senders` に 1 行足し、ページや file の行から指す（同じ取引）。`senders` は足すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り手の行は残る。
@@ -29,7 +30,7 @@ erDiagram
 
 ## `pages` — ページ
 
-置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。置いた後に書き換わるのは、返事の状態の 2 つの列（`asked_at`・`answered_at`）だけ。
+置かれたページ 1 枚が 1 行。置き直すと、別の番号の別の行になる。置いた後に書き換わるのは、返事の状態の 3 つの列（`asked_at`・`answered_at`・`waits_on`）と、レビューの判定（`verdict`）だけ。
 
 | 列 | 型 | 空 | 意味 |
 |---|---|---|---|
@@ -46,6 +47,8 @@ erDiagram
 | `asked_at` | text | 可 | 返事待ちにした時刻。返事を求めていなければ空（0.5.0 から） |
 | `answered_at` | text | 可 | 答えた時刻。まだ答えていなければ空（0.5.0 から） |
 | `sender_id` | integer | 可 | 送り手（`senders.id`）。付随する id を書かずに置いたページと、0.6.0 より前に置かれたページは空 |
+| `waits_on` | text | 可 | 誰の返事を待つか（`review`・`tpm`）。空は Product Manager（0.8.0 から。前からあるページは空） |
+| `verdict` | text | 可 | レビューの判定（`approve`・`concerns`・`reject`・`not-assessed`）。書いていなければ空（0.8.0 から） |
 
 - 主キー: `(id)`
 - 一意: `(project, key, kind, n)`
@@ -53,8 +56,9 @@ erDiagram
 - 索引: `pages_waiting` `(asked_at)`
 - 索引: `pages_sender` `(sender_id)`
 - `pages_waiting` は、返事待ち（`asked_at` があり、`answered_at` が空）の行だけの索引。
-- 書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
-- **返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないページ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば答えた。0.5.0 より前に置かれたページは、どちらも空。
+- 書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）・`Db::set_review`（判定だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
+- **返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないページ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば答えた。0.5.0 より前に置かれたページは、どちらも空。誰の返事かは `waits_on` で読み、「返事待ち」「答えた」の数と絞り込み（`on` の無い `reply`）は、`waits_on` が空（Product Manager）の行だけを見る。
+- `waits_on`・`verdict` は、SQL の `check` で上の名だけを受ける。
 
 ## `pages_fts` — 全文の索引
 
@@ -147,6 +151,19 @@ erDiagram
 - **足すだけ**: trigger `senders_no_update`・`senders_no_delete` が、書き換えと消しを `append-only: senders` で断る。前からある表（`pages`・`files` など）には trigger を付けていない（返事の状態の書き換え・消すは前のまま）。
 - **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の `POST /api/pages`）。
 - `actor_id` に外部キーは無い（アクターは castlist の DB にある）。
+
+## `page_targets` — 見た物
+
+ページが見た物（レビューのページ）・見てほしい物（レビューの依頼書）1 つが 1 行（0.8.0 から）。依頼書 1 枚が頼みをいくつも持つので、1 枚に何行でもある。
+
+| 列 | 型 | 空 | 意味 |
+|---|---|---|---|
+| `page_id` | integer | 不可 | 見たページ（`pages.id`） |
+| `target` | text | 不可 | 見た物: この置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、`https://` の URL（PR など） |
+
+- 主キー: `(page_id, target)`
+- 索引: `page_targets_target` `(target)`
+- 書く所: `Db::set_review`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
 
 ## ほかの表
 

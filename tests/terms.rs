@@ -28,7 +28,16 @@ fn ids_in_the_glossary_exist_in_the_ui() {
     let glossary = read("docs/src/glossary.md");
     let template = read("templates/index.html");
     for id in [
-        "toolbar", "filters", "list", "viewer", "fresh", "waiting", "files", "upload",
+        "toolbar",
+        "filters",
+        "list",
+        "viewer",
+        "fresh",
+        "waiting",
+        "review-waiting",
+        "escalated",
+        "files",
+        "upload",
     ] {
         assert!(
             glossary.contains(&format!("`#{id}`")),
@@ -40,7 +49,7 @@ fn ids_in_the_glossary_exist_in_the_ui() {
             "template に id=\"{id}\" が 1 つでない"
         );
     }
-    for class in ["rows", "unread"] {
+    for class in ["rows", "unread", "reply", "verdict", "links"] {
         assert!(
             glossary.contains(&format!("`.{class}`")),
             "用語集に .{class} が無い"

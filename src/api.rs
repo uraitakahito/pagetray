@@ -2,7 +2,8 @@
 
 use crate::castlist::Answer;
 use crate::db::{
-    FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Reply, Target,
+    FileFilter, FileTarget, Filter, NewFile, NewPage, PageMeta, PutError, Reply, ReplyOutcome,
+    Target, WaitsOn,
 };
 use crate::events::Note;
 use crate::{AppState, FromUi, UI_ROLE, error, internal, text};
@@ -12,8 +13,8 @@ use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Json};
 use pagetray_api::{
-    FILE_TYPES, SenderRecord, file_type, is_actor_ref, is_issuer, is_timestamp, is_workspace,
-    sniff, split_file_name,
+    FILE_TYPES, SenderRecord, VERDICTS, file_type, is_actor_ref, is_issuer, is_target,
+    is_timestamp, is_workspace, sniff, split_file_name,
 };
 pub use pagetray_api::{is_name, is_segment, page_path};
 use serde::{Deserialize, Serialize};
@@ -219,6 +220,10 @@ pub struct ListParams {
     q: Option<String>,
     /// 返事の状態（`waiting`・`answered`）。
     reply: Option<String>,
+    /// 返事の状態で絞る時の、待ちの相手（`pm`・`review`・`tpm`。無ければ `pm`）。
+    on: Option<String>,
+    /// レビューの判定。
+    verdict: Option<String>,
     /// 送り手（castlist のアクターの id）。
     actor: Option<String>,
     sort: Option<String>,
@@ -228,6 +233,13 @@ pub struct ListParams {
 }
 
 const REPLY_RULE: &str = "reply は waiting か answered";
+const ON_RULE: &str = "on は pm・review・tpm のどれか";
+const VERDICT_RULE: &str = "verdict は approve・concerns・reject・not-assessed のどれか";
+
+/// 待ちの相手の引数を読む。無ければ Product Manager。知らない名なら None。
+fn waits_on(on: Option<&str>) -> Option<WaitsOn> {
+    on.map_or(Some(WaitsOn::Pm), WaitsOn::parse)
+}
 
 pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) -> Response {
     let oldest_first = match p.sort.as_deref() {
@@ -242,6 +254,12 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
         Some(Some(reply)) => Some(reply),
         Some(None) => return error(StatusCode::BAD_REQUEST, REPLY_RULE),
     };
+    let Some(on) = waits_on(p.on.as_deref()) else {
+        return error(StatusCode::BAD_REQUEST, ON_RULE);
+    };
+    if p.verdict.as_deref().is_some_and(|v| !VERDICTS.contains(&v)) {
+        return error(StatusCode::BAD_REQUEST, VERDICT_RULE);
+    }
     let filter = Filter {
         project: p.project,
         key: p.key,
@@ -250,6 +268,8 @@ pub async fn list(State(state): State<AppState>, Query(p): Query<ListParams>) ->
         workspace: p.workspace,
         q: p.q,
         reply,
+        on,
+        verdict: p.verdict,
         actor: p.actor,
         before: p.before,
         after: p.after,
@@ -272,42 +292,156 @@ pub struct ReplyParams {
     kind: String,
     n: i64,
     state: String,
+    /// 待ちの相手（`pm`・`review`・`tpm`）。無ければ `pm`。
+    on: Option<String>,
 }
 
-/// ページ 1 枚の返事の状態を書く（`POST /api/pages/reply?project=…&key=…&kind=…&n=…&state=waiting|answered`）。
+/// ページ 1 枚の返事の状態を書く（`POST /api/pages/reply?project=…&key=…&kind=…&n=…&state=waiting|answered[&on=pm|review|tpm]`）。
 /// 本文は読まない。答えは、そのページの記録。同じ状態を 2 度書いても同じ答え（時刻は初めの物を保つ）。
-/// だれが書いてよいかは、呼ぶ側（tpm ask pm・tpm answer）が持つ。ここでは人を見分けない。
+/// 答えたにする時、待ちの相手が `on` と違えば何も替えず 409（Product Manager のほかの相手は、返事待ちにしたページだけ）。
+/// だれが書いてよいかは、呼ぶ側（tpm ask pm・tpm answer・tpm ask review など）が持つ。ここでは人を見分けない。
 /// browser の中のページからは書けない（`Origin` の付いた要求は guard が断る）。
 pub async fn reply(State(state): State<AppState>, Query(p): Query<ReplyParams>) -> Response {
     let Some(wanted) = Reply::parse(&p.state) else {
         return error(StatusCode::BAD_REQUEST, "state は waiting か answered");
     };
-    let checks = [
-        (
-            is_segment(&p.project),
-            "project は英数字と . _ - で 255 字まで",
-        ),
-        (is_segment(&p.key), "key は英数字と . _ - で 255 字まで"),
-        (
-            is_name(&p.kind),
-            "kind は英小文字で始まり、英小文字・数字・- で 32 字まで",
-        ),
-        (p.n >= 1, "n は 1 以上"),
-    ];
-    if let Some((_, message)) = checks.iter().find(|(ok, _)| !ok) {
-        return error(StatusCode::BAD_REQUEST, message);
+    let Some(on) = waits_on(p.on.as_deref()) else {
+        return error(StatusCode::BAD_REQUEST, ON_RULE);
+    };
+    if let Some(response) = page_checks(&p.project, &p.key, &p.kind, p.n) {
+        return response;
     }
     match state
         .db
-        .set_reply(&p.project, &p.key, &p.kind, p.n, wanted)
+        .set_reply(&p.project, &p.key, &p.kind, p.n, wanted, on)
+        .await
+    {
+        Ok(ReplyOutcome::Done(meta)) => {
+            let page = Page::from(*meta);
+            tracing::info!(
+                "reply {} state={} on={}",
+                page.path,
+                wanted.name(),
+                on.name()
+            );
+            let value = serde_json::to_value(&page).unwrap_or_default();
+            // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
+            let _ = state.events.send(Note::Reply(value.to_string()));
+            Json(value).into_response()
+        }
+        Ok(ReplyOutcome::Missing) => error(StatusCode::NOT_FOUND, "そのページは無い"),
+        Ok(ReplyOutcome::Conflict) => error(
+            StatusCode::CONFLICT,
+            "そのページは、on の相手の返事を待っていない（何も替えていない）",
+        ),
+        Err(e) => internal(e),
+    }
+}
+
+/// ページ 1 枚を名指す引数の検査。誤りなら 400 の答え。
+fn page_checks(project: &str, key: &str, kind: &str, n: i64) -> Option<Response> {
+    let checks = [
+        (
+            is_segment(project),
+            "project は英数字と . _ - で 255 字まで",
+        ),
+        (is_segment(key), "key は英数字と . _ - で 255 字まで"),
+        (
+            is_name(kind),
+            "kind は英小文字で始まり、英小文字・数字・- で 32 字まで",
+        ),
+        (n >= 1, "n は 1 以上"),
+    ];
+    checks
+        .iter()
+        .find(|(ok, _)| !ok)
+        .map(|(_, message)| error(StatusCode::BAD_REQUEST, message))
+}
+
+#[derive(Deserialize)]
+pub struct PageParams {
+    project: String,
+    key: String,
+    kind: String,
+    n: i64,
+}
+
+/// `POST /api/pages/review` の本文（JSON）。
+#[derive(Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+struct ReviewMarks {
+    verdict: Option<String>,
+    #[serde(default)]
+    targets: Vec<String>,
+}
+
+/// 1 度に書ける見た物の数。
+const MAX_TARGETS: usize = 100;
+
+/// レビューの印を書く（`POST /api/pages/review?project=…&key=…&kind=…&n=…`、本文は
+/// `{"verdict": "concerns", "targets": ["/p/K/plan-1.html", "https://…/pull/1"]}`。どちらも書かなくてよい）。
+/// 判定は書けば替わり（kind が review のページだけ）、見た物は足すだけ（同じ物は 1 つ）。答えは、そのページの記録。
+/// browser の中のページからは書けない（`Origin` の付いた要求は guard が断る）。
+pub async fn review(
+    State(state): State<AppState>,
+    Query(p): Query<PageParams>,
+    body: Bytes,
+) -> Response {
+    if let Some(response) = page_checks(&p.project, &p.key, &p.kind, p.n) {
+        return response;
+    }
+    let marks: ReviewMarks = if body.is_empty() {
+        ReviewMarks::default()
+    } else {
+        match serde_json::from_slice(&body) {
+            Ok(marks) => marks,
+            Err(_) => {
+                return error(
+                    StatusCode::BAD_REQUEST,
+                    "本文は {\"verdict\": 判定, \"targets\": [見た物…]} の JSON",
+                );
+            }
+        }
+    };
+    if let Some(verdict) = marks.verdict.as_deref() {
+        if !VERDICTS.contains(&verdict) {
+            return error(StatusCode::BAD_REQUEST, VERDICT_RULE);
+        }
+        if p.kind != "review" {
+            return error(
+                StatusCode::BAD_REQUEST,
+                "判定を書けるのは、kind が review のページだけ",
+            );
+        }
+    }
+    if marks.targets.len() > MAX_TARGETS || !marks.targets.iter().all(|t| is_target(t)) {
+        return error(
+            StatusCode::BAD_REQUEST,
+            "targets は、置き場のページの path（/<project>/<key>/<kind>-<n>.html）か https の URL（2048 字まで）を、100 個まで",
+        );
+    }
+    match state
+        .db
+        .set_review(
+            &p.project,
+            &p.key,
+            &p.kind,
+            p.n,
+            marks.verdict.as_deref(),
+            &marks.targets,
+        )
         .await
     {
         Ok(Some(meta)) => {
             let page = Page::from(meta);
-            tracing::info!("reply {} state={}", page.path, wanted.name());
+            tracing::info!(
+                "review {} verdict={} targets={}",
+                page.path,
+                marks.verdict.as_deref().unwrap_or("-"),
+                marks.targets.len()
+            );
             let value = serde_json::to_value(&page).unwrap_or_default();
-            // 聞いている UI が無ければ送り先が無いだけなので、失敗は見ない。
-            let _ = state.events.send(Note::Reply(value.to_string()));
+            let _ = state.events.send(Note::Review(value.to_string()));
             Json(value).into_response()
         }
         Ok(None) => error(StatusCode::NOT_FOUND, "そのページは無い"),

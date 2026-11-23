@@ -19,6 +19,9 @@ pub const PAGE_FIELDS: &[&str] = &[
     "url",
     "asked_at",
     "answered_at",
+    "waits_on",
+    "verdict",
+    "targets",
 ];
 
 /// `file list --json` で選べる欄（API の「file の記録」と、CLI が足す `url`）。

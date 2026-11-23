@@ -2,6 +2,19 @@
 
 版ごとに、API の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
+## 0.8.0
+
+API の版: 1（変わらない。引数・エンドポイント・答えの欄・code を足しただけなので、呼ぶ側は変えなくてよい）
+
+**移行の SQL を足した（`0006_review.sql`）。この版が起きた後の DB では、0.7.0 までの版は起きない。** 上げる前に、DB の写しを取る（[動かす](https://uraitakahito.github.io/pagetray/run.html) の「版を上げる」）。戻す時は、その写しから戻す。
+
+- レビューのやりとり（roster の `tpm ask review`・`tpm report review`・`tpm ask tpm --review`）を、一覧で追えるようにした。
+  - DB: `pages` に `waits_on`（誰の返事を待つか。`review`・`tpm`。空は Product Manager）と `verdict`（レビューの判定）を、表 `page_targets`（ページが見た物。1 枚にいくつでも。ページを消すと一緒に消える）を足した。前からあるページは、どちらも空で、見た物も無い。
+  - API: `POST /api/pages/reply` に `on=pm|review|tpm`（待ちの相手。無ければ `pm`）。答えたにする時、待ちの相手が違えば何も替えずに `409`（`review`・`tpm` は、返事待ちにしたページだけ）。`GET /api/pages` に `on`（`reply` と組で）と `verdict` の絞り。**`on` の無い `reply` は、Product Manager の分だけを返す**（レビュー待ち・上げた件は入らない。前からの呼ぶ側の数は変わらない）。新しく `POST /api/pages/review`（判定と見た物を JSON で書く）。ページの記録に `waits_on`・`verdict`・`targets`、知らせ（SSE）に `event: review` を足した。
+  - 一覧の UI: レビューのページの行に判定の印（よい・気になる所あり・直すべき・見られなかった）と「見た物:」の link、依頼書の行に「見る物:」の link、見られたページの行に「レビュー: review-N 判定」。待ちの印は相手ごとに「レビュー待ち」「レビュー済み」・「上げた」「決まった」。操作の帯に「レビュー待ち N 件」「上げた N 件」（押すとそれだけに絞る。0 件なら出ない）。絞り込みの列の「返事」に「レビュー待ち」「上げた」を、新しく「判定」を足した。tab の題と「返事待ち N 件」は、今までどおり Product Manager の分だけ。
+  - CLI: `pagetray page reply --on review|tpm`、`pagetray page list --on … --verdict …`。`page list` の表の返事の状態の欄は、Product Manager のほかを待つ物に `waiting:review` のように相手を添える。`--json` の欄に `waits_on`・`verdict`・`targets` を足した。
+- **0.8.0 より前の置き場は、知らない `on` を黙って捨てる**（Product Manager の返事待ちにしてしまう）。`on` を書く呼ぶ側は、先に `GET /api/version` で版を見る。
+
 ## 0.7.0
 
 API の版: 1（変わらない。エンドポイントを 1 つ足しただけなので、呼ぶ側は変えなくてよい）

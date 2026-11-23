@@ -469,3 +469,115 @@ async fn pages_waiting_for_a_reply_are_marked_counted_and_filtered() {
     assert!(page.contains(r#"<span>答えた</span><span class="n">2</span>"#));
     assert!(!page.contains("<span>返事待ち</span>"));
 }
+
+/// レビューの印を書く（`POST /api/pages/review`）。
+async fn review_marks(s: &Server, page: &str, body: Value) {
+    let request = axum::http::Request::builder()
+        .method("POST")
+        .uri(format!("/api/pages/review?{page}"))
+        .header(header::HOST, "127.0.0.1:8801")
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(body.to_string()))
+        .unwrap();
+    let (status, _, _) = s.send(request).await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+}
+
+#[tokio::test]
+async fn reviews_show_their_verdict_what_they_reviewed_and_who_waits() {
+    let s = Server::start().await;
+    let at = |day: u8| format!("created_at=2026-11-{day:02}T00:00:00Z");
+    for (kind, day) in [("confirm", 1), ("plan", 2), ("brief", 3), ("review", 4)] {
+        s.place(
+            &format!(
+                "project=p&key=K-1&kind={kind}&role=software-engineer&{}",
+                at(day)
+            ),
+            &html(kind, "本文"),
+        )
+        .await;
+    }
+    review_marks(
+        &s,
+        "project=p&key=K-1&kind=brief&n=1",
+        serde_json::json!({ "targets": ["/p/K-1/plan-1.html", "https://github.com/o/r/pull/191"] }),
+    )
+    .await;
+    mark(&s, "project=p&key=K-1&kind=brief&n=1&on=review", "waiting").await;
+    mark(&s, "project=p&key=K-1&kind=confirm&n=1", "waiting").await;
+
+    let page = s.text("/?sort=created_at").await;
+    // tab の題と「返事待ち」は Product Manager の分だけ。レビュー待ちは別の釦。
+    assert!(page.contains("<title>返事待ち 1 件 ・ ページの置き場</title>"));
+    assert!(page.contains(r#"id="waiting" href="/?reply=waiting&#38;sort=created_at" title="Product Manager の返事を待っているページだけに絞る">返事待ち 1 件</a>"#), "{page}");
+    assert!(page.contains(r#"id="review-waiting" href="/?reply=waiting&#38;on=review&#38;sort=created_at" title="レビューの判定を待っている依頼書だけに絞る">レビュー待ち 1 件</a>"#), "{page}");
+    assert!(page.contains(" hidden>上げた 0 件</a>"));
+    assert!(
+        page.contains(
+            r#"<a href="/?reply=waiting&#38;on=review&#38;sort=created_at"><span>レビュー待ち</span><span class="n">1</span></a>"#
+        ),
+        "{page}"
+    );
+    assert!(page.contains(r#"<li data-path="/p/K-1/brief-1.html" data-at="2026-11-03T00:00:00Z" data-reply="waiting" data-on="review">"#), "{page}");
+    assert!(page.contains(r#"<span class="reply waiting review">レビュー待ち</span>"#));
+    // 依頼書の行に、見る物の link（置き場のページは一覧の中で開き、PR は別の tab）。
+    assert!(page.contains(r#"<span class="links targets">見る物: <a href="/?sort=created_at&#38;open=%2Fp%2FK-1%2Fplan-1.html">plan-1</a> <a href="https://github.com/o/r/pull/191" target="_blank" rel="noopener">PR #191</a></span>"#), "{page}");
+    // 判定がまだ無いので、判定の見出しも、見られた側の「レビュー:」も出ない。
+    assert!(!page.contains("<h2>判定</h2>"));
+    assert!(!page.contains("links reviews"));
+
+    // 判定を書き、依頼書の待ちを外す。
+    review_marks(
+        &s,
+        "project=p&key=K-1&kind=review&n=1",
+        serde_json::json!({ "verdict": "concerns", "targets": ["/p/K-1/plan-1.html"] }),
+    )
+    .await;
+    mark(&s, "project=p&key=K-1&kind=brief&n=1&on=review", "answered").await;
+    let page = s.text("/").await;
+    assert!(page.contains(" hidden>レビュー待ち 0 件</a>"));
+    assert!(page.contains(r#"<span class="reply answered review">レビュー済み</span>"#));
+    assert!(page.contains(r#"<li data-path="/p/K-1/review-1.html" data-at="2026-11-04T00:00:00Z" data-verdict="concerns">"#), "{page}");
+    assert!(page.contains(
+        r#"<span class="name">review-1</span><span class="verdict concerns">気になる所あり</span>"#
+    ));
+    assert!(page.contains(r#"<span class="links targets">見た物: <a href="/?open=%2Fp%2FK-1%2Fplan-1.html">plan-1</a></span>"#), "{page}");
+    // 見られた計画の行に、それを見たレビューと判定。
+    assert!(page.contains(r#"<span class="links reviews">レビュー: <a href="/?open=%2Fp%2FK-1%2Freview-1.html">review-1</a><span class="verdict concerns">気になる所あり</span></span>"#), "{page}");
+    assert!(page.contains("<h2>判定</h2>"));
+    assert!(
+        page.contains(r#"<a href="/?verdict=concerns"><span>気になる所あり</span><span class="n">1</span></a>"#),
+        "{page}"
+    );
+    // 判定で絞れ、探す form も持ち越す。
+    let page = s.text("/?verdict=concerns").await;
+    assert_eq!(listed(&page), ["/p/K-1/review-1.html"]);
+    assert!(page.contains(r#"<input type="hidden" name="verdict" value="concerns">"#));
+    assert!(page.contains("絞り込みを外す"));
+    // Product Manager の「答えた」に、レビュー済みの依頼書は入らない。
+    let page = s.text("/?reply=answered").await;
+    assert!(listed(&page).is_empty());
+    let page = s.text("/?reply=answered&on=review").await;
+    assert_eq!(listed(&page), ["/p/K-1/brief-1.html"]);
+
+    // 上げると、上げた件の釦と印が出て、決まると消える。
+    mark(&s, "project=p&key=K-1&kind=review&n=1&on=tpm", "waiting").await;
+    let page = s.text("/").await;
+    assert!(page.contains(r#"id="escalated" href="/?reply=waiting&#38;on=tpm" title="判定を受けずに TPM 担当へ上げ、まだ決まっていないレビューだけに絞る">上げた 1 件</a>"#), "{page}");
+    assert!(page.contains(r#"<span class="reply waiting tpm">上げた</span>"#));
+    assert!(page.contains("<title>返事待ち 1 件 ・ ページの置き場</title>"));
+    let page = s.text("/?reply=waiting&on=tpm").await;
+    assert_eq!(listed(&page), ["/p/K-1/review-1.html"]);
+    assert!(page.contains(r#"<a class="btn on" id="escalated" href="/?reply=waiting&#38;on=tpm""#));
+    mark(&s, "project=p&key=K-1&kind=review&n=1&on=tpm", "answered").await;
+    let page = s.text("/").await;
+    assert!(page.contains(" hidden>上げた 0 件</a>"));
+    assert!(page.contains(r#"<span class="reply answered tpm">決まった</span>"#));
+
+    // 知らない値は、条件が無いのと同じ。on は reply と組の時だけ効く。
+    let page = s.text("/?verdict=done").await;
+    assert_eq!(listed(&page).len(), 4);
+    let page = s.text("/?on=review").await;
+    assert_eq!(listed(&page).len(), 4);
+    assert!(!page.contains("絞り込みを外す"));
+}
