@@ -19,6 +19,7 @@ mod marks;
 mod pages;
 mod record;
 mod remove;
+pub mod runlog;
 pub mod search;
 mod text;
 mod token;
@@ -53,6 +54,8 @@ pub struct Config {
     pub timeout: Duration,
     /// 送り手を聞く castlist（[`castlist::Castlist::from_env`]）。無ければ聞かずに、付随する id だけを残す。
     pub castlist: Option<castlist::Castlist>,
+    /// 記録の置き場。あれば、残した記録を読む道 `GET /api/logs` が答える（無ければ 404 `NotFound`）。
+    pub runlog: Option<runlog::RunLog>,
 }
 
 impl Default for Config {
@@ -60,6 +63,7 @@ impl Default for Config {
         Self {
             timeout: REQUEST_TIMEOUT,
             castlist: None,
+            runlog: None,
         }
     }
 }
