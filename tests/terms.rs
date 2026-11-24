@@ -80,7 +80,7 @@ fn ids_in_the_glossary_exist_in_the_ui() {
 }
 
 /// 用語集の「使わない言い方」が、文書・画面・code に戻って来ていないか。
-/// 見ない所: 用語集そのもの（使わない言い方の欄）・CHANGELOG（前の語から何に替えたかを書く）・この file・英語の訳。
+/// 見ない所: 用語集そのもの（使わない言い方の欄）・CHANGELOG（前の語から何に替えたかを書く）・この file と新しい server の同じ試験・英語の訳。
 #[test]
 fn retired_terms_stay_out() {
     // 字の並びとして、ほかの語の一部にならない物だけを見る（「口」1 字は「受け口」などに当たるので見ない）。
@@ -92,6 +92,8 @@ fn retired_terms_stay_out() {
     let skip = [
         root().join("docs/src/glossary.md"),
         root().join("tests/terms.rs"),
+        // 新しい server（AI-36）の同じ試験。
+        root().join("crates/server/tests/terms.rs"),
     ];
     for path in paths.iter().filter(|p| !skip.contains(p)) {
         let Ok(text) = std::fs::read_to_string(path) else {

@@ -3,6 +3,7 @@
 // 流している間にほかの人がページを置いても落ちないように、数は「前と後の間」で見る。
 import { expect, test } from '@playwright/test';
 import { collectErrors, filters, openLive, pageLink, place, rows, viewer } from './helpers';
+import { next, pageSize } from './wire';
 
 type Listed = { pages: { path: string }[] };
 
@@ -15,9 +16,11 @@ test.beforeAll(async ({ request }) => {
 
 test('@smoke 一覧の UI が出る。API の答えと合う。絞れる。選ぶと本文の枠に出る', async ({ page, request }) => {
   const errors = collectErrors(page);
-  const listed = async () => ((await (await request.get('/api/pages?limit=200')).json()) as Listed).pages;
+  const listed = async () => ((await (await request.get(`/api/pages?${pageSize(200)}`)).json()) as Listed).pages;
 
-  expect((await (await request.get('/api/version')).json()).api).toBe(1);
+  // 版の道: 今の server は /api/version の API の版、新しい server は /healthz の状態（API の版の header と道は無くした）。
+  if (next) expect((await (await request.get('/healthz')).json()).status).toBe('ok');
+  else expect((await (await request.get('/api/version')).json()).api).toBe(1);
 
   const before = await listed();
   // 新着の知らせ（/api/events）につながることも、ここで見ている。
