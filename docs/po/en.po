@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-24T22:48:58+09:00\n"
+"POT-Creation-Date: 2026-11-24T23:04:43+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -2137,7 +2137,7 @@ msgstr ""
 msgid "字の決まり:"
 msgstr "Character rules:"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "引数"
 msgstr "Parameter"
 
@@ -2231,7 +2231,7 @@ msgstr ""
 "1–256 characters of letters, digits, `:`, `.`, `_`, and `-` (it is split at "
 "the first `:`, so the value may contain `:`)"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "ページの記録"
 msgstr "Page record"
 
@@ -2369,7 +2369,7 @@ msgstr ""
 "review` below) also carries the following fields (since 0.8.0; they are "
 "absent on pages where they have not been written)."
 
-#: src/api.md src/db.md src/glossary.md
+#: src/api.md src/db.md src/next.md src/glossary.md
 msgid "`verdict`"
 msgstr "`verdict`"
 
@@ -2482,7 +2482,7 @@ msgstr "`issuer`, `ref`"
 msgid "置く時に書いた `actor_issuer`・`actor_ref`"
 msgstr "The `actor_issuer` and `actor_ref` written when it was put"
 
-#: src/api.md src/glossary.md
+#: src/api.md src/next.md src/glossary.md
 msgid "`actor`"
 msgstr "`actor`"
 
@@ -5645,12 +5645,24 @@ msgid "`ListPages`"
 msgstr "`ListPages`"
 
 #: src/next.md
+msgid ""
+"`GET /api/pages`（引数 `project`・`key`・`kind`・`role`・`workspace`・`q`・"
+"`reply`・`on`・`verdict`・`actor`・`sort`・`maxResults`・`nextToken`）"
+msgstr ""
+"`GET /api/pages` (parameters `project`, `key`, `kind`, `role`, `workspace`, "
+"`q`, `reply`, `on`, `verdict`, `actor`, `sort`, `maxResults`, `nextToken`)"
+
+#: src/next.md
 msgid "`SetReplyState`"
 msgstr "`SetReplyState`"
 
 #: src/next.md
-msgid "`PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`"
-msgstr "`PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`"
+msgid ""
+"`PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`（本文 "
+"`{\"state\":…,\"on\":…}`）"
+msgstr ""
+"`PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply` (body "
+"`{\"state\":…,\"on\":…}`)"
 
 #: src/next.md
 msgid "`POST /api/pages/reply`"
@@ -5661,9 +5673,12 @@ msgid "`AddReviewMarks`"
 msgstr "`AddReviewMarks`"
 
 #: src/next.md
-msgid "`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`"
+msgid ""
+"`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`（本"
+"文 `{\"verdict\":…,\"targets\":[…]}`）"
 msgstr ""
-"`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`"
+"`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review` "
+"(body `{\"verdict\":…,\"targets\":[…]}`)"
 
 #: src/next.md
 msgid "`POST /api/pages/review`"
@@ -5743,12 +5758,14 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）と本"
-"文の道。残りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。"
+"この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）・"
+"`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages` と本文の道。残"
+"りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。"
 msgstr ""
 "Of the operations in this chapter, `GetHealth`, `CreatePage` (with senders), "
-"and the body route are built. The rest are added in the next PRs of stage 4 "
-"of AI-36 (see \"How stage 4 is split\" below)."
+"`ListPages`, `SetReplyState`, `AddReviewMarks`, `DeletePages`, and the body "
+"route are built. The rest are added in the next PRs of stage 4 of AI-36 (see "
+"\"How stage 4 is split\" below)."
 
 #: src/next.md
 msgid "ページを置く（CreatePage）"
@@ -6083,9 +6100,8 @@ msgid ""
 "わり。roster は段 6c で、これを試験にする）。"
 msgstr ""
 "Callers tell a 400 with `/actorRef` in `fieldList` apart as \"a sender not "
-"registered in castlist (resend once the session is registered in "
-"castlist)\" (this replaces today's 422; roster pins it in a test in stage "
-"6c)."
+"registered in castlist (resend once the session is registered in castlist)\" "
+"(this replaces today's 422; roster pins it in a test in stage 6c)."
 
 #: src/next.md
 msgid ""
@@ -6120,6 +6136,439 @@ msgstr ""
 "even for constraints used only in responses (the `@pattern` of "
 "`ActorSummary`'s `id` and `kind`), so `ci/gen.sh` adds `#!"
 "[allow(dead_code)]` at the top of the skeleton's `lib.rs`."
+
+#: src/next.md
+msgid ""
+"`ListPages` の行と、`SetReplyState`・`AddReviewMarks` の答えは、同じページの"
+"記録（`ai.pagetray#Page`。本文と `url` は入らない）。`CreatePage` の答えの欄"
+"（`url`・`Location` のほか）に、返事と印の欄（`PageState`）を足した物。"
+msgstr ""
+"The rows of `ListPages` and the answers of `SetReplyState` and "
+"`AddReviewMarks` are the same page record (`ai.pagetray#Page`; no body and "
+"no `url`). It is the fields of the `CreatePage` answer (other than `url` and "
+"`Location`) plus the reply and mark fields (`PageState`)."
+
+#: src/next.md
+msgid ""
+"`askedAt`（返事待ちにした時刻）・`answeredAt`（答えた時刻）・`waitsOn`"
+"（`review`・`tpm`）・`verdict`・`targets`（書いた順）・`sender` は、値のある"
+"時だけ。Product Manager を待つページに `waitsOn` は無い（DB でも空）。"
+msgstr ""
+"`askedAt` (when a reply was asked for), `answeredAt` (when it was answered), "
+"`waitsOn` (`review`, `tpm`), `verdict`, `targets` (in the order written), "
+"and `sender` appear only when they have a value. A page waiting for the "
+"Product Manager has no `waitsOn` (it is empty in the DB too)."
+
+#: src/next.md
+msgid ""
+"送り手は、castlist の答えがあれば `actor` と `resolvedAt` も。castlist の無"
+"い pagetray が置いたページは `issuer`・`ref` だけ。"
+msgstr ""
+"The sender also has `actor` and `resolvedAt` when castlist answered. A page "
+"put by a pagetray without castlist has only `issuer` and `ref`."
+
+#: src/next.md
+msgid "探す（ListPages）"
+msgstr "Searching (ListPages)"
+
+#: src/next.md
+msgid "`project`・`key`・`kind`・`role`・`workspace`"
+msgstr "`project`, `key`, `kind`, `role`, `workspace`"
+
+#: src/next.md
+msgid ""
+"同じ値の物。形は置く時と同じ（違えば 400）。`workspace=`（空）も条件で、"
+"workspace を書かずに置いたページに当たる"
+msgstr ""
+"Pages with the same value. The shapes are the same as when putting "
+"(otherwise 400). `workspace=` (empty) is also a condition and matches pages "
+"put without a workspace"
+
+#: src/next.md
+msgid "`q`"
+msgstr "`q`"
+
+#: src/next.md
+msgid ""
+"前後の空白を落とし、空なら絞らない。どの語も 3 字以上なら、語ごとに引用符で囲"
+"んだ trigram の全文検索（どの語も含む物。大小を問わない。`\"`・`*`・`AND` な"
+"どはただの字）。3 字に満たない語があれば、`q` 全体を題と本文の字で探す"
+"（`instr`。大小を分ける）"
+msgstr ""
+"Surrounding spaces are dropped; if empty, it does not narrow. If every term "
+"has 3 or more characters, each term becomes a quoted trigram full-text "
+"phrase (pages containing every term; case-insensitive; `\"`, `*`, `AND` and "
+"the like are plain characters). If any term is shorter than 3 characters, "
+"the whole `q` is searched in the title and text (`instr`; case-sensitive)"
+
+#: src/next.md
+msgid "`reply`・`on`"
+msgstr "`reply`, `on`"
+
+#: src/next.md
+msgid ""
+"`reply` は `waiting`（求めて、まだ答えていない）か `answered`（答えた）。"
+"`on` はその待ちの相手（`pm`・`review`・`tpm`。既定 `pm`）。`reply` の無い "
+"`on` は 400"
+msgstr ""
+"`reply` is `waiting` (asked for and not answered yet) or `answered` "
+"(answered). `on` is the party waited on (`pm`, `review`, `tpm`; default "
+"`pm`). `on` without `reply` is 400"
+
+#: src/next.md
+msgid "`approve`・`concerns`・`reject`・`not-assessed`"
+msgstr "`approve`, `concerns`, `reject`, `not-assessed`"
+
+#: src/next.md
+msgid ""
+"送り手の castlist のアクターの id（`ai.common#ActorId` の形）。castlist の答"
+"えの無い送り手のページには当たらない"
+msgstr ""
+"The castlist actor id of the sender (the shape of `ai.common#ActorId`). "
+"Pages whose sender has no castlist answer do not match"
+
+#: src/next.md src/glossary.md
+msgid "`sort`"
+msgstr "`sort`"
+
+#: src/next.md
+msgid ""
+"`-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順"
+"（新しい順なら、後に置いた物が先）"
+msgstr ""
+"`-createdAt` (newest first; default) or `createdAt` (oldest first). Equal "
+"times follow the order they were put (newest first puts the later one first)"
+
+#: src/next.md
+msgid "`maxResults`・`nextToken`"
+msgstr "`maxResults`, `nextToken`"
+
+#: src/next.md
+msgid ""
+"1 頁は既定 100。1〜1000 の外は、生成した層が 400（今の server は丸めていた）"
+msgstr ""
+"A page holds 100 by default. Outside 1 to 1000, the generated layer answers "
+"400 (the current server clamped it)"
+
+#: src/next.md
+msgid ""
+"頁は keyset で続ける: `nextToken` は、検索の種類（`pages`）・`sort`・前の頁の"
+"最後の行の `createdAt`（残す字）と id を繋いで 16 進にした物（castlist の頁の"
+"印と同じ形）。同じ時刻の行が頁の境に並んでも、抜けず重ならない。辿る間に置い"
+"たページ（前の頁より新しい）は、新しい順の続きに出ない。"
+msgstr ""
+"Pages continue by keyset: `nextToken` is the search kind (`pages`), `sort`, "
+"and the `createdAt` (stored string) and id of the last row of the previous "
+"page, joined and hex-encoded (the same shape as castlist's page token). Rows "
+"with the same time on a page boundary are neither skipped nor repeated. "
+"Pages put while walking (newer than the previous page) do not appear in the "
+"rest of a newest-first walk."
+
+#: src/next.md
+msgid ""
+"`nextToken` は同じ `sort` の答えの物を渡す。崩れた物・ほかの検索の物・`sort` "
+"の違う物は 400 `ValidationException`（`message` に `nextToken`）。ほかの条件"
+"は印に結ばない（castlist の `ListActors` と同じ）。"
+msgstr ""
+"Pass a `nextToken` from an answer with the same `sort`. A broken one, one "
+"from another search, or one with a different `sort` is 400 "
+"`ValidationException` (`message` mentions `nextToken`). Other conditions are "
+"not bound to the token (the same as castlist's `ListActors`)."
+
+#: src/next.md
+msgid ""
+"今の `before`・`after`（時刻の字で切る）は無くす。続きは `nextToken` だけ。"
+msgstr ""
+"The current `before` and `after` (cutting by the time string) are dropped. "
+"Only `nextToken` continues a list."
+
+#: src/next.md
+msgid ""
+"読む接続の 1 つの取引で、1 頁より 1 つ多く読み、次の頁があるかを決める。読む"
+"接続を 3 秒（`READ_WAIT`）待っても取れなければ 503 `Unavailable`、DB の誤り"
+"は 500 `InternalError`。"
+msgstr ""
+"One read transaction reads one more row than a page to decide whether there "
+"is a next page. If no read connection is free after 3 seconds (`READ_WAIT`), "
+"it is 503 `Unavailable`; a DB error is 500 `InternalError`."
+
+#: src/next.md
+msgid ""
+"SQL は、書いた条件の欠片だけを繋ぐ（`crates/server/src/search.rs`。値は bind "
+"する）。`explain query plan` の試験（`crates/server/tests/list.rs`）が、"
+"pages を索引なしに端から読まないこと、project・key・送り手・返事待ち・"
+"`nextToken` の条件は索引で引くこと、条件の無い一覧と `nextToken` は時刻の索引"
+"の順に読む（並べ替えの一時の表を作らない）ことを見る。返事待ちは、返事待ちだ"
+"けの部分の索引（`pages_waiting`）から引く（条件をじかに書くと、planner は時刻"
+"の索引の順に端から読む方を選ぶ）。短い語の検索は、今の server と同じく索引の"
+"表を端から見る。"
+msgstr ""
+"The SQL joins only the pieces of the conditions given (`crates/server/src/"
+"search.rs`; values are bound). An `explain query plan` test (`crates/server/"
+"tests/list.rs`) checks that pages are never read end to end without an "
+"index, that the project, key, sender, waiting, and `nextToken` conditions "
+"look rows up through an index, and that the unfiltered list and `nextToken` "
+"read in the order of the time index (no temporary table for sorting). "
+"Waiting pages are looked up from the partial index of waiting pages only "
+"(`pages_waiting`) (written as plain conditions, the planner chooses to read "
+"in the order of the time index from the end). A search with short terms "
+"reads the index table end to end, as the current server does."
+
+#: src/next.md
+msgid "返事（SetReplyState）"
+msgstr "Replies (SetReplyState)"
+
+#: src/next.md
+msgid ""
+"ページ 1 枚の返事の状態を書く。本文は JSON の `{\"state\":\"waiting\"|"
+"\"answered\",\"on\":\"pm\"|\"review\"|\"tpm\"}`（`on` は無ければ `pm`）。答え"
+"は 200 で、書いた後のページの記録。状態の移りは今の server と同じ。"
+msgstr ""
+"Writes the reply state of one page. The body is the JSON `{\"state\":"
+"\"waiting\"|\"answered\",\"on\":\"pm\"|\"review\"|\"tpm\"}` (`on` defaults "
+"to `pm`). The answer is 200 with the page record after writing. The state "
+"transitions are the same as the current server."
+
+#: src/next.md
+msgid "今のページ"
+msgstr "Current page"
+
+#: src/next.md
+msgid "`waiting`（`on` の相手）"
+msgstr "`waiting` (party `on`)"
+
+#: src/next.md
+msgid "`answered`（`on` の相手）"
+msgstr "`answered` (party `on`)"
+
+#: src/next.md
+msgid "返事を求めていない"
+msgstr "No reply asked for"
+
+#: src/next.md
+msgid "求めた時刻を今にし、待ちの相手を `on` に"
+msgstr "Set the asked time to now and the waited-on party to `on`"
+
+#: src/next.md
+msgid "`pm` なら、求めた時刻と答えた時刻に同じ今を入れる。ほかの相手は 409"
+msgstr ""
+"For `pm`, set both the asked and the answered time to the same now. Other "
+"parties are 409"
+
+#: src/next.md
+msgid "`on` の相手を待っている"
+msgstr "Waiting for the `on` party"
+
+#: src/next.md
+msgid "何も替えない（時刻は初めの物）"
+msgstr "Change nothing (the first time stays)"
+
+#: src/next.md
+msgid "答えた時刻を今に（待ちの相手は替えない）"
+msgstr "Set the answer time to now (the waited-on party stays)"
+
+#: src/next.md
+msgid "ほかの相手を待っている"
+msgstr "Waiting for another party"
+
+#: src/next.md
+msgid "409（待ちを黙って移さない）"
+msgstr "409 (a wait is not moved silently)"
+
+#: src/next.md
+msgid "409"
+msgstr "409"
+
+#: src/next.md
+msgid "答えた（相手が `on`）"
+msgstr "Answered (party is `on`)"
+
+#: src/next.md
+msgid "求めた時刻を今にし、答えた時刻を消す"
+msgstr "Set the asked time to now and clear the answered time"
+
+#: src/next.md
+msgid "何も替えない（答えた時刻を保つ）"
+msgstr "Change nothing (the answered time stays)"
+
+#: src/next.md
+msgid "答えた（相手が `on` でない）"
+msgstr "Answered (party is not `on`)"
+
+#: src/next.md
+msgid ""
+"求めた時刻を今にし、答えた時刻を消し、待ちの相手を `on` に（求め直しは相手を"
+"替えてよい）"
+msgstr ""
+"Set the asked time to now, clear the answered time, and set the waited-on "
+"party to `on` (asking again may change the party)"
+
+#: src/next.md
+msgid ""
+"409 `Conflict` は何も替えない（`message` は「そのページは、on の相手の返事を"
+"待っていない（何も替えていない）」）。"
+msgstr ""
+"409 `Conflict` changes nothing (the `message` says the page is not waiting "
+"for the reply of the `on` party and nothing was changed)."
+
+#: src/next.md
+msgid ""
+"無いページも、消したページも 404 `NotFound`（410 でない。今の server と同"
+"じ）。`project`・`key` の `.`・`..` は 400。`state` の無い本文・JSON でない本"
+"文は 400。"
+msgstr ""
+"Both a missing page and a removed page are 404 `NotFound` (not 410; the same "
+"as the current server). `.` and `..` as `project` or `key` are 400. A body "
+"without `state` and a body that is not JSON are 400."
+
+#: src/next.md
+msgid ""
+"見る・書く・答えの記録を読むは、書く接続の 1 つの取引。書く接続を 2 秒待って"
+"も取れなければ 503、DB の誤りは 500（どちらも何も替えない）。時刻は残す字"
+"（24 字）。"
+msgstr ""
+"Checking, writing, and reading the answer record happen in one transaction "
+"on the write connection. If the write connection is not free after 2 "
+"seconds, it is 503; a DB error is 500 (neither changes anything). Times are "
+"the stored string (24 characters)."
+
+#: src/next.md
+msgid ""
+"だれが書いてよいかは、呼ぶ側（roster）が持つ。browser の中のページからは書け"
+"ない（守りの層が `Origin` の付いた要求を 403）。"
+msgstr ""
+"Who may write is decided by the caller (roster). A page inside a browser "
+"cannot write (the guard layer answers 403 to requests with an `Origin`)."
+
+#: src/next.md
+msgid "レビューの印（AddReviewMarks）"
+msgstr "Review marks (AddReviewMarks)"
+
+#: src/next.md
+msgid ""
+"ページ 1 枚に、判定と見た物を書く。本文は JSON の `{\"verdict\":…,"
+"\"targets\":[…]}`（どちらも書かなくてよく、本文が無くてもよい。何も書かなけれ"
+"ば、何も替えずに記録を返す）。答えは 200 で、書いた後のページの記録。"
+msgstr ""
+"Writes a verdict and reviewed targets on one page. The body is the JSON "
+"`{\"verdict\":…,\"targets\":[…]}` (both are optional, and the body may be "
+"missing; with nothing written, it changes nothing and returns the record). "
+"The answer is 200 with the page record after writing."
+
+#: src/next.md
+msgid ""
+"`verdict` は、書けば替わり、書かなければ前のまま（消す道は無い）。種類が "
+"`review` のページだけ（ほかは 400）。"
+msgstr ""
+"`verdict` changes when written and stays when not (there is no way to clear "
+"it). Only pages of kind `review` (others are 400)."
+
+#: src/next.md
+msgid ""
+"`targets` は、置き場のページの path（`/<project>/<key>/<kind>-<n>.html`。本文"
+"の道と同じ形）か、空白と制御字の無い `https://…`（2048 字まで。byte でなく字"
+"で数える）。1 度に 100 個まで。足すだけで、同じ物は 1 つ（1 度の要求の中で重"
+"ねても）、書いた順。足すとページ 1 枚で 100 個を超えるなら 400（判定も替えな"
+"い）。"
+msgstr ""
+"`targets` are paths of pages in the tray (`/<project>/<key>/<kind>-"
+"<n>.html`; the same shape as the body route) or `https://…` without spaces "
+"or control characters (up to 2048 characters, counted as characters, not "
+"bytes). Up to 100 per request. They are only added, a target is kept once "
+"(even when repeated in one request), in the order written. If adding would "
+"make more than 100 on one page, it is 400 (the verdict does not change "
+"either)."
+
+#: src/next.md
+msgid ""
+"無いページも、消したページも 404。ページを消すと、見た物も消える（外のキーの "
+"`on delete cascade`）。"
+msgstr ""
+"Both a missing page and a removed page are 404. Removing a page removes its "
+"targets too (the foreign key's `on delete cascade`)."
+
+#: src/next.md
+msgid ""
+"今の server と違い、本文の知らない欄は 400 にせず読み飛ばす（上の「共通の決ま"
+"り」の restJson1）。形の違う本文（`targets` が並びでない など）は、生成した層"
+"が 400 `SerializationException`。"
+msgstr ""
+"Unlike the current server, unknown fields in the body are skipped instead of "
+"400 (restJson1 in \"Common rules\" above). A body of the wrong shape "
+"(`targets` not a list, and so on) is 400 `SerializationException` from the "
+"generated layer."
+
+#: src/next.md
+msgid "書く接続・誤り・`Origin` は返事と同じ。"
+msgstr "The write connection, errors, and `Origin` are the same as replies."
+
+#: src/next.md
+msgid "消す（DeletePages）"
+msgstr "Removing (DeletePages)"
+
+#: src/next.md
+msgid ""
+"`DELETE /api/pages?project=…[&key=…][&kind=…[&n=…]]`。合うページをみな消す"
+"（戻せない）。答えは 200 の `{\"removed\":[path…]}`（置いた順。合う物が無けれ"
+"ば空）。"
+msgstr ""
+"`DELETE /api/pages?project=…[&key=…][&kind=…[&n=…]]`. Removes every matching "
+"page (cannot be undone). The answer is 200 with `{\"removed\":[path…]}` (in "
+"the order put; empty if nothing matches)."
+
+#: src/next.md
+msgid ""
+"`project` は要る（`.`・`..` は 400）。`key`・`kind`・`n` は、書けば絞る。"
+"`kind` だけでもよい（project の中の、その種類をみな）。`n` には `key` と "
+"`kind` が要る（無ければ 400「n を書くときは key と kind も書く」）。"
+msgstr ""
+"`project` is required (`.` and `..` are 400). `key`, `kind`, and `n` narrow "
+"when given. `kind` alone is fine (every page of that kind in the project). "
+"`n` needs `key` and `kind` (otherwise 400 saying to give key and kind with "
+"n)."
+
+#: src/next.md
+msgid ""
+"消したページの番号は、消した時刻（残す字）と `removed` に残し、2 度使わない"
+"（本文の URL は 410）。全文の索引の行も消える。見た物（`page_targets`）は外の"
+"キーで一緒に消える。送り手の行は残る（足すだけの表）。"
+msgstr ""
+"The numbers of removed pages stay in `removed` with the time removed (the "
+"stored string) and are never used twice (the body URL is 410). The full-text "
+"index rows go too. The targets (`page_targets`) go with them through the "
+"foreign key. Sender rows stay (an append-only table)."
+
+#: src/next.md
+msgid ""
+"1 つの取引で、番号を残す・索引の行を消す・ページを消す。書く接続を 2 秒待って"
+"も取れなければ 503、DB の誤りは 500（どちらも何も消さない）。"
+msgstr ""
+"One transaction keeps the numbers, removes the index rows, and removes the "
+"pages. If the write connection is not free after 2 seconds, it is 503; a DB "
+"error is 500 (neither removes anything)."
+
+#: src/next.md
+msgid "browser の中のページからは消せない（UI と同じ `Origin` でも 403）。"
+msgstr ""
+"A page inside a browser cannot remove (403 even with the same `Origin` as "
+"the UI)."
+
+#: src/next.md
+msgid "新着の知らせ（SSE）"
+msgstr "Push of new arrivals (SSE)"
+
+#: src/next.md
+msgid ""
+"SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わ"
+"らなかった時も）に知らせを送る所は、`crates/server/src/events.rs` の `send` "
+"として置いてあり、今は記録に 1 行書くだけ。SSE の PR で、ここを broadcast の "
+"channel に送る形にする（今の server と同じく、消した時は送らない）。"
+msgstr ""
+"SSE (`GET /api/events`) is added in a separate later PR. The place that "
+"sends a notice after writing a reply or marks (even when nothing changed) is "
+"in place as `send` in `crates/server/src/events.rs`, and for now it only "
+"writes one log line. The SSE PR makes it send to a broadcast channel (as "
+"with the current server, nothing is sent on removal)."
 
 #: src/next.md
 msgid "ページの本文"
@@ -6347,11 +6796,26 @@ msgid ""
 "一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時"
 "刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、"
 "`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。"
+"`ListPages` は作ってあり、`crates/server/tests/list.rs` が、同じ時刻の行を頁"
+"の境に並べて、抜けず重ならないことを見る。"
 msgstr ""
 "List pages: the current server compares `before` and `after` with the "
 "`created_at` string, so rows with the same time at a page boundary are "
 "skipped or repeated. The new `ListPages` and `ListFiles` continue from the "
-"pair of `createdAt` and the row id (keyset; stored in `nextToken`)."
+"pair of `createdAt` and the row id (keyset; stored in `nextToken`). "
+"`ListPages` is built, and `crates/server/tests/list.rs` puts rows with the "
+"same time on a page boundary and checks that none is skipped or repeated."
+
+#: src/next.md
+msgid ""
+"引数の形: 今の server は一覧の `project`・`kind` などと `actor` の形を見ず、"
+"`limit` は 1〜1000 に丸めていた。新しい `ListPages` は定義の形で 400 にする"
+"（`maxResults` も）。"
+msgstr ""
+"Parameter shapes: the current server did not check the shapes of list "
+"parameters such as `project` and `kind` or of `actor`, and clamped `limit` "
+"to 1 to 1000. The new `ListPages` answers 400 by the shapes in the "
+"definition (`maxResults` too)."
 
 #: src/next.md
 msgid "定義の取り方"
@@ -6455,10 +6919,13 @@ msgstr ""
 #: src/next.md
 msgid ""
 "探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・"
-"`AddReviewMarks`・`DeletePages`）と SSE"
+"`AddReviewMarks`・`DeletePages`）。SSE は 3 の後の別の PR に分けた（知らせを"
+"送る所は 3 で置いた。上の「新着の知らせ」）"
 msgstr ""
 "Search, replies, review marks, and removal (`ListPages`, `SetReplyState`, "
-"`AddReviewMarks`, `DeletePages`), and SSE"
+"`AddReviewMarks`, `DeletePages`). SSE was split into a separate PR after 3 "
+"(the place that sends the notices is put in 3; see \"Push of new arrivals\" "
+"above)"
 
 #: src/next.md
 msgid ""
@@ -7216,10 +7683,6 @@ msgstr ""
 #: src/glossary.md
 msgid "並び（sort order）"
 msgstr "sort order"
-
-#: src/glossary.md
-msgid "`sort`"
-msgstr "`sort`"
 
 #: src/glossary.md
 msgid "一覧の列の行の順。新しい順か、古い順"

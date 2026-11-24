@@ -3,13 +3,14 @@
 //! - 書く接続は 1 本だけ。番号（今の最大 ＋ 1）を取る所が 1 列に並ぶ。
 //! - 読む接続は 4 本で、読むだけ。WAL なので、書いている間も待たずに読める。
 //! - 接続の決まりと、今の server の DB を断る所は、castlist の新しい server（crates/server/src/db.rs）と同じ。
+//! - 返事・印・消すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする（間に別の書く物が入らない）。
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqliteJournalMode, SqlitePoolOptions};
-use sqlx::{Connection, SqlitePool};
+use sqlx::{Connection, FromRow, SqlitePool};
 use time::OffsetDateTime;
 
 /// 書く接続を待つ長さ。過ぎれば「混んでいる」で返す。問い合わせの時間切れ（[`crate::REQUEST_TIMEOUT`]）より短くし、
@@ -63,6 +64,123 @@ pub struct Placed {
     pub created_at: String,
     pub size: i64,
 }
+
+/// ページの記録の行（送り手の列は senders を left join した物。見た物は改行でつないだ物）。
+#[derive(Debug, FromRow)]
+pub struct PageRow {
+    pub id: i64,
+    pub project: String,
+    pub key: String,
+    pub kind: String,
+    pub n: i64,
+    pub title: String,
+    pub role: String,
+    pub workspace: String,
+    pub created_at: String,
+    pub size: i64,
+    pub asked_at: Option<String>,
+    pub answered_at: Option<String>,
+    pub waits_on: Option<String>,
+    pub verdict: Option<String>,
+    pub targets: Option<String>,
+    pub actor_issuer: Option<String>,
+    pub actor_ref: Option<String>,
+    pub actor_id: Option<String>,
+    pub actor_name: Option<String>,
+    pub actor_kind: Option<String>,
+    pub resolved_at: Option<String>,
+}
+
+/// [`PageRow`] を読む select（`pages p` と `senders s`。後ろに where を繋ぐ）。
+pub const PAGE_ROW: &str = "select p.id, p.project, p.key, p.kind, p.n, p.title, p.role, p.workspace, p.created_at,
+        length(p.body) as size, p.asked_at, p.answered_at, p.waits_on, p.verdict,
+        (select group_concat(t.target, char(10) order by t.rowid) from page_targets t where t.page_id = p.id) as targets,
+        s.actor_issuer, s.actor_ref, s.actor_id, s.actor_name, s.actor_kind, s.resolved_at
+ from pages p left join senders s on s.id = p.sender_id";
+
+/// 返事の状態。
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Reply {
+    /// 返事待ち（求めて、まだ答えていない）。
+    Waiting,
+    /// 答えた。
+    Answered,
+}
+
+impl Reply {
+    /// 定義の字（`waiting`・`answered`。形は定義が見てある）。
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "waiting" => Some(Reply::Waiting),
+            "answered" => Some(Reply::Answered),
+            _ => None,
+        }
+    }
+}
+
+/// 返事の待ちの相手。DB では Product Manager を空で持つ（今の server と同じ）。
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Party {
+    #[default]
+    Pm,
+    Review,
+    Tpm,
+}
+
+impl Party {
+    /// 定義の字（`pm`・`review`・`tpm`。形は定義が見てある）。
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "pm" => Some(Party::Pm),
+            "review" => Some(Party::Review),
+            "tpm" => Some(Party::Tpm),
+            _ => None,
+        }
+    }
+
+    /// DB の `waits_on` の値（Product Manager は空）。
+    pub fn column(self) -> Option<&'static str> {
+        match self {
+            Party::Pm => None,
+            Party::Review => Some("review"),
+            Party::Tpm => Some("tpm"),
+        }
+    }
+
+    /// DB の `waits_on` の値から読む（空と知らない字は Product Manager）。
+    fn of(column: Option<&str>) -> Self {
+        column.and_then(Self::parse).unwrap_or_default()
+    }
+}
+
+/// 名指したページ（project・Key・種類・番号）。
+pub struct PageKey<'a> {
+    pub project: &'a str,
+    pub key: &'a str,
+    pub kind: &'a str,
+    pub n: i64,
+}
+
+/// 返事の状態か印を書いた結果。
+pub enum Marked {
+    /// 書いた（替わらなかった時も）。書いた後の記録。
+    Done(Box<PageRow>),
+    /// そのページは無い（消したページも）。
+    Missing,
+    /// 返事: 待ちの相手が `on` と違う。印: 足すと見た物が上限を超える。どちらも何も替えていない。
+    Refused,
+}
+
+/// 消すページ。`project` は要る。ほかは、書けば絞る。
+pub struct Target<'a> {
+    pub project: &'a str,
+    pub key: Option<&'a str>,
+    pub kind: Option<&'a str>,
+    pub n: Option<i64>,
+}
+
+/// 消したページ（project・Key・種類・番号）。
+pub type Removed = (String, String, String, i64);
 
 /// 書けない訳。
 #[derive(Debug)]
@@ -164,6 +282,14 @@ async fn add_sender(tx: &mut SqliteConnection, sender: &NewSender) -> Result<i64
     .bind(now())
     .fetch_one(tx)
     .await
+}
+
+/// 取引の中で、ページ 1 枚の記録を読む（送り手と見た物も入れる。update の returning では引けないため）。
+async fn page_row(tx: &mut SqliteConnection, id: i64) -> Result<PageRow, sqlx::Error> {
+    sqlx::query_as(sqlx::AssertSqlSafe(format!("{PAGE_ROW} where p.id = ?1")))
+        .bind(id)
+        .fetch_one(tx)
+        .await
 }
 
 // --- 開く ---
@@ -342,6 +468,153 @@ impl Db {
             created_at,
             size: page.body.len() as i64,
         })
+    }
+
+    /// ページ 1 枚の返事の状態を書く（docs/src/next.md の「返事」）。同じ状態を 2 度書いても、時刻は初めの物を保つ。
+    /// - 返事待ち: 待ちの相手を `on` にし、答えた時刻を空にする。答えた後にもう 1 度求めた時は、求めた時刻を今にする。
+    ///   今ほかの相手の返事待ちなら、何も替えない（[`Marked::Refused`]）。
+    /// - 答えた: 答えた時刻を入れる（求めた時刻が空なら、同じ時刻を入れる）。待ちの相手が `on` と違えば何も替えない
+    ///   （[`Marked::Refused`]）。Product Manager のほかの相手は、返事待ちにしたページだけを答えたにできる。
+    pub async fn set_reply(
+        &self,
+        page: &PageKey<'_>,
+        reply: Reply,
+        on: Party,
+    ) -> Result<Marked, WriteError> {
+        let answered = reply == Reply::Answered;
+        let mut tx = self.write.begin().await?;
+        let Some((id, waits_on, asked_at, answered_at)) =
+            sqlx::query_as::<_, (i64, Option<String>, Option<String>, Option<String>)>(
+                "select id, waits_on, asked_at, answered_at from pages
+                 where project = ?1 and key = ?2 and kind = ?3 and n = ?4",
+            )
+            .bind(page.project)
+            .bind(page.key)
+            .bind(page.kind)
+            .bind(page.n)
+            .fetch_optional(&mut *tx)
+            .await?
+        else {
+            return Ok(Marked::Missing);
+        };
+        let party = Party::of(waits_on.as_deref());
+        let waiting = asked_at.is_some() && answered_at.is_none();
+        // 答えた: 相手が違う・相手が Product Manager でないのに求めていない。返事待ち: 今ほかの相手を待っている
+        // （待ちを黙って移さない。答えた後の求め直しは、相手を替えてよい）。
+        let refused = if answered {
+            party != on || (on != Party::Pm && asked_at.is_none())
+        } else {
+            waiting && party != on
+        };
+        if refused {
+            return Ok(Marked::Refused);
+        }
+        sqlx::query(
+            "update pages
+             set asked_at = case when asked_at is not null and (?2 or answered_at is null)
+                                 then asked_at else ?4 end,
+                 answered_at = case when ?2 then coalesce(answered_at, ?4) end,
+                 waits_on = case when ?2 then waits_on else ?3 end
+             where id = ?1",
+        )
+        .bind(id)
+        .bind(answered)
+        .bind(on.column())
+        .bind(now())
+        .execute(&mut *tx)
+        .await?;
+        let row = page_row(&mut tx, id).await?;
+        tx.commit().await?;
+        Ok(Marked::Done(Box::new(row)))
+    }
+
+    /// レビューの印を書く: 判定（書けば替える）と見た物（足すだけ。同じ物は 1 つ）。
+    /// 足した後の見た物が `max` を超えるなら、何も替えない（[`Marked::Refused`]）。
+    /// 判定を書けるページの種類と、見た物の形は、呼ぶ側が見る。
+    pub async fn add_marks(
+        &self,
+        page: &PageKey<'_>,
+        verdict: Option<&str>,
+        targets: &[String],
+        max: i64,
+    ) -> Result<Marked, WriteError> {
+        let mut tx = self.write.begin().await?;
+        let Some(id) = sqlx::query_scalar::<_, i64>(
+            "update pages set verdict = coalesce(?5, verdict)
+             where project = ?1 and key = ?2 and kind = ?3 and n = ?4
+             returning id",
+        )
+        .bind(page.project)
+        .bind(page.key)
+        .bind(page.kind)
+        .bind(page.n)
+        .bind(verdict)
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(Marked::Missing);
+        };
+        for target in targets {
+            sqlx::query(
+                "insert into page_targets(page_id, target) values(?1, ?2) on conflict do nothing",
+            )
+            .bind(id)
+            .bind(target)
+            .execute(&mut *tx)
+            .await?;
+        }
+        let count: i64 = sqlx::query_scalar("select count(*) from page_targets where page_id = ?1")
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await?;
+        if count > max {
+            // 取引を commit せずに落とすと、判定も見た物も替わらない。
+            return Ok(Marked::Refused);
+        }
+        let row = page_row(&mut tx, id).await?;
+        tx.commit().await?;
+        Ok(Marked::Done(Box::new(row)))
+    }
+
+    /// 合うページを消し（全文の索引の行も。見た物は外のキーで一緒に消える）、番号を消した時刻と removed に残す。
+    /// 消したページを、置いた順（id の順）に返す。送り手の行は残る。
+    pub async fn remove(&self, target: &Target<'_>) -> Result<Vec<Removed>, WriteError> {
+        const MATCHES: &str = "project = ?1 and (?2 is null or key = ?2)
+             and (?3 is null or kind = ?3) and (?4 is null or n = ?4)";
+        let mut tx = self.write.begin().await?;
+        let removed: Vec<Removed> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "insert into removed(project, key, kind, n, removed_at)
+             select project, key, kind, n, ?5 from pages where {MATCHES}
+             order by id
+             returning project, key, kind, n"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(target.kind)
+        .bind(target.n)
+        .bind(now())
+        .fetch_all(&mut *tx)
+        .await?;
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "delete from pages_fts where rowid in (select id from pages where {MATCHES})"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(target.kind)
+        .bind(target.n)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "delete from pages where {MATCHES}"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(target.kind)
+        .bind(target.n)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(removed)
     }
 
     /// ページの本文。無ければ None。

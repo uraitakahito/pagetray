@@ -519,9 +519,10 @@ async fn a_list_waits_for_a_read_connection_and_then_is_unavailable() {
 // --- 索引 ---
 
 /// 探す SQL（`pagetray_next::search::plans()`。条件を 1 つずつと、重ねた物）が、pages を索引なしに端から読まない。
-/// 絞る列に索引のある条件（project・key・送り手・返事待ち・nextToken）は、pages を索引で引く（SEARCH）。
-/// ほかの条件と、条件の無い一覧は、時刻の索引（pages_created）の順に読み、1 頁で止まる。どれも並べ替えの一時の表を作らない
-/// 物は、条件の無い一覧と nextToken だけを見る（絞った物は、引いた行を並べ替えてよい）。
+/// 絞る列に索引のある条件（project・key・送り手・返事待ち・nextToken）は、pages を索引で引く（SEARCH。返事待ちは、
+/// 返事待ちだけの部分の索引で引いた id から）。
+/// ほかの条件と、条件の無い一覧は、時刻の索引（pages_created）の順に読み、1 頁で止まる。条件の無い一覧と nextToken は、
+/// 行を並べ替える一時の表を作らない（絞った物は、引いた行を並べ替えてよい。1 枚の見た物を書いた順に繋ぐ小さな並べ替えは別）。
 /// 短い語の検索（instr）は、今の server と同じく索引の表を端から見る（決め: 短い語は trigram の索引で引けない）。
 #[tokio::test]
 async fn the_list_sql_reads_pages_by_an_index() {
@@ -570,15 +571,13 @@ async fn the_list_sql_reads_pages_by_an_index() {
         assert!(bare.is_empty(), "{name} が端から読む: {details:?}\n{sql}");
         if searched.contains(name) {
             assert!(
-                details
-                    .iter()
-                    .any(|d| d.starts_with("SEARCH p ") && d.contains("INDEX")),
+                details.iter().any(|d| d.starts_with("SEARCH p USING")),
                 "{name} が pages を索引で引かない: {details:?}\n{sql}"
             );
         }
         if ordered.contains(name) {
             assert!(
-                !details.iter().any(|d| d.contains("TEMP B-TREE")),
+                !details.contains(&"USE TEMP B-TREE FOR ORDER BY"),
                 "{name} が並べ替えの表を作る: {details:?}\n{sql}"
             );
         }
