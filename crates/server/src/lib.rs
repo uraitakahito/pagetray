@@ -1,0 +1,97 @@
+//! 新しい pagetray の server（AI-36）。
+//!
+//! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
+//! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）は、同じ Router に並べる。
+//! 形の決まりは docs/src/next.md。
+pub mod db;
+mod errors;
+mod generated;
+mod guard;
+mod pages;
+mod text;
+
+use std::sync::Arc;
+use std::time::Duration;
+
+use axum::Router;
+use axum::middleware;
+use axum::routing::get;
+use pagetray_sdk::error::GetHealthError;
+use pagetray_sdk::output::GetHealthOutput;
+use pagetray_sdk::{Pagetray, PagetrayConfig};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
+use tracing::Level;
+
+use crate::db::Db;
+use crate::generated::Generated;
+
+/// 1 つの問い合わせにかけてよい長さ。過ぎれば 503 `Unavailable` で返す（castlist と同じ）。
+pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// 守りの層の設定。
+#[derive(Clone)]
+pub struct Config {
+    /// 1 つの問い合わせにかけてよい長さ（既定は [`REQUEST_TIMEOUT`]。試験は短くする）。
+    pub timeout: Duration,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            timeout: REQUEST_TIMEOUT,
+        }
+    }
+}
+
+/// 動かす Router。
+pub fn app(db: Arc<Db>) -> Router {
+    app_with(db, Config::default())
+}
+
+/// 動かす Router。DB は、どの handler も同じ物を使う。
+pub fn app_with(db: Arc<Db>, config: Config) -> Router {
+    let generated = Pagetray::builder(PagetrayConfig::builder().build())
+        .get_health(get_health)
+        .create_page({
+            let db = db.clone();
+            move |input, host| pages::create_page(db.clone(), input, host)
+        })
+        .build()
+        .expect("どの操作にも handler がある");
+    let generated = Generated::new(generated);
+    Router::new()
+        // ページの本文（今の server と同じ URL）。`project` に `api` は置けないので、`/api/…` は本文の道に入れず、
+        // みな生成した層に渡す（名指した道が先に当たる）。
+        .route("/{project}/{key}/{file}", get(pages::show))
+        .route_service("/api/{*rest}", generated.clone())
+        .with_state(db)
+        .fallback_service(generated)
+        .layer(middleware::from_fn_with_state(
+            config.timeout,
+            guard::timeout,
+        ))
+        .layer(middleware::from_fn(guard::guard))
+        // 問い合わせごとの 1 行。guard が断った物も残る。今の server と同じ。
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
+        // 一番外に置く。guard が断った答えにも付く。
+        .layer(middleware::from_fn(guard::stamp))
+}
+
+async fn get_health(
+    _input: pagetray_sdk::input::GetHealthInput,
+) -> Result<GetHealthOutput, GetHealthError> {
+    // 試験を先に書く commit の仮の物（次の commit で作る）。
+    Err(GetHealthError::Unavailable(errors::busy()))
+}
+
+/// DB の字の時刻（RFC 3339）を、答えの時刻にする。読めなければ、その訳。
+fn datetime(s: &str) -> Result<aws_smithy_types::DateTime, String> {
+    time::OffsetDateTime::parse(s, &time::format_description::well_known::Rfc3339)
+        .ok()
+        .and_then(|t| aws_smithy_types::DateTime::from_nanos(t.unix_timestamp_nanos()).ok())
+        .ok_or_else(|| format!("DB の時刻が読めない: {s}"))
+}

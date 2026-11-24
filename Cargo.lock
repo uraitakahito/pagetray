@@ -2002,6 +2002,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pagetray-next"
+version = "0.8.0"
+dependencies = [
+ "aws-smithy-types",
+ "axum",
+ "bytes",
+ "http-body 1.1.0",
+ "http-body-util",
+ "pagetray_sdk",
+ "serde_json",
+ "sqlx",
+ "time",
+ "tokio",
+ "tower 0.5.3",
+ "tower-http 0.7.1",
+ "tracing",
+]
+
+[[package]]
 name = "pagetray_sdk"
 version = "0.0.0"
 dependencies = [
