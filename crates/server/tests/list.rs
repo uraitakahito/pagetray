@@ -571,7 +571,8 @@ async fn the_list_sql_reads_pages_by_an_index() {
         assert!(bare.is_empty(), "{name} が端から読む: {details:?}\n{sql}");
         if searched.contains(name) {
             assert!(
-                details.iter().any(|d| d.starts_with("SEARCH p USING")),
+                details.iter().any(|d| d.starts_with("SEARCH p USING")
+                    && (d.contains("INDEX") || d.ends_with("(rowid=?)"))),
                 "{name} が pages を索引で引かない: {details:?}\n{sql}"
             );
         }

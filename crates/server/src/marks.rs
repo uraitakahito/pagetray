@@ -79,8 +79,10 @@ pub async fn set_reply_state(
                 input.state,
                 input.on.as_deref().unwrap_or("pm")
             );
+            // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない）。
+            let answer = record(OPERATION, (*row).clone())?;
             events::send(Note::Reply(&row));
-            Ok(record(OPERATION, *row)?)
+            Ok(answer)
         }
         Marked::Missing => Err(not_found().into()),
         Marked::Refused => Err(Conflict {
@@ -143,8 +145,10 @@ pub async fn add_review_marks(
                 input.verdict.as_deref().unwrap_or("-"),
                 targets.len()
             );
+            // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない）。
+            let answer = record(OPERATION, (*row).clone())?;
             events::send(Note::Review(&row));
-            Ok(record(OPERATION, *row)?)
+            Ok(answer)
         }
         Marked::Missing => Err(not_found().into()),
         Marked::Refused => {

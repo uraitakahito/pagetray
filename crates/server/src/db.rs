@@ -66,7 +66,7 @@ pub struct Placed {
 }
 
 /// ページの記録の行（送り手の列は senders を left join した物。見た物は改行でつないだ物）。
-#[derive(Debug, FromRow)]
+#[derive(Clone, Debug, FromRow)]
 pub struct PageRow {
     pub id: i64,
     pub project: String,
@@ -582,18 +582,26 @@ impl Db {
         const MATCHES: &str = "project = ?1 and (?2 is null or key = ?2)
              and (?3 is null or kind = ?3) and (?4 is null or n = ?4)";
         let mut tx = self.write.begin().await?;
+        // 消す物を、置いた順（id の順）に先に読む（insert の returning の行の順は、SQLite が決めないので頼らない）。
         let removed: Vec<Removed> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "select project, key, kind, n from pages where {MATCHES} order by id"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(target.kind)
+        .bind(target.n)
+        .fetch_all(&mut *tx)
+        .await?;
+        sqlx::query(sqlx::AssertSqlSafe(format!(
             "insert into removed(project, key, kind, n, removed_at)
-             select project, key, kind, n, ?5 from pages where {MATCHES}
-             order by id
-             returning project, key, kind, n"
+             select project, key, kind, n, ?5 from pages where {MATCHES}"
         )))
         .bind(target.project)
         .bind(target.key)
         .bind(target.kind)
         .bind(target.n)
         .bind(now())
-        .fetch_all(&mut *tx)
+        .execute(&mut *tx)
         .await?;
         sqlx::query(sqlx::AssertSqlSafe(format!(
             "delete from pages_fts where rowid in (select id from pages where {MATCHES})"
