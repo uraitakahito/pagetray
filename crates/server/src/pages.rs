@@ -6,13 +6,14 @@ use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::CreatePageError;
 use pagetray_sdk::input::CreatePageInput;
-use pagetray_sdk::model::{ActorSummary, Sender};
+use pagetray_sdk::model::{ActorSummary, Page, Sender};
 use pagetray_sdk::output::CreatePageOutput;
 use pagetray_sdk::server::request::extension::Extension;
 
 use crate::castlist::Castlist;
 use crate::db::{Db, NewPage, NewSender};
 use crate::errors::{Failure, PutFailure, internal, reply};
+use crate::events::{Events, Note};
 use crate::guard::RequestHost;
 use crate::text;
 
@@ -47,6 +48,18 @@ pub(crate) fn parse_file(file: &str) -> Option<(&str, i64)> {
     let (kind, n) = file.strip_suffix(".html")?.rsplit_once('-')?;
     let ok = is_name(kind) && !n.starts_with('0') && n.bytes().all(|b| b.is_ascii_digit());
     ok.then(|| n.parse().ok()).flatten().map(|n| (kind, n))
+}
+
+/// ページの path（`/<project>/<key>/<kind>-<n>.html`）を、project・Key・種類・番号に分ける。形が違えば None
+/// （レビューの見た物と、画面の本文の枠に出すページで見る）。
+pub(crate) fn parse_page_path(path: &str) -> Option<(&str, &str, &str, i64)> {
+    let mut parts = path.strip_prefix('/')?.split('/');
+    match (parts.next(), parts.next(), parts.next(), parts.next()) {
+        (Some(project), Some(key), Some(file), None) if is_segment(project) && is_segment(key) => {
+            parse_file(file).map(|(kind, n)| (project, key, kind, n))
+        }
+        _ => None,
+    }
 }
 
 /// 見終えた置く引数（ページと file に共通の物）。
@@ -167,6 +180,7 @@ fn created_at(t: &aws_smithy_types::DateTime) -> Result<String, String> {
 pub async fn create_page(
     db: Arc<Db>,
     castlist: Option<Castlist>,
+    events: Events,
     input: CreatePageInput,
     Extension(RequestHost(host)): Extension<RequestHost>,
 ) -> Result<CreatePageOutput, CreatePageError> {
@@ -216,19 +230,39 @@ pub async fn create_page(
         .map(sender_output)
         .transpose()
         .map_err(|e| PutFailure::Internal(internal("CreatePage", &e)))?;
-    let url = format!("http://{host}{path}");
-    Ok(CreatePageOutput {
+    // 置いたページの記録（一覧の行と同じ形。置いた時は、返事・判定・見た物の欄は無い）を知らせ、url を足して答える。
+    let page = Page {
+        workspace: workspace.to_owned(),
         project: input.project,
         key: input.key,
         kind: input.kind,
         n: placed.n.to_string(),
         title,
         role: input.role,
-        workspace: workspace.to_owned(),
         created_at,
         size: placed.size,
         path,
         sender,
+        asked_at: None,
+        answered_at: None,
+        waits_on: None,
+        verdict: None,
+        targets: None,
+    };
+    events.send(Note::Page(page.clone()));
+    let url = format!("http://{host}{}", page.path);
+    Ok(CreatePageOutput {
+        project: page.project,
+        key: page.key,
+        kind: page.kind,
+        n: page.n,
+        title: page.title,
+        role: page.role,
+        workspace: page.workspace,
+        created_at: page.created_at,
+        size: page.size,
+        path: page.path,
+        sender: page.sender,
         location: url.clone(),
         url,
     })

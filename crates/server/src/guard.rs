@@ -185,7 +185,7 @@ fn length(d: Duration) -> String {
 }
 
 /// どの答えにも、型の推し量りを止める header と、referrer を送らせない header を付ける。
-/// CSP は付けない（ページの本文は本文の道が `sandbox allow-scripts` を付ける。画面の CSP は画面の PR で決める）。
+/// CSP はここでは付けない（本文の道と file の中身の道は `sandbox` の物、画面は [`crate::ui`] の物を、それぞれが付ける）。
 pub async fn stamp(request: Request, next: Next) -> Response {
     let mut response = next.run(request).await;
     let headers = response.headers_mut();

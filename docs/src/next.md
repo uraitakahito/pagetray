@@ -40,7 +40,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - 置かれたページの URL は切らない。だから本文の URL は今のまま、Smithy の外の手の道にする（`.html` の付いた 1 段は、Smithy の道の label にできない）。
 - `/api/` の下の道は、みな生成した層か、名指した手の道に行く。本文の道（`/{project}/{key}/{file}`）は `/api/…` を受けない（`project` に `api` は置けない）。
-- この章の操作は、みな作ってある（手の道は、ページの本文と file の中身）。SSE・backup・logs・画面は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
+- この章の操作は、みな作ってある（手の道は、ページの本文・file の中身・新着の知らせ・画面）。backup・logs は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
 
 ## ページを置く（CreatePage）
 
@@ -65,7 +65,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 付随する id（`actorIssuer`・`actorRef`）を書いて置けば、castlist に送り手を聞き、答えと一緒に残す（今の pagetray と同じ振る舞いを、新しい castlist の API で）。
 
-- castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、host の browser から開く所は違う）、形は同じ、無いか空なら `http://127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。link を使う画面は、画面の PR で足す。起きる前に断る所（`from_env` を起こす時に呼ぶ）は、起こし方の PR（binary を足す所）でつなぐ。今の土台は、castlist の無い設定で動く。
+- castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、host の browser から開く所は違う）、形は同じ、無いか空なら `http://127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。起こす binary（`pagetray-next`。下の「起こす binary」）が、DB を開く前に `Castlist::from_env` で見て、形が違えば止まる。link を使うのは画面の送り手の名（下の「画面」）。
 - 聞くのは `ResolveActors`（`POST /api/resolve`、本文 `{"issuer":…,"refs":[…]}`）を 1 度。castlist の定義から作った client（`crates/castlist-client/`）で呼ぶ。書く取引を始める前に聞く（castlist を待つ間、書く接続を握らない）。
 - HTTP の client は、`aws-smithy-http-client` の hyper の作りの、TLS の無い HTTP/1.1（`Builder::new().build_http()`。features は `default-client` だけ。`default-client` は証明書を読む crate（`rustls-native-certs`・`rustls-pki-types`）を引くが、TLS の実装（rustls・aws-lc・ring・s2n）は入らない）。接続は使い回さない（`pool_max_idle_per_host(0)`。1 度ごとにつなぐので、castlist が閉じた古い接続で落ちることがない）。
 - 待つのは 1 度に 1 秒（つなぐ・送る・答えを読み終えるまでの全部。client の `operation_timeout`）。送り直さない（`RetryConfig::disabled()`。castlist の `Unavailable` は `@retryable` だが、送り直すかは pagetray の呼び手が決める）。
@@ -209,7 +209,38 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 ## 新着の知らせ（SSE）
 
-SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わらなかった時も）と、file を置いた後に知らせを送る所は、`crates/server/src/events.rs` の `send` として置いてあり、今は記録に 1 行書くだけ。SSE の PR で、ここを broadcast の channel に送る形にする（今の server と同じく、消した時は送らない）。
+`GET /api/events`（手の道。`text/event-stream`）。聞き始めた後に、置いた・書いた物の記録を 1 件ずつ流す（`crates/server/src/events.rs`）。
+
+| 起きた事 | event の名 | data |
+|---|---|---|
+| ページを置いた（`CreatePage`） | 無し（前からの受け手は、これだけを読む） | ページの記録（`ListPages` の行と同じ。`url`・`Location` は入らない） |
+| file を置いた（`CreateFile`） | `file` | file の記録（`ListFiles` の行と同じ） |
+| 返事の状態を書いた（`SetReplyState`。替わらなかった時も） | `reply` | 書いた後のページの記録（答えと同じ） |
+| レビューの印を書いた（`AddReviewMarks`。替わらなかった時も） | `review` | 書いた後のページの記録（答えと同じ） |
+
+- 断った書き込み（400・404・409 など）と、消した時（`DeletePages`・`DeleteFiles`）は送らない。答えの記録に直せてから送る（直せずに 500 を返す書き込みは知らせない）。
+- 記録の形は API の答えと同じ camelCase（`createdAt`・`askedAt`・`waitsOn`・`sender.resolvedAt` など。時刻は答えと同じ字）。今の server は snake_case の記録を送っていた（替えた所。画面の script が読むのは `path`・`project`・`key` だけで、名は同じ）。
+- broadcast の channel（容量 64。今の server と同じ）。聞き手が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（画面は一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
+- 守りの層は、ほかの道と同じ（`Host` を見る。時間切れは答えの頭までなので、流し続ける本文には掛からない）。
+
+## 画面
+
+一覧の UI（手の道。`/`・`/{project}/`・`/{project}/{key}/`。`crates/server/src/ui.rs`）。今の server の画面を、同じ URL・同じ引数・同じ字で、新しい DB の所で組む。
+
+- template は、repo の `templates/index.html` を今の server と共に使う（askama。`crates/server/askama.toml` が `../../templates` を指す。castlist と同じ形）。違うのは上げる枠の送り先だけで、置き場が `data-upload` に渡す（今の server は `/api/files?project=…&key=…`、新しい server は `/api/projects/{project}/keys/{key}/files`。script が `name` の引数を足し、選んだ file の `Content-Type` で送る）。断った訳は、新しい server の `message` と今の server の `error` のどちらも読む。
+- 引数（今の server と同じ）: `project`・`key`・`kind`・`role`・`workspace`・`q`・`reply`・`on`・`verdict`・`actor`・`sort`・`at`・`open`。空は書かないのと同じ（`workspace` だけは空も条件）。知らない `reply`・`verdict` は無視、`on` は `reply` と組の時だけ、`sort` は `created_at` だけ、`open` はページの path の形だけ。1 度に 200 件。同じ名の引数を 2 度書いた物など、読めない引数は 400 `ValidationException`。
+- 続きの印 `at` は、前の頁の最後の行の時刻と id（`nextToken` と同じ形）。今の server は時刻だけで、同じ時刻の行が頁の境に並ぶと抜けた（下の「直す今の振る舞い」）。読めない印・ほかの並びの印は、書かないのと同じ（頭から出す）。
+- 待ちの数（返事待ち・レビュー待ち・上げた）と絞り込みの候補は、絞りに関わらず置き場の全部。tab の題は Product Manager の返事待ちの数（`crates/server/src/facets.rs`。SQL は今の server と同じ）。
+- 送り手は、castlist の名に castlist のアクターの画面への link（`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`。castlist を設定していて、答えのある送り手だけ）と、その下に小さく付随する id。答えの無い送り手は「未確認」。絞り込みの「送り手」は、答えのある送り手を、ページの多い順に 100 まで。
+- 字はみな HTML として逃がし、URL の引数に入れる値は、英数字と `-` `.` `_` `~` のほかを %XX にする（`actorRef` は castlist と同じ広い形で、空白・`?`・`&`・`#`・`/` も通る）。
+- Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出す（project が `api` なら出さない）。本文の枠の iframe は `sandbox="allow-scripts"`。
+- 答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と script は template の物の hash だけを許す（hash は template から作る。今の server は CSP を付けていなかった）。図は置き場の file と、上げる前の見本（`blob:`）と favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠の送り先は置き場だけ。
+
+## 起こす binary
+
+`pagetray-next`（`crates/server/src/main.rs`）。`PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。castlist の設定の形が違えば、DB を開く前に stderr に訳を書いて止まる。e2e の試験（`e2e/`）が、今の server と同じ試験をこの binary にも流す（`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next`。`e2e/tests/wire.ts` が、置く・書く API の道と引数の名を合わせる）。
+
+- まだ最小の物: 記録（stdout と回す file）・止める合図での閉じ方・`GET /api/backup`・`GET /api/logs` は、次の PR で足す。image には入らない。
 
 ## ページの本文
 
@@ -234,7 +265,7 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 
 | 順 | 守り | 振る舞い |
 |---|---|---|
-| 1 | 頭の印 | どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-referrer`。今の `Pagetray-Api` は付けない。本文の CSP は本文の道が自分で付ける（画面の CSP は画面の PR で決める） |
+| 1 | 頭の印 | どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-referrer`。今の `Pagetray-Api` は付けない。CSP は、本文の道と画面が自分で付ける（上の「ページの本文」「file の中身」「画面」） |
 | 2 | 問い合わせの記録 | 1 つにつき 1 行（tower-http の TraceLayer。今の server と同じ設定） |
 | 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほかの要求に `Origin` が付いていれば、403 `Forbidden`。例外は 1 つだけ（今の server と同じ）: 一覧の UI の form が file を上げる `POST /api/projects/{project}/keys/{key}/files`（後ろに何も付かない道）で、`Origin` が `http://<Host（port も）>` とそのまま同じで、`Sec-Fetch-Site` が無いか `same-origin` の物。印（`FromUi`）を付けて通す（上の「file を置く」）。ほかの道・本文の枠の中のページ（`Origin: null`）・ほかの port や名や `https` は 403 |
 | 3 | HEAD | `GET` にして通し、本文を捨てる（生成した骨の道は GET だけなので、ここで揃える） |
@@ -252,6 +283,8 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 - 置いた時刻の字: 今の server は `createdAt` を書いた字のまま残す（`…:05Z` と `…:05.5Z` が混ざる）。`.` は `Z` より前の字なので、字で比べると同じ秒の中の順が狂う（`…:05.5Z` が `…:05Z` より前になる）。新しい server は、いつも 24 字（`…:05.000Z`）で残す。
 - 一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。`crates/server/tests/list.rs` と `crates/server/tests/files.rs` が、同じ時刻の行を頁の境に並べて、抜けず重ならないことを見る。
 - 引数の形: 今の server は一覧の `project`・`kind` などと `actor` の形を見ず、`limit` は 1〜1000 に丸めていた。新しい `ListPages`・`ListFiles` は定義の形で 400 にする（`maxResults` も）。
+- 画面の続き: 今の server の画面の「続きを出す」は、境の時刻（`at`）だけで続け、同じ時刻の行が境に並ぶと抜けた。新しい画面の `at` は時刻と id の組（`crates/server/tests/ui.rs` が、同じ時刻の 205 枚を抜けずに出すことを見る）。
+- 新着の知らせの記録: snake_case から、API の答えと同じ camelCase に（上の「新着の知らせ」）。
 
 ## 定義の取り方
 
@@ -267,6 +300,7 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 |---|---|
 | 1（この章と同じ PR） | この章・定義（`GetHealth`・`CreatePage`）・`ci/gen.sh`・生成した 2 つの crate・新しい server の土台（生成した層の包み・守りの層の Host と Origin と頭の印と時間切れ・誤り・DB）・`CreatePage`・ページの本文の道 |
 | 2 | 送り手（`actorIssuer`・`actorRef` を受け、castlist を生成した client で引く） |
-| 3 | 探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages`）。SSE は 3 の後の別の PR に分けた（知らせを送る所は 3 で置いた。上の「新着の知らせ」） |
+| 3 | 探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages`）。SSE は後の PR に分けた（知らせを送る所は 3 で置いた） |
 | 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外）と、守りの層の本文の上限（file の上限と一緒に見るため、5 から移した） |
-| 5 | backup・logs・画面・起こす binary |
+| 5 | 新着の知らせ（SSE）・画面・e2e の試験を流せるだけの最小の起こす binary（CI の `ui` が、今の server と新しい server の両方に流す） |
+| 6 | backup・logs・起こす binary の残り（記録・止める合図での閉じ方） |

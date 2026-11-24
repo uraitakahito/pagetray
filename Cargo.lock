@@ -2005,6 +2005,7 @@ dependencies = [
 name = "pagetray-next"
 version = "0.8.0"
 dependencies = [
+ "askama",
  "aws-smithy-http-client",
  "aws-smithy-types",
  "axum",
@@ -2013,11 +2014,13 @@ dependencies = [
  "http-body 1.1.0",
  "http-body-util",
  "pagetray_sdk",
+ "serde",
  "serde_json",
  "sha2",
  "sqlx",
  "time",
  "tokio",
+ "tokio-stream",
  "tower 0.5.3",
  "tower-http 0.7.1",
  "tracing",

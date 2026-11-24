@@ -1,5 +1,6 @@
 # 新しい pagetray の server（AI-36）。定義（model/）から作った骨（crates/pagetray-sdk/）に処理を入れ、
-# 手の道（ページの本文）と 1 つの axum の Router に並べる。切り替えまで image には入らない。
+# 手の道（ページと file の本文・新着の知らせ・画面）と 1 つの axum の Router に並べる。切り替えまで image には入らない。
+# binary は pagetray-next（src/main.rs。e2e が起こす）。
 [package]
 name = "pagetray-next"
 version.workspace = true
@@ -14,18 +15,24 @@ pagetray_sdk = { path = "../pagetray-sdk" }
 # TLS の無い HTTP/1.1（hyper の作りの build_http）だけを使うので、features は default-client だけ（rustls・s2n は入れない）。
 castlist_client = { path = "../castlist-client" }
 aws-smithy-http-client = { version = "1.5.3", default-features = false, features = ["default-client"] }
-axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+# query は画面の引数を読むため（root の crate と同じ features の中の物）。
+axum = { version = "0.8.9", default-features = false, features = ["http1", "query", "tokio"] }
+# 画面の HTML（repo の templates/ を、今の server と共に使う。askama.toml）。root の crate と同じ版。
+askama = "0.16.1"
 aws-smithy-types = "1.9.4"
 bytes = "1"
 http-body = "1"
 http-body-util = "0.1"
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # file の中身の SHA-256（今の server と同じ crate と features）。
 sha2 = { version = "0.11.1", default-features = false }
 # SQL は動く時に組む形（query・query_as）だけを使う（.sqlx/ は要らない）。macros は、移行の SQL を埋め込む migrate!() のため。
 sqlx = { version = "0.9.1", default-features = false, features = ["sqlite", "runtime-tokio", "macros", "migrate"] }
 time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "fs", "time"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "fs", "time", "sync"] }
+# 新着の知らせ（SSE）を broadcast の channel から流す（root の crate と同じ版と features）。
+tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
 tower = { version = "0.5", features = ["util"] }
 # 問い合わせごとの記録（method・path・status・かかった時間。root の crate と同じ版と features）。
 tower-http = { version = "0.7", default-features = false, features = ["trace"] }
