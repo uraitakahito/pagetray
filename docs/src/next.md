@@ -14,7 +14,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | protocol | `aws.protocols#restJson1`。誤りの種類は header `X-Amzn-Errortype` と本文の `message`（今の server の `{"error":…}` はやめる） |
 | 欄と引数の名 | camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`actorIssuer`・`actorRef`・`maxResults`・`nextToken`） |
 | 時刻 | RFC 3339 の UTC（末尾 `Z`。`ai.common#DateTime`）。時差の付いた時刻（`+09:00`）は生成した層が 400 で断る。残す字は UTC・ミリ秒まで・24 字（`2026-11-24T00:00:00.000Z`）にそろえ、字の順が時刻の順になる |
-| 誤り | 定義に書いた型だけ: 400 `ValidationException`・404 `NotFound`・409 `Conflict`・410 `Gone`・500 `InternalError`（server の中の失敗。訳は記録に書き、答えは決まった字。`@retryable` は付けない）・503 `Unavailable`（混んでいる・時間切れ・呼ぶ先の castlist が答えない。`@retryable`）。守りの層が断る 403 `Forbidden`・413 `PayloadTooLarge`・503 `Unavailable` は、service の `errors` に置き、どの操作の誤りにも入る。生成した層の外の道（本文・SSE・backup・logs）の誤りも、同じ形で返す |
+| 誤り | 定義に書いた型だけ: 400 `ValidationException`・404 `NotFound`・409 `Conflict`・410 `Gone`・500 `InternalError`（server の中の失敗。訳は記録に書き、答えは決まった字。`@retryable` は付けない）・503 `Unavailable`（混んでいる・時間切れ・呼ぶ先の castlist が答えない。`@retryable`）。守りの層が断る 403 `Forbidden`・413 `PayloadTooLarge`・503 `Unavailable` は、service の `errors` に置き、どの操作の誤りにも入る。生成した層の外の道（本文・SSE・backup・logs）の誤りも、同じ形で返す。生成した層が自分で返す物は、知らない道の 404 `UnknownOperationException`（本文は `{}`）・読めない引数の 400 `SerializationException`・違う `Content-Type` の 415 `UnsupportedMediaTypeException` |
 | id | 道に入る id は字にする。ページの番号 `n` も、頭に 0 の無い数の字（`"7"`。`^[1-9][0-9]{0,17}$`）で、答えの `n` も字 |
 | ページ送り | `@paginated`。`maxResults`（1〜1000。既定 100）と、前の答えの `nextToken` をそのまま渡す |
 | 状態の数 | 決まっている物は `@http` の `code`（置けば 201）。答えで替わる物だけ `@httpResponseCode` |
@@ -50,9 +50,9 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `kind`（道）・`role`（引数。要る） | 英小文字で始まり、英小文字・数字・`-` で 1〜32 字 |
 | `workspace` | 英数字と `:` `.` `_` `-` で 0〜64 字。無ければ空 |
 | `n` | 取り込みの時だけ。数の字（`0`・`01`・`abc` は 400） |
-| `createdAt` | 取り込みの時だけ。UTC の RFC 3339。ミリ秒より細かい時刻は 400（切って残すと、取り込んだ時刻が替わる）。0000 年から 9999 年まで |
+| `createdAt` | 取り込みの時だけ。UTC の RFC 3339。ミリ秒より細かい時刻は 400（切って残すと、取り込んだ時刻が替わる）。0001 年から 9999 年まで（0000 年は答えの時刻に書けないので、生成した層が 400） |
 | `actorIssuer`・`actorRef` | 定義には置くが、まだ受けない（書けば 400。何も残さない）。送り手を castlist に聞く処理と一緒に、段 4 の次の PR で受ける。定義に置くのは、知らない引数を読み飛ばす restJson1 で、送り手の記録が黙って落ちないようにするため。`actorRef` の形は `ai.common#ActorRef`（castlist と同じ。今の pagetray の形より広い） |
-| 本文 | `Content-Type: text/html`（`; charset=…` は付いてよい）。空は 400。UTF-8 でなくても受ける（題と検索の字は、読めない byte を置き換えて取る） |
+| 本文 | `Content-Type: text/html`（`; charset=…` は付いてよい）。ほかの種類と、`Content-Type` の無い要求は、生成した層が 415 `UnsupportedMediaTypeException`（今の server は見ていなかった）。空の本文は、生成した層が 400 `ValidationException` で断る（欄の path は `/body`）。UTF-8 でなくても受ける（題と検索の字は、読めない byte を置き換えて取る） |
 
 - 番号: 書かなければ、同じ `project`・`key`・`kind` の置いた番号と消した番号の最大 + 1（初めは 1）。書く接続は 1 本なので、並べて置いても重ならず抜けない。書けばその番号で置き、置いた番号・消した番号なら 409 `Conflict`（何も替えない）。次に任せた番号は、取り込んだ番号の次になる。
 - 答えは 201 で、ページの記録（本文は入らない）と、要求の `Host` で組んだ `url`（header `Location` にも）。置いた時は、返事・判定・見た物・送り手の欄は無い。

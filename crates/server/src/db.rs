@@ -7,9 +7,9 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use sqlx::SqlitePool;
 use sqlx::migrate::Migrator;
-use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqliteJournalMode, SqlitePoolOptions};
+use sqlx::{Connection, SqlitePool};
 use time::OffsetDateTime;
 
 /// 書く接続を待つ長さ。過ぎれば「混んでいる」で返す。問い合わせの時間切れ（[`crate::REQUEST_TIMEOUT`]）より短くし、
@@ -144,29 +144,89 @@ pub fn now() -> String {
 /// （`read_only`）で開き、DB の中身は書き替えない（WAL の DB は -wal も読む）。file が無い・移行の表が無い時は通す（開く時に作る）。
 /// 移行の表の版のうち、新しい migrations に無い物か、中身の写し（checksum）が違う物があれば断る
 /// （今の server の DB は 0002〜0006 が無く、0001 も中身が違う。sqlx の移行に任せると、断る前に DB を WAL にする）。
-pub async fn refuse_current(_path: &Path) -> Result<(), OpenError> {
-    // 試験を先に書く commit の仮の物（次の commit で作る）。
-    Ok(())
+pub async fn refuse_current(path: &Path) -> Result<(), OpenError> {
+    if !tokio::fs::try_exists(path).await.unwrap_or(false) {
+        return Ok(());
+    }
+    let mut conn =
+        SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(path).read_only(true))
+            .await
+            .map_err(OpenError::Db)?;
+    let applied: Result<Vec<(i64, Vec<u8>)>, sqlx::Error> = async {
+        let has: i64 = sqlx::query_scalar(
+            "select count(*) from sqlite_master where type = 'table' and name = '_sqlx_migrations'",
+        )
+        .fetch_one(&mut conn)
+        .await?;
+        if has == 0 {
+            return Ok(Vec::new());
+        }
+        sqlx::query_as("select version, checksum from _sqlx_migrations order by version")
+            .fetch_all(&mut conn)
+            .await
+    }
+    .await;
+    let _ = conn.close().await;
+    let foreign: Vec<i64> = applied
+        .map_err(OpenError::Db)?
+        .into_iter()
+        .filter(|(version, checksum)| {
+            !MIGRATOR
+                .iter()
+                .any(|m| m.version == *version && m.checksum.as_ref() == checksum.as_slice())
+        })
+        .map(|(version, _)| version)
+        .collect();
+    if foreign.is_empty() {
+        Ok(())
+    } else {
+        Err(OpenError::Current(foreign))
+    }
 }
 
 impl Db {
     /// 開き、移行し、外のキーの崩れが無いかを見る。崩れがあれば開かない。
     /// 今の server の DB は、何も書かずに断る（[`refuse_current`]）。
     pub async fn open(path: &Path) -> Result<Self, OpenError> {
-        // 試験を先に書く commit の仮の物（次の commit で作る）。
         refuse_current(path).await?;
+        // どの接続にも: 外のキーを効かせ、置き換え（REPLACE）が行を消す時も trigger を動かす。
+        // 一時の物は memory に置く（動かす image には /tmp が無い）。
         let options = SqliteConnectOptions::new()
             .filename(path)
-            .create_if_missing(true);
+            .create_if_missing(true)
+            .journal_mode(SqliteJournalMode::Wal)
+            .foreign_keys(true)
+            .busy_timeout(Duration::from_secs(5))
+            .pragma("recursive_triggers", "ON")
+            .pragma("temp_store", "MEMORY");
         let write = SqlitePoolOptions::new()
             .max_connections(1)
+            .acquire_timeout(WRITE_WAIT)
             .connect_with(options.clone())
             .await
             .map_err(OpenError::Db)?;
         MIGRATOR.run(&write).await.map_err(OpenError::Migrate)?;
+        let broken: Vec<(String, Option<i64>, String)> =
+            sqlx::query_as("select \"table\", rowid, parent from pragma_foreign_key_check")
+                .fetch_all(&write)
+                .await
+                .map_err(OpenError::Db)?;
+        if !broken.is_empty() {
+            write.close().await;
+            return Err(OpenError::ForeignKey(
+                broken
+                    .into_iter()
+                    .map(|(table, rowid, parent)| {
+                        let rowid = rowid.map_or("-".to_owned(), |r| r.to_string());
+                        format!("{table} の rowid {rowid}（{parent} を指す）")
+                    })
+                    .collect(),
+            ));
+        }
         let read = SqlitePoolOptions::new()
             .max_connections(READS)
-            .connect_with(options)
+            .acquire_timeout(READ_WAIT)
+            .connect_with(options.read_only(true))
             .await
             .map_err(OpenError::Db)?;
         Ok(Self {
@@ -198,33 +258,95 @@ impl Db {
 
     /// ページを 1 枚置き、全文の索引にも入れる（1 つの transaction）。
     /// 番号を名指せば、置いた番号・消した番号なら [`WriteError::Taken`]（何も替えない）。
-    pub async fn put_page(&self, _page: &NewPage<'_>) -> Result<Placed, WriteError> {
-        // 試験を先に書く commit の仮の物（次の commit で作る）。
-        Err(WriteError::Db(sqlx::Error::Protocol(
-            "まだ作っていない".to_owned(),
-        )))
+    pub async fn put_page(&self, page: &NewPage<'_>) -> Result<Placed, WriteError> {
+        let mut tx = self.write.begin().await?;
+        // 消した番号も、もう使われている番号として扱う。
+        if let Some(n) = page.n {
+            let removed: Option<i64> = sqlx::query_scalar(
+                "select 1 from removed where project = ?1 and key = ?2 and kind = ?3 and n = ?4",
+            )
+            .bind(page.project)
+            .bind(page.key)
+            .bind(page.kind)
+            .bind(n)
+            .fetch_optional(&mut *tx)
+            .await?;
+            if removed.is_some() {
+                return Err(WriteError::Taken);
+            }
+        }
+        let created_at = page.created_at.map_or_else(now, str::to_owned);
+        let (id, n): (i64, i64) = sqlx::query_as(
+            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body)
+             values(?1, ?2, ?3,
+                    coalesce(?4, (select coalesce(max(n), 0) + 1 from
+                                    (select n from pages where project = ?1 and key = ?2 and kind = ?3
+                                     union all
+                                     select n from removed where project = ?1 and key = ?2 and kind = ?3))),
+                    ?5, ?6, ?7, ?8, ?9)
+             returning id, n",
+        )
+        .bind(page.project)
+        .bind(page.key)
+        .bind(page.kind)
+        .bind(page.n)
+        .bind(page.title)
+        .bind(page.role)
+        .bind(page.workspace)
+        .bind(&created_at)
+        .bind(page.body)
+        .fetch_one(&mut *tx)
+        .await?;
+        sqlx::query("insert into pages_fts(rowid, title, text) values(?1, ?2, ?3)")
+            .bind(id)
+            .bind(page.title)
+            .bind(page.text)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok(Placed {
+            n,
+            created_at,
+            size: page.body.len() as i64,
+        })
     }
 
     /// ページの本文。無ければ None。
     pub async fn body(
         &self,
-        _project: &str,
-        _key: &str,
-        _kind: &str,
-        _n: i64,
+        project: &str,
+        key: &str,
+        kind: &str,
+        n: i64,
     ) -> Result<Option<Vec<u8>>, sqlx::Error> {
-        Ok(None)
+        sqlx::query_scalar(
+            "select body from pages where project = ?1 and key = ?2 and kind = ?3 and n = ?4",
+        )
+        .bind(project)
+        .bind(key)
+        .bind(kind)
+        .bind(n)
+        .fetch_optional(&self.read)
+        .await
     }
 
     /// 消したページなら、消した時刻。
     pub async fn removed_at(
         &self,
-        _project: &str,
-        _key: &str,
-        _kind: &str,
-        _n: i64,
+        project: &str,
+        key: &str,
+        kind: &str,
+        n: i64,
     ) -> Result<Option<String>, sqlx::Error> {
-        Ok(None)
+        sqlx::query_scalar(
+            "select removed_at from removed where project = ?1 and key = ?2 and kind = ?3 and n = ?4",
+        )
+        .bind(project)
+        .bind(key)
+        .bind(kind)
+        .bind(n)
+        .fetch_optional(&self.read)
+        .await
     }
 }
 

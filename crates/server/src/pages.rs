@@ -2,16 +2,17 @@
 use std::sync::Arc;
 
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
-use axum::response::Response;
+use axum::http::{StatusCode, header};
+use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::CreatePageError;
 use pagetray_sdk::input::CreatePageInput;
 use pagetray_sdk::output::CreatePageOutput;
 use pagetray_sdk::server::request::extension::Extension;
 
-use crate::db::Db;
+use crate::db::{Db, NewPage};
 use crate::errors::{Failure, PutFailure, internal, reply};
 use crate::guard::RequestHost;
+use crate::text;
 
 /// ページの本文の path。
 pub fn page_path(project: &str, key: &str, kind: &str, n: i64) -> String {
@@ -82,21 +83,88 @@ fn created_at(t: &aws_smithy_types::DateTime) -> Result<String, String> {
         .ok_or_else(|| "createdAt は 0001 年から 9999 年までの時刻".to_owned())
 }
 
-/// ページを 1 枚置く（試験を先に書く commit の仮の物。次の commit で作る）。
+/// ページを 1 枚置く。
 pub async fn create_page(
-    _db: Arc<Db>,
-    _input: CreatePageInput,
-    _host: Extension<RequestHost>,
+    db: Arc<Db>,
+    input: CreatePageInput,
+    Extension(RequestHost(host)): Extension<RequestHost>,
 ) -> Result<CreatePageOutput, CreatePageError> {
-    Err(PutFailure::Internal(internal("CreatePage", &"まだ作っていない")).into())
+    let (n, created_at) = check(&input).map_err(PutFailure::Invalid)?;
+    let workspace = input.workspace.as_deref().unwrap_or("");
+    let body = input.body.as_ref();
+    let html = String::from_utf8_lossy(body);
+    let (title, plain) = (text::title(&html), text::plain(&html));
+    let placed = db
+        .put_page(&NewPage {
+            project: &input.project,
+            key: &input.key,
+            kind: &input.kind,
+            role: &input.role,
+            workspace,
+            title: &title,
+            text: &plain,
+            body,
+            n,
+            created_at: created_at.as_deref(),
+        })
+        .await
+        .map_err(|e| PutFailure::write("CreatePage", e, "その番号は、もう使われている"))?;
+    let path = page_path(&input.project, &input.key, &input.kind, placed.n);
+    tracing::info!(
+        "put {path} role={} workspace={workspace} size={}",
+        input.role,
+        placed.size
+    );
+    let created_at = crate::datetime(&placed.created_at)
+        .map_err(|e| PutFailure::Internal(internal("CreatePage", &e)))?;
+    let url = format!("http://{host}{path}");
+    Ok(CreatePageOutput {
+        project: input.project,
+        key: input.key,
+        kind: input.kind,
+        n: placed.n.to_string(),
+        title,
+        role: input.role,
+        workspace: workspace.to_owned(),
+        created_at,
+        size: placed.size,
+        path,
+        location: url.clone(),
+        url,
+    })
 }
 
-/// ページの本文を、置いたままの byte で返す（試験を先に書く commit の仮の物。次の commit で作る）。
+/// ページの本文を、置いたままの byte で返す。
 pub async fn show(
-    State(_db): State<Arc<Db>>,
-    Path((_project, _key, _file)): Path<(String, String, String)>,
+    State(db): State<Arc<Db>>,
+    Path((project, key, file)): Path<(String, String, String)>,
 ) -> Response {
-    Failure::Internal(internal("page", &"まだ作っていない")).reply()
+    let Some((kind, n)) = parse_file(&file).filter(|_| is_segment(&project) && is_segment(&key))
+    else {
+        return not_found();
+    };
+    match db.body(&project, &key, kind, n).await {
+        Ok(Some(body)) => (
+            [
+                (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+                // 隔てた枠として出す。ページの中の script は動くが、置き場の名で API を呼べない。
+                (header::CONTENT_SECURITY_POLICY, "sandbox allow-scripts"),
+                (header::X_CONTENT_TYPE_OPTIONS, "nosniff"),
+            ],
+            body,
+        )
+            .into_response(),
+        Ok(None) => match db.removed_at(&project, &key, kind, n).await {
+            Ok(Some(at)) => reply(
+                StatusCode::GONE,
+                "Gone",
+                &format!("そのページは消した（{at}）"),
+            ),
+            Ok(None) => not_found(),
+            Err(e) => Failure::db("page", e).reply(),
+        },
+        Err(e) => Failure::db("page", e).reply(),
+    }
 }
 
 fn not_found() -> Response {

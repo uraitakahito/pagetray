@@ -84,8 +84,10 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
 async fn get_health(
     _input: pagetray_sdk::input::GetHealthInput,
 ) -> Result<GetHealthOutput, GetHealthError> {
-    // 試験を先に書く commit の仮の物（次の commit で作る）。
-    Err(GetHealthError::Unavailable(errors::busy()))
+    Ok(GetHealthOutput {
+        status: "ok".to_owned(),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
+    })
 }
 
 /// DB の字の時刻（RFC 3339）を、答えの時刻にする。読めなければ、その訳。

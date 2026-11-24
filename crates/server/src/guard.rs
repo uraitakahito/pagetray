@@ -12,17 +12,13 @@
 //! どの操作の誤りにも入っている（service の errors）。
 use std::time::Duration;
 
+use axum::body::Body;
 use axum::extract::{Request, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderValue, Method, StatusCode, header};
 use axum::middleware::Next;
 use axum::response::Response;
 
 use crate::errors::reply;
-
-#[allow(dead_code)]
-fn _unused() -> Response {
-    reply(StatusCode::OK, "", "")
-}
 
 /// 要求の `Host`（port も。守りの層が見て、受けた物）。置いたページの URL を組む。
 #[derive(Clone, Debug)]
@@ -33,15 +29,60 @@ pub struct RequestHost(pub String);
 /// - `GET`・`HEAD` のほかの要求に `Origin` が付いていれば断る（browser の中のページからは書かせない。roster と `curl` は付けない）。
 ///
 /// `HEAD` は `GET` にして通し、答えの本文を捨てる（状態と header は `GET` と同じ）。生成した骨の道は `GET` だけなので、ここで揃える。
-pub async fn guard(request: Request, next: Next) -> Response {
-    // 試験を先に書く commit の仮の物（次の commit で作る）。
-    next.run(request).await
+pub async fn guard(mut request: Request, next: Next) -> Response {
+    let full = request
+        .headers()
+        .get(header::HOST)
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_owned);
+    let host = full
+        .as_deref()
+        .map(|v| v.rsplit_once(':').map_or(v, |(name, _port)| name));
+    if !matches!(host, Some("127.0.0.1" | "localhost")) {
+        return reply(
+            StatusCode::FORBIDDEN,
+            "Forbidden",
+            "Host は 127.0.0.1 か localhost だけを受ける",
+        );
+    }
+    if request.method() != Method::GET
+        && request.method() != Method::HEAD
+        && request.headers().contains_key(header::ORIGIN)
+    {
+        return reply(
+            StatusCode::FORBIDDEN,
+            "Forbidden",
+            "browser の中のページからは書けない",
+        );
+    }
+    if let Some(full) = full {
+        request.extensions_mut().insert(RequestHost(full));
+    }
+    let head = request.method() == Method::HEAD;
+    if head {
+        *request.method_mut() = Method::GET;
+    }
+    let response = next.run(request).await;
+    if head {
+        response.map(|_| Body::empty())
+    } else {
+        response
+    }
 }
 
 /// `limit` の内に答えの頭を返せなければ、503 で返す（待っている物は捨てる）。
-pub async fn timeout(State(_limit): State<Duration>, request: Request, next: Next) -> Response {
-    // 試験を先に書く commit の仮の物（次の commit で作る）。
-    next.run(request).await
+pub async fn timeout(State(limit): State<Duration>, request: Request, next: Next) -> Response {
+    match tokio::time::timeout(limit, next.run(request)).await {
+        Ok(response) => response,
+        Err(_) => reply(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Unavailable",
+            &format!(
+                "時間がかかりすぎた（{}）。少し待ってから送り直す",
+                length(limit)
+            ),
+        ),
+    }
 }
 
 /// 長さの字（秒で割り切れれば秒、ほかは ms）。
@@ -56,8 +97,17 @@ fn length(d: Duration) -> String {
 /// どの答えにも、型の推し量りを止める header と、referrer を送らせない header を付ける。
 /// CSP は付けない（ページの本文は本文の道が `sandbox allow-scripts` を付ける。画面の CSP は画面の PR で決める）。
 pub async fn stamp(request: Request, next: Next) -> Response {
-    // 試験を先に書く commit の仮の物（次の commit で作る）。
-    next.run(request).await
+    let mut response = next.run(request).await;
+    let headers = response.headers_mut();
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("no-referrer"),
+    );
+    response
 }
 
 #[cfg(test)]
