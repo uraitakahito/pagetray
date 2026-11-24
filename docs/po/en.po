@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-23T14:47:40+09:00\n"
+"POT-Creation-Date: 2026-11-24T21:06:37+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -49,6 +49,10 @@ msgstr "Development"
 #: src/SUMMARY.md src/db.md
 msgid "DB の作り"
 msgstr "DB schema"
+
+#: src/SUMMARY.md
+msgid "新しい API の形（作り直しの間）"
+msgstr "The new API shape (during the rewrite)"
 
 #: src/SUMMARY.md src/glossary.md
 msgid "用語集"
@@ -103,7 +107,7 @@ msgstr "Chapters"
 msgid "章"
 msgstr "Chapter"
 
-#: src/index.md src/run.md src/cli.md src/api.md src/development.md
+#: src/index.md src/run.md src/cli.md src/api.md src/development.md src/next.md
 msgid "中身"
 msgstr "Contents"
 
@@ -195,7 +199,7 @@ msgstr ""
 "`created_at` are given only on import; if the number is already in use, "
 "returns `409`"
 
-#: src/index.md
+#: src/index.md src/next.md
 msgid "`GET /api/pages`"
 msgstr "`GET /api/pages`"
 
@@ -243,7 +247,7 @@ msgstr ""
 "`<stem>.<ext>`; the server picks the number and returns `201` with JSON. "
 "Types not accepted get `415`, and over 16 MiB gets `413`"
 
-#: src/index.md
+#: src/index.md src/next.md
 msgid "`GET /api/files`"
 msgstr "`GET /api/files`"
 
@@ -1959,7 +1963,7 @@ msgstr ""
 "page`) may rely on. Whenever a shape described here is changed in a way that "
 "breaks existing callers, the API version is bumped."
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "版"
 msgstr "Versions"
 
@@ -2118,9 +2122,16 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"誤りの答えは `{\"error\":\"<人が読む文>\"}`。ただし、axum が自分で返す誤りはこの形でない: 引数を読めない（`limit=abc` など）`400` は平文（`text/plain`）、道の無い path の `404` と、道にない method の `405`（`Allow` に受ける method）は本文が空。"
+"誤りの答えは `{\"error\":\"<人が読む文>\"}`。ただし、axum が自分で返す誤りは"
+"この形でない: 引数を読めない（`limit=abc` など）`400` は平文（`text/"
+"plain`）、道の無い path の `404` と、道にない method の `405`（`Allow` に受け"
+"る method）は本文が空。"
 msgstr ""
-"An error response is `{\"error\":\"<human-readable message>\"}`. The exception is errors that axum returns on its own: a `400` for parameters that cannot be read (such as `limit=abc`) is plain text (`text/plain`), and a `404` for a path with no route and a `405` for a method the route does not take (`Allow` lists the methods it takes) have an empty body."
+"An error response is `{\"error\":\"<human-readable message>\"}`. The "
+"exception is errors that axum returns on its own: a `400` for parameters "
+"that cannot be read (such as `limit=abc`) is plain text (`text/plain`), and "
+"a `404` for a path with no route and a `405` for a method the route does not "
+"take (`Allow` lists the methods it takes) have an empty body."
 
 #: src/api.md
 msgid "字の決まり:"
@@ -2130,7 +2141,7 @@ msgstr "Character rules:"
 msgid "引数"
 msgstr "Parameter"
 
-#: src/api.md src/release.md
+#: src/api.md src/release.md src/next.md
 msgid "決まり"
 msgstr "Rule"
 
@@ -2158,7 +2169,7 @@ msgstr ""
 "1–32 characters of lowercase letters, digits, and `-`, starting with a "
 "lowercase letter. The server keeps no list of names (callers decide)"
 
-#: src/api.md src/db.md src/glossary.md
+#: src/api.md src/db.md src/next.md src/glossary.md
 msgid "`workspace`"
 msgstr "`workspace`"
 
@@ -2179,7 +2190,7 @@ msgstr ""
 "` and `_` (starting with a lowercase letter or a digit). The extension must "
 "be one of those in \"Accepted file types\" below"
 
-#: src/api.md src/db.md src/glossary.md
+#: src/api.md src/db.md src/next.md src/glossary.md
 msgid "`n`"
 msgstr "`n`"
 
@@ -5267,6 +5278,838 @@ msgstr ""
 msgid "`pages_fts_` で始まる表: 上の `pages_fts` の影の表。"
 msgstr ""
 "Tables starting with `pages_fts_`: the shadow tables of `pages_fts` above."
+
+#: src/next.md
+msgid "新しい API の形（作り直しの間の設計）"
+msgstr "The new API shape (design during the rewrite)"
+
+#: src/next.md
+msgid ""
+"AI-36 の作り直しで、pagetray の API を Smithy の定義（`model/`）から作る。こ"
+"の章は、新しい server（`crates/server`）が従う形を先に決めておく物。切り替え"
+"の後は、[API の仕様](api.md) の章をこの形に書き直し、この章は消す。"
+msgstr ""
+"In the AI-36 rewrite, the pagetray API is built from a Smithy model (`model/"
+"`). This chapter fixes in advance the shape that the new server (`crates/"
+"server`) follows. After the switch-over, the [API specification](api.md) "
+"chapter is rewritten in this shape and this chapter is removed."
+
+#: src/next.md
+msgid ""
+"今の API との互換は守らない（Product Manager の決め: AI-36）。守るのは、デー"
+"タ（ページと file の行・番号・消した番号）と、そこから決まる振る舞い（番号は "
+"2 度使わない・消したページは 410・本文は置いたままの byte で返す など）と、"
+"ページと file の URL の形。"
+msgstr ""
+"Compatibility with the current API is not kept (Product Manager's decision: "
+"AI-36). What is kept is the data (the rows of pages and files, their "
+"numbers, and the removed numbers), the behavior that follows from it (a "
+"number is never used twice, a removed page is 410, a body comes back byte "
+"for byte as it was put, and so on), and the shape of the page and file URLs."
+
+#: src/next.md
+msgid "共通の決まり（castlist と同じ）"
+msgstr "Common rules (the same as castlist)"
+
+#: src/next.md
+msgid ""
+"castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blob/"
+"main/docs/src/next.md) の「共通の決まり」と同じ決まりに従う。共通の形（誤り・"
+"時刻・ページ送り）は、castlist の定義の `ai.common` を、castlist の release "
+"の tag で固めて取る（下の「定義の取り方」）。"
+msgstr ""
+"pagetray follows the same rules as the \"common rules\" in castlist's [new "
+"API shape](https://github.com/uraitakahito/castlist/blob/main/docs/src/"
+"next.md). The common shapes (errors, time, paging) are castlist's "
+"`ai.common`, fetched and pinned at a castlist release tag (see \"How the "
+"model is fetched\" below)."
+
+#: src/next.md
+msgid "形"
+msgstr "Shape"
+
+#: src/next.md
+msgid "道の頭"
+msgstr "Path prefix"
+
+#: src/next.md
+msgid ""
+"API は `/api/` の下。`/healthz` と、ページと file の本文の URL と、画面だけは"
+"外"
+msgstr ""
+"The API lives under `/api/`. Only `/healthz`, the URLs of page and file "
+"bodies, and the UI are outside it"
+
+#: src/next.md
+msgid "protocol"
+msgstr "protocol"
+
+#: src/next.md
+msgid ""
+"`aws.protocols#restJson1`。誤りの種類は header `X-Amzn-Errortype` と本文の "
+"`message`（今の server の `{\"error\":…}` はやめる）"
+msgstr ""
+"`aws.protocols#restJson1`. The kind of an error is in the header `X-Amzn-"
+"Errortype`, with `message` in the body (the current server's `{\"error\":…}` "
+"goes away)"
+
+#: src/next.md
+msgid "欄と引数の名"
+msgstr "Names of fields and parameters"
+
+#: src/next.md
+msgid ""
+"camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`actorIssuer`・"
+"`actorRef`・`maxResults`・`nextToken`）"
+msgstr ""
+"camelCase (`createdAt`, `askedAt`, `answeredAt`, `waitsOn`, `actorIssuer`, "
+"`actorRef`, `maxResults`, `nextToken`)"
+
+#: src/next.md
+msgid "時刻"
+msgstr "Time"
+
+#: src/next.md
+msgid ""
+"RFC 3339 の UTC（末尾 `Z`。`ai.common#DateTime`）。時差の付いた時刻"
+"（`+09:00`）は生成した層が 400 で断る。残す字は UTC・ミリ秒まで・24 字"
+"（`2026-11-24T00:00:00.000Z`）にそろえ、字の順が時刻の順になる"
+msgstr ""
+"RFC 3339 in UTC (ending in `Z`; `ai.common#DateTime`). A time with an offset "
+"(`+09:00`) is refused with 400 by the generated layer. Stored strings are "
+"normalized to UTC, to the millisecond, 24 characters "
+"(`2026-11-24T00:00:00.000Z`), so string order is time order"
+
+#: src/next.md
+msgid "誤り"
+msgstr "Errors"
+
+#: src/next.md
+msgid ""
+"定義に書いた型だけ: 400 `ValidationException`・404 `NotFound`・409 "
+"`Conflict`・410 `Gone`・500 `InternalError`（server の中の失敗。訳は記録に書"
+"き、答えは決まった字。`@retryable` は付けない）・503 `Unavailable`（混んでい"
+"る・時間切れ・呼ぶ先の castlist が答えない。`@retryable`）。守りの層が断る "
+"403 `Forbidden`・413 `PayloadTooLarge`・503 `Unavailable` は、service の "
+"`errors` に置き、どの操作の誤りにも入る。生成した層の外の道（本文・SSE・"
+"backup・logs）の誤りも、同じ形で返す"
+msgstr ""
+"Only the types written in the model: 400 `ValidationException`, 404 "
+"`NotFound`, 409 `Conflict`, 410 `Gone`, 500 `InternalError` (a failure "
+"inside the server; the reason goes to the log and the response is a fixed "
+"message; no `@retryable`), 503 `Unavailable` (busy, timed out, or castlist "
+"not answering; `@retryable`). The 403 `Forbidden`, 413 `PayloadTooLarge`, "
+"and 503 `Unavailable` that the guard layer returns are in the service's "
+"`errors`, so they are part of every operation's errors. Routes outside the "
+"generated layer (bodies, SSE, backup, logs) return errors in the same shape"
+
+#: src/next.md
+msgid "id"
+msgstr "id"
+
+#: src/next.md
+msgid ""
+"道に入る id は字にする。ページの番号 `n` も、頭に 0 の無い数の字（`\"7\"`。"
+"`^[1-9][0-9]{0,17}$`）で、答えの `n` も字"
+msgstr ""
+"An id that goes into a path is a string. The page number `n` is also a "
+"string of digits with no leading zero (`\"7\"`; `^[1-9][0-9]{0,17}$`), and "
+"`n` in responses is a string too"
+
+#: src/next.md
+msgid "ページ送り"
+msgstr "Paging"
+
+#: src/next.md
+msgid ""
+"`@paginated`。`maxResults`（1〜1000。既定 100）と、前の答えの `nextToken` を"
+"そのまま渡す"
+msgstr ""
+"`@paginated`. Pass `maxResults` (1 to 1000; default 100) and the previous "
+"response's `nextToken` as is"
+
+#: src/next.md
+msgid "状態の数"
+msgstr "Status codes"
+
+#: src/next.md
+msgid ""
+"決まっている物は `@http` の `code`（置けば 201）。答えで替わる物だけ "
+"`@httpResponseCode`"
+msgstr ""
+"A fixed one is the `code` of `@http` (201 on a put). Only a code that "
+"depends on the outcome uses `@httpResponseCode`"
+
+#: src/next.md
+msgid "決まった字の欄"
+msgstr "Fields with fixed values"
+
+#: src/next.md
+msgid ""
+"`waitsOn`・`verdict`・`reply` などは、enum でなく `@pattern` の字で書く"
+"（castlist と同じ訳: codegen-server 0.1.40 の作る protocol の試験が、要る "
+"enum を空の字から作って落ちる）"
+msgstr ""
+"`waitsOn`, `verdict`, `reply` and the like are written as `@pattern` "
+"strings, not enums (for the same reason as castlist: the protocol tests that "
+"codegen-server 0.1.40 generates build a required enum from an empty string "
+"and fail)"
+
+#: src/next.md
+msgid "知らない欄と引数"
+msgstr "Unknown fields and parameters"
+
+#: src/next.md
+msgid "restJson1 は読み飛ばす。重ねられない引数を 2 度付ければ初めの物を使う"
+msgstr ""
+"restJson1 skips them. If a parameter that cannot repeat is given twice, the "
+"first one is used"
+
+#: src/next.md
+msgid ""
+"今の header `Pagetray-Api` と `GET /api/version` は無くす。形の版は、service "
+"の版（`GET /healthz` の `version`）と、定義の release の tag との `smithy "
+"diff`（`ci/gen.sh --diff`。壊す変わりで落ちる）で守る"
+msgstr ""
+"The current `Pagetray-Api` header and `GET /api/version` go away. The shape "
+"is versioned by the service version (`version` of `GET /healthz`) and "
+"guarded by `smithy diff` against the model at the release tag (`ci/gen.sh --"
+"diff`; it fails on breaking changes)"
+
+#: src/next.md
+msgid "操作"
+msgstr "Operation"
+
+#: src/next.md
+msgid "道"
+msgstr "Route"
+
+#: src/next.md
+msgid "今の道"
+msgstr "Current route"
+
+#: src/next.md
+msgid "`GetHealth`"
+msgstr "`GetHealth`"
+
+#: src/next.md
+msgid "`GET /healthz`（`{\"status\":\"ok\",\"version\":…}`）"
+msgstr "`GET /healthz` (`{\"status\":\"ok\",\"version\":…}`)"
+
+#: src/next.md
+msgid "`GET /healthz`（字の `ok`）・`GET /api/version`"
+msgstr "`GET /healthz` (the text `ok`), `GET /api/version`"
+
+#: src/next.md
+msgid "`CreatePage`"
+msgstr "`CreatePage`"
+
+#: src/next.md
+msgid ""
+"`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages`（本文は HTML。引"
+"数 `role`・`workspace`・`n`・`createdAt`・`actorIssuer`・`actorRef`）"
+msgstr ""
+"`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages` (the body is "
+"HTML; parameters `role`, `workspace`, `n`, `createdAt`, `actorIssuer`, "
+"`actorRef`)"
+
+#: src/next.md
+msgid "`POST /api/pages?project&key&kind&role…`"
+msgstr "`POST /api/pages?project&key&kind&role…`"
+
+#: src/next.md
+msgid "`ListPages`"
+msgstr "`ListPages`"
+
+#: src/next.md
+msgid "`SetReplyState`"
+msgstr "`SetReplyState`"
+
+#: src/next.md
+msgid "`PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`"
+msgstr "`PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`"
+
+#: src/next.md
+msgid "`POST /api/pages/reply`"
+msgstr "`POST /api/pages/reply`"
+
+#: src/next.md
+msgid "`AddReviewMarks`"
+msgstr "`AddReviewMarks`"
+
+#: src/next.md
+msgid "`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`"
+msgstr ""
+"`POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`"
+
+#: src/next.md
+msgid "`POST /api/pages/review`"
+msgstr "`POST /api/pages/review`"
+
+#: src/next.md
+msgid "`DeletePages`"
+msgstr "`DeletePages`"
+
+#: src/next.md
+msgid "`DELETE /api/pages?project&key&kind&n`"
+msgstr "`DELETE /api/pages?project&key&kind&n`"
+
+#: src/next.md
+msgid "`DELETE /api/pages`"
+msgstr "`DELETE /api/pages`"
+
+#: src/next.md
+msgid "`CreateFile`"
+msgstr "`CreateFile`"
+
+#: src/next.md
+msgid ""
+"`POST /api/projects/{project}/keys/{key}/files`（本文は file の中身。"
+"`Content-Type` が要る）"
+msgstr ""
+"`POST /api/projects/{project}/keys/{key}/files` (the body is the file "
+"contents; `Content-Type` is required)"
+
+#: src/next.md
+msgid "`POST /api/files`"
+msgstr "`POST /api/files`"
+
+#: src/next.md
+msgid "`ListFiles`"
+msgstr "`ListFiles`"
+
+#: src/next.md
+msgid "`DeleteFiles`"
+msgstr "`DeleteFiles`"
+
+#: src/next.md
+msgid "`DELETE /api/files`"
+msgstr "`DELETE /api/files`"
+
+#: src/next.md
+msgid ""
+"手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・"
+"file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`（どちらも今と同じ "
+"URL）・新着の知らせ `GET /api/events`（SSE）・`GET /api/backup`・`GET /api/"
+"logs`・画面（`/`・`/{project}/`・`/{project}/{key}/`）。"
+msgstr ""
+"Hand-written routes (outside Smithy): page bodies `GET /{project}/{key}/"
+"{kind}-{n}.html`, file contents `GET /{project}/{key}/files/{word}-{n}."
+"{extension}` (both the same URLs as now), new-arrival notices `GET /api/"
+"events` (SSE), `GET /api/backup`, `GET /api/logs`, and the UI (`/`, `/"
+"{project}/`, `/{project}/{key}/`)."
+
+#: src/next.md
+msgid ""
+"置かれたページの URL は切らない。だから本文の URL は今のまま、Smithy の外の手"
+"の道にする（`.html` の付いた 1 段は、Smithy の道の label にできない）。"
+msgstr ""
+"The URLs of pages already put must not break. So the body URLs stay as they "
+"are, as hand-written routes outside Smithy (a path segment ending in `.html` "
+"cannot be a Smithy label)."
+
+#: src/next.md
+msgid ""
+"`/api/` の下の道は、みな生成した層か、名指した手の道に行く。本文の道（`/"
+"{project}/{key}/{file}`）は `/api/…` を受けない（`project` に `api` は置けな"
+"い）。"
+msgstr ""
+"Every path under `/api/` goes to the generated layer or to a named hand-"
+"written route. The body route (`/{project}/{key}/{file}`) does not take `/"
+"api/…` (no page can have the `project` `api`)."
+
+#: src/next.md
+msgid ""
+"この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage` と本文の道。残り"
+"は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。"
+msgstr ""
+"Of the operations in this chapter, `GetHealth`, `CreatePage`, and the body "
+"route are built. The rest are added in the next PRs of stage 4 of AI-36 (see "
+"\"How stage 4 is split\" below)."
+
+#: src/next.md
+msgid "ページを置く（CreatePage）"
+msgstr "Putting a page (CreatePage)"
+
+#: src/next.md
+msgid "欄・引数"
+msgstr "Field or parameter"
+
+#: src/next.md
+msgid "`project`・`key`（道）"
+msgstr "`project`, `key` (path)"
+
+#: src/next.md
+msgid ""
+"英数字と `.` `_` `-` で 1〜255 字。`.` と `..` は 400（server）。`project` "
+"に `api` は 400（server）"
+msgstr ""
+"Alphanumerics and `.` `_` `-`, 1 to 255 characters. `.` and `..` are 400 "
+"(server). `api` as `project` is 400 (server)"
+
+#: src/next.md
+msgid "`kind`（道）・`role`（引数。要る）"
+msgstr "`kind` (path), `role` (parameter; required)"
+
+#: src/next.md
+msgid "英小文字で始まり、英小文字・数字・`-` で 1〜32 字"
+msgstr ""
+"Starts with a lowercase letter; lowercase letters, digits, and `-`, 1 to 32 "
+"characters"
+
+#: src/next.md
+msgid "英数字と `:` `.` `_` `-` で 0〜64 字。無ければ空"
+msgstr ""
+"Alphanumerics and `:` `.` `_` `-`, 0 to 64 characters. Empty if not given"
+
+#: src/next.md
+msgid "取り込みの時だけ。数の字（`0`・`01`・`abc` は 400）"
+msgstr "Only for imports. A string of digits (`0`, `01`, `abc` are 400)"
+
+#: src/next.md
+msgid "`createdAt`"
+msgstr "`createdAt`"
+
+#: src/next.md
+msgid ""
+"取り込みの時だけ。UTC の RFC 3339。ミリ秒より細かい時刻は 400（切って残すと、"
+"取り込んだ時刻が替わる）。0000 年から 9999 年まで"
+msgstr ""
+"Only for imports. RFC 3339 in UTC. A time finer than a millisecond is 400 "
+"(truncating it would change the imported time). Years 0000 to 9999"
+
+#: src/next.md
+msgid "`actorIssuer`・`actorRef`"
+msgstr "`actorIssuer`, `actorRef`"
+
+#: src/next.md
+msgid ""
+"定義には置くが、まだ受けない（書けば 400。何も残さない）。送り手を castlist "
+"に聞く処理と一緒に、段 4 の次の PR で受ける。定義に置くのは、知らない引数を読"
+"み飛ばす restJson1 で、送り手の記録が黙って落ちないようにするため。"
+"`actorRef` の形は `ai.common#ActorRef`（castlist と同じ。今の pagetray の形よ"
+"り広い）"
+msgstr ""
+"In the model, but not accepted yet (giving them is 400 and nothing is "
+"stored). They are accepted in the next PR of stage 4, together with asking "
+"castlist about the sender. They are in the model so that restJson1, which "
+"skips unknown parameters, does not silently drop the sender record. The "
+"shape of `actorRef` is `ai.common#ActorRef` (the same as castlist; wider "
+"than the current pagetray shape)"
+
+#: src/next.md
+msgid "本文"
+msgstr "Body"
+
+#: src/next.md
+msgid ""
+"`Content-Type: text/html`（`; charset=…` は付いてよい）。空は 400。UTF-8 でな"
+"くても受ける（題と検索の字は、読めない byte を置き換えて取る）"
+msgstr ""
+"`Content-Type: text/html` (`; charset=…` may follow). Empty is 400. A body "
+"that is not UTF-8 is accepted (the title and the search text are taken with "
+"unreadable bytes replaced)"
+
+#: src/next.md
+msgid ""
+"番号: 書かなければ、同じ `project`・`key`・`kind` の置いた番号と消した番号の"
+"最大 + 1（初めは 1）。書く接続は 1 本なので、並べて置いても重ならず抜けない。"
+"書けばその番号で置き、置いた番号・消した番号なら 409 `Conflict`（何も替えな"
+"い）。次に任せた番号は、取り込んだ番号の次になる。"
+msgstr ""
+"Number: if not given, the largest put or removed number for the same "
+"`project`, `key`, and `kind`, plus 1 (1 at first). There is a single write "
+"connection, so parallel puts neither collide nor leave gaps. If given, the "
+"page is put with that number, and a number already put or removed is 409 "
+"`Conflict` (nothing changes). The next number left to the server comes after "
+"the imported one."
+
+#: src/next.md
+msgid ""
+"答えは 201 で、ページの記録（本文は入らない）と、要求の `Host` で組んだ `url`"
+"（header `Location` にも）。置いた時は、返事・判定・見た物・送り手の欄は無"
+"い。"
+msgstr ""
+"The response is 201 with the page record (without the body) and a `url` "
+"built from the request's `Host` (also in the `Location` header). Right after "
+"a put there are no reply, verdict, target, or sender fields."
+
+#: src/next.md
+msgid ""
+"題は大小を問わない初めの `<title>` の中身（文字参照を戻し、空白を 1 つにまと"
+"める。無ければ空）。検索の索引には、題と、tag・script・style・comment を除い"
+"て文字参照を 1 度戻した字を入れる（今の `src/text.rs` と同じ中身の `crates/"
+"server/src/text.rs`）。"
+msgstr ""
+"The title is the contents of the first `<title>`, in any case (character "
+"references decoded, white space collapsed to one; empty if missing). The "
+"search index gets the title and the text with tags, scripts, styles, and "
+"comments removed and character references decoded once (`crates/server/src/"
+"text.rs`, with the same contents as the current `src/text.rs`)."
+
+#: src/next.md
+msgid ""
+"混んでいて書く接続を 2 秒（`WRITE_WAIT`）待っても取れなければ 503 "
+"`Unavailable`（問い合わせの時間切れ 5 秒より前に答える）。"
+msgstr ""
+"If the store is busy and the write connection cannot be taken within 2 "
+"seconds (`WRITE_WAIT`), the response is 503 `Unavailable` (it answers before "
+"the 5-second request timeout)."
+
+#: src/next.md
+msgid "本文の上限（16 MiB で 413 `PayloadTooLarge`）は、守りの層の PR で足す。"
+msgstr ""
+"The body limit (413 `PayloadTooLarge` at 16 MiB) is added in the guard layer "
+"PR."
+
+#: src/next.md
+msgid "ページの本文"
+msgstr "Page body"
+
+#: src/next.md
+msgid "`GET /{project}/{key}/{kind}-{n}.html`（手の道。今と同じ）。"
+msgstr ""
+"`GET /{project}/{key}/{kind}-{n}.html` (a hand-written route; the same as "
+"now)."
+
+#: src/next.md
+msgid ""
+"形の合わない URL（`kind` が名の形でない・`n` が頭に 0 のある数や 0・`.html` "
+"でない）は 404 `NotFound`。"
+msgstr ""
+"A URL of the wrong shape (`kind` not a name, `n` with a leading zero or 0, "
+"not `.html`) is 404 `NotFound`."
+
+#: src/next.md
+msgid ""
+"置いたページは 200 で、置いたままの byte。`Content-Type: text/html; "
+"charset=utf-8`・`Content-Security-Policy: sandbox allow-scripts`（隔てた枠と"
+"して出す。ページの中の script は動くが、置き場の名で API を呼べない）・`X-"
+"Content-Type-Options: nosniff`。"
+msgstr ""
+"A page that was put is 200 with the bytes exactly as put. `Content-Type: "
+"text/html; charset=utf-8`, `Content-Security-Policy: sandbox allow-scripts` "
+"(shown as an isolated frame: scripts in the page run, but cannot call the "
+"API under the store's origin), `X-Content-Type-Options: nosniff`."
+
+#: src/next.md
+msgid ""
+"無いページは 404 `NotFound`、消したページは 410 `Gone`（`message` に消した時"
+"刻）。"
+msgstr ""
+"A missing page is 404 `NotFound`; a removed page is 410 `Gone` (the time it "
+"was removed is in `message`)."
+
+#: src/next.md
+msgid "守りの層"
+msgstr "Guard layer"
+
+#: src/next.md
+msgid ""
+"生成した道と手の道の前に、外から順に掛ける（`crates/server/src/guard.rs`。"
+"castlist と同じ作り）。断る答えは restJson1 の形。"
+msgstr ""
+"Applied in front of the generated routes and the hand-written routes, from "
+"the outside in (`crates/server/src/guard.rs`; built the same way as "
+"castlist). Refusals are in the restJson1 shape."
+
+#: src/next.md
+msgid "順"
+msgstr "Order"
+
+#: src/next.md
+msgid "守り"
+msgstr "Guard"
+
+#: src/next.md
+msgid "振る舞い"
+msgstr "Behavior"
+
+#: src/next.md
+msgid "1"
+msgstr "1"
+
+#: src/next.md
+msgid "頭の印"
+msgstr "Header stamps"
+
+#: src/next.md
+msgid ""
+"どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-"
+"referrer`。今の `Pagetray-Api` は付けない。本文の CSP は本文の道が自分で付け"
+"る（画面の CSP は画面の PR で決める）"
+msgstr ""
+"Every response gets `X-Content-Type-Options: nosniff` and `Referrer-Policy: "
+"no-referrer`. The current `Pagetray-Api` is not added. The body route sets "
+"the body's CSP itself (the UI's CSP is decided in the UI PR)"
+
+#: src/next.md
+msgid "2"
+msgstr "2"
+
+#: src/next.md
+msgid "問い合わせの記録"
+msgstr "Request log"
+
+#: src/next.md
+msgid "1 つにつき 1 行（tower-http の TraceLayer。今の server と同じ設定）"
+msgstr ""
+"One line per request (tower-http's TraceLayer, with the same settings as the "
+"current server)"
+
+#: src/next.md
+msgid "3"
+msgstr "3"
+
+#: src/next.md
+msgid "Host と Origin"
+msgstr "Host and Origin"
+
+#: src/next.md
+msgid ""
+"`Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほ"
+"かの要求に `Origin` が付いていれば、403 `Forbidden`。今の server の例外（一覧"
+"の UI の form が file を上げる `POST /api/files`）は、file の PR で "
+"`CreateFile` の道に足す"
+msgstr ""
+"403 `Forbidden` if `Host` (without the port) is not 127.0.0.1 or localhost, "
+"or if a request other than `GET` and `HEAD` has an `Origin`. The current "
+"server's exception (`POST /api/files` from the list UI's upload form) is "
+"added to the `CreateFile` route in the files PR"
+
+#: src/next.md
+msgid "HEAD"
+msgstr "HEAD"
+
+#: src/next.md
+msgid ""
+"`GET` にして通し、本文を捨てる（生成した骨の道は GET だけなので、ここで揃え"
+"る）"
+msgstr ""
+"Passed on as `GET`, with the body dropped (the generated skeleton's routes "
+"are GET only, so this layer makes them match)"
+
+#: src/next.md
+msgid "4"
+msgstr "4"
+
+#: src/next.md
+msgid "時間切れ"
+msgstr "Timeout"
+
+#: src/next.md
+msgid ""
+"答えの頭まで 5 秒（`REQUEST_TIMEOUT`）を過ぎれば 503 `Unavailable`。接続を待"
+"つ長さ（書く `WRITE_WAIT` 2 秒・読む `READ_WAIT` 3 秒）は、これより短くする"
+msgstr ""
+"503 `Unavailable` if the response head takes more than 5 seconds "
+"(`REQUEST_TIMEOUT`). The connection waits (`WRITE_WAIT` 2 seconds for "
+"writing, `READ_WAIT` 3 seconds for reading) are shorter than this"
+
+#: src/next.md
+msgid "5"
+msgstr "5"
+
+#: src/next.md
+msgid "本文の上限"
+msgstr "Body limit"
+
+#: src/next.md
+msgid ""
+"16 MiB（ページも file も）で 413 `PayloadTooLarge`。守りの層の PR で足す"
+msgstr ""
+"413 `PayloadTooLarge` at 16 MiB (for pages and files). Added in the guard "
+"layer PR"
+
+#: src/next.md
+msgid "データ"
+msgstr "Data"
+
+#: src/next.md
+msgid ""
+"DB は SQLite のまま。新しい migrations（`crates/server/migrations/`）は 1 つ"
+"（`0001_init.sql`）で、今の `migrations/0001`〜`0006` を当てた後の作りと同じ"
+"表・列（順も）・型・空を許すか・既定・主キー・一意・索引（部分の索引の条件"
+"も）・外のキー・check・trigger・全文検索の表を作る（`crates/server/tests/"
+"db.rs` が、今の migrations を当てた DB と突き合わせる）。"
+msgstr ""
+"The DB stays SQLite. The new migrations (`crates/server/migrations/`) are a "
+"single file (`0001_init.sql`) that creates the same tables, columns (in the "
+"same order), types, nullability, defaults, primary keys, unique constraints, "
+"indexes (including the conditions of partial indexes), foreign keys, checks, "
+"triggers, and full-text table as the current `migrations/0001` to `0006` "
+"produce (`crates/server/tests/db.rs` compares it with a DB that has the "
+"current migrations applied)."
+
+#: src/next.md
+msgid ""
+"接続は castlist と同じ: 書く接続は 1 本（`WRITE_WAIT` 2 秒まで待つ）、読む接"
+"続は読むだけの 4 本（`READ_WAIT` 3 秒）。どの接続も WAL・`foreign_keys`・"
+"`recursive_triggers`・`busy_timeout` 5 秒・一時の物は memory。開く時に移行を"
+"当て、`foreign_key_check` に崩れがあれば開かない。"
+msgstr ""
+"Connections are the same as castlist: a single write connection (waiting up "
+"to `WRITE_WAIT`, 2 seconds) and 4 read-only connections (`READ_WAIT`, 3 "
+"seconds). Every connection has WAL, `foreign_keys`, `recursive_triggers`, a "
+"5-second `busy_timeout`, and temporary data in memory. Opening applies the "
+"migrations and refuses to open if `foreign_key_check` finds broken rows."
+
+#: src/next.md
+msgid ""
+"今の server の DB（`_sqlx_migrations` に、新しい migrations に無い版か、中身"
+"の checksum の違う版がある物）は、読むだけで見て、何も書かずに断る（castlist "
+"の `refuse_current` と同じ）。今の DB からの移しは、切り替えの前の PR で作"
+"る。"
+msgstr ""
+"A DB of the current server (one whose `_sqlx_migrations` has a version that "
+"the new migrations do not have, or a version with a different checksum) is "
+"inspected read-only and refused without writing anything (the same as "
+"castlist's `refuse_current`). Moving data from the current DB is built in a "
+"PR before the switch-over."
+
+#: src/next.md
+msgid "直す今の振る舞い"
+msgstr "Current behavior that is fixed"
+
+#: src/next.md
+msgid ""
+"置いた時刻の字: 今の server は `createdAt` を書いた字のまま残す（`…:05Z` と "
+"`…:05.5Z` が混ざる）。`.` は `Z` より前の字なので、字で比べると同じ秒の中の順"
+"が狂う（`…:05.5Z` が `…:05Z` より前になる）。新しい server は、いつも 24 字"
+"（`…:05.000Z`）で残す。"
+msgstr ""
+"The string of the put time: the current server stores `createdAt` exactly as "
+"written (`…:05Z` and `…:05.5Z` are mixed). `.` sorts before `Z`, so "
+"comparing strings gets the order inside one second wrong (`…:05.5Z` comes "
+"before `…:05Z`). The new server always stores 24 characters (`…:05.000Z`)."
+
+#: src/next.md
+msgid ""
+"一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時"
+"刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、"
+"`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。"
+msgstr ""
+"List pages: the current server compares `before` and `after` with the "
+"`created_at` string, so rows with the same time at a page boundary are "
+"skipped or repeated. The new `ListPages` and `ListFiles` continue from the "
+"pair of `createdAt` and the row id (keyset; stored in `nextToken`)."
+
+#: src/next.md
+msgid "定義の取り方"
+msgstr "How the model is fetched"
+
+#: src/next.md
+msgid ""
+"pagetray の定義は `model/model/pagetray.smithy`（名前空間 `ai.pagetray`）。共"
+"通の形 `ai.common` は castlist の `model/model/common.smithy` を使う。"
+msgstr ""
+"The pagetray model is `model/model/pagetray.smithy` (namespace "
+"`ai.pagetray`). The common shapes `ai.common` come from castlist's `model/"
+"model/common.smithy`."
+
+#: src/next.md
+msgid ""
+"`ci/gen.sh` が、castlist の release の tag（今は `v1.0.0-rc.1`）の "
+"`common.smithy` と `castlist.smithy` を `model/castlist/` に取り、`ci/"
+"gen.sh` に固めた SHA-256 と合うかを見てから置く。tag と 2 つの digest は `ci/"
+"gen.sh` の 1 か所に書く。取った定義は commit するので、`ci/gen.sh --check` "
+"は castlist に取りに行かず、入れてある物が digest と合うかを見る。"
+msgstr ""
+"`ci/gen.sh` fetches `common.smithy` and `castlist.smithy` at a castlist "
+"release tag (now `v1.0.0-rc.1`) into `model/castlist/`, after checking that "
+"they match the SHA-256 values pinned in `ci/gen.sh`. The tag and the two "
+"digests are written in one place in `ci/gen.sh`. The fetched model is "
+"committed, so `ci/gen.sh --check` does not fetch from castlist; it checks "
+"that the committed files match the digests."
+
+#: src/next.md
+msgid ""
+"1 つの Smithy の build から、2 つの crate を作る: pagetray の server の骨"
+"（`crates/pagetray-sdk/`。smithy-rs の codegen-server 0.1.40・`http-1x`・"
+"`publicConstrainedTypes: false`）と、castlist を呼ぶ crate（`crates/castlist-"
+"client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）。呼ぶ"
+"側の crate は、送り手を castlist に聞く処理（段 4 の次の PR）で使う。"
+msgstr ""
+"One Smithy build makes two crates: the pagetray server skeleton (`crates/"
+"pagetray-sdk/`; smithy-rs codegen-server 0.1.40, `http-1x`, "
+"`publicConstrainedTypes: false`) and a crate that calls castlist (`crates/"
+"castlist-client/`; `rust-client-codegen` of codegen-client 0.1.40, on http "
+"1). The calling crate is used to ask castlist about the sender (the next PR "
+"of stage 4)."
+
+#: src/next.md
+msgid ""
+"呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外"
+"す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼"
+"ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build し"
+"ない。HTTP の client は、使う側が設定で渡す。"
+msgstr ""
+"The https client (rustls, aws-lc) is removed from the calling crate's "
+"default features (`ci/gen.sh` changes one line of its `Cargo.toml`). "
+"pagetray calls castlist only at `http://127.0.0.1` on the same machine, so "
+"no TLS crate is built. The user of the crate passes an HTTP client in its "
+"configuration."
+
+#: src/next.md
+msgid ""
+"例（`@httpRequestTests`・`@httpResponseTests`）の id は、castlist の定義と 1 "
+"つの model に入るので重なれない。pagetray の物は頭に `Pagetray` を付ける。"
+msgstr ""
+"The ids of the examples (`@httpRequestTests`, `@httpResponseTests`) share "
+"one model with castlist's, so they must not collide. pagetray's start with "
+"`Pagetray`."
+
+#: src/next.md
+msgid "段 4 の分け方（予定）"
+msgstr "How stage 4 is split (planned)"
+
+#: src/next.md
+msgid "PR"
+msgstr "PR"
+
+#: src/next.md
+msgid "1（この章と同じ PR）"
+msgstr "1 (the same PR as this chapter)"
+
+#: src/next.md
+msgid ""
+"この章・定義（`GetHealth`・`CreatePage`）・`ci/gen.sh`・生成した 2 つの "
+"crate・新しい server の土台（生成した層の包み・守りの層の Host と Origin と頭"
+"の印と時間切れ・誤り・DB）・`CreatePage`・ページの本文の道"
+msgstr ""
+"This chapter, the model (`GetHealth`, `CreatePage`), `ci/gen.sh`, the two "
+"generated crates, the base of the new server (the wrapper of the generated "
+"layer; Host and Origin, header stamps, and timeout of the guard layer; "
+"errors; DB), `CreatePage`, and the page body route"
+
+#: src/next.md
+msgid ""
+"送り手（`actorIssuer`・`actorRef` を受け、castlist を生成した client で引く）"
+msgstr ""
+"Senders (accept `actorIssuer` and `actorRef`, and look them up in castlist "
+"with the generated calling crate)"
+
+#: src/next.md
+msgid ""
+"探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・"
+"`AddReviewMarks`・`DeletePages`）と SSE"
+msgstr ""
+"Search, replies, review marks, and removal (`ListPages`, `SetReplyState`, "
+"`AddReviewMarks`, `DeletePages`), and SSE"
+
+#: src/next.md
+msgid ""
+"file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI か"
+"らの例外）"
+msgstr ""
+"Files (`CreateFile`, `ListFiles`, `DeleteFiles`, the file contents route, "
+"and the exception for the list UI)"
+
+#: src/next.md
+msgid "守りの層の本文の上限・backup・logs・画面・起こす binary"
+msgstr ""
+"The guard layer's body limit, backup, logs, the UI, and the binary that "
+"starts the server"
 
 #: src/glossary.md
 msgid ""
