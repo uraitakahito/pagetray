@@ -122,7 +122,7 @@ pub struct NewFile<'a> {
 }
 
 /// file の記録の行（中身は入らない。送り手の列は senders を left join した物）。
-#[derive(Debug, FromRow)]
+#[derive(Clone, Debug, FromRow)]
 pub struct FileRow {
     pub id: i64,
     pub project: String,
@@ -768,11 +768,20 @@ impl Db {
              and (?3 is null or (name = ?3 and ext = ?4)) and (?5 is null or n = ?5)";
         let (name, ext) = target.name.unzip();
         let mut tx = self.write.begin().await?;
+        // 消す物を、置いた順（id の順）に先に読む（insert の returning の行の順は、SQLite が決めないので頼らない。ページの remove と同じ）。
         let removed: Vec<RemovedFile> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "select project, key, name, ext, n from files where {MATCHES} order by id"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(name)
+        .bind(ext)
+        .bind(target.n)
+        .fetch_all(&mut *tx)
+        .await?;
+        sqlx::query(sqlx::AssertSqlSafe(format!(
             "insert into files_removed(project, key, name, ext, n, removed_at)
-             select project, key, name, ext, n, ?6 from files where {MATCHES}
-             order by id
-             returning project, key, name, ext, n"
+             select project, key, name, ext, n, ?6 from files where {MATCHES}"
         )))
         .bind(target.project)
         .bind(target.key)
@@ -780,7 +789,7 @@ impl Db {
         .bind(ext)
         .bind(target.n)
         .bind(now())
-        .fetch_all(&mut *tx)
+        .execute(&mut *tx)
         .await?;
         sqlx::query(sqlx::AssertSqlSafe(format!(
             "delete from files where {MATCHES}"

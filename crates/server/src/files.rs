@@ -198,9 +198,10 @@ pub async fn create_file(
         })
         .await
         .map_err(|e| PutFailure::write("CreateFile", e, "その番号は、もう使われている"))?;
+    // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない。ページと同じ）。
+    let record = FileRecord::try_from(row.clone())
+        .map_err(|e| PutFailure::Internal(internal("CreateFile", &e)))?;
     events::send(Note::File(&row));
-    let record =
-        FileRecord::try_from(row).map_err(|e| PutFailure::Internal(internal("CreateFile", &e)))?;
     tracing::info!(
         "put {} role={role} workspace={workspace} size={}",
         record.path(),

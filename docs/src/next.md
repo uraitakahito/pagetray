@@ -239,7 +239,7 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 | 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほかの要求に `Origin` が付いていれば、403 `Forbidden`。例外は 1 つだけ（今の server と同じ）: 一覧の UI の form が file を上げる `POST /api/projects/{project}/keys/{key}/files`（後ろに何も付かない道）で、`Origin` が `http://<Host（port も）>` とそのまま同じで、`Sec-Fetch-Site` が無いか `same-origin` の物。印（`FromUi`）を付けて通す（上の「file を置く」）。ほかの道・本文の枠の中のページ（`Origin: null`）・ほかの port や名や `https` は 403 |
 | 3 | HEAD | `GET` にして通し、本文を捨てる（生成した骨の道は GET だけなので、ここで揃える） |
 | 4 | 時間切れ | 答えの頭まで 5 秒（`REQUEST_TIMEOUT`）を過ぎれば 503 `Unavailable`。接続を待つ長さ（書く `WRITE_WAIT` 2 秒・読む `READ_WAIT` 3 秒）は、これより短くする |
-| 5 | 本文の上限 | 16 MiB（`MAX_BODY`。ページも file も。今の server と同じ）。`Content-Length` で超えると言う要求は読まずに、大きさを言わずに流す要求は 16 MiB まで読んで、413 `PayloadTooLarge`（何も置かない）。ちょうど 16 MiB は通る。生成した層は本文をみな読んでから引数にするので、ここで読んでおく（smithy-rs の生成した層にも本文の上限の設定があるが、既定は上限無しで、超えた時の答えが 413 にならない） |
+| 5 | 本文の上限 | 16 MiB（`MAX_BODY`。ページも file も。今の server と同じ）。`Content-Length` で超えると言う要求は読まずに、大きさを言わずに流す要求は 16 MiB まで読んで、413 `PayloadTooLarge`（何も置かない）。ちょうど 16 MiB は通る。生成した層は本文をみな読んでから引数にするので、ここで読んでおく（smithy-rs の生成した層にも本文の上限の設定があるが、既定は上限無しで、超えた時の答えが 413 にならない）。本文を読む間も、外の層の 5 秒の時間切れに数える（送り手は同じ機械の中の roster と一覧の UI なので、16 MiB でも 5 秒よりずっと短く届く。遅い送り手に書く接続を握らせない利点もある。今の server には時間切れが無かったので、新しい振る舞い） |
 
 ## データ
 
