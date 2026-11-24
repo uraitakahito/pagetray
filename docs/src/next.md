@@ -65,7 +65,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 付随する id（`actorIssuer`・`actorRef`）を書いて置けば、castlist に送り手を聞き、答えと一緒に残す（今の pagetray と同じ振る舞いを、新しい castlist の API で）。
 
-- castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、host の browser から開く所は違う）、形は同じ、無いか空なら `http://127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。link を使う画面は、画面の PR で足す。
+- castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、host の browser から開く所は違う）、形は同じ、無いか空なら `http://127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。link を使う画面は、画面の PR で足す。起きる前に断る所（`from_env` を起こす時に呼ぶ）は、起こし方の PR（binary を足す所）でつなぐ。今の土台は、castlist の無い設定で動く。
 - 聞くのは `ResolveActors`（`POST /api/resolve`、本文 `{"issuer":…,"refs":[…]}`）を 1 度。castlist の定義から作った client（`crates/castlist-client/`）で呼ぶ。書く取引を始める前に聞く（castlist を待つ間、書く接続を握らない）。
 - HTTP の client は、`aws-smithy-http-client` の hyper の作りの、TLS の無い HTTP/1.1（`Builder::new().build_http()`。features は `default-client` だけ。`default-client` は証明書を読む crate（`rustls-native-certs`・`rustls-pki-types`）を引くが、TLS の実装（rustls・aws-lc・ring・s2n）は入らない）。接続は使い回さない（`pool_max_idle_per_host(0)`。1 度ごとにつなぐので、castlist が閉じた古い接続で落ちることがない）。
 - 待つのは 1 度に 1 秒（つなぐ・送る・答えを読み終えるまでの全部。client の `operation_timeout`）。送り直さない（`RetryConfig::disabled()`。castlist の `Unavailable` は `@retryable` だが、送り直すかは pagetray の呼び手が決める）。
@@ -78,6 +78,8 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | 送り手を知らない（`actor` が無い） | 400 `ValidationException`（`message` は「castlist に登録の無い送り手（…）」、`fieldList` の path は `/actorRef`） | 何も残さない |
 | つながらない・1 秒で答えない・2xx でない・読めない | 503 `Unavailable`（`message` は「castlist に聞けない（訳）。…」。訳は記録にも書く） | 何も残さない |
 | castlist が無い（`PAGETRAY_CASTLIST_URL` が空） | 201。`sender` は `issuer`・`ref` だけ | ページと、答えの欄の空の送り手の行 |
+
+呼び手は、`fieldList` に `/actorRef` のある 400 を「castlist に登録が無い送り手（session が castlist に登録されてから打ち直す）」と見分ける（今の 422 の替わり。roster は段 6c で、これを試験にする）。
 
 - 知らない送り手を 400 にするのは、castlist の `PutEvent` が、引けない `by` を 400 `ValidationException` にするのと同じにするため（今の pagetray の 422 はやめる。誤りの型を増やさない）。
 - 送り手の行は足すだけ（trigger が書き換えと消すのを断る）で、置くたびに 1 行（同じ送り手でもまとめない）。ページと同じ取引で足すので、番号が使われていて 409 なら、送り手の行も残らない。

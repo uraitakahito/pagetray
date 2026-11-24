@@ -122,7 +122,12 @@ impl Castlist {
                 SdkError::ServiceError(_) | SdkError::ResponseError(_) => {
                     "答えが読めない".to_owned()
                 }
-                e => format!("{}", castlist_client::error::DisplayErrorContext(&e)),
+                e => {
+                    // 残りの枝（client の中の誤り）は、詳しい字を記録に書き、答えには決まった字だけを出す
+                    // （中の誤りの字・endpoint の URL を外に出さない。errors.rs の決まり）。
+                    tracing::warn!(error = %castlist_client::error::DisplayErrorContext(&e), "castlist に聞けない");
+                    "答えが読めない".to_owned()
+                }
             })?;
         let unreadable = || "答えの形が合わない".to_owned();
         let found = output
