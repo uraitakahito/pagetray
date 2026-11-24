@@ -153,20 +153,26 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/pnpm-lock.yaml') }}
       - name: Chromium と、それが要る library を入れる
+        # 上の build・依存・browser の段がみな通ったかを、新しい server の段が見る。
+        id: ready
         working-directory: e2e
         run: pnpm exec playwright install --with-deps --only-shell chromium
       - name: 一覧の UI の試験
+        id: old
         working-directory: e2e
         run: pnpm test
       - name: 一覧の UI の試験（新しい server。AI-36）
-        # 今の server の段が落ちても流す（作り直しの間は、両方の結果が要る）。
-        if: success() || failure()
+        # 今の server の段が落ちても流す（作り直しの間は、両方の結果が要る）。ただし、用意の段が落ちた時は流さない
+        # （binary の無いまま 2 つ目の赤を出さない）。
+        id: next
+        if: (success() || failure()) && steps.ready.outcome == 'success'
         working-directory: e2e
         env:
           PAGETRAY_E2E_SERVER: ../target/debug/pagetray-next
           PAGETRAY_E2E_OUT: -next
         run: pnpm test
-      - if: failure()
+      # 落ちた段の report だけを上げる。
+      - if: failure() && steps.old.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ui-report
@@ -175,7 +181,7 @@ jobs:
             e2e/test-results/
           retention-days: 7
           if-no-files-found: ignore
-      - if: failure()
+      - if: failure() && steps.next.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ui-report-next
