@@ -189,6 +189,14 @@ impl Reply {
             _ => None,
         }
     }
+
+    /// 定義の字。
+    pub fn name(self) -> &'static str {
+        match self {
+            Reply::Waiting => "waiting",
+            Reply::Answered => "answered",
+        }
+    }
 }
 
 /// 返事の待ちの相手。DB では Product Manager を空で持つ（今の server と同じ）。
@@ -220,8 +228,17 @@ impl Party {
         }
     }
 
+    /// 定義の字。
+    pub fn name(self) -> &'static str {
+        match self {
+            Party::Pm => "pm",
+            Party::Review => "review",
+            Party::Tpm => "tpm",
+        }
+    }
+
     /// DB の `waits_on` の値から読む（空と知らない字は Product Manager）。
-    fn of(column: Option<&str>) -> Self {
+    pub fn of(column: Option<&str>) -> Self {
         column.and_then(Self::parse).unwrap_or_default()
     }
 }

@@ -34,6 +34,7 @@ fn sender(
 }
 
 /// 答えのページの記録の欄。直せなければ（DB の時刻が読めない）、その訳の字。
+#[derive(Clone)]
 pub struct Record {
     project: String,
     key: String,
@@ -119,6 +120,7 @@ macro_rules! from_record {
 from_record!(Page, SetReplyStateOutput, AddReviewMarksOutput);
 
 /// 答えの file の記録の欄。直せなければ（DB の時刻が読めない）、その訳の字。
+#[derive(Clone)]
 pub struct FileRecord {
     project: String,
     key: String,

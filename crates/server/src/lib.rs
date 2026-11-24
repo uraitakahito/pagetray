@@ -1,7 +1,8 @@
 //! 新しい pagetray の server（AI-36）。
 //!
 //! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
-//! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）と file の中身（[`files::show`]）は、同じ Router に並べる。
+//! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）と file の中身（[`files::show`]）と新着の知らせ
+//! （[`events::stream`]）と画面（[`ui`]）は、同じ Router に並べる。
 //! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）・
 //! file を置く・探す・消す（[`files`]）。
 //! 形の決まりは docs/src/next.md。
@@ -9,6 +10,7 @@ pub mod castlist;
 pub mod db;
 mod errors;
 mod events;
+mod facets;
 mod files;
 mod generated;
 mod guard;
@@ -20,6 +22,7 @@ mod remove;
 pub mod search;
 mod text;
 mod token;
+mod ui;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -34,6 +37,7 @@ use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
 use crate::db::Db;
+use crate::events::Events;
 use crate::generated::Generated;
 
 /// 1 つの問い合わせにかけてよい長さ。過ぎれば 503 `Unavailable` で返す（castlist と同じ）。
@@ -67,12 +71,17 @@ pub fn app(db: Arc<Db>) -> Router {
 
 /// 動かす Router。DB は、どの handler も同じ物を使う。
 pub fn app_with(db: Arc<Db>, config: Config) -> Router {
+    // 新着の知らせ。置く・返事・印の handler が送り、`GET /api/events` が流す。
+    let events = Events::default();
     let generated = Pagetray::builder(PagetrayConfig::builder().build())
         .get_health(get_health)
         .create_page({
             let db = db.clone();
             let castlist = config.castlist.clone();
-            move |input, host| pages::create_page(db.clone(), castlist.clone(), input, host)
+            let events = events.clone();
+            move |input, host| {
+                pages::create_page(db.clone(), castlist.clone(), events.clone(), input, host)
+            }
         })
         .list_pages({
             let db = db.clone();
@@ -80,11 +89,13 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         })
         .set_reply_state({
             let db = db.clone();
-            move |input| marks::set_reply_state(db.clone(), input)
+            let events = events.clone();
+            move |input| marks::set_reply_state(db.clone(), events.clone(), input)
         })
         .add_review_marks({
             let db = db.clone();
-            move |input| marks::add_review_marks(db.clone(), input)
+            let events = events.clone();
+            move |input| marks::add_review_marks(db.clone(), events.clone(), input)
         })
         .delete_pages({
             let db = db.clone();
@@ -93,7 +104,17 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .create_file({
             let db = db.clone();
             let castlist = config.castlist.clone();
-            move |input, host, ui| files::create_file(db.clone(), castlist.clone(), input, host, ui)
+            let events = events.clone();
+            move |input, host, ui| {
+                files::create_file(
+                    db.clone(),
+                    castlist.clone(),
+                    events.clone(),
+                    input,
+                    host,
+                    ui,
+                )
+            }
         })
         .list_files({
             let db = db.clone();
@@ -112,8 +133,12 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .route("/{project}/{key}/{file}", get(pages::show))
         // file の中身（今の server と同じ URL）。段の数がページの本文と違うので、種類 files のページ（`files-1.html`）とぶつからない。
         .route("/{project}/{key}/files/{file}", get(files::show))
+        .with_state(db.clone())
+        // 新着の知らせ（SSE。名指した道が、生成した層の `/api/…` より先に当たる）。
+        .route("/api/events", get(events::stream).with_state(events))
+        // 画面（`/`・`/{project}/`・`/{project}/{key}/`）。
+        .merge(ui::routes(db, config.castlist))
         .route_service("/api/{*rest}", generated.clone())
-        .with_state(db)
         .fallback_service(generated)
         .layer(middleware::from_fn(guard::limit))
         .layer(middleware::from_fn_with_state(

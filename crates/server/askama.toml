@@ -1,0 +1,3 @@
+# 画面の template は、repo の templates/ の物を今の server（root の crate）と共に使う（AI-36 の段 9 で今の crate を消しても動かさない）。
+[general]
+dirs = ["../../templates"]

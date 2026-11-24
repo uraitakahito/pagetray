@@ -80,7 +80,9 @@ pnpm test
 PAGETRAY_E2E_CHANNEL=chrome pnpm test      # この機械の Chrome を使う（Chromium を入れなくてよい）
 ```
 
-- **CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを見てから足す）。
+- **新しい server に流す**（AI-36 の作り直しの間）: `cargo build --bin pagetray-next` の後、`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next pnpm test`。起こす binary の名が `pagetray-next` なら、試験は新しい API の道と引数の名で置く・書く（`e2e/tests/wire.ts`。名を替えた binary を向ける時は `PAGETRAY_E2E_API=next` を付ける）。画面と字は同じなので、同じ試験がどちらの server にも通る。落ちた時の写しと report を分けるなら `PAGETRAY_E2E_OUT=-next` を付ける（`test-results-next/`・`playwright-report-next/`）。
+
+- **CI**: workflow の `ui` が PR ごとに、今の server と新しい server（`pagetray-next`。今の server の段が落ちても流す）に続けて流す。落ちると、画面の絵と操作の記録が artifact（`ui-report`・`ui-report-next`）に残る。`ui` は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを見てから足す）。
 - **読むだけの試験**: 題に `@smoke` が付いた試験（`e2e/tests/smoke.spec.ts`）は、何も置かず、何が置かれていても通る物だけを見る。`PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test` と打つと、サーバーを起こさず、動いている置き場に向けて、この試験だけが流れる（置く試験は、設定が流させない）。版を上げた後の確かめに使う（[動かす](run.md#確かめる) の「確かめる」）。
 - **試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の `place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠と、Key の画面の file の枠・上げる枠）は `helpers.ts` の関数で選ぶ。file は `placeFile` で置き、上げる枠の試験は `input[type=file]` に `setInputFiles` で file を渡す。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を使う。新着を見る試験（一覧の列の差し替えと新着の印）は、`openLive` で開いてから置く（知らせにつながる前に置いたページの知らせは届かない）。新着の印は一覧の列を下へ送っている時に出るので、`scrollList` で送ってから置く。大きな file は試験の中で作り、repo に置かない。
 - **返事の状態を見る試験**（`e2e/tests/reply.spec.ts`）: 返事待ちの数は、絞り込みに関わらず置き場の全部を数え、tab の題にも出る。試験は同じ置き場に順に流れるので、返事待ちにしたページは、試験の終わりまでに答えたにする（残すと、後の試験の tab の題が変わる）。絞り込みの列の見出し「返事」は、状態を書いたページが 1 枚でもあると出るので、この file は、見出しの並びを見る `list.spec.ts` より後に流れる名にしてある。

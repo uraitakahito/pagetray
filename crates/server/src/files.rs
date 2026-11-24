@@ -22,7 +22,7 @@ use sha2::{Digest, Sha256};
 use crate::castlist::Castlist;
 use crate::db::{Db, FileKey, FileTarget, NewFile};
 use crate::errors::{Failure, PutFailure, internal, invalid, reply};
-use crate::events::{self, Note};
+use crate::events::{Events, Note};
 use crate::guard::{FromUi, RequestHost};
 use crate::pages::{self, Checked, is_dot, is_segment};
 use crate::record::FileRecord;
@@ -140,6 +140,7 @@ fn split_name(name: &str) -> (&str, &str) {
 pub async fn create_file(
     db: Arc<Db>,
     castlist: Option<Castlist>,
+    events: Events,
     input: CreateFileInput,
     Extension(RequestHost(host)): Extension<RequestHost>,
     ui: Option<Extension<FromUi>>,
@@ -198,10 +199,10 @@ pub async fn create_file(
         })
         .await
         .map_err(|e| PutFailure::write("CreateFile", e, "その番号は、もう使われている"))?;
-    // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない。ページと同じ）。
-    let record = FileRecord::try_from(row.clone())
-        .map_err(|e| PutFailure::Internal(internal("CreateFile", &e)))?;
-    events::send(Note::File(&row));
+    let record =
+        FileRecord::try_from(row).map_err(|e| PutFailure::Internal(internal("CreateFile", &e)))?;
+    // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない）。
+    events.send(Note::File(record.clone().into()));
     tracing::info!(
         "put {} role={role} workspace={workspace} size={}",
         record.path(),

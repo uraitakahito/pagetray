@@ -9,8 +9,8 @@ use pagetray_sdk::output::{AddReviewMarksOutput, SetReplyStateOutput};
 
 use crate::db::{Db, Marked, PageKey, PageRow, Party, Reply};
 use crate::errors::{Failure, invalid};
-use crate::events::{self, Note};
-use crate::pages::{is_dot, is_segment, parse_file};
+use crate::events::{Events, Note};
+use crate::pages::{is_dot, parse_page_path};
 use crate::record::Record;
 
 /// ページ 1 枚が持てる見た物の数（1 度の要求にも、足した後の数にも掛かる）。
@@ -48,14 +48,13 @@ fn not_found() -> NotFound {
 }
 
 /// 書いた後の行を、答えの記録にする。
-fn record<T: From<Record>>(operation: &str, row: PageRow) -> Result<T, Failure> {
-    Record::try_from(row)
-        .map(Into::into)
-        .map_err(|e| Failure::data(operation, &e))
+fn record(operation: &str, row: PageRow) -> Result<Record, Failure> {
+    Record::try_from(row).map_err(|e| Failure::data(operation, &e))
 }
 
 pub async fn set_reply_state(
     db: Arc<Db>,
+    events: Events,
     input: SetReplyStateInput,
 ) -> Result<SetReplyStateOutput, SetReplyStateError> {
     const OPERATION: &str = "SetReplyState";
@@ -80,9 +79,9 @@ pub async fn set_reply_state(
                 input.on.as_deref().unwrap_or("pm")
             );
             // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない）。
-            let answer = record(OPERATION, (*row).clone())?;
-            events::send(Note::Reply(&row));
-            Ok(answer)
+            let record = record(OPERATION, *row)?;
+            events.send(Note::Reply(record.clone().into()));
+            Ok(record.into())
         }
         Marked::Missing => Err(not_found().into()),
         Marked::Refused => Err(Conflict {
@@ -95,29 +94,16 @@ pub async fn set_reply_state(
 /// 見た物として受ける字か: この置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、
 /// `https://` で始まり、空白と制御の字を含まない、[`MAX_TARGET`] 字までの URL（今の crates/api の is_target と同じ）。
 fn is_target(target: &str) -> bool {
-    is_page_path(target)
+    parse_page_path(target).is_some()
         || (target.chars().count() <= MAX_TARGET
             && target.len() > "https://".len()
             && target.starts_with("https://")
             && !target.chars().any(|c| c.is_whitespace() || c.is_control()))
 }
 
-/// ページの path（`/<project>/<key>/<kind>-<n>.html`）か。
-fn is_page_path(path: &str) -> bool {
-    let Some(rest) = path.strip_prefix('/') else {
-        return false;
-    };
-    let mut parts = rest.split('/');
-    match (parts.next(), parts.next(), parts.next(), parts.next()) {
-        (Some(project), Some(key), Some(file), None) => {
-            is_segment(project) && is_segment(key) && parse_file(file).is_some()
-        }
-        _ => false,
-    }
-}
-
 pub async fn add_review_marks(
     db: Arc<Db>,
+    events: Events,
     input: AddReviewMarksInput,
 ) -> Result<AddReviewMarksOutput, AddReviewMarksError> {
     const OPERATION: &str = "AddReviewMarks";
@@ -146,9 +132,9 @@ pub async fn add_review_marks(
                 targets.len()
             );
             // 答えの記録に直せてから知らせる（直せずに 500 を返す書き込みを、画面に知らせない）。
-            let answer = record(OPERATION, (*row).clone())?;
-            events::send(Note::Review(&row));
-            Ok(answer)
+            let record = record(OPERATION, *row)?;
+            events.send(Note::Review(record.clone().into()));
+            Ok(record.into())
         }
         Marked::Missing => Err(not_found().into()),
         Marked::Refused => {

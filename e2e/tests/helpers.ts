@@ -1,6 +1,7 @@
 // 試験の材料を置く・一覧の UI の区画を選ぶ。
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
+import { next, placeFilePath, placePath } from './wire';
 
 export type Placing = {
   project: string;
@@ -18,7 +19,7 @@ export type Placing = {
 
 /** API でページを 1 枚置き、置き場の中の path を返す（browser の外から送るので Origin は付かない）。 */
 export async function place(request: APIRequestContext, to: Placing, html: string): Promise<string> {
-  const response = await request.post(`/api/pages?${new URLSearchParams(to)}`, {
+  const response = await request.post(placePath(to), {
     data: html,
     headers: { 'content-type': 'text/html' },
   });
@@ -33,29 +34,44 @@ export async function placeFile(
   type: string,
   body: Buffer,
 ): Promise<{ path: string; role: string }> {
-  const response = await request.post(`/api/files?${new URLSearchParams(to)}`, { data: body, headers: { 'content-type': type } });
+  const response = await request.post(placeFilePath(to), { data: body, headers: { 'content-type': type } });
   expect(response.ok(), await response.text()).toBeTruthy();
   return response.json();
 }
 
+/** ページの path（`place` が返した物）を、project・Key・種類・番号に分ける。 */
+const pageOf = (path: string) => {
+  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
+  return { project, key, kind, n };
+};
+
+/** 新しい server の、ページ 1 枚の道（`/api/projects/{p}/keys/{k}/kinds/{kind}/pages/{n}`）。 */
+const pageApi = (path: string) => {
+  const { project, key, kind, n } = pageOf(path);
+  return `/api/projects/${project}/keys/${key}/kinds/${kind}/pages/${n}`;
+};
+
 /** API で、ページ 1 枚の返事の状態を書く（browser の外から送るので Origin は付かない）。`path` は `place` が返した物。 */
 export async function reply(request: APIRequestContext, path: string, state: 'waiting' | 'answered'): Promise<void> {
-  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
-  const response = await request.post(`/api/pages/reply?${new URLSearchParams({ project, key, kind, n, state })}`);
+  const response = next
+    ? await request.put(`${pageApi(path)}/reply`, { data: { state } })
+    : await request.post(`/api/pages/reply?${new URLSearchParams({ ...pageOf(path), state })}`);
   expect(response.ok(), await response.text()).toBeTruthy();
 }
 
 /** API で、ページ 1 枚の返事の状態を、待ちの相手を名指して書く（0.8.0 から）。 */
 export async function replyOn(request: APIRequestContext, path: string, state: 'waiting' | 'answered', on: 'pm' | 'review' | 'tpm'): Promise<void> {
-  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
-  const response = await request.post(`/api/pages/reply?${new URLSearchParams({ project, key, kind, n, state, on })}`);
+  const response = next
+    ? await request.put(`${pageApi(path)}/reply`, { data: { state, on } })
+    : await request.post(`/api/pages/reply?${new URLSearchParams({ ...pageOf(path), state, on })}`);
   expect(response.ok(), await response.text()).toBeTruthy();
 }
 
 /** API で、レビューの印（判定・見た物）を書く（0.8.0 から）。 */
 export async function reviewMarks(request: APIRequestContext, path: string, marks: { verdict?: string; targets?: string[] }): Promise<void> {
-  const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
-  const response = await request.post(`/api/pages/review?${new URLSearchParams({ project, key, kind, n })}`, { data: marks });
+  const response = next
+    ? await request.post(`${pageApi(path)}/review`, { data: marks })
+    : await request.post(`/api/pages/review?${new URLSearchParams(pageOf(path))}`, { data: marks });
   expect(response.ok(), await response.text()).toBeTruthy();
 }
 
@@ -71,7 +87,8 @@ export const CASTLIST_LINK = `http://localhost:${CASTLIST_PORT + 1}`;
 export type Actor = { id: string; name: string; kind: string };
 
 /**
- * 偽の castlist を立てる。`POST /v1/resolve` に、`actors` にある付随する id はそのアクター、ほかは null と答える。
+ * 偽の castlist を立てる。`POST /v1/resolve`（今の server が聞く今の castlist。`as_of`）と `POST /api/resolve`
+ * （新しい server が聞く新しい castlist。`asOf`）に、`actors` にある付随する id はそのアクター、ほかは無しと答える。
  * 置き終えたら close する（ほかの試験は、送り手を書かないので、castlist に聞かない）。
  */
 export async function startCastlist(actors: Record<string, Actor>): Promise<Server> {
@@ -82,7 +99,8 @@ export async function startCastlist(actors: Record<string, Actor>): Promise<Serv
       const asked = JSON.parse(body || '{}');
       const results = (asked.refs ?? []).map((ref: string) => ({ ref, actor: actors[ref] ?? null }));
       res.writeHead(200, { 'content-type': 'application/json', connection: 'close' });
-      res.end(JSON.stringify({ as_of: new Date().toISOString(), results }));
+      const asOf = new Date().toISOString();
+      res.end(JSON.stringify(next ? { asOf, results: results.map(({ ref, actor }: { ref: string; actor: Actor | null }) => (actor ? { ref, actor } : { ref })) } : { as_of: asOf, results }));
     });
   });
   await new Promise<void>((resolve) => server.listen(CASTLIST_PORT, '127.0.0.1', resolve));

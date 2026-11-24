@@ -243,6 +243,8 @@ struct KeyView {
     /// `accept` に書く拡張子（`.png,.jpg,…`）。
     accept: String,
     max: usize,
+    /// 上げる枠の script が送る道（名は script が `name` の引数で足す。template は新しい server と共に使う）。
+    upload: String,
 }
 
 /// 操作の帯の、待ちの数の釦 1 つ（押すと、その待ちだけに絞る）。数が 0 なら隠す。id は template に書く。
@@ -693,6 +695,7 @@ async fn key_view(state: &AppState, view: &View) -> Result<Option<KeyView>, sqlx
         types: serde_json::to_string(&types).unwrap_or_default(),
         accept: accept.join(","),
         max: MAX_FILE,
+        upload: format!("/api/files?project={}&key={}", encode(project), encode(key)),
     }))
 }
 

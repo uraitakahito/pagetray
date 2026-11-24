@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-24T23:42:49+09:00\n"
+"POT-Creation-Date: 2026-11-25T00:02:37+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -4231,14 +4231,37 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"**CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が "
-"artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、"
-"まだ入れていない（時々落ちないことを見てから足す）。"
+"**新しい server に流す**（AI-36 の作り直しの間）: `cargo build --bin "
+"pagetray-next` の後、`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next pnpm "
+"test`。起こす binary の名が `pagetray-next` なら、試験は新しい API の道と引数"
+"の名で置く・書く（`e2e/tests/wire.ts`。名を替えた binary を向ける時は "
+"`PAGETRAY_E2E_API=next` を付ける）。画面と字は同じなので、同じ試験がどちらの "
+"server にも通る。落ちた時の写しと report を分けるなら `PAGETRAY_E2E_OUT=-"
+"next` を付ける（`test-results-next/`・`playwright-report-next/`）。"
 msgstr ""
-"**CI**: The workflow's `ui` job runs them on every PR. When a test fails, a "
-"screenshot and a trace of the steps are kept in the artifact (`ui-report`). "
-"`ui` is not yet one of the required checks of the rule protecting main (it "
-"will be added once it has been seen not to fail intermittently)."
+"**Running against the new server** (during the AI-36 rewrite): after `cargo "
+"build --bin pagetray-next`, run `PAGETRAY_E2E_SERVER=../target/debug/"
+"pagetray-next pnpm test`. When the binary is named `pagetray-next`, the "
+"tests put and write with the new API's routes and parameter names (`e2e/"
+"tests/wire.ts`; set `PAGETRAY_E2E_API=next` when pointing at a renamed "
+"binary). The screens and their text are the same, so the same tests pass on "
+"either server. To keep the failure captures and the report apart, set "
+"`PAGETRAY_E2E_OUT=-next` (`test-results-next/`, `playwright-report-next/`)."
+
+#: src/development.md
+msgid ""
+"**CI**: workflow の `ui` が PR ごとに、今の server と新しい server"
+"（`pagetray-next`。今の server の段が落ちても流す）に続けて流す。落ちると、画"
+"面の絵と操作の記録が artifact（`ui-report`・`ui-report-next`）に残る。`ui` "
+"は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを"
+"見てから足す）。"
+msgstr ""
+"**CI**: The workflow's `ui` job runs them on every PR, against the current "
+"server and then against the new server (`pagetray-next`; this step runs even "
+"if the current server's step failed). When a test fails, a screenshot and a "
+"trace of the steps are kept in the artifacts (`ui-report`, `ui-report-"
+"next`). `ui` is not yet one of the required checks of the rule protecting "
+"main (it will be added once it has been seen not to fail intermittently)."
 
 #: src/development.md
 msgid ""
@@ -5774,13 +5797,14 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"この章の操作は、みな作ってある（手の道は、ページの本文と file の中身）。SSE・"
-"backup・logs・画面は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け"
-"方」）。"
+"この章の操作は、みな作ってある（手の道は、ページの本文・file の中身・新着の知"
+"らせ・画面）。backup・logs は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分"
+"け方」）。"
 msgstr ""
 "All operations in this chapter are built (the hand-written routes are the "
-"page body and the file contents). SSE, backup, logs, and the UI are added in "
-"the next PRs of stage 4 of AI-36 (see \"How stage 4 is split\" below)."
+"page body, the file contents, the push of new arrivals, and the screens). "
+"Backup and logs are added in the next PR of stage 4 of AI-36 (see \"How "
+"stage 4 is split\" below)."
 
 #: src/next.md
 msgid "ページを置く（CreatePage）"
@@ -5955,10 +5979,10 @@ msgid ""
 "い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link "
 "の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、"
 "host の browser から開く所は違う）、形は同じ、無いか空なら `http://"
-"127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。link を使"
-"う画面は、画面の PR で足す。起きる前に断る所（`from_env` を起こす時に呼ぶ）"
-"は、起こし方の PR（binary を足す所）でつなぐ。今の土台は、castlist の無い設定"
-"で動く。"
+"127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。起こす "
+"binary（`pagetray-next`。下の「起こす binary」）が、DB を開く前に "
+"`Castlist::from_env` で見て、形が違えば止まる。link を使うのは画面の送り手の"
+"名（下の「画面」）。"
 msgstr ""
 "castlist's location is `PAGETRAY_CASTLIST_URL` (where to ask). Only the "
 "shape `http://<host>:<port>` is accepted (a trailing `/` is fine; a path, a "
@@ -5968,10 +5992,10 @@ msgstr ""
 "reachable from inside the container differs from what the host's browser "
 "opens), with the same shape, and defaults to `http://127.0.0.1:8802` when "
 "absent or empty. A link in the wrong shape is refused even without a "
-"castlist URL. The screens that use the link come in the screens PR. The "
-"refusal before starting (calling `from_env` at startup) is wired in by the "
-"startup PR (the one that adds the binary). The current foundation runs with "
-"no castlist configured."
+"castlist URL. The startup binary (`pagetray-next`; see \"The startup "
+"binary\" below) checks them with `Castlist::from_env` before opening the DB "
+"and stops if a shape is wrong. The link is used for the sender's name on the "
+"screens (see \"Screens\" below)."
 
 #: src/next.md
 msgid ""
@@ -6907,18 +6931,275 @@ msgstr "Push of new arrivals (SSE)"
 
 #: src/next.md
 msgid ""
-"SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わ"
-"らなかった時も）と、file を置いた後に知らせを送る所は、`crates/server/src/"
-"events.rs` の `send` として置いてあり、今は記録に 1 行書くだけ。SSE の PR "
-"で、ここを broadcast の channel に送る形にする（今の server と同じく、消した"
-"時は送らない）。"
+"`GET /api/events`（手の道。`text/event-stream`）。聞き始めた後に、置いた・書"
+"いた物の記録を 1 件ずつ流す（`crates/server/src/events.rs`）。"
 msgstr ""
-"SSE (`GET /api/events`) is added in a separate later PR. The place that "
-"sends a notice after writing a reply or marks (even when nothing changed) "
-"and after putting a file is in place as `send` in `crates/server/src/"
-"events.rs`, and for now it only writes one log line. The SSE PR makes it "
-"send to a broadcast channel (as with the current server, nothing is sent on "
-"removal)."
+"`GET /api/events` (a hand-written route; `text/event-stream`). After a "
+"listener starts, it streams the record of each thing put or written, one at "
+"a time (`crates/server/src/events.rs`)."
+
+#: src/next.md
+msgid "起きた事"
+msgstr "What happened"
+
+#: src/next.md
+msgid "event の名"
+msgstr "Event name"
+
+#: src/next.md
+msgid "data"
+msgstr "data"
+
+#: src/next.md
+msgid "ページを置いた（`CreatePage`）"
+msgstr "A page was put (`CreatePage`)"
+
+#: src/next.md
+msgid "無し（前からの受け手は、これだけを読む）"
+msgstr "None (older listeners read only these)"
+
+#: src/next.md
+msgid "ページの記録（`ListPages` の行と同じ。`url`・`Location` は入らない）"
+msgstr ""
+"The page record (the same as a `ListPages` row; no `url` or `Location`)"
+
+#: src/next.md
+msgid "file を置いた（`CreateFile`）"
+msgstr "A file was put (`CreateFile`)"
+
+#: src/next.md
+msgid "`file`"
+msgstr "`file`"
+
+#: src/next.md
+msgid "file の記録（`ListFiles` の行と同じ）"
+msgstr "The file record (the same as a `ListFiles` row)"
+
+#: src/next.md
+msgid "返事の状態を書いた（`SetReplyState`。替わらなかった時も）"
+msgstr ""
+"The reply state was written (`SetReplyState`; also when nothing changed)"
+
+#: src/next.md
+msgid "`reply`"
+msgstr "`reply`"
+
+#: src/next.md
+msgid "書いた後のページの記録（答えと同じ）"
+msgstr "The page record after the write (the same as the response)"
+
+#: src/next.md
+msgid "レビューの印を書いた（`AddReviewMarks`。替わらなかった時も）"
+msgstr ""
+"Review marks were written (`AddReviewMarks`; also when nothing changed)"
+
+#: src/next.md
+msgid "`review`"
+msgstr "`review`"
+
+#: src/next.md
+msgid ""
+"断った書き込み（400・404・409 など）と、消した時（`DeletePages`・"
+"`DeleteFiles`）は送らない。答えの記録に直せてから送る（直せずに 500 を返す書"
+"き込みは知らせない）。"
+msgstr ""
+"Refused writes (400, 404, 409, and so on) and removals (`DeletePages`, "
+"`DeleteFiles`) send nothing. A notice is sent only after the response record "
+"has been built (a write that returns 500 because the record cannot be built "
+"is not announced)."
+
+#: src/next.md
+msgid ""
+"記録の形は API の答えと同じ camelCase（`createdAt`・`askedAt`・`waitsOn`・"
+"`sender.resolvedAt` など。時刻は答えと同じ字）。今の server は snake_case の"
+"記録を送っていた（替えた所。画面の script が読むのは `path`・`project`・"
+"`key` だけで、名は同じ）。"
+msgstr ""
+"The records have the same camelCase shape as the API responses (`createdAt`, "
+"`askedAt`, `waitsOn`, `sender.resolvedAt`, and so on; times are the same "
+"text as in the responses). The current server sent snake_case records (this "
+"is a change; the screen's script reads only `path`, `project`, and `key`, "
+"whose names are the same)."
+
+#: src/next.md
+msgid ""
+"broadcast の channel（容量 64。今の server と同じ）。聞き手が無くても失敗にし"
+"ない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（画面は一覧を読み"
+"直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。"
+msgstr ""
+"A broadcast channel (capacity 64, as in the current server). Having no "
+"listener is not a failure. A listener that falls behind skips what was "
+"dropped and goes on (the screen shows it by reloading the list). Keep-alive "
+"is axum's default (a comment line every 15 seconds)."
+
+#: src/next.md
+msgid ""
+"守りの層は、ほかの道と同じ（`Host` を見る。時間切れは答えの頭までなので、流し"
+"続ける本文には掛からない）。"
+msgstr ""
+"The guard layer is the same as for the other routes (it checks `Host`; the "
+"timeout covers only the response head, so it does not cut off the ongoing "
+"stream)."
+
+#: src/next.md
+msgid "画面"
+msgstr "Screens"
+
+#: src/next.md
+msgid ""
+"一覧の UI（手の道。`/`・`/{project}/`・`/{project}/{key}/`。`crates/server/"
+"src/ui.rs`）。今の server の画面を、同じ URL・同じ引数・同じ字で、新しい DB "
+"の所で組む。"
+msgstr ""
+"The list UI (hand-written routes: `/`, `/{project}/`, `/{project}/{key}/`; "
+"`crates/server/src/ui.rs`). It builds the current server's screens with the "
+"same URLs, the same parameters, and the same text, on top of the new DB code."
+
+#: src/next.md
+msgid ""
+"template は、repo の `templates/index.html` を今の server と共に使う"
+"（askama。`crates/server/askama.toml` が `../../templates` を指す。castlist "
+"と同じ形）。違うのは上げる枠の送り先だけで、置き場が `data-upload` に渡す（今"
+"の server は `/api/files?project=…&key=…`、新しい server は `/api/projects/"
+"{project}/keys/{key}/files`。script が `name` の引数を足し、選んだ file の "
+"`Content-Type` で送る）。断った訳は、新しい server の `message` と今の "
+"server の `error` のどちらも読む。"
+msgstr ""
+"The template, the repo's `templates/index.html`, is shared with the current "
+"server (askama; `crates/server/askama.toml` points at `../../templates`, the "
+"same setup as castlist). The only difference is where the upload box sends "
+"to, which the store passes in `data-upload` (`/api/files?project=…&key=…` "
+"for the current server, `/api/projects/{project}/keys/{key}/files` for the "
+"new one; the script adds the `name` parameter and sends with the chosen "
+"file's `Content-Type`). For the reason of a refusal, it reads both the new "
+"server's `message` and the current server's `error`."
+
+#: src/next.md
+msgid ""
+"引数（今の server と同じ）: `project`・`key`・`kind`・`role`・`workspace`・"
+"`q`・`reply`・`on`・`verdict`・`actor`・`sort`・`at`・`open`。空は書かないの"
+"と同じ（`workspace` だけは空も条件）。知らない `reply`・`verdict` は無視、"
+"`on` は `reply` と組の時だけ、`sort` は `created_at` だけ、`open` はページの "
+"path の形だけ。1 度に 200 件。同じ名の引数を 2 度書いた物など、読めない引数"
+"は 400 `ValidationException`。"
+msgstr ""
+"Parameters (the same as the current server): `project`, `key`, `kind`, "
+"`role`, `workspace`, `q`, `reply`, `on`, `verdict`, `actor`, `sort`, `at`, "
+"`open`. An empty value is the same as leaving it out (only `workspace` "
+"treats empty as a condition). Unknown `reply` and `verdict` values are "
+"ignored, `on` counts only together with `reply`, `sort` accepts only "
+"`created_at`, and `open` accepts only the shape of a page path. 200 rows at "
+"a time. Parameters that cannot be read, such as the same name given twice, "
+"get 400 `ValidationException`."
+
+#: src/next.md
+msgid ""
+"続きの印 `at` は、前の頁の最後の行の時刻と id（`nextToken` と同じ形）。今の "
+"server は時刻だけで、同じ時刻の行が頁の境に並ぶと抜けた（下の「直す今の振る舞"
+"い」）。読めない印・ほかの並びの印は、書かないのと同じ（頭から出す）。"
+msgstr ""
+"The continuation mark `at` is the time and id of the previous page's last "
+"row (the same shape as `nextToken`). The current server used only the time, "
+"and rows with the same time at a page boundary were lost (see \"Current "
+"behavior that is fixed\" below). A mark that cannot be read, or one from the "
+"other sort order, is the same as leaving it out (the list starts from the "
+"top)."
+
+#: src/next.md
+msgid ""
+"待ちの数（返事待ち・レビュー待ち・上げた）と絞り込みの候補は、絞りに関わらず"
+"置き場の全部。tab の題は Product Manager の返事待ちの数（`crates/server/src/"
+"facets.rs`。SQL は今の server と同じ）。"
+msgstr ""
+"The waiting counts (awaiting reply, awaiting review, escalated) and the "
+"filter choices cover the whole store, whatever the filters. The tab title "
+"shows the number of pages awaiting the Product Manager's reply (`crates/"
+"server/src/facets.rs`; the SQL is the same as the current server)."
+
+#: src/next.md
+msgid ""
+"送り手は、castlist の名に castlist のアクターの画面への link"
+"（`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`。castlist を設定していて、答えの"
+"ある送り手だけ）と、その下に小さく付随する id。答えの無い送り手は「未確認」。"
+"絞り込みの「送り手」は、答えのある送り手を、ページの多い順に 100 まで。"
+msgstr ""
+"A sender shows its castlist name, linked to the castlist actor's page "
+"(`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`; only when castlist is "
+"configured and the sender has an answer), with the attached id small below "
+"it. A sender without an answer reads \"unconfirmed\". The \"Sender\" filter "
+"lists the senders with an answer, most pages first, up to 100."
+
+#: src/next.md
+msgid ""
+"字はみな HTML として逃がし、URL の引数に入れる値は、英数字と `-` `.` `_` `~` "
+"のほかを %XX にする（`actorRef` は castlist と同じ広い形で、空白・`?`・`&`・"
+"`#`・`/` も通る）。"
+msgstr ""
+"All text is escaped as HTML, and values put into URL parameters have every "
+"character other than letters, digits, `-`, `.`, `_`, and `~` written as %XX "
+"(`actorRef` has the same wide shape as in castlist, so spaces, `?`, `&`, "
+"`#`, and `/` get through)."
+
+#: src/next.md
+msgid ""
+"Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出"
+"す（project が `api` なら出さない）。本文の枠の iframe は `sandbox=\"allow-"
+"scripts\"`。"
+msgstr ""
+"Only the Key view (one project and one Key chosen) shows the file box and "
+"the upload box (not when the project is `api`). The viewer's iframe has "
+"`sandbox=\"allow-scripts\"`."
+
+#: src/next.md
+msgid ""
+"答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-"
+"Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-"
+"src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-"
+"ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と "
+"script は template の物の hash だけを許す（hash は template から作る。今の "
+"server は CSP を付けていなかった）。図は置き場の file と、上げる前の見本"
+"（`blob:`）と favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠"
+"の送り先は置き場だけ。"
+msgstr ""
+"Response headers: on top of the guard layer's `nosniff` and `no-referrer`, "
+"`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-"
+"src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src "
+"'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`. Only "
+"the template's own inline style and script are allowed, by hash (the hashes "
+"are made from the template; the current server set no CSP). Images are the "
+"store's files, the preview before uploading (`blob:`), and the favicon "
+"(`data:`); the viewer shows only the store's pages; the notices and the "
+"upload box talk only to the store."
+
+#: src/next.md
+msgid "起こす binary"
+msgstr "The startup binary"
+
+#: src/next.md
+msgid ""
+"`pagetray-next`（`crates/server/src/main.rs`）。`PAGETRAY_DB`（既定 `/data/"
+"pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。"
+"castlist の設定の形が違えば、DB を開く前に stderr に訳を書いて止まる。e2e の"
+"試験（`e2e/`）が、今の server と同じ試験をこの binary にも流す"
+"（`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next`。`e2e/tests/wire.ts` "
+"が、置く・書く API の道と引数の名を合わせる）。"
+msgstr ""
+"`pagetray-next` (`crates/server/src/main.rs`). It opens `PAGETRAY_DB` "
+"(default `/data/pages.db`) and listens on `PAGETRAY_LISTEN` (default "
+"`0.0.0.0:8080`). If the castlist settings are in the wrong shape, it writes "
+"the reason to stderr and stops before opening the DB. The e2e tests (`e2e/`) "
+"run the same tests as for the current server against this binary "
+"(`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next`; `e2e/tests/wire.ts` "
+"adapts the routes and parameter names for putting and writing)."
+
+#: src/next.md
+msgid ""
+"まだ最小の物: 記録（stdout と回す file）・止める合図での閉じ方・`GET /api/"
+"backup`・`GET /api/logs` は、次の PR で足す。image には入らない。"
+msgstr ""
+"It is still minimal: logging (stdout and a rotating file), closing down on a "
+"stop signal, `GET /api/backup`, and `GET /api/logs` are added in the next "
+"PR. It is not in the image."
 
 #: src/next.md
 msgid "ページの本文"
@@ -7042,12 +7323,13 @@ msgstr "Header stamps"
 #: src/next.md
 msgid ""
 "どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-"
-"referrer`。今の `Pagetray-Api` は付けない。本文の CSP は本文の道が自分で付け"
-"る（画面の CSP は画面の PR で決める）"
+"referrer`。今の `Pagetray-Api` は付けない。CSP は、本文の道と画面が自分で付け"
+"る（上の「ページの本文」「file の中身」「画面」）"
 msgstr ""
 "Every response gets `X-Content-Type-Options: nosniff` and `Referrer-Policy: "
-"no-referrer`. The current `Pagetray-Api` is not added. The body route sets "
-"the body's CSP itself (the UI's CSP is decided in the UI PR)"
+"no-referrer`. The current `Pagetray-Api` is not added. The body routes and "
+"the screens set their own CSP (see \"Page body\", \"File contents\", and "
+"\"Screens\" above)"
 
 #: src/next.md
 msgid "2"
@@ -7146,10 +7428,10 @@ msgstr ""
 "layer reads the whole body before building the input, so the body is read "
 "here (the generated smithy-rs layer also has a body limit setting, but its "
 "default is no limit and exceeding it does not answer 413). Reading the body "
-"also counts toward the outer layer's 5-second timeout (the senders are roster "
-"and the list UI on the same machine, so even 16 MiB arrives well within 5 "
-"seconds; it also keeps a slow sender from holding the write connection; the "
-"current server had no timeout, so this is new behavior)"
+"also counts toward the outer layer's 5-second timeout (the senders are "
+"roster and the list UI on the same machine, so even 16 MiB arrives well "
+"within 5 seconds; it also keeps a slow sender from holding the write "
+"connection; the current server had no timeout, so this is new behavior)"
 
 #: src/next.md
 msgid "データ"
@@ -7238,6 +7520,26 @@ msgstr ""
 "parameters such as `project` and `kind` or of `actor`, and clamped `limit` "
 "to 1 to 1000. The new `ListPages` and `ListFiles` answer 400 by the shapes "
 "in the definition (`maxResults` too)."
+
+#: src/next.md
+msgid ""
+"画面の続き: 今の server の画面の「続きを出す」は、境の時刻（`at`）だけで続"
+"け、同じ時刻の行が境に並ぶと抜けた。新しい画面の `at` は時刻と id の組"
+"（`crates/server/tests/ui.rs` が、同じ時刻の 205 枚を抜けずに出すことを見"
+"る）。"
+msgstr ""
+"Screen continuation: the current server's \"Show more\" link continued from "
+"the boundary time (`at`) alone, so rows with the same time at the boundary "
+"were lost. The new screens' `at` is a pair of time and id (`crates/server/"
+"tests/ui.rs` checks that 205 pages with the same time all show, none lost)."
+
+#: src/next.md
+msgid ""
+"新着の知らせの記録: snake_case から、API の答えと同じ camelCase に（上の「新"
+"着の知らせ」）。"
+msgstr ""
+"Records in the push of new arrivals: from snake_case to the same camelCase "
+"as the API responses (see \"Push of new arrivals\" above)."
 
 #: src/next.md
 msgid "定義の取り方"
@@ -7341,13 +7643,12 @@ msgstr ""
 #: src/next.md
 msgid ""
 "探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・"
-"`AddReviewMarks`・`DeletePages`）。SSE は 3 の後の別の PR に分けた（知らせを"
-"送る所は 3 で置いた。上の「新着の知らせ」）"
+"`AddReviewMarks`・`DeletePages`）。SSE は後の PR に分けた（知らせを送る所は "
+"3 で置いた）"
 msgstr ""
 "Search, replies, review marks, and removal (`ListPages`, `SetReplyState`, "
-"`AddReviewMarks`, `DeletePages`). SSE was split into a separate PR after 3 "
-"(the place that sends the notices is put in 3; see \"Push of new arrivals\" "
-"above)"
+"`AddReviewMarks`, `DeletePages`). SSE was split into a later PR (the place "
+"that sends the notices was put in 3)"
 
 #: src/next.md
 msgid ""
@@ -7360,8 +7661,23 @@ msgstr ""
 "from 5 so that it is checked together with the file limit)"
 
 #: src/next.md
-msgid "backup・logs・画面・起こす binary"
-msgstr "Backup, logs, the UI, and the binary that starts the server"
+msgid ""
+"新着の知らせ（SSE）・画面・e2e の試験を流せるだけの最小の起こす binary（CI "
+"の `ui` が、今の server と新しい server の両方に流す）"
+msgstr ""
+"The push of new arrivals (SSE), the screens, and a minimal startup binary "
+"just enough to run the e2e tests (CI's `ui` job runs them against both the "
+"current and the new server)"
+
+#: src/next.md
+msgid "6"
+msgstr "6"
+
+#: src/next.md
+msgid "backup・logs・起こす binary の残り（記録・止める合図での閉じ方）"
+msgstr ""
+"Backup, logs, and the rest of the startup binary (logging, closing down on a "
+"stop signal)"
 
 #: src/glossary.md
 msgid ""
