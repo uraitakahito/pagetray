@@ -10,7 +10,7 @@ use axum::http::StatusCode;
 use common::castlist::{
     ACTOR_A, ACTOR_B, AS_OF, AS_OF_STORED, Fake, NAME_A, NAME_B, Reply, answer, closed_url,
 };
-use common::{App, error_type, html, pages_uri, put_page, scalar};
+use common::{App, PNG, error_type, html, pages_uri, put_page, scalar};
 use http_body_util::BodyExt;
 use pagetray_next::castlist::{Castlist, DEFAULT_LINK};
 use serde_json::{Value, json};
@@ -412,6 +412,245 @@ async fn waiting_for_castlist_does_not_hold_the_write_connection() {
     }
     assert_eq!(app.count("senders").await, 10);
     assert_eq!(fake.requests().len(), 10);
+}
+
+// --- file の送り手（CreateFile。ページと同じ決まり）---
+
+/// file を置く引数（`SE` と名と、付随する id）。
+fn file_query(name: &str, actor: &str) -> String {
+    format!("{SE}&name={name}&{actor}")
+}
+
+#[tokio::test]
+async fn a_file_from_a_known_sender_keeps_the_answer() {
+    let fake = Fake::start().await;
+    let app = App::with_castlist(&fake.url).await;
+    let (status, _, json) = app
+        .put_file(
+            "p",
+            "SKILLS-14",
+            &file_query("a.png", AS_PM),
+            Some("image/png"),
+            PNG,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(fake.requests().len(), 1, "偽の castlist に聞いていない");
+    assert_eq!(
+        json["sender"],
+        json!({
+            "issuer": "tpm",
+            "ref": "tpm.person:pm",
+            "actor": { "id": ACTOR_B, "name": NAME_B, "kind": "human" },
+            "resolvedAt": AS_OF,
+        })
+    );
+    assert_eq!(
+        app.senders().await,
+        [(
+            "tpm".to_owned(),
+            "tpm.person:pm".to_owned(),
+            Some(ACTOR_B.to_owned()),
+            Some(NAME_B.to_owned()),
+            Some("human".to_owned()),
+            Some(AS_OF_STORED.to_owned()),
+        )]
+    );
+    let pointed: i64 = scalar(
+        &app,
+        "select count(*) from files f join senders s on s.id = f.sender_id",
+    )
+    .await;
+    assert_eq!(pointed, 1);
+    // 一覧の行にも、同じ送り手が出る。
+    let (_, _, listed) = app.json("/api/files?project=p").await;
+    assert_eq!(listed["files"][0]["sender"], json["sender"]);
+}
+
+/// castlist の無い pagetray は、聞かずに付随する id だけを残す。付随する id が無ければ送り手の行を作らない。
+#[tokio::test]
+async fn a_file_without_castlist_keeps_only_the_attached_ids() {
+    let app = App::start().await;
+    let (status, _, json) = app
+        .put_file("p", "k", &file_query("a.png", AS_A), Some("image/png"), PNG)
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(
+        json["sender"],
+        json!({ "issuer": "tpm", "ref": "claude.session:a" })
+    );
+    let (status, _, json) = app
+        .put_file(
+            "p",
+            "k",
+            &format!("{SE}&name=b.png"),
+            Some("image/png"),
+            PNG,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert!(json.get("sender").is_none(), "{json}");
+    assert_eq!(app.count("senders").await, 1);
+}
+
+/// file の送り手も、聞けなければ 503・知らなければ 400（何も残さない）。
+#[tokio::test]
+async fn a_file_from_an_unknown_or_unreachable_sender_stores_nothing() {
+    let fake = Fake::start().await;
+    let app = App::with_castlist(&fake.url).await;
+    let (status, headers, json) = app
+        .put_file(
+            "p",
+            "k",
+            &file_query("a.png", NOBODY),
+            Some("image/png"),
+            PNG,
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
+    assert_eq!(error_type(&headers), "ValidationException");
+    assert_eq!(json["fieldList"][0]["path"], "/actorRef", "{json}");
+    let closed = App::with_castlist(&closed_url()).await;
+    let (status, headers, json) = closed
+        .put_file("p", "k", &file_query("a.png", AS_A), Some("image/png"), PNG)
+        .await;
+    assert_unavailable(status, &headers, &json);
+    for app in [&app, &closed] {
+        assert_eq!(app.count("files").await, 0);
+        assert_eq!(app.count("senders").await, 0);
+    }
+}
+
+/// castlist には、ほかの検査（400・415）を見終えてから聞く。断る物は castlist に聞かない。
+#[tokio::test]
+async fn castlist_is_asked_after_the_other_file_checks() {
+    let fake = Fake::start().await;
+    let app = App::with_castlist(&fake.url).await;
+    for (query, content_type, body, status) in [
+        (
+            format!("role=tpm&name=a.png&n=0&{AS_A}"),
+            "image/png",
+            PNG,
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("name=a.png&{AS_A}"),
+            "image/png",
+            PNG,
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            file_query("a.svg", AS_A),
+            "image/svg+xml",
+            &b"<svg/>"[..],
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        ),
+        (
+            file_query("a.png", AS_A),
+            "image/jpeg",
+            PNG,
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        ),
+        (
+            file_query("a.png", AS_A),
+            "image/png",
+            b"%PDF-1.7",
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+        ),
+    ] {
+        let (got, _, json) = app
+            .put_file("p", "k", &query, Some(content_type), body.to_vec())
+            .await;
+        assert_eq!(got, status, "{query}: {json}");
+    }
+    assert!(fake.requests().is_empty(), "{:?}", fake.requests());
+    assert_eq!(app.count("senders").await, 0);
+}
+
+/// castlist に聞いた後で番号が使われていて 409 なら、送り手の行も残さない（同じ取引）。
+#[tokio::test]
+async fn a_file_conflict_after_asking_keeps_no_sender() {
+    let fake = Fake::start().await;
+    let app = App::with_castlist(&fake.url).await;
+    let import = format!("{}&n=1", file_query("a.png", AS_A));
+    app.place_file("p", "k", &import, "image/png", PNG).await;
+    let (status, headers, json) = app
+        .put_file("p", "k", &import, Some("image/png"), PNG)
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT, "{json}");
+    assert_eq!(error_type(&headers), "Conflict");
+    assert_eq!(app.count("senders").await, 1);
+    assert_eq!(app.count("files").await, 1);
+}
+
+/// 一覧の UI から上げた file は、付随する id を読まない（browser から送り手を名乗らせない）。castlist にも聞かない。
+#[tokio::test]
+async fn the_list_ui_upload_ignores_actor_params() {
+    let app = App::with_castlist(&closed_url()).await;
+    let request =
+        axum::http::Request::post(common::files_uri("p", "K-1", &format!("name=a.png&{AS_A}")))
+            .header(axum::http::header::HOST, common::HOST)
+            .header(
+                axum::http::header::ORIGIN,
+                format!("http://{}", common::HOST),
+            )
+            .header("sec-fetch-site", "same-origin")
+            .header(axum::http::header::CONTENT_TYPE, "image/png")
+            .body(Body::from(PNG))
+            .unwrap();
+    let (status, _, json) = app.send_json(request).await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(json["role"], "product-manager");
+    assert!(json.get("sender").is_none(), "{json}");
+    assert_eq!(app.count("senders").await, 0);
+    let sender_id: Option<i64> = scalar(&app, "select sender_id from files").await;
+    assert_eq!(sender_id, None);
+}
+
+/// `actor=<castlist のアクターの id>` で、その送り手の file だけ（castlist の答えの無い送り手は当たらない）。
+#[tokio::test]
+async fn the_actor_filter_keeps_only_that_senders_files() {
+    let fake = Fake::start().await;
+    let app = App::with_castlist(&fake.url).await;
+    app.place_file("p", "k", &file_query("a.png", AS_A), "image/png", PNG)
+        .await;
+    app.place_file("p", "k", &file_query("b.png", AS_PM), "image/png", PNG)
+        .await;
+    app.place_file("p", "k", &format!("{SE}&name=c.png"), "image/png", PNG)
+        .await;
+    let bare = App::start().await;
+    bare.place_file("p", "k", &file_query("d.png", AS_A), "image/png", PNG)
+        .await;
+    assert_eq!(
+        app.file_paths(&format!("actor={ACTOR_A}")).await,
+        ["/p/k/files/a-1.png"]
+    );
+    assert_eq!(
+        app.file_paths(&format!("actor={ACTOR_B}")).await,
+        ["/p/k/files/b-1.png"]
+    );
+    assert_eq!(app.file_paths("").await.len(), 3);
+    // ページの送り手では当たらない（file の一覧はページを見ない）。
+    assert!(app.paths(&format!("actor={ACTOR_A}")).await.is_empty());
+    // castlist の答えの無い送り手は当たらない。
+    assert!(
+        bare.file_paths(&format!("actor={ACTOR_A}"))
+            .await
+            .is_empty()
+    );
+}
+
+/// file を消しても、送り手の行は残る（外のキーは合ったまま）。
+#[tokio::test]
+async fn removing_a_file_keeps_its_sender() {
+    let app = App::start().await;
+    app.place_file("p", "k", &file_query("a.png", AS_A), "image/png", PNG)
+        .await;
+    let (status, _, json) = app.remove_files("project=p").await;
+    assert_eq!(status, StatusCode::OK, "{json}");
+    assert_eq!(app.count("files").await, 0);
+    assert_eq!(app.count("senders").await, 1);
+    assert_eq!(app.foreign_key_violations().await, 0);
 }
 
 // --- castlist の居場所（PAGETRAY_CASTLIST_URL・PAGETRAY_CASTLIST_LINK_URL）---

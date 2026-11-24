@@ -8,6 +8,7 @@ pub mod castlist;
 pub mod db;
 mod errors;
 mod events;
+mod files;
 mod generated;
 mod guard;
 mod list;
@@ -36,6 +37,9 @@ use crate::generated::Generated;
 
 /// 1 つの問い合わせにかけてよい長さ。過ぎれば 503 `Unavailable` で返す（castlist と同じ）。
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// 本文の上限（ページも file も。今の server と同じ）。まだ効かせていない（試験を先に書くための形だけ）。
+pub const MAX_BODY: usize = 16 * 1024 * 1024;
 
 /// 守りの層の設定。
 #[derive(Clone)]
@@ -84,6 +88,18 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .delete_pages({
             let db = db.clone();
             move |input| remove::delete_pages(db.clone(), input)
+        })
+        .create_file({
+            let db = db.clone();
+            move |input| files::create_file(db.clone(), input)
+        })
+        .list_files({
+            let db = db.clone();
+            move |input| files::list_files(db.clone(), input)
+        })
+        .delete_files({
+            let db = db.clone();
+            move |input| files::delete_files(db.clone(), input)
         })
         .build()
         .expect("どの操作にも handler がある");

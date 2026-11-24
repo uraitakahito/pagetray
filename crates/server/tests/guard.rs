@@ -175,3 +175,92 @@ async fn a_slow_answer_times_out_with_unavailable() {
         "{json}"
     );
 }
+
+/// 中身を `parts` 個の塊に分けて流す本文（大きさを前に言わない。`Content-Length` の無い chunked の要求と同じ）。
+struct Chunks(Vec<bytes::Bytes>);
+
+impl http_body::Body for Chunks {
+    type Data = bytes::Bytes;
+    type Error = std::convert::Infallible;
+
+    fn poll_frame(
+        mut self: std::pin::Pin<&mut Self>,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Result<http_body::Frame<bytes::Bytes>, Self::Error>>> {
+        std::task::Poll::Ready(self.0.pop().map(|b| Ok(http_body::Frame::data(b))))
+    }
+}
+
+fn chunked(bytes: Vec<u8>, parts: usize) -> Body {
+    let size = bytes.len().div_ceil(parts);
+    let mut chunks: Vec<bytes::Bytes> = bytes
+        .chunks(size)
+        .map(bytes::Bytes::copy_from_slice)
+        .collect();
+    chunks.reverse();
+    Body::new(Chunks(chunks))
+}
+
+/// 本文の上限は 16 MiB（ページも file も。今の server と同じ）。超えれば、守りの層が 413 `PayloadTooLarge`
+/// （restJson1 の形）で断り、何も置かない。`Content-Length` の付いた要求も、大きさを言わずに流す要求も同じ。
+/// ちょうど 16 MiB は通る。
+#[tokio::test]
+async fn a_body_over_16_mib_is_too_large_for_pages_and_files() {
+    assert_eq!(pagetray_next::MAX_BODY, 16 * 1024 * 1024);
+    let app = App::start().await;
+    let page = |len: usize| vec![b'a'; len];
+    let file = |len: usize| {
+        let mut bytes = common::PNG.to_vec();
+        bytes.resize(len, 0);
+        bytes
+    };
+    let max = pagetray_next::MAX_BODY;
+    let page_uri = pages_uri("p", "k", "plan", "role=tpm");
+    let file_uri = common::files_uri("p", "k", "role=tpm&name=big.png");
+    for (uri, content_type, bytes) in [
+        (&page_uri, "text/html", page(max + 1)),
+        (&file_uri, "image/png", file(max + 1)),
+    ] {
+        for streamed in [false, true] {
+            let len = bytes.len();
+            let mut builder = Request::post(uri.as_str())
+                .header(header::HOST, HOST)
+                .header(header::CONTENT_TYPE, content_type);
+            let body = if streamed {
+                chunked(bytes.clone(), 64)
+            } else {
+                builder = builder.header(header::CONTENT_LENGTH, len);
+                Body::from(bytes.clone())
+            };
+            let (status, headers, body) = app.send(builder.body(body).unwrap()).await;
+            assert_eq!(
+                status,
+                StatusCode::PAYLOAD_TOO_LARGE,
+                "{uri} streamed={streamed}"
+            );
+            let message = refused(&headers, &body, "PayloadTooLarge");
+            assert!(message.contains("16 MiB"), "{message}");
+            assert_eq!(headers[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
+        }
+    }
+    assert_eq!(app.count("pages").await, 0);
+    assert_eq!(app.count("files").await, 0);
+    // ちょうど 16 MiB は通る（流しても）。
+    let (status, _, json) = app.put("p", "k", "plan", "role=tpm", page(max)).await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(json["size"], max);
+    let request = Request::post(file_uri.as_str())
+        .header(header::HOST, HOST)
+        .header(header::CONTENT_TYPE, "image/png")
+        .body(chunked(file(max), 64))
+        .unwrap();
+    let (status, _, body) = app.send(request).await;
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "{}",
+        String::from_utf8_lossy(&body)
+    );
+    assert_eq!(app.count("pages").await, 1);
+    assert_eq!(app.count("files").await, 1);
+}

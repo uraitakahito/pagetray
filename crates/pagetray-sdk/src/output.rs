@@ -39,7 +39,7 @@ pub struct CreatePageOutput {
     pub key: ::std::string::String,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub kind: ::std::string::String,
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub n: ::std::string::String,
     /// 本文の初めの `
     /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
@@ -88,7 +88,7 @@ impl CreatePageOutput {
         use std::ops::Deref;
         self.kind.deref()
     }
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub fn n(&self) -> &str {
         use std::ops::Deref;
         self.n.deref()
@@ -194,7 +194,7 @@ pub struct SetReplyStateOutput {
     pub key: ::std::string::String,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub kind: ::std::string::String,
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub n: ::std::string::String,
     /// 本文の初めの `
     /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
@@ -249,7 +249,7 @@ impl SetReplyStateOutput {
         use std::ops::Deref;
         self.kind.deref()
     }
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub fn n(&self) -> &str {
         use std::ops::Deref;
         self.n.deref()
@@ -337,7 +337,7 @@ pub struct AddReviewMarksOutput {
     pub key: ::std::string::String,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub kind: ::std::string::String,
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub n: ::std::string::String,
     /// 本文の初めの `
     /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
@@ -392,7 +392,7 @@ impl AddReviewMarksOutput {
         use std::ops::Deref;
         self.kind.deref()
     }
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub fn n(&self) -> &str {
         use std::ops::Deref;
         self.n.deref()
@@ -510,6 +510,205 @@ impl DeletePagesOutput {
     /// Creates a new builder-style object to manufacture [`DeletePagesOutput`](crate::output::DeletePagesOutput).
     pub fn builder() -> crate::output::delete_pages_output::Builder {
         crate::output::delete_pages_output::Builder::default()
+    }
+}
+
+/// file の記録の欄（中身は入らない）。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct CreateFileOutput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::string::String,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::string::String,
+    /// 名の語（`screen`）。
+    pub name: ::std::string::String,
+    /// 拡張子（`png`）。
+    pub ext: ::std::string::String,
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub n: ::std::string::String,
+    /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+    pub r#type: ::std::string::String,
+    /// 中身の byte の数。
+    pub size: i64,
+    /// 中身の SHA-256（16 進の小文字）。
+    pub sha256: ::std::string::String,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub role: ::std::string::String,
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub workspace: ::std::string::String,
+    /// 時刻（RFC 3339）。
+    pub created_at: ::aws_smithy_types::DateTime,
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /files/&lt;語&gt;-
+    /// <n>
+    /// .&lt;拡張子&gt;`）。
+    /// </n>
+    /// </key>
+    /// </project>
+    pub path: ::std::string::String,
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub sender: ::std::option::Option<crate::model::Sender>,
+    /// 要求の `Host` で組んだ、file の URL。
+    pub url: ::std::string::String,
+    /// `url` と同じ。
+    pub location: ::std::string::String,
+}
+impl CreateFileOutput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> &str {
+        use std::ops::Deref;
+        self.key.deref()
+    }
+    /// 名の語（`screen`）。
+    pub fn name(&self) -> &str {
+        use std::ops::Deref;
+        self.name.deref()
+    }
+    /// 拡張子（`png`）。
+    pub fn ext(&self) -> &str {
+        use std::ops::Deref;
+        self.ext.deref()
+    }
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub fn n(&self) -> &str {
+        use std::ops::Deref;
+        self.n.deref()
+    }
+    /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+    pub fn r#type(&self) -> &str {
+        use std::ops::Deref;
+        self.r#type.deref()
+    }
+    /// 中身の byte の数。
+    pub fn size(&self) -> i64 {
+        self.size
+    }
+    /// 中身の SHA-256（16 進の小文字）。
+    pub fn sha256(&self) -> &str {
+        use std::ops::Deref;
+        self.sha256.deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn role(&self) -> &str {
+        use std::ops::Deref;
+        self.role.deref()
+    }
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub fn workspace(&self) -> &str {
+        use std::ops::Deref;
+        self.workspace.deref()
+    }
+    /// 時刻（RFC 3339）。
+    pub fn created_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.created_at
+    }
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /files/&lt;語&gt;-
+    /// <n>
+    /// .&lt;拡張子&gt;`）。
+    /// </n>
+    /// </key>
+    /// </project>
+    pub fn path(&self) -> &str {
+        use std::ops::Deref;
+        self.path.deref()
+    }
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
+        self.sender.as_ref()
+    }
+    /// 要求の `Host` で組んだ、file の URL。
+    pub fn url(&self) -> &str {
+        use std::ops::Deref;
+        self.url.deref()
+    }
+    /// `url` と同じ。
+    pub fn location(&self) -> &str {
+        use std::ops::Deref;
+        self.location.deref()
+    }
+}
+impl CreateFileOutput {
+    /// Creates a new builder-style object to manufacture [`CreateFileOutput`](crate::output::CreateFileOutput).
+    pub fn builder() -> crate::output::create_file_output::Builder {
+        crate::output::create_file_output::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ListFilesOutput {
+    #[allow(missing_docs)] // documentation missing in model
+    pub files: ::std::vec::Vec<crate::model::File>,
+    /// 次の頁の印。終わりなら無い。
+    pub next_token: ::std::option::Option<::std::string::String>,
+}
+impl ListFilesOutput {
+    #[allow(missing_docs)] // documentation missing in model
+    pub fn files(&self) -> &[crate::model::File] {
+        use std::ops::Deref;
+        self.files.deref()
+    }
+    /// 次の頁の印。終わりなら無い。
+    pub fn next_token(&self) -> ::std::option::Option<&str> {
+        self.next_token.as_deref()
+    }
+}
+impl ListFilesOutput {
+    /// Creates a new builder-style object to manufacture [`ListFilesOutput`](crate::output::ListFilesOutput).
+    pub fn builder() -> crate::output::list_files_output::Builder {
+        crate::output::list_files_output::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct DeleteFilesOutput {
+    /// 消した file の path（`/<project>
+    /// /
+    /// <key>
+    /// /files/&lt;語&gt;-
+    /// <n>
+    /// .&lt;拡張子&gt;`。置いた順）。
+    /// </n>
+    /// </key>
+    /// </project>
+    pub removed: ::std::vec::Vec<::std::string::String>,
+}
+impl DeleteFilesOutput {
+    /// 消した file の path（`/<project>
+    /// /
+    /// <key>
+    /// /files/&lt;語&gt;-
+    /// <n>
+    /// .&lt;拡張子&gt;`。置いた順）。
+    /// </n>
+    /// </key>
+    /// </project>
+    pub fn removed(&self) -> &[::std::string::String] {
+        use std::ops::Deref;
+        self.removed.deref()
+    }
+}
+impl DeleteFilesOutput {
+    /// Creates a new builder-style object to manufacture [`DeleteFilesOutput`](crate::output::DeleteFilesOutput).
+    pub fn builder() -> crate::output::delete_files_output::Builder {
+        crate::output::delete_files_output::Builder::default()
     }
 }
 /// See [`GetHealthOutput`](crate::output::GetHealthOutput).
@@ -671,7 +870,7 @@ pub mod create_page_output {
             self.kind = Some(input);
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub fn n(mut self, input: ::std::string::String) -> Self {
             self.n = Some(input);
             self
@@ -915,7 +1114,7 @@ pub mod set_reply_state_output {
             self.kind = Some(input);
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub fn n(mut self, input: ::std::string::String) -> Self {
             self.n = Some(input);
             self
@@ -1124,7 +1323,7 @@ pub mod add_review_marks_output {
             self.kind = Some(input);
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub fn n(mut self, input: ::std::string::String) -> Self {
             self.n = Some(input);
             self
@@ -1303,6 +1502,329 @@ pub mod delete_pages_output {
             self,
         ) -> Result<crate::output::DeletePagesOutput, ConstraintViolation> {
             Ok(crate::output::DeletePagesOutput {
+                removed: self.removed.ok_or(ConstraintViolation::MissingRemoved)?,
+            })
+        }
+    }
+}
+/// See [`CreateFileOutput`](crate::output::CreateFileOutput).
+pub mod create_file_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `CreateFileOutput`.
+        MissingProject,
+        /// `key` was not provided but it is required when building `CreateFileOutput`.
+        MissingKey,
+        /// `name` was not provided but it is required when building `CreateFileOutput`.
+        MissingName,
+        /// `ext` was not provided but it is required when building `CreateFileOutput`.
+        MissingExt,
+        /// `n` was not provided but it is required when building `CreateFileOutput`.
+        MissingN,
+        /// `r#type` was not provided but it is required when building `CreateFileOutput`.
+        MissingType,
+        /// `size` was not provided but it is required when building `CreateFileOutput`.
+        MissingSize,
+        /// `sha256` was not provided but it is required when building `CreateFileOutput`.
+        MissingSha256,
+        /// `role` was not provided but it is required when building `CreateFileOutput`.
+        MissingRole,
+        /// `workspace` was not provided but it is required when building `CreateFileOutput`.
+        MissingWorkspace,
+        /// `created_at` was not provided but it is required when building `CreateFileOutput`.
+        MissingCreatedAt,
+        /// `path` was not provided but it is required when building `CreateFileOutput`.
+        MissingPath,
+        /// `url` was not provided but it is required when building `CreateFileOutput`.
+        MissingUrl,
+        /// `location` was not provided but it is required when building `CreateFileOutput`.
+        MissingLocation,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingKey => write!(f, "`key` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingName => write!(f, "`name` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingExt => write!(f, "`ext` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingN => write!(f, "`n` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingType => write!(f, "`r#type` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingSize => write!(f, "`size` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingSha256 => write!(f, "`sha256` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingRole => write!(f, "`role` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingWorkspace => write!(f, "`workspace` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingCreatedAt => write!(f, "`created_at` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingPath => write!(f, "`path` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingUrl => write!(f, "`url` was not provided but it is required when building `CreateFileOutput`"),
+                ConstraintViolation::MissingLocation => write!(f, "`location` was not provided but it is required when building `CreateFileOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::CreateFileOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`CreateFileOutput`](crate::output::CreateFileOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) name: ::std::option::Option<::std::string::String>,
+        pub(crate) ext: ::std::option::Option<::std::string::String>,
+        pub(crate) n: ::std::option::Option<::std::string::String>,
+        pub(crate) r#type: ::std::option::Option<::std::string::String>,
+        pub(crate) size: ::std::option::Option<i64>,
+        pub(crate) sha256: ::std::option::Option<::std::string::String>,
+        pub(crate) role: ::std::option::Option<::std::string::String>,
+        pub(crate) workspace: ::std::option::Option<::std::string::String>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) path: ::std::option::Option<::std::string::String>,
+        pub(crate) sender: ::std::option::Option<crate::model::Sender>,
+        pub(crate) url: ::std::option::Option<::std::string::String>,
+        pub(crate) location: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::string::String) -> Self {
+            self.key = Some(input);
+            self
+        }
+        /// 名の語（`screen`）。
+        pub fn name(mut self, input: ::std::string::String) -> Self {
+            self.name = Some(input);
+            self
+        }
+        /// 拡張子（`png`）。
+        pub fn ext(mut self, input: ::std::string::String) -> Self {
+            self.ext = Some(input);
+            self
+        }
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        pub fn n(mut self, input: ::std::string::String) -> Self {
+            self.n = Some(input);
+            self
+        }
+        /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+        pub fn r#type(mut self, input: ::std::string::String) -> Self {
+            self.r#type = Some(input);
+            self
+        }
+        /// 中身の byte の数。
+        pub fn size(mut self, input: i64) -> Self {
+            self.size = Some(input);
+            self
+        }
+        /// 中身の SHA-256（16 進の小文字）。
+        pub fn sha256(mut self, input: ::std::string::String) -> Self {
+            self.sha256 = Some(input);
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn role(mut self, input: ::std::string::String) -> Self {
+            self.role = Some(input);
+            self
+        }
+        /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+        pub fn workspace(mut self, input: ::std::string::String) -> Self {
+            self.workspace = Some(input);
+            self
+        }
+        /// 時刻（RFC 3339）。
+        pub fn created_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.created_at = Some(input);
+            self
+        }
+        /// この server の中の path（`/<project>
+        /// /
+        /// <key>
+        /// /files/&lt;語&gt;-
+        /// <n>
+        /// .&lt;拡張子&gt;`）。
+        /// </n>
+        /// </key>
+        /// </project>
+        pub fn path(mut self, input: ::std::string::String) -> Self {
+            self.path = Some(input);
+            self
+        }
+        /// 送り手。付随する id を書いて置いた時だけ。
+        pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
+            self.sender = input;
+            self
+        }
+        /// 要求の `Host` で組んだ、file の URL。
+        pub fn url(mut self, input: ::std::string::String) -> Self {
+            self.url = Some(input);
+            self
+        }
+        /// `url` と同じ。
+        pub fn location(mut self, input: ::std::string::String) -> Self {
+            self.location = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`CreateFileOutput`](crate::output::CreateFileOutput).
+        ///
+        /// The builder fails to construct a [`CreateFileOutput`](crate::output::CreateFileOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::CreateFileOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::CreateFileOutput, ConstraintViolation> {
+            Ok(crate::output::CreateFileOutput {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                key: self.key.ok_or(ConstraintViolation::MissingKey)?,
+                name: self.name.ok_or(ConstraintViolation::MissingName)?,
+                ext: self.ext.ok_or(ConstraintViolation::MissingExt)?,
+                n: self.n.ok_or(ConstraintViolation::MissingN)?,
+                r#type: self.r#type.ok_or(ConstraintViolation::MissingType)?,
+                size: self.size.ok_or(ConstraintViolation::MissingSize)?,
+                sha256: self.sha256.ok_or(ConstraintViolation::MissingSha256)?,
+                role: self.role.ok_or(ConstraintViolation::MissingRole)?,
+                workspace: self
+                    .workspace
+                    .ok_or(ConstraintViolation::MissingWorkspace)?,
+                created_at: self
+                    .created_at
+                    .ok_or(ConstraintViolation::MissingCreatedAt)?,
+                path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                sender: self.sender,
+                url: self.url.ok_or(ConstraintViolation::MissingUrl)?,
+                location: self.location.ok_or(ConstraintViolation::MissingLocation)?,
+            })
+        }
+    }
+}
+/// See [`ListFilesOutput`](crate::output::ListFilesOutput).
+pub mod list_files_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `files` was not provided but it is required when building `ListFilesOutput`.
+        MissingFiles,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingFiles => write!(
+                    f,
+                    "`files` was not provided but it is required when building `ListFilesOutput`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::ListFilesOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListFilesOutput`](crate::output::ListFilesOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) files: ::std::option::Option<::std::vec::Vec<crate::model::File>>,
+        pub(crate) next_token: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn files(mut self, input: ::std::vec::Vec<crate::model::File>) -> Self {
+            self.files = Some(input);
+            self
+        }
+        /// 次の頁の印。終わりなら無い。
+        pub fn next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.next_token = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`ListFilesOutput`](crate::output::ListFilesOutput).
+        ///
+        /// The builder fails to construct a [`ListFilesOutput`](crate::output::ListFilesOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::ListFilesOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::ListFilesOutput, ConstraintViolation> {
+            Ok(crate::output::ListFilesOutput {
+                files: self.files.ok_or(ConstraintViolation::MissingFiles)?,
+                next_token: self.next_token,
+            })
+        }
+    }
+}
+/// See [`DeleteFilesOutput`](crate::output::DeleteFilesOutput).
+pub mod delete_files_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `removed` was not provided but it is required when building `DeleteFilesOutput`.
+        MissingRemoved,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingRemoved => write!(f, "`removed` was not provided but it is required when building `DeleteFilesOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::DeleteFilesOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`DeleteFilesOutput`](crate::output::DeleteFilesOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) removed: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+    }
+    impl Builder {
+        /// 消した file の path（`/<project>
+        /// /
+        /// <key>
+        /// /files/&lt;語&gt;-
+        /// <n>
+        /// .&lt;拡張子&gt;`。置いた順）。
+        /// </n>
+        /// </key>
+        /// </project>
+        pub fn removed(mut self, input: ::std::vec::Vec<::std::string::String>) -> Self {
+            self.removed = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`DeleteFilesOutput`](crate::output::DeleteFilesOutput).
+        ///
+        /// The builder fails to construct a [`DeleteFilesOutput`](crate::output::DeleteFilesOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::DeleteFilesOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::DeleteFilesOutput, ConstraintViolation> {
+            Ok(crate::output::DeleteFilesOutput {
                 removed: self.removed.ok_or(ConstraintViolation::MissingRemoved)?,
             })
         }

@@ -1602,3 +1602,743 @@ mod delete_pages_test {
         ));
     }
 }
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`CreateFileInput`](crate::input::CreateFileInput) using modelled bindings.
+    pub struct CreateFileInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::CreateFileInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for CreateFileInputFuture {
+    type Output = Result<
+        crate::input::CreateFileInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::CreateFileInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = CreateFileInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_create_file::de_create_file_http_request(request).await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        CreateFileInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::CreateFileOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_create_file::ser_create_file_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::CreateFileError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_create_file::ser_create_file_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod create_file_test {
+
+    /// 道に project・key、引数に名（語.拡張子）と役割、本文は中身、Content-Type は拡張子の種類
+    /// Test ID: PagetrayCreateFileRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_create_file_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/projects/ai/keys/AI-36/files")
+            .method("POST")
+            .header("Content-Type", "image/png")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Full::new(::bytes::Bytes::copy_from_slice(
+                    &::aws_smithy_protocol_test::decode_body_data(
+                        "png".as_bytes(),
+                        ::aws_smithy_protocol_test::MediaType::from("unknown"),
+                    ),
+                )),
+            ))
+            .unwrap();
+        *http_request.uri_mut() =
+            "/api/projects/ai/keys/AI-36/files?name=screen.png&role=tpm&workspace=workspace:1"
+                .parse()
+                .unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .create_file(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::CreateFileInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::CreateFileInput {
+                                project: "ai".to_owned(),
+                                key: "AI-36".to_owned(),
+                                name: "screen.png".to_owned(),
+                                role: ::std::option::Option::Some("tpm".to_owned()),
+                                workspace: ::std::option::Option::Some("workspace:1".to_owned()),
+                                content_type: "image/png".to_owned(),
+                                body: ::aws_smithy_types::Blob::new("png"),
+                                n: ::std::option::Option::None,
+                                created_at: ::std::option::Option::None,
+                                actor_issuer: ::std::option::Option::None,
+                                actor_ref: ::std::option::Option::None,
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::CreateFileOutput {
+                                project: "".to_owned(),
+                                key: "".to_owned(),
+                                name: "".to_owned(),
+                                ext: "".to_owned(),
+                                n: "".to_owned(),
+                                r#type: "".to_owned(),
+                                size: 0,
+                                sha256: "".to_owned(),
+                                role: "".to_owned(),
+                                workspace: "".to_owned(),
+                                created_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                    0, 0_f64,
+                                ),
+                                path: "".to_owned(),
+                                url: "".to_owned(),
+                                location: "".to_owned(),
+                                sender: ::std::option::Option::None,
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 取り込みは、番号と置いた時刻を書く。Content-Type の後ろの引数はそのまま渡る
+    /// Test ID: PagetrayCreateFileImportRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_create_file_import_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/projects/ai/keys/AI-36/files")
+            .method("POST")
+            .header("Content-Type", "text/markdown; charset=utf-8")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Full::new(::bytes::Bytes::copy_from_slice(
+                    &::aws_smithy_protocol_test::decode_body_data(
+                        "メモ".as_bytes(),
+                        ::aws_smithy_protocol_test::MediaType::from("unknown"),
+                    ),
+                )),
+            ))
+            .unwrap();
+        *http_request.uri_mut() = "/api/projects/ai/keys/AI-36/files?name=notes.md&role=tpm&n=2&createdAt=2026-11-24T00%3A00%3A00Z".parse().unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .create_file(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::CreateFileInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::CreateFileInput {
+                                project: "ai".to_owned(),
+                                key: "AI-36".to_owned(),
+                                name: "notes.md".to_owned(),
+                                role: ::std::option::Option::Some("tpm".to_owned()),
+                                n: ::std::option::Option::Some("2".to_owned()),
+                                created_at: ::std::option::Option::Some(
+                                    ::aws_smithy_types::DateTime::from_fractional_secs(
+                                        1795478400, 0_f64,
+                                    ),
+                                ),
+                                content_type: "text/markdown; charset=utf-8".to_owned(),
+                                body: ::aws_smithy_types::Blob::new("メモ"),
+                                workspace: ::std::option::Option::None,
+                                actor_issuer: ::std::option::Option::None,
+                                actor_ref: ::std::option::Option::None,
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::CreateFileOutput {
+                                project: "".to_owned(),
+                                key: "".to_owned(),
+                                name: "".to_owned(),
+                                ext: "".to_owned(),
+                                n: "".to_owned(),
+                                r#type: "".to_owned(),
+                                size: 0,
+                                sha256: "".to_owned(),
+                                role: "".to_owned(),
+                                workspace: "".to_owned(),
+                                created_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                    0, 0_f64,
+                                ),
+                                path: "".to_owned(),
+                                url: "".to_owned(),
+                                location: "".to_owned(),
+                                sender: ::std::option::Option::None,
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 置けば 201 で、file の記録（中身は無い）と、要求の Host で組んだ URL を返す
+    /// Test ID: PagetrayCreateFileCreated
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_create_file_created_response() {
+        let output = crate::output::CreateFileOutput {
+            project: "ai".to_owned(),
+            key: "AI-36".to_owned(),
+            name: "screen".to_owned(),
+            ext: "png".to_owned(),
+            n: "1".to_owned(),
+            r#type: "image/png".to_owned(),
+            size: 3,
+            sha256: "8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c".to_owned(),
+            role: "tpm".to_owned(),
+            workspace: "".to_owned(),
+            created_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+            path: "/ai/AI-36/files/screen-1.png".to_owned(),
+            url: "http://127.0.0.1:8801/ai/AI-36/files/screen-1.png".to_owned(),
+            location: "http://127.0.0.1:8801/ai/AI-36/files/screen-1.png".to_owned(),
+            sender: ::std::option::Option::None,
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(201).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [
+            ("Content-Type", "application/json"),
+            (
+                "Location",
+                "http://127.0.0.1:8801/ai/AI-36/files/screen-1.png",
+            ),
+        ];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"project\":\"ai\",\"key\":\"AI-36\",\"name\":\"screen\",\"ext\":\"png\",\"n\":\"1\",\"type\":\"image/png\",\"size\":3,\"sha256\":\"8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c\",\"role\":\"tpm\",\"workspace\":\"\",\"createdAt\":\"2026-11-24T00:00:00Z\",\"path\":\"/ai/AI-36/files/screen-1.png\",\"url\":\"http://127.0.0.1:8801/ai/AI-36/files/screen-1.png\"}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+}
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`ListFilesInput`](crate::input::ListFilesInput) using modelled bindings.
+    pub struct ListFilesInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::ListFilesInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for ListFilesInputFuture {
+    type Output = Result<
+        crate::input::ListFilesInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::ListFilesInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = ListFilesInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_list_files::de_list_files_http_request(request).await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        ListFilesInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::ListFilesOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_list_files::ser_list_files_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::ListFilesError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_list_files::ser_list_files_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod list_files_test {
+
+    /// どの条件も引数
+    /// Test ID: PagetrayListFilesRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_list_files_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/files")
+            .method("GET")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Empty::new(),
+            ))
+            .unwrap();
+        *http_request.uri_mut() = "/api/files?project=ai&key=AI-36&role=tpm&workspace=workspace:1&q=screen&actor=019abcde-0000-7000-8000-000000000001&sort=createdAt&maxResults=10&nextToken=abc".parse().unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .list_files(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::ListFilesInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::ListFilesInput {
+                                project: ::std::option::Option::Some("ai".to_owned()),
+                                key: ::std::option::Option::Some("AI-36".to_owned()),
+                                role: ::std::option::Option::Some("tpm".to_owned()),
+                                workspace: ::std::option::Option::Some("workspace:1".to_owned()),
+                                q: ::std::option::Option::Some("screen".to_owned()),
+                                actor: ::std::option::Option::Some(
+                                    "019abcde-0000-7000-8000-000000000001".to_owned(),
+                                ),
+                                sort: ::std::option::Option::Some("createdAt".to_owned()),
+                                max_results: ::std::option::Option::Some(10),
+                                next_token: ::std::option::Option::Some("abc".to_owned()),
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::ListFilesOutput {
+                                files: vec![],
+                                next_token: ::std::option::Option::None,
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// file の記録（中身と url は無い）。送り手は、ある時だけ。次の頁があれば nextToken
+    /// Test ID: PagetrayListFilesResponse
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_list_files_response_response() {
+        let output = crate::output::ListFilesOutput {
+            files: vec![crate::model::File {
+                project: "ai".to_owned(),
+                key: "AI-36".to_owned(),
+                name: "screen".to_owned(),
+                ext: "png".to_owned(),
+                n: "1".to_owned(),
+                r#type: "image/png".to_owned(),
+                size: 3,
+                sha256: "8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c"
+                    .to_owned(),
+                role: "tpm".to_owned(),
+                workspace: "".to_owned(),
+                created_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+                path: "/ai/AI-36/files/screen-1.png".to_owned(),
+                sender: ::std::option::Option::None,
+            }],
+            next_token: ::std::option::Option::Some("abc".to_owned()),
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"files\":[{\"project\":\"ai\",\"key\":\"AI-36\",\"name\":\"screen\",\"ext\":\"png\",\"n\":\"1\",\"type\":\"image/png\",\"size\":3,\"sha256\":\"8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c\",\"role\":\"tpm\",\"workspace\":\"\",\"createdAt\":\"2026-11-24T00:00:00Z\",\"path\":\"/ai/AI-36/files/screen-1.png\"}],\"nextToken\":\"abc\"}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+}
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`DeleteFilesInput`](crate::input::DeleteFilesInput) using modelled bindings.
+    pub struct DeleteFilesInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::DeleteFilesInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for DeleteFilesInputFuture {
+    type Output = Result<
+        crate::input::DeleteFilesInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::DeleteFilesInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = DeleteFilesInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_delete_files::de_delete_files_http_request(request).await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        DeleteFilesInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::DeleteFilesOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_delete_files::ser_delete_files_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::DeleteFilesError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_delete_files::ser_delete_files_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod delete_files_test {
+
+    /// 引数で消す file を絞る
+    /// Test ID: PagetrayDeleteFilesRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_delete_files_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/files")
+            .method("DELETE")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Empty::new(),
+            ))
+            .unwrap();
+        *http_request.uri_mut() = "/api/files?project=ai&key=AI-36&name=screen.png&n=2"
+            .parse()
+            .unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .delete_files(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::DeleteFilesInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::DeleteFilesInput {
+                                project: "ai".to_owned(),
+                                key: ::std::option::Option::Some("AI-36".to_owned()),
+                                name: ::std::option::Option::Some("screen.png".to_owned()),
+                                n: ::std::option::Option::Some("2".to_owned()),
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::DeleteFilesOutput { removed: vec![] };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 消した file の path
+    /// Test ID: PagetrayDeleteFilesResponse
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_delete_files_response_response() {
+        let output = crate::output::DeleteFilesOutput {
+            removed: vec!["/ai/AI-36/files/screen-2.png".to_owned()],
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_body(
+            &body,
+            "{\"removed\":[\"/ai/AI-36/files/screen-2.png\"]}",
+            ::aws_smithy_protocol_test::MediaType::from("application/json"),
+        ));
+    }
+}

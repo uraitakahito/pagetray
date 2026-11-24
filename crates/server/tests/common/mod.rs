@@ -18,6 +18,9 @@ use tower::ServiceExt;
 /// 試験の要求の Host。
 pub const HOST: &str = "127.0.0.1:8801";
 
+/// 1×1 の PNG（本物の形。今の server の試験と同じ物）。
+pub const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xcf\xc0\xf0\x1f\x00\x05\x00\x01\xff\x89\x99=\x1d\x00\x00\x00\x00IEND\xaeB`\x82";
+
 /// 一時の DB の path（試験ごとに別の、空の folder の中）。
 pub fn temp_db(tag: &str) -> PathBuf {
     static SEQ: AtomicU32 = AtomicU32::new(0);
@@ -195,6 +198,59 @@ impl App {
         self.send_json(request).await
     }
 
+    /// file を置く（`POST /api/projects/{project}/keys/{key}/files?{query}`。本文は中身。`content_type` が `None` なら
+    /// `Content-Type` を付けない）。答えの本文は JSON に読む（読めなければ Null）。
+    pub async fn put_file(
+        &self,
+        project: &str,
+        key: &str,
+        query: &str,
+        content_type: Option<&str>,
+        body: impl Into<Body>,
+    ) -> (StatusCode, HeaderMap, Value) {
+        self.send_json(put_file(
+            &files_uri(project, key, query),
+            content_type,
+            body,
+        ))
+        .await
+    }
+
+    /// file を置き、201 を見て、番号（数の字）を返す。
+    pub async fn place_file(
+        &self,
+        project: &str,
+        key: &str,
+        query: &str,
+        content_type: &str,
+        body: &[u8],
+    ) -> String {
+        let (status, _, json) = self
+            .put_file(project, key, query, Some(content_type), body.to_vec())
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{query}: {json}");
+        json["n"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{json}"))
+            .to_owned()
+    }
+
+    /// file を探す（`GET /api/files?{query}`）。200 を見て、答えの 1 頁の file の path を返す。
+    pub async fn file_paths(&self, query: &str) -> Vec<String> {
+        let (status, _, json) = self.json(&format!("/api/files?{query}")).await;
+        assert_eq!(status, StatusCode::OK, "{query}: {json}");
+        file_paths(&json)
+    }
+
+    /// file を消す（`DELETE /api/files?{query}`）。
+    pub async fn remove_files(&self, query: &str) -> (StatusCode, HeaderMap, Value) {
+        let request = Request::delete(format!("/api/files?{query}"))
+            .header(header::HOST, HOST)
+            .body(Body::empty())
+            .unwrap();
+        self.send_json(request).await
+    }
+
     /// 要求を 1 つ通し、答えの本文を JSON に読む（読めなければ Null）。
     pub async fn send_json(&self, request: Request<Body>) -> (StatusCode, HeaderMap, Value) {
         let (status, headers, body) = self.send(request).await;
@@ -253,6 +309,40 @@ pub fn pages_uri(project: &str, key: &str, kind: &str, query: &str) -> String {
     } else {
         format!("{uri}?{query}")
     }
+}
+
+/// file を置く道（引数の `query` は `&` でつないだ物。空でもよい）。
+pub fn files_uri(project: &str, key: &str, query: &str) -> String {
+    let uri = format!("/api/projects/{project}/keys/{key}/files");
+    if query.is_empty() {
+        uri
+    } else {
+        format!("{uri}?{query}")
+    }
+}
+
+/// file を置く要求（`content_type` が `None` なら `Content-Type` を付けない）。
+pub fn put_file(uri: &str, content_type: Option<&str>, body: impl Into<Body>) -> Request<Body> {
+    let mut builder = Request::post(uri).header(header::HOST, HOST);
+    if let Some(t) = content_type {
+        builder = builder.header(header::CONTENT_TYPE, t);
+    }
+    builder.body(body.into()).unwrap()
+}
+
+/// 一覧の答えの、file の path の並び。
+pub fn file_paths(json: &Value) -> Vec<String> {
+    json["files"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{json}"))
+        .iter()
+        .map(|f| {
+            f["path"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{f}"))
+                .to_owned()
+        })
+        .collect()
 }
 
 pub fn get(path: &str) -> Request<Body> {

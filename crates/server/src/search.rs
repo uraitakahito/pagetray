@@ -205,6 +205,11 @@ pub fn plans() -> Vec<(&'static str, String)> {
     ]
 }
 
+/// file を探す SQL（名と SQL）。まだ作っていない（試験を先に書くための形だけ）。
+pub fn file_plans() -> Vec<(&'static str, String)> {
+    Vec::new()
+}
+
 #[cfg(test)]
 mod tests {
     use super::search;
