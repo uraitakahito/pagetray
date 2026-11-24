@@ -21,14 +21,17 @@
 | `ci/` | 出す image と、release に付ける CLI に、入ってよい物だけが入っているか・動くかを見る script と、その決まり。この本を build する script（`ci/docs-build.sh`）もここ |
 | `docs/` | この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側との API の仕様と、API の版の決まり。直し方は下の「この本を直す」 |
 | `.claude/roles/config.jsonc` | `roster` に向けた、環境 `pagetray` の宣言 |
+| `model/`・`ci/gen.sh` | 作り直し（AI-36）の間の、新しい API の Smithy の定義と、そこから crate を作る script（下の「定義と生成」） |
+| `crates/pagetray-sdk/`・`crates/castlist-client/` | 定義から作った server の骨と、castlist を呼ぶ crate。手で直さない |
+| `crates/server/` | 作り直している新しい server（package `pagetray-next`）。切り替えまで image に入らない |
 
 Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読まない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つと、その版が入って使われる。
 
 ```sh
 brew install rustup                              # keg-only。PATH に /opt/homebrew/opt/rustup/bin を足す
 cargo fmt --all --check
-cargo clippy --locked --workspace --all-targets -- -D warnings
-SQLX_OFFLINE=true cargo test --locked --workspace
+cargo clippy --locked --all-targets -- -D warnings
+SQLX_OFFLINE=true cargo test --locked
 PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run --bin pagetray-server   # 手元で起こす
 ```
 
@@ -50,9 +53,19 @@ API の形（URL・引数の名・JSON の欄）を変える時は、先に [API
 - **記録（`src/runlog.rs`）**: 終わり方の印と、大きさで回す記録の file（[動かす](run.md) の「落ちた後に調べる」）。ここだけは、tokio の糸を塞ぐ同期の書き方をする（`panic = "abort"` で、落ちる直前の行を残すため）。上限（`LOG_FILE_MAX`・`LOG_FILES`・`RUNS_MAX`）を変えたら、「落ちた後に調べる」の表も直す。binary を起こして終わり方を見る試験は `tests/server.rs`（試験ごとに空の folder を作り、その中に DB を置く。記録が DB の隣の `logs/` にできるため）、本物の image での確かめは `ci/smoke-image.sh`。log に出す行は、今までの行と同じく英語の `名=値` の形で書く。
 - **版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、`CHANGELOG.md` に、API の版が変わったかを書く。
 - **crate を上げる**: `.cargo/config.toml` の `global-min-publish-age` が、公開から 2 日たっていない版を選ばせない（Cargo 1.100 から）。上げる時は `cargo update` → 試験 → PR。`cargo install` はこの決まりを見ないので、道具は版を書いて入れる。
-- **弱点と license の見張り**: workflow の `advisories` が `cargo deny check advisories licenses`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の crate が入ると落ちる。
+- **弱点と license の見張り**: workflow の `advisories` が `cargo deny --workspace check advisories licenses`（設定は `deny.toml`。workspace の member をみな見る）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の crate が入ると落ちる。許す一覧の外の license は、名指した crate 1 つだけに、訳と一緒に許す（今は新しい server が引く `minicbor` の BlueOak-1.0.0 だけ）。
 - **workflow の action**: commit の SHA で固定する（tag は後から中身が替わりうる）。
 - **main を守る決まり**: GitHub の ruleset「main: CI が通らないと merge できない」（Settings → Rules → Rulesets）が、`main` への変更に、CI の `test`・`image`・`advisories`・`docs`・`cli` の 5 つが通っていることを求める。PR は、5 つが通るまで merge できない。repo の admin は、この決まりを bypass できるので、`main` への直の push は通る（GitHub の必須の check には「PR だけに効かせる」選び方が無いので、直の push を通すには bypass になる）。admin は、わざと選べば（画面の bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge できてしまうので、使わない。workflow の job の名を変えたら、ruleset の check の名も合わせて直す（合わないと、PR がいつまでも merge できない）。
+
+## 定義と生成（作り直しの間）
+
+API を Smithy の定義で書き直している間（AI-36）は、今の server（`src/`）の隣に、新しい server（`crates/server`）を並べて作る。切り替えまで image に入るのは今の server だけ（`Containerfile` は `-p pagetray` だけを作る）。形の決まりは [新しい API の形](next.md)。
+
+- 定義は `model/model/pagetray.smithy`。共通の形 `ai.common` と castlist の定義は、castlist の release の tag から取った `model/castlist/`（tag と digest は `ci/gen.sh` の 1 か所。手で直さない）。
+- 生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo test --locked -p pagetray_sdk`・`-p castlist_client` で流す（`castlist_client` の外す試験は `.github/workflows/ci.yml` の訳を見る）。
+- 生成器の版は `model/smithy-build.json`（Maven の物）と `ci/gen.sh`（Smithy の CLI と digest）に書く。`smithy-build.json` に名指した Maven の物は、公開から 2 日たっていなければ `ci/gen.sh` が断る。
+- CI の job `model` が `ci/gen.sh --check`（取った定義が digest と合い、作り直した物が入れてある物と同じか）と `ci/gen.sh --diff`（定義の入った最新の release（rc を除く）から壊す形に変わっていないか）を流す。
+- 新しい server の試験は `crates/server/tests/`。試験だけの commit を先に作り、落ちるのを見てから実装を足す。SQL は動く時に組む形（`query`・`query_as`）だけを使うので、`.sqlx/` は要らない。
 
 ## 一覧の UI の試験
 

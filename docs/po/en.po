@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-24T21:06:37+09:00\n"
+"POT-Creation-Date: 2026-11-24T21:10:36+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -3883,6 +3883,40 @@ msgid "`roster` に向けた、環境 `pagetray` の宣言"
 msgstr "Declaration of the `pagetray` environment for `roster`"
 
 #: src/development.md
+msgid "`model/`・`ci/gen.sh`"
+msgstr "`model/`, `ci/gen.sh`"
+
+#: src/development.md
+msgid ""
+"作り直し（AI-36）の間の、新しい API の Smithy の定義と、そこから crate を作"
+"る script（下の「定義と生成」）"
+msgstr ""
+"During the rewrite (AI-36): the Smithy model of the new API, and the script "
+"that makes crates from it (see \"Model and generation\" below)"
+
+#: src/development.md
+msgid "`crates/pagetray-sdk/`・`crates/castlist-client/`"
+msgstr "`crates/pagetray-sdk/`, `crates/castlist-client/`"
+
+#: src/development.md
+msgid "定義から作った server の骨と、castlist を呼ぶ crate。手で直さない"
+msgstr ""
+"The server skeleton made from the model, and the crate that calls castlist. "
+"Never edited by hand"
+
+#: src/development.md
+msgid "`crates/server/`"
+msgstr "`crates/server/`"
+
+#: src/development.md
+msgid ""
+"作り直している新しい server（package `pagetray-next`）。切り替えまで image に"
+"入らない"
+msgstr ""
+"The new server being rewritten (package `pagetray-next`). Not in the image "
+"until the switch-over"
+
+#: src/development.md
 msgid ""
 "Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読ま"
 "ない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つ"
@@ -4040,14 +4074,19 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"**弱点と license の見張り**: workflow の `advisories` が `cargo deny check "
-"advisories licenses`（設定は `deny.toml`）を、PR ごとと週に 1 度流す。"
-"`deny.toml` に無い license の crate が入ると落ちる。"
+"**弱点と license の見張り**: workflow の `advisories` が `cargo deny --"
+"workspace check advisories licenses`（設定は `deny.toml`。workspace の "
+"member をみな見る）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の "
+"crate が入ると落ちる。許す一覧の外の license は、名指した crate 1 つだけに、"
+"訳と一緒に許す（今は新しい server が引く `minicbor` の BlueOak-1.0.0 だけ）。"
 msgstr ""
 "**Vulnerability and license monitoring**: The workflow's `advisories` runs "
-"`cargo deny check advisories licenses` (configured in `deny.toml`) on every "
-"PR and once a week. It fails when a crate with a license not listed in "
-"`deny.toml` comes in."
+"`cargo deny --workspace check advisories licenses` (configured in "
+"`deny.toml`; it looks at every workspace member) on every PR and once a "
+"week. It fails when a crate with a license not listed in `deny.toml` comes "
+"in. A license outside the allowed list is allowed only for one named crate, "
+"together with the reason (now only BlueOak-1.0.0 of `minicbor`, which the "
+"new server pulls in)."
 
 #: src/development.md
 msgid ""
@@ -4079,6 +4118,83 @@ msgstr ""
 "UI, or `gh pr merge --admin`) can also merge a PR without CI passing, so do "
 "not use it. If you rename a workflow job, also update the check name in the "
 "ruleset to match (otherwise PRs can never be merged)."
+
+#: src/development.md
+msgid "定義と生成（作り直しの間）"
+msgstr "Model and generation (during the rewrite)"
+
+#: src/development.md
+msgid ""
+"API を Smithy の定義で書き直している間（AI-36）は、今の server（`src/`）の隣"
+"に、新しい server（`crates/server`）を並べて作る。切り替えまで image に入るの"
+"は今の server だけ（`Containerfile` は `-p pagetray` だけを作る）。形の決まり"
+"は [新しい API の形](next.md)。"
+msgstr ""
+"While the API is being rewritten with a Smithy model (AI-36), the new server "
+"(`crates/server`) is built next to the current server (`src/`). Until the "
+"switch-over, only the current server goes into the image (`Containerfile` "
+"builds only `-p pagetray`). The rules for the shape are in [The new API "
+"shape](next.md)."
+
+#: src/development.md
+msgid ""
+"定義は `model/model/pagetray.smithy`。共通の形 `ai.common` と castlist の定義"
+"は、castlist の release の tag から取った `model/castlist/`（tag と digest "
+"は `ci/gen.sh` の 1 か所。手で直さない）。"
+msgstr ""
+"The model is `model/model/pagetray.smithy`. The common shapes `ai.common` "
+"and the castlist model are in `model/castlist/`, fetched from a castlist "
+"release tag (the tag and digests are in one place in `ci/gen.sh`; never "
+"edited by hand)."
+
+#: src/development.md
+msgid ""
+"生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`）は `ci/"
+"gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直し"
+"た物も同じ commit に入れる。workspace の member だが、既定の命令（`default-"
+"members`）の外。中の protocol の試験は `cargo test --locked -p "
+"pagetray_sdk`・`-p castlist_client` で流す（`castlist_client` の外す試験は "
+"`.github/workflows/ci.yml` の訳を見る）。"
+msgstr ""
+"The generated crates (`crates/pagetray-sdk/`, `crates/castlist-client/`) are "
+"made by `ci/gen.sh`. **Never edit them by hand**. After changing the model, "
+"run `ci/gen.sh` and commit the regenerated crates in the same commit. They "
+"are workspace members but outside the default commands (`default-members`). "
+"Their protocol tests run with `cargo test --locked -p pagetray_sdk` and `-p "
+"castlist_client` (for the tests skipped in `castlist_client`, see the reason "
+"in `.github/workflows/ci.yml`)."
+
+#: src/development.md
+msgid ""
+"生成器の版は `model/smithy-build.json`（Maven の物）と `ci/gen.sh`（Smithy "
+"の CLI と digest）に書く。`smithy-build.json` に名指した Maven の物は、公開か"
+"ら 2 日たっていなければ `ci/gen.sh` が断る。"
+msgstr ""
+"The generator versions are in `model/smithy-build.json` (the Maven "
+"artifacts) and `ci/gen.sh` (the Smithy CLI and its digests). `ci/gen.sh` "
+"refuses a Maven artifact named in `smithy-build.json` that was published "
+"less than 2 days ago."
+
+#: src/development.md
+msgid ""
+"CI の job `model` が `ci/gen.sh --check`（取った定義が digest と合い、作り直"
+"した物が入れてある物と同じか）と `ci/gen.sh --diff`（定義の入った最新の "
+"release（rc を除く）から壊す形に変わっていないか）を流す。"
+msgstr ""
+"The CI job `model` runs `ci/gen.sh --check` (the fetched model matches the "
+"digests, and the regenerated crates are the same as the committed ones) and "
+"`ci/gen.sh --diff` (the model has not changed in a breaking way since the "
+"latest release that has a model, excluding rc)."
+
+#: src/development.md
+msgid ""
+"新しい server の試験は `crates/server/tests/`。試験だけの commit を先に作り、"
+"落ちるのを見てから実装を足す。SQL は動く時に組む形（`query`・`query_as`）だけ"
+"を使うので、`.sqlx/` は要らない。"
+msgstr ""
+"The new server's tests are in `crates/server/tests/`. Make a test-only "
+"commit first, see it fail, then add the implementation. SQL is only built at "
+"run time (`query`, `query_as`), so `.sqlx/` is not needed."
 
 #: src/development.md
 msgid "一覧の UI の試験"

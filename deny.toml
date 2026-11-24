@@ -6,3 +6,11 @@ yanked = "deny"
 # ここに無い license の crate が入ると落ちる。足す時は、MIT の物と一緒に配れるかを見てから、PR で足す。
 [licenses]
 allow = ["MIT", "Apache-2.0", "Unicode-3.0", "Zlib", "BSD-3-Clause"]
+
+# 許す一覧の外の license を、名指した crate 1 つだけに許す。訳も一緒に書く。
+# minicbor（BlueOak-1.0.0）: 新しい server の実行の crate aws-smithy-http-server が、外せない依存の aws-smithy-cbor を通して持つ。
+# BlueOak-1.0.0 は MIT と同じく使う・変える・配るを許し、許しの文を残すことを求める（copyleft は無い）。
+# Product Manager の決め（AI-36 の confirm-3。2026-11-24。castlist の deny.toml と同じ例外）。ほかの crate がこの license で入れば、また止まる。
+[[licenses.exceptions]]
+crate = "minicbor"
+allow = ["BlueOak-1.0.0"]
