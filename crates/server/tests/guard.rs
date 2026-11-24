@@ -162,6 +162,7 @@ async fn a_busy_writer_is_unavailable_before_the_request_timeout() {
 async fn a_slow_answer_times_out_with_unavailable() {
     let app = App::start_with(pagetray_next::Config {
         timeout: Duration::from_millis(200),
+        ..Default::default()
     })
     .await;
     let held = app.db.write().acquire().await.expect("書く接続");

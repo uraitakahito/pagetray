@@ -580,6 +580,83 @@ mod test_actor_ref {
     }
 }
 
+/// 送り手の記録: 置いた時の付随する id と、castlist の答え（置いた時の物。後から書き換えない）。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct Sender {
+    /// 付随する id を出した物。
+    pub issuer: ::std::string::String,
+    /// 付随する id。
+    pub r#ref: ::std::string::String,
+    /// castlist が答えたアクター。castlist の無い pagetray が置いた物には無い。
+    pub actor: ::std::option::Option<crate::model::ActorSummary>,
+    /// castlist が答えた時刻（答えの `asOf`）。`actor` と一緒にだけある。
+    pub resolved_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+}
+impl Sender {
+    /// 付随する id を出した物。
+    pub fn issuer(&self) -> &str {
+        use std::ops::Deref;
+        self.issuer.deref()
+    }
+    /// 付随する id。
+    pub fn r#ref(&self) -> &str {
+        use std::ops::Deref;
+        self.r#ref.deref()
+    }
+    /// castlist が答えたアクター。castlist の無い pagetray が置いた物には無い。
+    pub fn actor(&self) -> ::std::option::Option<&crate::model::ActorSummary> {
+        self.actor.as_ref()
+    }
+    /// castlist が答えた時刻（答えの `asOf`）。`actor` と一緒にだけある。
+    pub fn resolved_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.resolved_at.as_ref()
+    }
+}
+impl Sender {
+    /// Creates a new builder-style object to manufacture [`Sender`](crate::model::Sender).
+    pub fn builder() -> crate::model::sender::Builder {
+        crate::model::sender::Builder::default()
+    }
+}
+
+/// アクターを指す時の短い形。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ActorSummary {
+    /// アクターの id（castlist が出す UUID v7 の字。小文字の 16 進）。
+    pub id: ::std::string::String,
+    /// `&lt;接頭辞&gt;.&lt;番号&gt;`（番号は出し手と接頭辞ごとに 1 から）。
+    pub name: ::std::string::String,
+    /// アクターの種類: `ai` か `human`。 enum にしないのは、smithy-rs（codegen-server 0.1.40）が、答えに要る enum のある操作の要求の例（`@httpRequestTests`）から、 空の字の enum を作って落ちる試験を作るため。wire の形は enum と同じ字。ただし smithy diff は、string から enum への型の替えを 壊す変わり（ERROR。ChangedShapeType）とする（2026-11-24 に確かめた）ので、enum に替えるなら v1.0.0 を出す前にする。
+    pub kind: ::std::string::String,
+}
+impl ActorSummary {
+    /// アクターの id（castlist が出す UUID v7 の字。小文字の 16 進）。
+    pub fn id(&self) -> &str {
+        use std::ops::Deref;
+        self.id.deref()
+    }
+    /// `&lt;接頭辞&gt;.&lt;番号&gt;`（番号は出し手と接頭辞ごとに 1 から）。
+    pub fn name(&self) -> &str {
+        use std::ops::Deref;
+        self.name.deref()
+    }
+    /// アクターの種類: `ai` か `human`。 enum にしないのは、smithy-rs（codegen-server 0.1.40）が、答えに要る enum のある操作の要求の例（`@httpRequestTests`）から、 空の字の enum を作って落ちる試験を作るため。wire の形は enum と同じ字。ただし smithy diff は、string から enum への型の替えを 壊す変わり（ERROR。ChangedShapeType）とする（2026-11-24 に確かめた）ので、enum に替えるなら v1.0.0 を出す前にする。
+    pub fn kind(&self) -> &str {
+        use std::ops::Deref;
+        self.kind.deref()
+    }
+}
+impl ActorSummary {
+    /// Creates a new builder-style object to manufacture [`ActorSummary`](crate::model::ActorSummary).
+    pub fn builder() -> crate::model::actor_summary::Builder {
+        crate::model::actor_summary::Builder::default()
+    }
+}
+
 /// Describes one specific validation failure for an input member.
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
@@ -606,6 +683,198 @@ impl ValidationExceptionField {
     /// Creates a new builder-style object to manufacture [`ValidationExceptionField`](crate::model::ValidationExceptionField).
     pub fn builder() -> crate::model::validation_exception_field::Builder {
         crate::model::validation_exception_field::Builder::default()
+    }
+}
+
+/// アクターの id（castlist が出す UUID v7 の字。小文字の 16 進）。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`ActorId::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct ActorId(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl ActorId {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl ActorId {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::actor_id_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::actor_id_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"#).expect(r#"The regular expression ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for ActorId {
+    type Error = crate::model::actor_id_internal::ConstraintViolation;
+
+    /// Constructs a `ActorId` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for ActorId {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::ActorId>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for ActorId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<ActorId> for ::std::string::String {
+    fn from(value: ActorId) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_actor_id {
+    #[test]
+    fn regex_compiles() {
+        crate::model::ActorId::compile_regex();
+    }
+}
+
+/// アクターの種類: `ai` か `human`。 enum にしないのは、smithy-rs（codegen-server 0.1.40）が、答えに要る enum のある操作の要求の例（`@httpRequestTests`）から、 空の字の enum を作って落ちる試験を作るため。wire の形は enum と同じ字。ただし smithy diff は、string から enum への型の替えを 壊す変わり（ERROR。ChangedShapeType）とする（2026-11-24 に確かめた）ので、enum に替えるなら v1.0.0 を出す前にする。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`ActorKind::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct ActorKind(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl ActorKind {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl ActorKind {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::actor_kind_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::actor_kind_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^(ai|human)$"#).expect(r#"The regular expression ^(ai|human)$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for ActorKind {
+    type Error = crate::model::actor_kind_internal::ConstraintViolation;
+
+    /// Constructs a `ActorKind` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for ActorKind {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::ActorKind>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for ActorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<ActorKind> for ::std::string::String {
+    fn from(value: ActorKind) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_actor_kind {
+    #[test]
+    fn regex_compiles() {
+        crate::model::ActorKind::compile_regex();
     }
 }
 pub(crate) mod segment_internal {
@@ -842,6 +1111,172 @@ pub(crate) mod actor_ref_internal {
         }
     }
 }
+/// See [`Sender`](crate::model::Sender).
+pub mod sender {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `issuer` was not provided but it is required when building `Sender`.
+        MissingIssuer,
+        /// `r#ref` was not provided but it is required when building `Sender`.
+        MissingRef,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingIssuer => write!(
+                    f,
+                    "`issuer` was not provided but it is required when building `Sender`"
+                ),
+                ConstraintViolation::MissingRef => write!(
+                    f,
+                    "`r#ref` was not provided but it is required when building `Sender`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::Sender {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`Sender`](crate::model::Sender).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) issuer: ::std::option::Option<::std::string::String>,
+        pub(crate) r#ref: ::std::option::Option<::std::string::String>,
+        pub(crate) actor: ::std::option::Option<crate::model::ActorSummary>,
+        pub(crate) resolved_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    }
+    impl Builder {
+        /// 付随する id を出した物。
+        pub fn issuer(mut self, input: ::std::string::String) -> Self {
+            self.issuer = Some(input);
+            self
+        }
+        /// 付随する id。
+        pub fn r#ref(mut self, input: ::std::string::String) -> Self {
+            self.r#ref = Some(input);
+            self
+        }
+        /// castlist が答えたアクター。castlist の無い pagetray が置いた物には無い。
+        pub fn actor(mut self, input: ::std::option::Option<crate::model::ActorSummary>) -> Self {
+            self.actor = input;
+            self
+        }
+        /// castlist が答えた時刻（答えの `asOf`）。`actor` と一緒にだけある。
+        pub fn resolved_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.resolved_at = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`Sender`](crate::model::Sender).
+        ///
+        /// The builder fails to construct a [`Sender`](crate::model::Sender) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::Sender, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::Sender, ConstraintViolation> {
+            Ok(crate::model::Sender {
+                issuer: self.issuer.ok_or(ConstraintViolation::MissingIssuer)?,
+                r#ref: self.r#ref.ok_or(ConstraintViolation::MissingRef)?,
+                actor: self.actor,
+                resolved_at: self.resolved_at,
+            })
+        }
+    }
+}
+/// See [`ActorSummary`](crate::model::ActorSummary).
+pub mod actor_summary {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `id` was not provided but it is required when building `ActorSummary`.
+        MissingId,
+        /// `name` was not provided but it is required when building `ActorSummary`.
+        MissingName,
+        /// `kind` was not provided but it is required when building `ActorSummary`.
+        MissingKind,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingId => write!(
+                    f,
+                    "`id` was not provided but it is required when building `ActorSummary`"
+                ),
+                ConstraintViolation::MissingName => write!(
+                    f,
+                    "`name` was not provided but it is required when building `ActorSummary`"
+                ),
+                ConstraintViolation::MissingKind => write!(
+                    f,
+                    "`kind` was not provided but it is required when building `ActorSummary`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::ActorSummary {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ActorSummary`](crate::model::ActorSummary).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) id: ::std::option::Option<::std::string::String>,
+        pub(crate) name: ::std::option::Option<::std::string::String>,
+        pub(crate) kind: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// アクターの id（castlist が出す UUID v7 の字。小文字の 16 進）。
+        pub fn id(mut self, input: ::std::string::String) -> Self {
+            self.id = Some(input);
+            self
+        }
+        /// `&lt;接頭辞&gt;.&lt;番号&gt;`（番号は出し手と接頭辞ごとに 1 から）。
+        pub fn name(mut self, input: ::std::string::String) -> Self {
+            self.name = Some(input);
+            self
+        }
+        /// アクターの種類: `ai` か `human`。 enum にしないのは、smithy-rs（codegen-server 0.1.40）が、答えに要る enum のある操作の要求の例（`@httpRequestTests`）から、 空の字の enum を作って落ちる試験を作るため。wire の形は enum と同じ字。ただし smithy diff は、string から enum への型の替えを 壊す変わり（ERROR。ChangedShapeType）とする（2026-11-24 に確かめた）ので、enum に替えるなら v1.0.0 を出す前にする。
+        pub fn kind(mut self, input: ::std::string::String) -> Self {
+            self.kind = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`ActorSummary`](crate::model::ActorSummary).
+        ///
+        /// The builder fails to construct a [`ActorSummary`](crate::model::ActorSummary) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::ActorSummary, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::ActorSummary, ConstraintViolation> {
+            Ok(crate::model::ActorSummary {
+                id: self.id.ok_or(ConstraintViolation::MissingId)?,
+                name: self.name.ok_or(ConstraintViolation::MissingName)?,
+                kind: self.kind.ok_or(ConstraintViolation::MissingKind)?,
+            })
+        }
+    }
+}
 /// See [`ValidationExceptionField`](crate::model::ValidationExceptionField).
 pub mod validation_exception_field {
 
@@ -901,6 +1336,84 @@ pub mod validation_exception_field {
                 path: self.path.ok_or(ConstraintViolation::MissingPath)?,
                 message: self.message.ok_or(ConstraintViolation::MissingMessage)?,
             })
+        }
+    }
+}
+pub(crate) mod actor_id_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.common#ActorId` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod actor_kind_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.common#ActorKind` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^(ai|human)$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^(ai|human)$"#),
+                            path
+                        },
+                        }
         }
     }
 }

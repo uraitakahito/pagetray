@@ -10,6 +10,10 @@ publish.workspace = true
 
 [dependencies]
 pagetray_sdk = { path = "../pagetray-sdk" }
+# castlist に送り手を聞く client（castlist の定義から作った物）と、それに渡す HTTP の client。
+# TLS の無い HTTP/1.1（hyper の作りの build_http）だけを使うので、features は default-client だけ（rustls・s2n は入れない）。
+castlist_client = { path = "../castlist-client" }
+aws-smithy-http-client = { version = "1.5.3", default-features = false, features = ["default-client"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
 aws-smithy-types = "1.9.4"
 bytes = "1"

@@ -45,6 +45,15 @@ pub struct NewPage<'a> {
     pub n: Option<i64>,
     /// 取り込みの時だけ（[`stamp`] の字）。無ければ今。
     pub created_at: Option<&'a str>,
+    /// 送り手。あれば senders に 1 行足し、ページから指す（同じ取引）。
+    pub sender: Option<&'a NewSender>,
+}
+
+/// 足す送り手の行: 付随する id と、castlist の答え（castlist に聞かなかった時は無い）。
+pub struct NewSender {
+    pub issuer: String,
+    pub actor_ref: String,
+    pub answer: Option<crate::castlist::Answer>,
 }
 
 /// 置いたページの記録（DB の字のまま）。
@@ -136,6 +145,25 @@ pub fn stamp(t: OffsetDateTime) -> String {
 /// 今の pagetray の時刻（[`stamp`] の字）。
 pub fn now() -> String {
     stamp(OffsetDateTime::now_utc())
+}
+
+/// 送り手の行を 1 つ足し、その id を返す（足すだけ。置くたびに 1 行で、まとめない）。ページや file と同じ取引の中で呼ぶ。
+async fn add_sender(tx: &mut SqliteConnection, sender: &NewSender) -> Result<i64, sqlx::Error> {
+    let answer = sender.answer.as_ref();
+    sqlx::query_scalar(
+        "insert into senders(actor_issuer, actor_ref, actor_id, actor_name, actor_kind, resolved_at, created_at)
+         values(?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         returning id",
+    )
+    .bind(&sender.issuer)
+    .bind(&sender.actor_ref)
+    .bind(answer.map(|a| a.actor.id.as_str()))
+    .bind(answer.map(|a| a.actor.name.as_str()))
+    .bind(answer.map(|a| a.actor.kind.as_str()))
+    .bind(answer.map(|a| a.as_of.as_str()))
+    .bind(now())
+    .fetch_one(tx)
+    .await
 }
 
 // --- 開く ---
@@ -276,14 +304,18 @@ impl Db {
             }
         }
         let created_at = page.created_at.map_or_else(now, str::to_owned);
+        let sender_id = match page.sender {
+            Some(sender) => Some(add_sender(&mut tx, sender).await?),
+            None => None,
+        };
         let (id, n): (i64, i64) = sqlx::query_as(
-            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body)
+            "insert into pages(project, key, kind, n, title, role, workspace, created_at, body, sender_id)
              values(?1, ?2, ?3,
                     coalesce(?4, (select coalesce(max(n), 0) + 1 from
                                     (select n from pages where project = ?1 and key = ?2 and kind = ?3
                                      union all
                                      select n from removed where project = ?1 and key = ?2 and kind = ?3))),
-                    ?5, ?6, ?7, ?8, ?9)
+                    ?5, ?6, ?7, ?8, ?9, ?10)
              returning id, n",
         )
         .bind(page.project)
@@ -295,6 +327,7 @@ impl Db {
         .bind(page.workspace)
         .bind(&created_at)
         .bind(page.body)
+        .bind(sender_id)
         .fetch_one(&mut *tx)
         .await?;
         sqlx::query("insert into pages_fts(rowid, title, text) values(?1, ?2, ?3)")

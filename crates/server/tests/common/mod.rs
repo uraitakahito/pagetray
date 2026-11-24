@@ -1,6 +1,8 @@
 //! 試験の足場: 試験ごとに一時の DB を作り、Router に要求を通す。DB の決まりは、書く接続と読む接続を直に使って見る。
 #![allow(dead_code)]
 
+pub mod castlist;
+
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -67,6 +69,29 @@ impl App {
         Self { app, db, path }
     }
 
+    /// 送り手を `url`（`PAGETRAY_CASTLIST_URL` の値）の castlist に聞いて起こす。
+    pub async fn with_castlist(url: &str) -> Self {
+        let castlist = pagetray_next::castlist::Castlist::configure(Some(url), None)
+            .expect("castlist の URL")
+            .expect("castlist がある");
+        Self::start_with(pagetray_next::Config {
+            castlist: Some(castlist),
+            ..Default::default()
+        })
+        .await
+    }
+
+    /// 送り手の行（id の順。付随する id を出した物・付随する id・castlist のアクターの id・名・種類・答えた時刻）。
+    pub async fn senders(&self) -> Vec<Sender> {
+        sqlx::query_as(
+            "select actor_issuer, actor_ref, actor_id, actor_name, actor_kind, resolved_at
+             from senders order by id",
+        )
+        .fetch_all(self.db.read())
+        .await
+        .expect("senders")
+    }
+
     /// 要求を 1 つ通し、状態と header と本文の byte を返す。
     pub async fn send(&self, request: Request<Body>) -> (StatusCode, HeaderMap, Vec<u8>) {
         let response = self.app.clone().oneshot(request).await.expect("oneshot");
@@ -130,6 +155,16 @@ impl App {
             .unwrap_or_else(|e| panic!("{sql}: {e}"));
     }
 }
+
+/// 送り手の行（[`App::senders`]）。
+pub type Sender = (
+    String,
+    String,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+);
 
 /// 1 つの値を読む SQL（読む接続）。
 pub async fn scalar<T>(app: &App, sql: &str) -> T

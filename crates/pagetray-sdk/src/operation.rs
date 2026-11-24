@@ -359,6 +359,7 @@ mod create_page_test {
                             path: "".to_owned(),
                             url: "".to_owned(),
                             location: "".to_owned(),
+                            sender: ::std::option::Option::None,
                         };
                         Ok(output)
                     };
@@ -444,6 +445,91 @@ mod create_page_test {
                                 path: "".to_owned(),
                                 url: "".to_owned(),
                                 location: "".to_owned(),
+                                sender: ::std::option::Option::None,
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 送り手の付随する id は、出した物と参照の組（参照の値に : があってよい）
+    /// Test ID: PagetrayCreatePageSenderRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_create_page_sender_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/projects/ai/keys/AI-36/kinds/plan/pages")
+            .method("POST")
+            .header("Content-Type", "text/html")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Full::new(::bytes::Bytes::copy_from_slice(
+                    &::aws_smithy_protocol_test::decode_body_data(
+                        "<p>本文</p>".as_bytes(),
+                        ::aws_smithy_protocol_test::MediaType::from("text/html"),
+                    ),
+                )),
+            ))
+            .unwrap();
+        *http_request.uri_mut() = "/api/projects/ai/keys/AI-36/kinds/plan/pages?role=tpm&actorIssuer=tpm&actorRef=cmux.workspace.ref%3Aworkspace%3A3".parse().unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .create_page(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::CreatePageInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::CreatePageInput {
+                                project: "ai".to_owned(),
+                                key: "AI-36".to_owned(),
+                                kind: "plan".to_owned(),
+                                role: "tpm".to_owned(),
+                                actor_issuer: ::std::option::Option::Some("tpm".to_owned()),
+                                actor_ref: ::std::option::Option::Some(
+                                    "cmux.workspace.ref:workspace:3".to_owned(),
+                                ),
+                                body: ::aws_smithy_types::Blob::new("<p>本文</p>"),
+                                workspace: ::std::option::Option::None,
+                                n: ::std::option::Option::None,
+                                created_at: ::std::option::Option::None,
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::CreatePageOutput {
+                                project: "".to_owned(),
+                                key: "".to_owned(),
+                                kind: "".to_owned(),
+                                n: "".to_owned(),
+                                title: "".to_owned(),
+                                role: "".to_owned(),
+                                workspace: "".to_owned(),
+                                created_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                    0, 0_f64,
+                                ),
+                                size: 0,
+                                path: "".to_owned(),
+                                url: "".to_owned(),
+                                location: "".to_owned(),
+                                sender: ::std::option::Option::None,
                             };
                             Ok(output)
                         };
@@ -480,6 +566,7 @@ mod create_page_test {
             path: "/ai/AI-36/plan-1.html".to_owned(),
             url: "http://127.0.0.1:8801/ai/AI-36/plan-1.html".to_owned(),
             location: "http://127.0.0.1:8801/ai/AI-36/plan-1.html".to_owned(),
+            sender: ::std::option::Option::None,
         };
         use ::aws_smithy_http_server::response::IntoResponse;
         let http_response = output.into_response();
@@ -504,6 +591,63 @@ mod create_page_test {
             .to_bytes();
         ::aws_smithy_protocol_test::assert_ok(
         ::aws_smithy_protocol_test::validate_body(&body, "{\"project\":\"ai\",\"key\":\"AI-36\",\"kind\":\"plan\",\"n\":\"1\",\"title\":\"計画\",\"role\":\"tpm\",\"workspace\":\"workspace:1\",\"createdAt\":\"2026-11-24T00:00:00Z\",\"size\":42,\"path\":\"/ai/AI-36/plan-1.html\",\"url\":\"http://127.0.0.1:8801/ai/AI-36/plan-1.html\"}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+
+    /// 付随する id を書いて置けば、送り手（castlist の答えと、答えた時刻）も返す
+    /// Test ID: PagetrayCreatePageCreatedWithSender
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_create_page_created_with_sender_response() {
+        let output = crate::output::CreatePageOutput {
+            project: "ai".to_owned(),
+            key: "AI-36".to_owned(),
+            kind: "plan".to_owned(),
+            n: "1".to_owned(),
+            title: "".to_owned(),
+            role: "tpm".to_owned(),
+            workspace: "".to_owned(),
+            created_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+            size: 1,
+            path: "/ai/AI-36/plan-1.html".to_owned(),
+            sender: ::std::option::Option::Some(crate::model::Sender {
+                issuer: "tpm".to_owned(),
+                r#ref: "claude.session:s-1".to_owned(),
+                actor: ::std::option::Option::Some(crate::model::ActorSummary {
+                    id: "019abcde-0000-7000-8000-000000000001".to_owned(),
+                    name: "se.1".to_owned(),
+                    kind: "ai".to_owned(),
+                }),
+                resolved_at: ::std::option::Option::Some(
+                    ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+                ),
+            }),
+            url: "http://127.0.0.1:8801/ai/AI-36/plan-1.html".to_owned(),
+            location: "http://127.0.0.1:8801/ai/AI-36/plan-1.html".to_owned(),
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(201).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [
+            ("Content-Type", "application/json"),
+            ("Location", "http://127.0.0.1:8801/ai/AI-36/plan-1.html"),
+        ];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"project\":\"ai\",\"key\":\"AI-36\",\"kind\":\"plan\",\"n\":\"1\",\"title\":\"\",\"role\":\"tpm\",\"workspace\":\"\",\"createdAt\":\"2026-11-24T00:00:00Z\",\"size\":1,\"path\":\"/ai/AI-36/plan-1.html\",\"sender\":{\"issuer\":\"tpm\",\"ref\":\"claude.session:s-1\",\"actor\":{\"id\":\"019abcde-0000-7000-8000-000000000001\",\"name\":\"se.1\",\"kind\":\"ai\"},\"resolvedAt\":\"2026-11-24T00:00:00Z\"},\"url\":\"http://127.0.0.1:8801/ai/AI-36/plan-1.html\"}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
         );
     }
 }

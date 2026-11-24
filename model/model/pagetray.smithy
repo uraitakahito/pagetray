@@ -6,6 +6,7 @@ $version: "2"
 namespace ai.pagetray
 
 use ai.common#ActorRef
+use ai.common#ActorSummary
 use ai.common#Conflict
 use ai.common#DateTime
 use ai.common#Forbidden
@@ -77,6 +78,8 @@ operation GetHealth {
 /// 番号（`n`）を書かなければ、同じ project・key・kind の置いた番号と消した番号の最大 + 1（初めは 1）。
 /// 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。
 /// 題は本文の初めの `<title>`（無ければ空）。
+/// 付随する id（`actorIssuer`・`actorRef`）を書けば、送り手を castlist に聞き（書く前に。1 秒・送り直さない）、答えと一緒に残す。
+/// castlist に登録の無い送り手は 400、castlist に聞けなければ 503（どちらも何も残さない）。castlist の無い pagetray は、聞かずに付随する id だけを残す。
 @http(method: "POST", uri: "/api/projects/{project}/keys/{key}/kinds/{kind}/pages", code: 201)
 @httpRequestTests([
     {
@@ -118,6 +121,26 @@ operation GetHealth {
             body: "<p>前の置き場の物</p>"
         }
     }
+    {
+        id: "PagetrayCreatePageSenderRequest"
+        documentation: "送り手の付随する id は、出した物と参照の組（参照の値に : があってよい）"
+        protocol: restJson1
+        method: "POST"
+        uri: "/api/projects/ai/keys/AI-36/kinds/plan/pages"
+        queryParams: ["role=tpm", "actorIssuer=tpm", "actorRef=cmux.workspace.ref%3Aworkspace%3A3"]
+        headers: { "Content-Type": "text/html" }
+        body: "<p>本文</p>"
+        bodyMediaType: "text/html"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "plan"
+            role: "tpm"
+            actorIssuer: "tpm"
+            actorRef: "cmux.workspace.ref:workspace:3"
+            body: "<p>本文</p>"
+        }
+    }
 ])
 @httpResponseTests([
     {
@@ -143,6 +166,39 @@ operation GetHealth {
             createdAt: 1795478400
             size: 42
             path: "/ai/AI-36/plan-1.html"
+            url: "http://127.0.0.1:8801/ai/AI-36/plan-1.html"
+            location: "http://127.0.0.1:8801/ai/AI-36/plan-1.html"
+        }
+    }
+    {
+        id: "PagetrayCreatePageCreatedWithSender"
+        documentation: "付随する id を書いて置けば、送り手（castlist の答えと、答えた時刻）も返す"
+        protocol: restJson1
+        code: 201
+        headers: {
+            "Content-Type": "application/json"
+            "Location": "http://127.0.0.1:8801/ai/AI-36/plan-1.html"
+        }
+        body: """
+            {"project":"ai","key":"AI-36","kind":"plan","n":"1","title":"","role":"tpm","workspace":"","createdAt":"2026-11-24T00:00:00Z","size":1,"path":"/ai/AI-36/plan-1.html","sender":{"issuer":"tpm","ref":"claude.session:s-1","actor":{"id":"019abcde-0000-7000-8000-000000000001","name":"se.1","kind":"ai"},"resolvedAt":"2026-11-24T00:00:00Z"},"url":"http://127.0.0.1:8801/ai/AI-36/plan-1.html"}"""
+        bodyMediaType: "application/json"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "plan"
+            n: "1"
+            title: ""
+            role: "tpm"
+            workspace: ""
+            createdAt: 1795478400
+            size: 1
+            path: "/ai/AI-36/plan-1.html"
+            sender: {
+                issuer: "tpm"
+                ref: "claude.session:s-1"
+                actor: { id: "019abcde-0000-7000-8000-000000000001", name: "se.1", kind: "ai" }
+                resolvedAt: 1795478400
+            }
             url: "http://127.0.0.1:8801/ai/AI-36/plan-1.html"
             location: "http://127.0.0.1:8801/ai/AI-36/plan-1.html"
         }
@@ -182,11 +238,11 @@ operation CreatePage {
         @httpQuery("createdAt")
         createdAt: DateTime
 
-        /// 付随する id を出した物（`actorRef` と組）。送り手の記録はまだ受けない（書けば 400。AI-36 段 4 の次の PR で受ける）。
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
         @httpQuery("actorIssuer")
         actorIssuer: Issuer
 
-        /// 付随する id（`種類:値`。`actorIssuer` と組）。送り手の記録はまだ受けない（書けば 400）。
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
         @httpQuery("actorRef")
         actorRef: ActorRef
 
@@ -250,6 +306,26 @@ structure PageFields {
     /// この server の中の path（`/<project>/<key>/<kind>-<n>.html`）。
     @required
     path: String
+
+    /// 送り手。付随する id を書いて置いた時だけ。
+    sender: Sender
+}
+
+/// 送り手の記録: 置いた時の付随する id と、castlist の答え（置いた時の物。後から書き換えない）。
+structure Sender {
+    /// 付随する id を出した物。
+    @required
+    issuer: Issuer
+
+    /// 付随する id。
+    @required
+    ref: ActorRef
+
+    /// castlist が答えたアクター。castlist の無い pagetray が置いた物には無い。
+    actor: ActorSummary
+
+    /// castlist が答えた時刻（答えの `asOf`）。`actor` と一緒にだけある。
+    resolvedAt: DateTime
 }
 
 /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
