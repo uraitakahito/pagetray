@@ -6,10 +6,12 @@ use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::CreatePageError;
 use pagetray_sdk::input::CreatePageInput;
+use pagetray_sdk::model::{ActorSummary, Sender};
 use pagetray_sdk::output::CreatePageOutput;
 use pagetray_sdk::server::request::extension::Extension;
 
-use crate::db::{Db, NewPage};
+use crate::castlist::Castlist;
+use crate::db::{Db, NewPage, NewSender};
 use crate::errors::{Failure, PutFailure, internal, reply};
 use crate::guard::RequestHost;
 use crate::text;
@@ -47,8 +49,17 @@ fn parse_file(file: &str) -> Option<(&str, i64)> {
     ok.then(|| n.parse().ok()).flatten().map(|n| (kind, n))
 }
 
+/// 見終えた置く引数。
+struct Checked {
+    n: Option<i64>,
+    created_at: Option<String>,
+    /// 送り手の付随する id（出した物と参照）。
+    actor: Option<(String, String)>,
+}
+
 /// 置く引数の、定義の形では言えない決まりを見る。合わなければ、その訳。空の本文は、生成した層が先に断る（`/body` が無い）。
-fn check(input: &CreatePageInput) -> Result<(Option<i64>, Option<String>), String> {
+/// 付随する id の形（`Issuer`・`ActorRef`）は、定義が見てある。
+fn check(input: &CreatePageInput) -> Result<Checked, String> {
     if is_dot(&input.project) || input.project == "api" {
         return Err("project に .・..・api は使えない".to_owned());
     }
@@ -64,10 +75,72 @@ fn check(input: &CreatePageInput) -> Result<(Option<i64>, Option<String>), Strin
         None => None,
         Some(t) => Some(created_at(t)?),
     };
-    if input.actor_issuer.is_some() || input.actor_ref.is_some() {
-        return Err("actorIssuer と actorRef（送り手）は、まだ受けない".to_owned());
-    }
-    Ok((n, created_at))
+    let actor = match (&input.actor_issuer, &input.actor_ref) {
+        (None, None) => None,
+        (Some(issuer), Some(actor_ref)) => Some((issuer.clone(), actor_ref.clone())),
+        _ => {
+            return Err("actorIssuer と actorRef（送り手）は、両方書くか、両方書かない".to_owned());
+        }
+    };
+    Ok(Checked {
+        n,
+        created_at,
+        actor,
+    })
+}
+
+/// 付随する id があれば、足す送り手の行を作る。castlist があれば聞いて答えを入れ（無ければ付随する id だけ）、
+/// castlist に登録の無い送り手は 400、聞けなければ 503。書く取引を始める前に呼ぶ（待つ間、書く接続を握らない）。
+async fn ask(
+    castlist: Option<&Castlist>,
+    actor: Option<(String, String)>,
+) -> Result<Option<NewSender>, PutFailure> {
+    let Some((issuer, actor_ref)) = actor else {
+        return Ok(None);
+    };
+    let answer = match castlist {
+        None => None,
+        Some(castlist) => match castlist.resolve(&issuer, &actor_ref).await {
+            Ok(Some(answer)) => Some(answer),
+            Ok(None) => {
+                return Err(PutFailure::UnknownSender(format!(
+                    "castlist に登録の無い送り手（{actor_ref}）"
+                )));
+            }
+            Err(why) => {
+                tracing::warn!("castlist: {why} ref={actor_ref}");
+                return Err(PutFailure::Unreachable(format!(
+                    "castlist に聞けない（{why}）。少し待ってから送り直す"
+                )));
+            }
+        },
+    };
+    Ok(Some(NewSender {
+        issuer,
+        actor_ref,
+        answer,
+    }))
+}
+
+/// 答えの送り手の欄。
+fn sender_output(sender: &NewSender) -> Result<Sender, String> {
+    let (actor, resolved_at) = match &sender.answer {
+        None => (None, None),
+        Some(answer) => (
+            Some(ActorSummary {
+                id: answer.actor.id.clone(),
+                name: answer.actor.name.clone(),
+                kind: answer.actor.kind.clone(),
+            }),
+            Some(crate::datetime(&answer.as_of)?),
+        ),
+    };
+    Ok(Sender {
+        issuer: sender.issuer.clone(),
+        r#ref: sender.actor_ref.clone(),
+        actor,
+        resolved_at,
+    })
 }
 
 /// 取り込みの時刻を、残す字（UTC・ミリ秒まで・24 字）にする。ミリ秒より細かい時刻と、0001〜9999 年の外は断る
@@ -84,12 +157,19 @@ fn created_at(t: &aws_smithy_types::DateTime) -> Result<String, String> {
 }
 
 /// ページを 1 枚置く。
+/// 検査の順: 引数（400）→ 付随する id（400）→ castlist（400・503）→ DB。
 pub async fn create_page(
     db: Arc<Db>,
+    castlist: Option<Castlist>,
     input: CreatePageInput,
     Extension(RequestHost(host)): Extension<RequestHost>,
 ) -> Result<CreatePageOutput, CreatePageError> {
-    let (n, created_at) = check(&input).map_err(PutFailure::Invalid)?;
+    let Checked {
+        n,
+        created_at,
+        actor,
+    } = check(&input).map_err(PutFailure::Invalid)?;
+    let sender = ask(castlist.as_ref(), actor).await?;
     let workspace = input.workspace.as_deref().unwrap_or("");
     let body = input.body.as_ref();
     let html = String::from_utf8_lossy(body);
@@ -106,6 +186,7 @@ pub async fn create_page(
             body,
             n,
             created_at: created_at.as_deref(),
+            sender: sender.as_ref(),
         })
         .await
         .map_err(|e| PutFailure::write("CreatePage", e, "その番号は、もう使われている"))?;
@@ -116,6 +197,11 @@ pub async fn create_page(
         placed.size
     );
     let created_at = crate::datetime(&placed.created_at)
+        .map_err(|e| PutFailure::Internal(internal("CreatePage", &e)))?;
+    let sender = sender
+        .as_ref()
+        .map(sender_output)
+        .transpose()
         .map_err(|e| PutFailure::Internal(internal("CreatePage", &e)))?;
     let url = format!("http://{host}{path}");
     Ok(CreatePageOutput {
@@ -129,7 +215,7 @@ pub async fn create_page(
         created_at,
         size: placed.size,
         path,
-        sender: None,
+        sender,
         location: url.clone(),
         url,
     })

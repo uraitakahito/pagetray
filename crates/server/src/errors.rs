@@ -5,6 +5,8 @@ use pagetray_sdk::error::{
     Conflict, CreatePageError, InternalError, Unavailable, ValidationException,
 };
 
+use pagetray_sdk::model::ValidationExceptionField;
+
 use crate::db::WriteError;
 
 /// server の中の失敗（DB の誤りなど）。訳は記録に書き、答えは決まった字にする（中の誤りの字を外に出さない）。
@@ -68,11 +70,15 @@ impl Failure {
     }
 }
 
-/// 書いて足す操作の失敗: 中身の誤り（400）・番号が使われている（409）・混んでいる（503）・中の失敗（500）。
+/// 書いて足す操作の失敗: 中身の誤り（400）・castlist に登録の無い送り手（400）・番号が使われている（409）・
+/// 混んでいる（503）・castlist に聞けない（503）・中の失敗（500）。
 pub enum PutFailure {
     Invalid(String),
+    /// 欄の path は `/actorRef`（castlist の PutEvent が、引けない `by` を 400 にするのと同じ）。
+    UnknownSender(String),
     Conflict(String),
     Busy,
+    Unreachable(String),
     Internal(InternalError),
 }
 
@@ -97,8 +103,17 @@ macro_rules! from_put_failure {
                         field_list: None,
                     }
                     .into(),
+                    PutFailure::UnknownSender(message) => ValidationException {
+                        field_list: Some(vec![ValidationExceptionField {
+                            path: "/actorRef".to_owned(),
+                            message: message.clone(),
+                        }]),
+                        message,
+                    }
+                    .into(),
                     PutFailure::Conflict(message) => Conflict { message }.into(),
                     PutFailure::Busy => busy().into(),
+                    PutFailure::Unreachable(message) => Unavailable { message }.into(),
                     PutFailure::Internal(e) => e.into(),
                 }
             }

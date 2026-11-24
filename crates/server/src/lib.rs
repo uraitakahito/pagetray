@@ -58,7 +58,8 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .get_health(get_health)
         .create_page({
             let db = db.clone();
-            move |input, host| pages::create_page(db.clone(), input, host)
+            let castlist = config.castlist.clone();
+            move |input, host| pages::create_page(db.clone(), castlist.clone(), input, host)
         })
         .build()
         .expect("どの操作にも handler がある");

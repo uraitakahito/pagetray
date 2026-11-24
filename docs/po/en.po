@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-24T21:22:07+09:00\n"
+"POT-Creation-Date: 2026-11-24T22:37:02+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -2402,7 +2402,7 @@ msgstr ""
 "carries the `sender` field (since 0.6.0; it is absent on pages without a "
 "recorded sender)."
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "送り手"
 msgstr "Senders"
 
@@ -5743,12 +5743,12 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage` と本文の道。残り"
-"は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。"
+"この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）と本"
+"文の道。残りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。"
 msgstr ""
-"Of the operations in this chapter, `GetHealth`, `CreatePage`, and the body "
-"route are built. The rest are added in the next PRs of stage 4 of AI-36 (see "
-"\"How stage 4 is split\" below)."
+"Of the operations in this chapter, `GetHealth`, `CreatePage` (with senders), "
+"and the body route are built. The rest are added in the next PRs of stage 4 "
+"of AI-36 (see \"How stage 4 is split\" below)."
 
 #: src/next.md
 msgid "ページを置く（CreatePage）"
@@ -5810,18 +5810,18 @@ msgstr "`actorIssuer`, `actorRef`"
 
 #: src/next.md
 msgid ""
-"定義には置くが、まだ受けない（書けば 400。何も残さない）。送り手を castlist "
-"に聞く処理と一緒に、段 4 の次の PR で受ける。定義に置くのは、知らない引数を読"
-"み飛ばす restJson1 で、送り手の記録が黙って落ちないようにするため。"
-"`actorRef` の形は `ai.common#ActorRef`（castlist と同じ。今の pagetray の形よ"
-"り広い）"
+"送り手の付随する id。両方書くか、両方書かない（片方だけは 400）。"
+"`actorIssuer` は英小文字・数字・`-`・`.` で 1〜64 字、`actorRef` の形は "
+"`ai.common#ActorRef`（castlist と同じ。`種類:値` で、値は制御字の無い 1〜256 "
+"字。今の pagetray の形より広く、空白や `/` も通る）。castlist に聞く所は下の"
+"「送り手」"
 msgstr ""
-"In the model, but not accepted yet (giving them is 400 and nothing is "
-"stored). They are accepted in the next PR of stage 4, together with asking "
-"castlist about the sender. They are in the model so that restJson1, which "
-"skips unknown parameters, does not silently drop the sender record. The "
-"shape of `actorRef` is `ai.common#ActorRef` (the same as castlist; wider "
-"than the current pagetray shape)"
+"The sender's attached id. Give both or neither (only one is 400). "
+"`actorIssuer` is 1 to 64 lowercase letters, digits, `-`, and `.`; `actorRef` "
+"has the shape `ai.common#ActorRef` (same as castlist: `kind:value`, where "
+"the value is 1 to 256 characters without control characters. This is wider "
+"than today's pagetray shape; spaces and `/` pass). How castlist is asked is "
+"under \"Senders\" below"
 
 #: src/next.md
 msgid "本文"
@@ -5859,12 +5859,22 @@ msgstr ""
 #: src/next.md
 msgid ""
 "答えは 201 で、ページの記録（本文は入らない）と、要求の `Host` で組んだ `url`"
-"（header `Location` にも）。置いた時は、返事・判定・見た物・送り手の欄は無"
-"い。"
+"（header `Location` にも）。置いた時は、返事・判定・見た物の欄は無い。送り手"
+"の欄（`sender`）は、付随する id を書いた時だけ。"
 msgstr ""
 "The response is 201 with the page record (without the body) and a `url` "
 "built from the request's `Host` (also in the `Location` header). Right after "
-"a put there are no reply, verdict, target, or sender fields."
+"a put there are no reply, verdict, or target fields. The sender field "
+"(`sender`) is present only when the attached id was given."
+
+#: src/next.md
+msgid ""
+"検査の順: 引数の形（400）→ 付随する id の組（400）→ castlist（400・503）→ DB"
+"（409・503）。前で断れば、後は見ない（castlist に聞かない・何も残さない）。"
+msgstr ""
+"Order of checks: parameter shapes (400) → the attached id pair (400) → "
+"castlist (400, 503) → DB (409, 503). A refusal at an earlier step skips the "
+"later ones (castlist is not asked and nothing is stored)."
 
 #: src/next.md
 msgid ""
@@ -5893,6 +5903,207 @@ msgid "本文の上限（16 MiB で 413 `PayloadTooLarge`）は、守りの層�
 msgstr ""
 "The body limit (413 `PayloadTooLarge` at 16 MiB) is added in the guard layer "
 "PR."
+
+#: src/next.md
+msgid ""
+"付随する id（`actorIssuer`・`actorRef`）を書いて置けば、castlist に送り手を聞"
+"き、答えと一緒に残す（今の pagetray と同じ振る舞いを、新しい castlist の API "
+"で）。"
+msgstr ""
+"When a page is put with the attached id (`actorIssuer`, `actorRef`), "
+"pagetray asks castlist for the sender and stores the answer with it (the "
+"same behavior as today's pagetray, over castlist's new API)."
+
+#: src/next.md
+msgid ""
+"castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:"
+"<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無"
+"い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link "
+"の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、"
+"host の browser から開く所は違う）、形は同じ、無いか空なら `http://"
+"127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。link を使"
+"う画面は、画面の PR で足す。"
+msgstr ""
+"castlist's location is `PAGETRAY_CASTLIST_URL` (where to ask). Only the "
+"shape `http://<host>:<port>` is accepted (a trailing `/` is fine; a path, a "
+"user name, `https://`, a missing port, or port 0 is refused before "
+"starting). If it is empty or absent, there is no castlist. The link base for "
+"the screens, `PAGETRAY_CASTLIST_LINK_URL`, is set separately (what is "
+"reachable from inside the container differs from what the host's browser "
+"opens), with the same shape, and defaults to `http://127.0.0.1:8802` when "
+"absent or empty. A link in the wrong shape is refused even without a "
+"castlist URL. The screens that use the link come in the screens PR."
+
+#: src/next.md
+msgid ""
+"聞くのは `ResolveActors`（`POST /api/resolve`、本文 `{\"issuer\":…,\"refs\":"
+"[…]}`）を 1 度。castlist の定義から作った client（`crates/castlist-client/`）"
+"で呼ぶ。書く取引を始める前に聞く（castlist を待つ間、書く接続を握らない）。"
+msgstr ""
+"pagetray calls `ResolveActors` (`POST /api/resolve`, body `{\"issuer\":…,"
+"\"refs\":[…]}`) once, with the client generated from castlist's model "
+"(`crates/castlist-client/`). It asks before starting the write transaction "
+"(the write connection is not held while waiting for castlist)."
+
+#: src/next.md
+msgid ""
+"HTTP の client は、`aws-smithy-http-client` の hyper の作りの、TLS の無い "
+"HTTP/1.1（`Builder::new().build_http()`。features は `default-client` だけ。"
+"`default-client` は証明書を読む crate（`rustls-native-certs`・`rustls-pki-"
+"types`）を引くが、TLS の実装（rustls・aws-lc・ring・s2n）は入らない）。接続は"
+"使い回さない（`pool_max_idle_per_host(0)`。1 度ごとにつなぐので、castlist が"
+"閉じた古い接続で落ちることがない）。"
+msgstr ""
+"The HTTP client is the hyper-based, TLS-less HTTP/1.1 client of `aws-smithy-"
+"http-client` (`Builder::new().build_http()`; only the `default-client` "
+"feature. `default-client` pulls in crates that read certificates (`rustls-"
+"native-certs`, `rustls-pki-types`), but no TLS implementation (rustls, aws-"
+"lc, ring, s2n)). Connections are not reused (`pool_max_idle_per_host(0)`; "
+"each call opens a new connection, so a stale connection that castlist closed "
+"cannot make a call fail)."
+
+#: src/next.md
+msgid ""
+"待つのは 1 度に 1 秒（つなぐ・送る・答えを読み終えるまでの全部。client の "
+"`operation_timeout`）。送り直さない（`RetryConfig::disabled()`。castlist の "
+"`Unavailable` は `@retryable` だが、送り直すかは pagetray の呼び手が決め"
+"る）。"
+msgstr ""
+"Each call waits at most 1 second (connecting, sending, and reading the whole "
+"answer; the client's `operation_timeout`). There are no retries "
+"(`RetryConfig::disabled()`; castlist's `Unavailable` is `@retryable`, but "
+"whether to resend is up to pagetray's caller)."
+
+#: src/next.md
+msgid ""
+"castlist は `Host` が 127.0.0.1・localhost でない要求と、`Origin` の付いた書"
+"く要求を断るので、つなぐ先がどこでも `Host: 127.0.0.1` で送り、`Origin` は付"
+"けない。"
+msgstr ""
+"castlist refuses requests whose `Host` is not 127.0.0.1 or localhost and "
+"write requests with an `Origin`, so pagetray always sends `Host: 127.0.0.1`, "
+"wherever it connects, and never sends `Origin`."
+
+#: src/next.md
+msgid ""
+"答えの見方: 聞いた `ref` の答えが無い・`asOf` が無い（生成した client は、答"
+"えに無い `@required` の欄を既定の値で埋めるので、1970 年の初めの時刻は無い物"
+"とする）・アクターの `id` が `ai.common#ActorId` の形でない（画面の link の "
+"path に入る）・`kind` が `ai`・`human` でない・`name` が 1〜128 字でないか制"
+"御字を持つ、のどれかなら読めない答えとする。今の pagetray の、答えの大きさの"
+"上限（64 KiB）は、1 秒の時間切れに任せて持たない。"
+msgstr ""
+"Checking the answer: it is treated as unreadable if there is no result for "
+"the asked `ref`, `asOf` is missing (the generated client fills missing "
+"`@required` fields with default values, so the start of 1970 is treated as "
+"missing), the actor's `id` is not in the `ai.common#ActorId` shape (it goes "
+"into the path of the screen link), `kind` is not `ai` or `human`, or `name` "
+"is not 1 to 128 characters or has control characters. Today's pagetray limit "
+"on the answer size (64 KiB) is not kept; the 1-second timeout bounds it "
+"instead."
+
+#: src/next.md
+msgid "castlist の答え"
+msgstr "castlist's answer"
+
+#: src/next.md
+msgid "pagetray の答え"
+msgstr "pagetray's response"
+
+#: src/next.md
+msgid "残す物"
+msgstr "What is stored"
+
+#: src/next.md
+msgid "送り手を知っている"
+msgstr "Knows the sender"
+
+#: src/next.md
+msgid ""
+"201。`sender` に `issuer`・`ref`・`actor`（`id`・`name`・`kind`）・"
+"`resolvedAt`（答えの `asOf`）"
+msgstr ""
+"201. `sender` has `issuer`, `ref`, `actor` (`id`, `name`, `kind`), and "
+"`resolvedAt` (the answer's `asOf`)"
+
+#: src/next.md
+msgid "ページと、送り手の行（答えた時刻は残す字の 24 字）"
+msgstr ""
+"The page and a sender row (the answer time in the stored 24-character form)"
+
+#: src/next.md
+msgid "送り手を知らない（`actor` が無い）"
+msgstr "Does not know the sender (no `actor`)"
+
+#: src/next.md
+msgid ""
+"400 `ValidationException`（`message` は「castlist に登録の無い送り手（…）」、"
+"`fieldList` の path は `/actorRef`）"
+msgstr ""
+"400 `ValidationException` (`message` says the sender is not registered in "
+"castlist; the `fieldList` path is `/actorRef`)"
+
+#: src/next.md
+msgid "何も残さない"
+msgstr "Nothing"
+
+#: src/next.md
+msgid "つながらない・1 秒で答えない・2xx でない・読めない"
+msgstr "Cannot connect, no answer within 1 second, not 2xx, or unreadable"
+
+#: src/next.md
+msgid ""
+"503 `Unavailable`（`message` は「castlist に聞けない（訳）。…」。訳は記録にも"
+"書く）"
+msgstr ""
+"503 `Unavailable` (`message` says castlist could not be asked, with the "
+"reason; the reason is also logged)"
+
+#: src/next.md
+msgid "castlist が無い（`PAGETRAY_CASTLIST_URL` が空）"
+msgstr "No castlist (`PAGETRAY_CASTLIST_URL` is empty)"
+
+#: src/next.md
+msgid "201。`sender` は `issuer`・`ref` だけ"
+msgstr "201. `sender` has only `issuer` and `ref`"
+
+#: src/next.md
+msgid "ページと、答えの欄の空の送り手の行"
+msgstr "The page and a sender row with empty answer columns"
+
+#: src/next.md
+msgid ""
+"知らない送り手を 400 にするのは、castlist の `PutEvent` が、引けない `by` を "
+"400 `ValidationException` にするのと同じにするため（今の pagetray の 422 はや"
+"める。誤りの型を増やさない）。"
+msgstr ""
+"An unknown sender is 400 to match castlist's `PutEvent`, which answers an "
+"unresolvable `by` with 400 `ValidationException` (today's pagetray 422 is "
+"dropped; no new error type is added)."
+
+#: src/next.md
+msgid ""
+"送り手の行は足すだけ（trigger が書き換えと消すのを断る）で、置くたびに 1 行"
+"（同じ送り手でもまとめない）。ページと同じ取引で足すので、番号が使われていて "
+"409 なら、送り手の行も残らない。"
+msgstr ""
+"Sender rows are append-only (triggers refuse updates and deletes), one row "
+"per put (the same sender is not merged). The row is added in the same "
+"transaction as the page, so when the number is taken and the answer is 409, "
+"no sender row remains either."
+
+#: src/next.md
+msgid ""
+"`sender` は `ai.pagetray#Sender`（`actor` は castlist と同じ "
+"`ai.common#ActorSummary`）。server の骨は、答えにだけ使う形の決まり"
+"（`ActorSummary` の `id`・`kind` の `@pattern`）にも使わない検査の関数を作る"
+"ので、`ci/gen.sh` が骨の `lib.rs` の頭に `#![allow(dead_code)]` を足す。"
+msgstr ""
+"`sender` is `ai.pagetray#Sender` (`actor` is `ai.common#ActorSummary`, the "
+"same as castlist). The server skeleton generates unused validation functions "
+"even for constraints used only in responses (the `@pattern` of "
+"`ActorSummary`'s `id` and `kind`), so `ci/gen.sh` adds `#!"
+"[allow(dead_code)]` at the top of the skeleton's `lib.rs`."
 
 #: src/next.md
 msgid "ページの本文"
@@ -6171,9 +6382,20 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build しない。HTTP の client は、使う側が設定で渡す。次の PR（送り手）の初めに、TLS の無い HTTP/1.1 の client（`aws-smithy-http-client` の hyper の作り）を渡して castlist を 1 度呼べること、1 秒の時間切れ、送り直さないこと（今の pagetray と同じ）を試験で止める。作れなければ、features の替え方を見直す。"
+"呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外"
+"す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼"
+"ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build し"
+"ない。HTTP の client は、使う側が設定で渡す（TLS の無い HTTP/1.1。上の「送り"
+"手」）。castlist を 1 度呼べること・1 秒の時間切れ・送り直さないことは、"
+"`crates/server/tests/senders.rs` が偽の castlist で止める。"
 msgstr ""
-"The https client (rustls, aws-lc) is removed from the calling crate's default features (`ci/gen.sh` changes one line of its `Cargo.toml`). pagetray calls castlist only at `http://127.0.0.1` on the same machine, so no TLS crate is built. The user of the crate passes an HTTP client in its configuration. The next PR (senders) starts by pinning, in tests, that a TLS-less HTTP/1.1 client (the hyper-based `aws-smithy-http-client`) can call castlist once, with a 1-second timeout and no retries (as pagetray does today). If that cannot be built, the feature change is revisited."
+"The https client (rustls, aws-lc) is removed from the calling crate's "
+"default features (`ci/gen.sh` changes one line of its `Cargo.toml`). "
+"pagetray calls castlist only at `http://127.0.0.1` on the same machine, so "
+"no TLS crate is built. The user of the crate passes an HTTP client in its "
+"configuration (a TLS-less HTTP/1.1 client; see \"Senders\" above). `crates/"
+"server/tests/senders.rs` pins, against a fake castlist, that castlist is "
+"called once, with a 1-second timeout and no retries."
 
 #: src/next.md
 msgid ""
