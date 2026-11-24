@@ -64,7 +64,17 @@ pub async fn guard(mut request: Request, next: Next) -> Response {
     }
     let response = next.run(request).await;
     if head {
-        response.map(|_| Body::empty())
+        // 本文を捨てる前に、本文の大きさが決まっていれば Content-Length を付ける（GET と同じ header にする。
+        // 付けずに捨てると、外の層が空の本文の 0 を付ける）。流す本文（大きさが決まらない物）は付けない。
+        let (mut parts, body) = response.into_parts();
+        if !parts.headers.contains_key(header::CONTENT_LENGTH)
+            && let Some(len) = http_body::Body::size_hint(&body).exact()
+        {
+            parts
+                .headers
+                .insert(header::CONTENT_LENGTH, HeaderValue::from(len));
+        }
+        Response::from_parts(parts, Body::empty())
     } else {
         response
     }
