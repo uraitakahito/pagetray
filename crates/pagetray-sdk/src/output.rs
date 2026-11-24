@@ -154,6 +154,364 @@ impl CreatePageOutput {
         crate::output::create_page_output::Builder::default()
     }
 }
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ListPagesOutput {
+    #[allow(missing_docs)] // documentation missing in model
+    pub pages: ::std::vec::Vec<crate::model::Page>,
+    /// 次の頁の印。終わりなら無い。
+    pub next_token: ::std::option::Option<::std::string::String>,
+}
+impl ListPagesOutput {
+    #[allow(missing_docs)] // documentation missing in model
+    pub fn pages(&self) -> &[crate::model::Page] {
+        use std::ops::Deref;
+        self.pages.deref()
+    }
+    /// 次の頁の印。終わりなら無い。
+    pub fn next_token(&self) -> ::std::option::Option<&str> {
+        self.next_token.as_deref()
+    }
+}
+impl ListPagesOutput {
+    /// Creates a new builder-style object to manufacture [`ListPagesOutput`](crate::output::ListPagesOutput).
+    pub fn builder() -> crate::output::list_pages_output::Builder {
+        crate::output::list_pages_output::Builder::default()
+    }
+}
+
+/// ページの記録の欄（本文は入らない）。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct SetReplyStateOutput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::string::String,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::string::String,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub kind: ::std::string::String,
+    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub n: ::std::string::String,
+    /// 本文の初めの `
+    /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
+    pub title: ::std::string::String,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub role: ::std::string::String,
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub workspace: ::std::string::String,
+    /// 時刻（RFC 3339）。
+    pub created_at: ::aws_smithy_types::DateTime,
+    /// 本文の byte の数。
+    pub size: i64,
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub path: ::std::string::String,
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub sender: ::std::option::Option<crate::model::Sender>,
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    pub asked_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// 答えた時刻。まだ答えていなければ無い。
+    pub answered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+    pub waits_on: ::std::option::Option<::std::string::String>,
+    /// レビューの判定。書いていなければ無い。
+    pub verdict: ::std::option::Option<::std::string::String>,
+    /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+    pub targets: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+}
+impl SetReplyStateOutput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> &str {
+        use std::ops::Deref;
+        self.key.deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn kind(&self) -> &str {
+        use std::ops::Deref;
+        self.kind.deref()
+    }
+    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub fn n(&self) -> &str {
+        use std::ops::Deref;
+        self.n.deref()
+    }
+    /// 本文の初めの `
+    /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
+    pub fn title(&self) -> &str {
+        use std::ops::Deref;
+        self.title.deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn role(&self) -> &str {
+        use std::ops::Deref;
+        self.role.deref()
+    }
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub fn workspace(&self) -> &str {
+        use std::ops::Deref;
+        self.workspace.deref()
+    }
+    /// 時刻（RFC 3339）。
+    pub fn created_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.created_at
+    }
+    /// 本文の byte の数。
+    pub fn size(&self) -> i64 {
+        self.size
+    }
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub fn path(&self) -> &str {
+        use std::ops::Deref;
+        self.path.deref()
+    }
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
+        self.sender.as_ref()
+    }
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    pub fn asked_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.asked_at.as_ref()
+    }
+    /// 答えた時刻。まだ答えていなければ無い。
+    pub fn answered_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.answered_at.as_ref()
+    }
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+    pub fn waits_on(&self) -> ::std::option::Option<&str> {
+        self.waits_on.as_deref()
+    }
+    /// レビューの判定。書いていなければ無い。
+    pub fn verdict(&self) -> ::std::option::Option<&str> {
+        self.verdict.as_deref()
+    }
+    /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+    pub fn targets(&self) -> ::std::option::Option<&[::std::string::String]> {
+        self.targets.as_deref()
+    }
+}
+impl SetReplyStateOutput {
+    /// Creates a new builder-style object to manufacture [`SetReplyStateOutput`](crate::output::SetReplyStateOutput).
+    pub fn builder() -> crate::output::set_reply_state_output::Builder {
+        crate::output::set_reply_state_output::Builder::default()
+    }
+}
+
+/// ページの記録の欄（本文は入らない）。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct AddReviewMarksOutput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::string::String,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::string::String,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub kind: ::std::string::String,
+    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub n: ::std::string::String,
+    /// 本文の初めの `
+    /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
+    pub title: ::std::string::String,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub role: ::std::string::String,
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub workspace: ::std::string::String,
+    /// 時刻（RFC 3339）。
+    pub created_at: ::aws_smithy_types::DateTime,
+    /// 本文の byte の数。
+    pub size: i64,
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub path: ::std::string::String,
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub sender: ::std::option::Option<crate::model::Sender>,
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    pub asked_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// 答えた時刻。まだ答えていなければ無い。
+    pub answered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+    pub waits_on: ::std::option::Option<::std::string::String>,
+    /// レビューの判定。書いていなければ無い。
+    pub verdict: ::std::option::Option<::std::string::String>,
+    /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+    pub targets: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+}
+impl AddReviewMarksOutput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> &str {
+        use std::ops::Deref;
+        self.key.deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn kind(&self) -> &str {
+        use std::ops::Deref;
+        self.kind.deref()
+    }
+    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub fn n(&self) -> &str {
+        use std::ops::Deref;
+        self.n.deref()
+    }
+    /// 本文の初めの `
+    /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
+    pub fn title(&self) -> &str {
+        use std::ops::Deref;
+        self.title.deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn role(&self) -> &str {
+        use std::ops::Deref;
+        self.role.deref()
+    }
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub fn workspace(&self) -> &str {
+        use std::ops::Deref;
+        self.workspace.deref()
+    }
+    /// 時刻（RFC 3339）。
+    pub fn created_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.created_at
+    }
+    /// 本文の byte の数。
+    pub fn size(&self) -> i64 {
+        self.size
+    }
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub fn path(&self) -> &str {
+        use std::ops::Deref;
+        self.path.deref()
+    }
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
+        self.sender.as_ref()
+    }
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    pub fn asked_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.asked_at.as_ref()
+    }
+    /// 答えた時刻。まだ答えていなければ無い。
+    pub fn answered_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.answered_at.as_ref()
+    }
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+    pub fn waits_on(&self) -> ::std::option::Option<&str> {
+        self.waits_on.as_deref()
+    }
+    /// レビューの判定。書いていなければ無い。
+    pub fn verdict(&self) -> ::std::option::Option<&str> {
+        self.verdict.as_deref()
+    }
+    /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+    pub fn targets(&self) -> ::std::option::Option<&[::std::string::String]> {
+        self.targets.as_deref()
+    }
+}
+impl AddReviewMarksOutput {
+    /// Creates a new builder-style object to manufacture [`AddReviewMarksOutput`](crate::output::AddReviewMarksOutput).
+    pub fn builder() -> crate::output::add_review_marks_output::Builder {
+        crate::output::add_review_marks_output::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct DeletePagesOutput {
+    /// 消したページの path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`。置いた順）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub removed: ::std::vec::Vec<::std::string::String>,
+}
+impl DeletePagesOutput {
+    /// 消したページの path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`。置いた順）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub fn removed(&self) -> &[::std::string::String] {
+        use std::ops::Deref;
+        self.removed.deref()
+    }
+}
+impl DeletePagesOutput {
+    /// Creates a new builder-style object to manufacture [`DeletePagesOutput`](crate::output::DeletePagesOutput).
+    pub fn builder() -> crate::output::delete_pages_output::Builder {
+        crate::output::delete_pages_output::Builder::default()
+    }
+}
 /// See [`GetHealthOutput`](crate::output::GetHealthOutput).
 pub mod get_health_output {
 
@@ -403,6 +761,549 @@ pub mod create_page_output {
                 sender: self.sender,
                 url: self.url.ok_or(ConstraintViolation::MissingUrl)?,
                 location: self.location.ok_or(ConstraintViolation::MissingLocation)?,
+            })
+        }
+    }
+}
+/// See [`ListPagesOutput`](crate::output::ListPagesOutput).
+pub mod list_pages_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `pages` was not provided but it is required when building `ListPagesOutput`.
+        MissingPages,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingPages => write!(
+                    f,
+                    "`pages` was not provided but it is required when building `ListPagesOutput`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::ListPagesOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListPagesOutput`](crate::output::ListPagesOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) pages: ::std::option::Option<::std::vec::Vec<crate::model::Page>>,
+        pub(crate) next_token: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn pages(mut self, input: ::std::vec::Vec<crate::model::Page>) -> Self {
+            self.pages = Some(input);
+            self
+        }
+        /// 次の頁の印。終わりなら無い。
+        pub fn next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.next_token = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`ListPagesOutput`](crate::output::ListPagesOutput).
+        ///
+        /// The builder fails to construct a [`ListPagesOutput`](crate::output::ListPagesOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::ListPagesOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::ListPagesOutput, ConstraintViolation> {
+            Ok(crate::output::ListPagesOutput {
+                pages: self.pages.ok_or(ConstraintViolation::MissingPages)?,
+                next_token: self.next_token,
+            })
+        }
+    }
+}
+/// See [`SetReplyStateOutput`](crate::output::SetReplyStateOutput).
+pub mod set_reply_state_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingProject,
+        /// `key` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingKey,
+        /// `kind` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingKind,
+        /// `n` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingN,
+        /// `title` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingTitle,
+        /// `role` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingRole,
+        /// `workspace` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingWorkspace,
+        /// `created_at` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingCreatedAt,
+        /// `size` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingSize,
+        /// `path` was not provided but it is required when building `SetReplyStateOutput`.
+        MissingPath,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingKey => write!(f, "`key` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingKind => write!(f, "`kind` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingN => write!(f, "`n` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingTitle => write!(f, "`title` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingRole => write!(f, "`role` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingWorkspace => write!(f, "`workspace` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingCreatedAt => write!(f, "`created_at` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingSize => write!(f, "`size` was not provided but it is required when building `SetReplyStateOutput`"),
+                ConstraintViolation::MissingPath => write!(f, "`path` was not provided but it is required when building `SetReplyStateOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::SetReplyStateOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`SetReplyStateOutput`](crate::output::SetReplyStateOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) kind: ::std::option::Option<::std::string::String>,
+        pub(crate) n: ::std::option::Option<::std::string::String>,
+        pub(crate) title: ::std::option::Option<::std::string::String>,
+        pub(crate) role: ::std::option::Option<::std::string::String>,
+        pub(crate) workspace: ::std::option::Option<::std::string::String>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) size: ::std::option::Option<i64>,
+        pub(crate) path: ::std::option::Option<::std::string::String>,
+        pub(crate) sender: ::std::option::Option<crate::model::Sender>,
+        pub(crate) asked_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) answered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) waits_on: ::std::option::Option<::std::string::String>,
+        pub(crate) verdict: ::std::option::Option<::std::string::String>,
+        pub(crate) targets: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::string::String) -> Self {
+            self.key = Some(input);
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn kind(mut self, input: ::std::string::String) -> Self {
+            self.kind = Some(input);
+            self
+        }
+        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        pub fn n(mut self, input: ::std::string::String) -> Self {
+            self.n = Some(input);
+            self
+        }
+        /// 本文の初めの `
+        /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
+        pub fn title(mut self, input: ::std::string::String) -> Self {
+            self.title = Some(input);
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn role(mut self, input: ::std::string::String) -> Self {
+            self.role = Some(input);
+            self
+        }
+        /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+        pub fn workspace(mut self, input: ::std::string::String) -> Self {
+            self.workspace = Some(input);
+            self
+        }
+        /// 時刻（RFC 3339）。
+        pub fn created_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.created_at = Some(input);
+            self
+        }
+        /// 本文の byte の数。
+        pub fn size(mut self, input: i64) -> Self {
+            self.size = Some(input);
+            self
+        }
+        /// この server の中の path（`/<project>
+        /// /
+        /// <key>
+        /// /
+        /// <kind>
+        /// -
+        /// <n>
+        /// .html`）。
+        /// </n>
+        /// </kind>
+        /// </key>
+        /// </project>
+        pub fn path(mut self, input: ::std::string::String) -> Self {
+            self.path = Some(input);
+            self
+        }
+        /// 送り手。付随する id を書いて置いた時だけ。
+        pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
+            self.sender = input;
+            self
+        }
+        /// 返事待ちにした時刻。返事を求めていなければ無い。
+        pub fn asked_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.asked_at = input;
+            self
+        }
+        /// 答えた時刻。まだ答えていなければ無い。
+        pub fn answered_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.answered_at = input;
+            self
+        }
+        /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+        pub fn waits_on(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.waits_on = input;
+            self
+        }
+        /// レビューの判定。書いていなければ無い。
+        pub fn verdict(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.verdict = input;
+            self
+        }
+        /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+        pub fn targets(
+            mut self,
+            input: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+        ) -> Self {
+            self.targets = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`SetReplyStateOutput`](crate::output::SetReplyStateOutput).
+        ///
+        /// The builder fails to construct a [`SetReplyStateOutput`](crate::output::SetReplyStateOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::SetReplyStateOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::SetReplyStateOutput, ConstraintViolation> {
+            Ok(crate::output::SetReplyStateOutput {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                key: self.key.ok_or(ConstraintViolation::MissingKey)?,
+                kind: self.kind.ok_or(ConstraintViolation::MissingKind)?,
+                n: self.n.ok_or(ConstraintViolation::MissingN)?,
+                title: self.title.ok_or(ConstraintViolation::MissingTitle)?,
+                role: self.role.ok_or(ConstraintViolation::MissingRole)?,
+                workspace: self
+                    .workspace
+                    .ok_or(ConstraintViolation::MissingWorkspace)?,
+                created_at: self
+                    .created_at
+                    .ok_or(ConstraintViolation::MissingCreatedAt)?,
+                size: self.size.ok_or(ConstraintViolation::MissingSize)?,
+                path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                sender: self.sender,
+                asked_at: self.asked_at,
+                answered_at: self.answered_at,
+                waits_on: self.waits_on,
+                verdict: self.verdict,
+                targets: self.targets,
+            })
+        }
+    }
+}
+/// See [`AddReviewMarksOutput`](crate::output::AddReviewMarksOutput).
+pub mod add_review_marks_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingProject,
+        /// `key` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingKey,
+        /// `kind` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingKind,
+        /// `n` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingN,
+        /// `title` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingTitle,
+        /// `role` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingRole,
+        /// `workspace` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingWorkspace,
+        /// `created_at` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingCreatedAt,
+        /// `size` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingSize,
+        /// `path` was not provided but it is required when building `AddReviewMarksOutput`.
+        MissingPath,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingKey => write!(f, "`key` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingKind => write!(f, "`kind` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingN => write!(f, "`n` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingTitle => write!(f, "`title` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingRole => write!(f, "`role` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingWorkspace => write!(f, "`workspace` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingCreatedAt => write!(f, "`created_at` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingSize => write!(f, "`size` was not provided but it is required when building `AddReviewMarksOutput`"),
+                ConstraintViolation::MissingPath => write!(f, "`path` was not provided but it is required when building `AddReviewMarksOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::AddReviewMarksOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`AddReviewMarksOutput`](crate::output::AddReviewMarksOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) kind: ::std::option::Option<::std::string::String>,
+        pub(crate) n: ::std::option::Option<::std::string::String>,
+        pub(crate) title: ::std::option::Option<::std::string::String>,
+        pub(crate) role: ::std::option::Option<::std::string::String>,
+        pub(crate) workspace: ::std::option::Option<::std::string::String>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) size: ::std::option::Option<i64>,
+        pub(crate) path: ::std::option::Option<::std::string::String>,
+        pub(crate) sender: ::std::option::Option<crate::model::Sender>,
+        pub(crate) asked_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) answered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) waits_on: ::std::option::Option<::std::string::String>,
+        pub(crate) verdict: ::std::option::Option<::std::string::String>,
+        pub(crate) targets: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::string::String) -> Self {
+            self.key = Some(input);
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn kind(mut self, input: ::std::string::String) -> Self {
+            self.kind = Some(input);
+            self
+        }
+        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        pub fn n(mut self, input: ::std::string::String) -> Self {
+            self.n = Some(input);
+            self
+        }
+        /// 本文の初めの `
+        /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
+        pub fn title(mut self, input: ::std::string::String) -> Self {
+            self.title = Some(input);
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn role(mut self, input: ::std::string::String) -> Self {
+            self.role = Some(input);
+            self
+        }
+        /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+        pub fn workspace(mut self, input: ::std::string::String) -> Self {
+            self.workspace = Some(input);
+            self
+        }
+        /// 時刻（RFC 3339）。
+        pub fn created_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.created_at = Some(input);
+            self
+        }
+        /// 本文の byte の数。
+        pub fn size(mut self, input: i64) -> Self {
+            self.size = Some(input);
+            self
+        }
+        /// この server の中の path（`/<project>
+        /// /
+        /// <key>
+        /// /
+        /// <kind>
+        /// -
+        /// <n>
+        /// .html`）。
+        /// </n>
+        /// </kind>
+        /// </key>
+        /// </project>
+        pub fn path(mut self, input: ::std::string::String) -> Self {
+            self.path = Some(input);
+            self
+        }
+        /// 送り手。付随する id を書いて置いた時だけ。
+        pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
+            self.sender = input;
+            self
+        }
+        /// 返事待ちにした時刻。返事を求めていなければ無い。
+        pub fn asked_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.asked_at = input;
+            self
+        }
+        /// 答えた時刻。まだ答えていなければ無い。
+        pub fn answered_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.answered_at = input;
+            self
+        }
+        /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+        pub fn waits_on(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.waits_on = input;
+            self
+        }
+        /// レビューの判定。書いていなければ無い。
+        pub fn verdict(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.verdict = input;
+            self
+        }
+        /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+        pub fn targets(
+            mut self,
+            input: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+        ) -> Self {
+            self.targets = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`AddReviewMarksOutput`](crate::output::AddReviewMarksOutput).
+        ///
+        /// The builder fails to construct a [`AddReviewMarksOutput`](crate::output::AddReviewMarksOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::AddReviewMarksOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::AddReviewMarksOutput, ConstraintViolation> {
+            Ok(crate::output::AddReviewMarksOutput {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                key: self.key.ok_or(ConstraintViolation::MissingKey)?,
+                kind: self.kind.ok_or(ConstraintViolation::MissingKind)?,
+                n: self.n.ok_or(ConstraintViolation::MissingN)?,
+                title: self.title.ok_or(ConstraintViolation::MissingTitle)?,
+                role: self.role.ok_or(ConstraintViolation::MissingRole)?,
+                workspace: self
+                    .workspace
+                    .ok_or(ConstraintViolation::MissingWorkspace)?,
+                created_at: self
+                    .created_at
+                    .ok_or(ConstraintViolation::MissingCreatedAt)?,
+                size: self.size.ok_or(ConstraintViolation::MissingSize)?,
+                path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                sender: self.sender,
+                asked_at: self.asked_at,
+                answered_at: self.answered_at,
+                waits_on: self.waits_on,
+                verdict: self.verdict,
+                targets: self.targets,
+            })
+        }
+    }
+}
+/// See [`DeletePagesOutput`](crate::output::DeletePagesOutput).
+pub mod delete_pages_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `removed` was not provided but it is required when building `DeletePagesOutput`.
+        MissingRemoved,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingRemoved => write!(f, "`removed` was not provided but it is required when building `DeletePagesOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::DeletePagesOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`DeletePagesOutput`](crate::output::DeletePagesOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) removed: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+    }
+    impl Builder {
+        /// 消したページの path（`/<project>
+        /// /
+        /// <key>
+        /// /
+        /// <kind>
+        /// -
+        /// <n>
+        /// .html`。置いた順）。
+        /// </n>
+        /// </kind>
+        /// </key>
+        /// </project>
+        pub fn removed(mut self, input: ::std::vec::Vec<::std::string::String>) -> Self {
+            self.removed = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`DeletePagesOutput`](crate::output::DeletePagesOutput).
+        ///
+        /// The builder fails to construct a [`DeletePagesOutput`](crate::output::DeletePagesOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::DeletePagesOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::DeletePagesOutput, ConstraintViolation> {
+            Ok(crate::output::DeletePagesOutput {
+                removed: self.removed.ok_or(ConstraintViolation::MissingRemoved)?,
             })
         }
     }

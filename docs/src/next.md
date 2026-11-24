@@ -28,9 +28,9 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 |---|---|---|
 | `GetHealth` | `GET /healthz`（`{"status":"ok","version":…}`） | `GET /healthz`（字の `ok`）・`GET /api/version` |
 | `CreatePage` | `POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages`（本文は HTML。引数 `role`・`workspace`・`n`・`createdAt`・`actorIssuer`・`actorRef`） | `POST /api/pages?project&key&kind&role…` |
-| `ListPages` | `GET /api/pages` | `GET /api/pages` |
-| `SetReplyState` | `PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply` | `POST /api/pages/reply` |
-| `AddReviewMarks` | `POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review` | `POST /api/pages/review` |
+| `ListPages` | `GET /api/pages`（引数 `project`・`key`・`kind`・`role`・`workspace`・`q`・`reply`・`on`・`verdict`・`actor`・`sort`・`maxResults`・`nextToken`） | `GET /api/pages` |
+| `SetReplyState` | `PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`（本文 `{"state":…,"on":…}`） | `POST /api/pages/reply` |
+| `AddReviewMarks` | `POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`（本文 `{"verdict":…,"targets":[…]}`） | `POST /api/pages/review` |
 | `DeletePages` | `DELETE /api/pages?project&key&kind&n` | `DELETE /api/pages` |
 | `CreateFile` | `POST /api/projects/{project}/keys/{key}/files`（本文は file の中身。`Content-Type` が要る） | `POST /api/files` |
 | `ListFiles` | `GET /api/files` | `GET /api/files` |
@@ -40,7 +40,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - 置かれたページの URL は切らない。だから本文の URL は今のまま、Smithy の外の手の道にする（`.html` の付いた 1 段は、Smithy の道の label にできない）。
 - `/api/` の下の道は、みな生成した層か、名指した手の道に行く。本文の道（`/{project}/{key}/{file}`）は `/api/…` を受けない（`project` に `api` は置けない）。
-- この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）と本文の道。残りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
+- この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）・`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages` と本文の道。残りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
 
 ## ページを置く（CreatePage）
 
@@ -85,6 +85,71 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - 送り手の行は足すだけ（trigger が書き換えと消すのを断る）で、置くたびに 1 行（同じ送り手でもまとめない）。ページと同じ取引で足すので、番号が使われていて 409 なら、送り手の行も残らない。
 - `sender` は `ai.pagetray#Sender`（`actor` は castlist と同じ `ai.common#ActorSummary`）。server の骨は、答えにだけ使う形の決まり（`ActorSummary` の `id`・`kind` の `@pattern`）にも使わない検査の関数を作るので、`ci/gen.sh` が骨の `lib.rs` の頭に `#![allow(dead_code)]` を足す。
 
+## ページの記録
+
+`ListPages` の行と、`SetReplyState`・`AddReviewMarks` の答えは、同じページの記録（`ai.pagetray#Page`。本文と `url` は入らない）。`CreatePage` の答えの欄（`url`・`Location` のほか）に、返事と印の欄（`PageState`）を足した物。
+
+- `askedAt`（返事待ちにした時刻）・`answeredAt`（答えた時刻）・`waitsOn`（`review`・`tpm`）・`verdict`・`targets`（書いた順）・`sender` は、値のある時だけ。Product Manager を待つページに `waitsOn` は無い（DB でも空）。
+- 送り手は、castlist の答えがあれば `actor` と `resolvedAt` も。castlist の無い pagetray が置いたページは `issuer`・`ref` だけ。
+
+## 探す（ListPages）
+
+| 引数 | 決まり |
+|---|---|
+| `project`・`key`・`kind`・`role`・`workspace` | 同じ値の物。形は置く時と同じ（違えば 400）。`workspace=`（空）も条件で、workspace を書かずに置いたページに当たる |
+| `q` | 前後の空白を落とし、空なら絞らない。どの語も 3 字以上なら、語ごとに引用符で囲んだ trigram の全文検索（どの語も含む物。大小を問わない。`"`・`*`・`AND` などはただの字）。3 字に満たない語があれば、`q` 全体を題と本文の字で探す（`instr`。大小を分ける） |
+| `reply`・`on` | `reply` は `waiting`（求めて、まだ答えていない）か `answered`（答えた）。`on` はその待ちの相手（`pm`・`review`・`tpm`。既定 `pm`）。`reply` の無い `on` は 400 |
+| `verdict` | `approve`・`concerns`・`reject`・`not-assessed` |
+| `actor` | 送り手の castlist のアクターの id（`ai.common#ActorId` の形）。castlist の答えの無い送り手のページには当たらない |
+| `sort` | `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順（新しい順なら、後に置いた物が先） |
+| `maxResults`・`nextToken` | 1 頁は既定 100。1〜1000 の外は、生成した層が 400（今の server は丸めていた） |
+
+- 頁は keyset で続ける: `nextToken` は、検索の種類（`pages`）・`sort`・前の頁の最後の行の `createdAt`（残す字）と id を繋いで 16 進にした物（castlist の頁の印と同じ形）。同じ時刻の行が頁の境に並んでも、抜けず重ならない。辿る間に置いたページ（前の頁より新しい）は、新しい順の続きに出ない。
+- `nextToken` は同じ `sort` の答えの物を渡す。崩れた物・ほかの検索の物・`sort` の違う物は 400 `ValidationException`（`message` に `nextToken`）。ほかの条件は印に結ばない（castlist の `ListActors` と同じ）。
+- 今の `before`・`after`（時刻の字で切る）は無くす。続きは `nextToken` だけ。
+- 読む接続の 1 つの取引で、1 頁より 1 つ多く読み、次の頁があるかを決める。読む接続を 3 秒（`READ_WAIT`）待っても取れなければ 503 `Unavailable`、DB の誤りは 500 `InternalError`。
+- SQL は、書いた条件の欠片だけを繋ぐ（`crates/server/src/search.rs`。値は bind する）。`explain query plan` の試験（`crates/server/tests/list.rs`）が、pages を索引なしに端から読まないこと、project・key・送り手・返事待ち・`nextToken` の条件は索引で引くこと、条件の無い一覧と `nextToken` は時刻の索引の順に読む（並べ替えの一時の表を作らない）ことを見る。返事待ちは、返事待ちだけの部分の索引（`pages_waiting`）から引く（条件をじかに書くと、planner は時刻の索引の順に端から読む方を選ぶ）。短い語の検索は、今の server と同じく索引の表を端から見る。
+
+## 返事（SetReplyState）
+
+ページ 1 枚の返事の状態を書く。本文は JSON の `{"state":"waiting"|"answered","on":"pm"|"review"|"tpm"}`（`on` は無ければ `pm`）。答えは 200 で、書いた後のページの記録。状態の移りは今の server と同じ。
+
+| 今のページ | `waiting`（`on` の相手） | `answered`（`on` の相手） |
+|---|---|---|
+| 返事を求めていない | 求めた時刻を今にし、待ちの相手を `on` に | `pm` なら、求めた時刻と答えた時刻に同じ今を入れる。ほかの相手は 409 |
+| `on` の相手を待っている | 何も替えない（時刻は初めの物） | 答えた時刻を今に（待ちの相手は替えない） |
+| ほかの相手を待っている | 409（待ちを黙って移さない） | 409 |
+| 答えた（相手が `on`） | 求めた時刻を今にし、答えた時刻を消す | 何も替えない（答えた時刻を保つ） |
+| 答えた（相手が `on` でない） | 求めた時刻を今にし、答えた時刻を消し、待ちの相手を `on` に（求め直しは相手を替えてよい） | 409 |
+
+- 409 `Conflict` は何も替えない（`message` は「そのページは、on の相手の返事を待っていない（何も替えていない）」）。
+- 無いページも、消したページも 404 `NotFound`（410 でない。今の server と同じ）。`project`・`key` の `.`・`..` は 400。`state` の無い本文・JSON でない本文は 400。
+- 見る・書く・答えの記録を読むは、書く接続の 1 つの取引。書く接続を 2 秒待っても取れなければ 503、DB の誤りは 500（どちらも何も替えない）。時刻は残す字（24 字）。
+- だれが書いてよいかは、呼ぶ側（roster）が持つ。browser の中のページからは書けない（守りの層が `Origin` の付いた要求を 403）。
+
+## レビューの印（AddReviewMarks）
+
+ページ 1 枚に、判定と見た物を書く。本文は JSON の `{"verdict":…,"targets":[…]}`（どちらも書かなくてよく、本文が無くてもよい。何も書かなければ、何も替えずに記録を返す）。答えは 200 で、書いた後のページの記録。
+
+- `verdict` は、書けば替わり、書かなければ前のまま（消す道は無い）。種類が `review` のページだけ（ほかは 400）。
+- `targets` は、置き場のページの path（`/<project>/<key>/<kind>-<n>.html`。本文の道と同じ形）か、空白と制御字の無い `https://…`（2048 字まで。byte でなく字で数える）。1 度に 100 個まで。足すだけで、同じ物は 1 つ（1 度の要求の中で重ねても）、書いた順。足すとページ 1 枚で 100 個を超えるなら 400（判定も替えない）。
+- 無いページも、消したページも 404。ページを消すと、見た物も消える（外のキーの `on delete cascade`）。
+- 今の server と違い、本文の知らない欄は 400 にせず読み飛ばす（上の「共通の決まり」の restJson1）。形の違う本文（`targets` が並びでない など）は、生成した層が 400 `SerializationException`。
+- 書く接続・誤り・`Origin` は返事と同じ。
+
+## 消す（DeletePages）
+
+`DELETE /api/pages?project=…[&key=…][&kind=…[&n=…]]`。合うページをみな消す（戻せない）。答えは 200 の `{"removed":[path…]}`（置いた順。合う物が無ければ空）。
+
+- `project` は要る（`.`・`..` は 400）。`key`・`kind`・`n` は、書けば絞る。`kind` だけでもよい（project の中の、その種類をみな）。`n` には `key` と `kind` が要る（無ければ 400「n を書くときは key と kind も書く」）。
+- 消したページの番号は、消した時刻（残す字）と `removed` に残し、2 度使わない（本文の URL は 410）。全文の索引の行も消える。見た物（`page_targets`）は外のキーで一緒に消える。送り手の行は残る（足すだけの表）。
+- 1 つの取引で、番号を残す・索引の行を消す・ページを消す。書く接続を 2 秒待っても取れなければ 503、DB の誤りは 500（どちらも何も消さない）。
+- browser の中のページからは消せない（UI と同じ `Origin` でも 403）。
+
+## 新着の知らせ（SSE）
+
+SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わらなかった時も）に知らせを送る所は、`crates/server/src/events.rs` の `send` として置いてあり、今は記録に 1 行書くだけ。SSE の PR で、ここを broadcast の channel に送る形にする（今の server と同じく、消した時は送らない）。
+
 ## ページの本文
 
 `GET /{project}/{key}/{kind}-{n}.html`（手の道。今と同じ）。
@@ -115,7 +180,8 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 ## 直す今の振る舞い
 
 - 置いた時刻の字: 今の server は `createdAt` を書いた字のまま残す（`…:05Z` と `…:05.5Z` が混ざる）。`.` は `Z` より前の字なので、字で比べると同じ秒の中の順が狂う（`…:05.5Z` が `…:05Z` より前になる）。新しい server は、いつも 24 字（`…:05.000Z`）で残す。
-- 一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。
+- 一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。`ListPages` は作ってあり、`crates/server/tests/list.rs` が、同じ時刻の行を頁の境に並べて、抜けず重ならないことを見る。
+- 引数の形: 今の server は一覧の `project`・`kind` などと `actor` の形を見ず、`limit` は 1〜1000 に丸めていた。新しい `ListPages` は定義の形で 400 にする（`maxResults` も）。
 
 ## 定義の取り方
 
@@ -131,6 +197,6 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 |---|---|
 | 1（この章と同じ PR） | この章・定義（`GetHealth`・`CreatePage`）・`ci/gen.sh`・生成した 2 つの crate・新しい server の土台（生成した層の包み・守りの層の Host と Origin と頭の印と時間切れ・誤り・DB）・`CreatePage`・ページの本文の道 |
 | 2 | 送り手（`actorIssuer`・`actorRef` を受け、castlist を生成した client で引く） |
-| 3 | 探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages`）と SSE |
+| 3 | 探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages`）。SSE は 3 の後の別の PR に分けた（知らせを送る所は 3 で置いた。上の「新着の知らせ」） |
 | 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外） |
 | 5 | 守りの層の本文の上限・backup・logs・画面・起こす binary |

@@ -175,6 +175,428 @@ impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::Creat
     }
 }
 
+/// Error type for the `ListPages` operation.
+/// Each variant represents an error that can occur for the `ListPages` operation.
+#[derive(::std::fmt::Debug)]
+pub enum ListPagesError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for ListPagesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            ListPagesError::ValidationException(_inner) => _inner.fmt(f),
+            ListPagesError::Unavailable(_inner) => _inner.fmt(f),
+            ListPagesError::InternalError(_inner) => _inner.fmt(f),
+            ListPagesError::Forbidden(_inner) => _inner.fmt(f),
+            ListPagesError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl ListPagesError {
+    /// Returns `true` if the error kind is `ListPagesError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, ListPagesError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `ListPagesError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, ListPagesError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `ListPagesError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, ListPagesError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `ListPagesError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, ListPagesError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `ListPagesError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, ListPagesError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            ListPagesError::ValidationException(_inner) => _inner.name(),
+            ListPagesError::Unavailable(_inner) => _inner.name(),
+            ListPagesError::InternalError(_inner) => _inner.name(),
+            ListPagesError::Forbidden(_inner) => _inner.name(),
+            ListPagesError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for ListPagesError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            ListPagesError::ValidationException(_inner) => Some(_inner),
+            ListPagesError::Unavailable(_inner) => Some(_inner),
+            ListPagesError::InternalError(_inner) => Some(_inner),
+            ListPagesError::Forbidden(_inner) => Some(_inner),
+            ListPagesError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::ListPagesError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::ListPagesError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::ListPagesError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::ListPagesError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::ListPagesError {
+    fn from(variant: crate::error::InternalError) -> crate::error::ListPagesError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::ListPagesError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::ListPagesError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::ListPagesError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::ListPagesError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `SetReplyState` operation.
+/// Each variant represents an error that can occur for the `SetReplyState` operation.
+#[derive(::std::fmt::Debug)]
+pub enum SetReplyStateError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 名指した物が無い。
+    NotFound(crate::error::NotFound),
+    /// 同じ id の物がもうあり、中身が違う。
+    Conflict(crate::error::Conflict),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for SetReplyStateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            SetReplyStateError::ValidationException(_inner) => _inner.fmt(f),
+            SetReplyStateError::NotFound(_inner) => _inner.fmt(f),
+            SetReplyStateError::Conflict(_inner) => _inner.fmt(f),
+            SetReplyStateError::Unavailable(_inner) => _inner.fmt(f),
+            SetReplyStateError::InternalError(_inner) => _inner.fmt(f),
+            SetReplyStateError::Forbidden(_inner) => _inner.fmt(f),
+            SetReplyStateError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl SetReplyStateError {
+    /// Returns `true` if the error kind is `SetReplyStateError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, SetReplyStateError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `SetReplyStateError::NotFound`.
+    pub fn is_not_found(&self) -> bool {
+        matches!(&self, SetReplyStateError::NotFound(_))
+    }
+    /// Returns `true` if the error kind is `SetReplyStateError::Conflict`.
+    pub fn is_conflict(&self) -> bool {
+        matches!(&self, SetReplyStateError::Conflict(_))
+    }
+    /// Returns `true` if the error kind is `SetReplyStateError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, SetReplyStateError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `SetReplyStateError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, SetReplyStateError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `SetReplyStateError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, SetReplyStateError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `SetReplyStateError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, SetReplyStateError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            SetReplyStateError::ValidationException(_inner) => _inner.name(),
+            SetReplyStateError::NotFound(_inner) => _inner.name(),
+            SetReplyStateError::Conflict(_inner) => _inner.name(),
+            SetReplyStateError::Unavailable(_inner) => _inner.name(),
+            SetReplyStateError::InternalError(_inner) => _inner.name(),
+            SetReplyStateError::Forbidden(_inner) => _inner.name(),
+            SetReplyStateError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for SetReplyStateError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            SetReplyStateError::ValidationException(_inner) => Some(_inner),
+            SetReplyStateError::NotFound(_inner) => Some(_inner),
+            SetReplyStateError::Conflict(_inner) => Some(_inner),
+            SetReplyStateError::Unavailable(_inner) => Some(_inner),
+            SetReplyStateError::InternalError(_inner) => Some(_inner),
+            SetReplyStateError::Forbidden(_inner) => Some(_inner),
+            SetReplyStateError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::SetReplyStateError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::NotFound> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::NotFound) -> crate::error::SetReplyStateError {
+        Self::NotFound(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Conflict> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::Conflict) -> crate::error::SetReplyStateError {
+        Self::Conflict(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::SetReplyStateError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::InternalError) -> crate::error::SetReplyStateError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::SetReplyStateError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::SetReplyStateError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::SetReplyStateError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `AddReviewMarks` operation.
+/// Each variant represents an error that can occur for the `AddReviewMarks` operation.
+#[derive(::std::fmt::Debug)]
+pub enum AddReviewMarksError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 名指した物が無い。
+    NotFound(crate::error::NotFound),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for AddReviewMarksError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            AddReviewMarksError::ValidationException(_inner) => _inner.fmt(f),
+            AddReviewMarksError::NotFound(_inner) => _inner.fmt(f),
+            AddReviewMarksError::Unavailable(_inner) => _inner.fmt(f),
+            AddReviewMarksError::InternalError(_inner) => _inner.fmt(f),
+            AddReviewMarksError::Forbidden(_inner) => _inner.fmt(f),
+            AddReviewMarksError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl AddReviewMarksError {
+    /// Returns `true` if the error kind is `AddReviewMarksError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, AddReviewMarksError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `AddReviewMarksError::NotFound`.
+    pub fn is_not_found(&self) -> bool {
+        matches!(&self, AddReviewMarksError::NotFound(_))
+    }
+    /// Returns `true` if the error kind is `AddReviewMarksError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, AddReviewMarksError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `AddReviewMarksError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, AddReviewMarksError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `AddReviewMarksError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, AddReviewMarksError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `AddReviewMarksError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, AddReviewMarksError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            AddReviewMarksError::ValidationException(_inner) => _inner.name(),
+            AddReviewMarksError::NotFound(_inner) => _inner.name(),
+            AddReviewMarksError::Unavailable(_inner) => _inner.name(),
+            AddReviewMarksError::InternalError(_inner) => _inner.name(),
+            AddReviewMarksError::Forbidden(_inner) => _inner.name(),
+            AddReviewMarksError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for AddReviewMarksError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            AddReviewMarksError::ValidationException(_inner) => Some(_inner),
+            AddReviewMarksError::NotFound(_inner) => Some(_inner),
+            AddReviewMarksError::Unavailable(_inner) => Some(_inner),
+            AddReviewMarksError::InternalError(_inner) => Some(_inner),
+            AddReviewMarksError::Forbidden(_inner) => Some(_inner),
+            AddReviewMarksError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::AddReviewMarksError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::AddReviewMarksError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::NotFound> for crate::error::AddReviewMarksError {
+    fn from(variant: crate::error::NotFound) -> crate::error::AddReviewMarksError {
+        Self::NotFound(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::AddReviewMarksError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::AddReviewMarksError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::AddReviewMarksError {
+    fn from(variant: crate::error::InternalError) -> crate::error::AddReviewMarksError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::AddReviewMarksError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::AddReviewMarksError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::AddReviewMarksError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::AddReviewMarksError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `DeletePages` operation.
+/// Each variant represents an error that can occur for the `DeletePages` operation.
+#[derive(::std::fmt::Debug)]
+pub enum DeletePagesError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for DeletePagesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            DeletePagesError::ValidationException(_inner) => _inner.fmt(f),
+            DeletePagesError::Unavailable(_inner) => _inner.fmt(f),
+            DeletePagesError::InternalError(_inner) => _inner.fmt(f),
+            DeletePagesError::Forbidden(_inner) => _inner.fmt(f),
+            DeletePagesError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl DeletePagesError {
+    /// Returns `true` if the error kind is `DeletePagesError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, DeletePagesError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `DeletePagesError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, DeletePagesError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `DeletePagesError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, DeletePagesError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `DeletePagesError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, DeletePagesError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `DeletePagesError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, DeletePagesError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            DeletePagesError::ValidationException(_inner) => _inner.name(),
+            DeletePagesError::Unavailable(_inner) => _inner.name(),
+            DeletePagesError::InternalError(_inner) => _inner.name(),
+            DeletePagesError::Forbidden(_inner) => _inner.name(),
+            DeletePagesError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for DeletePagesError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            DeletePagesError::ValidationException(_inner) => Some(_inner),
+            DeletePagesError::Unavailable(_inner) => Some(_inner),
+            DeletePagesError::InternalError(_inner) => Some(_inner),
+            DeletePagesError::Forbidden(_inner) => Some(_inner),
+            DeletePagesError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::DeletePagesError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::DeletePagesError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::DeletePagesError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::DeletePagesError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::DeletePagesError {
+    fn from(variant: crate::error::InternalError) -> crate::error::DeletePagesError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::DeletePagesError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::DeletePagesError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::DeletePagesError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::DeletePagesError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
 /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
@@ -400,6 +822,42 @@ impl InternalError {
     /// Creates a new builder-style object to manufacture [`InternalError`](crate::error::InternalError).
     pub fn builder() -> crate::error::internal_error::Builder {
         crate::error::internal_error::Builder::default()
+    }
+}
+
+/// 名指した物が無い。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct NotFound {
+    #[allow(missing_docs)] // documentation missing in model
+    pub message: ::std::string::String,
+}
+impl NotFound {
+    /// Returns the error message.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+    #[doc(hidden)]
+    /// Returns the error name.
+    pub fn name(&self) -> &'static str {
+        "NotFound"
+    }
+}
+impl ::std::fmt::Display for NotFound {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        ::std::write!(f, "NotFound")?;
+        {
+            ::std::write!(f, ": {}", &self.message)?;
+        }
+        Ok(())
+    }
+}
+impl ::std::error::Error for NotFound {}
+impl NotFound {
+    /// Creates a new builder-style object to manufacture [`NotFound`](crate::error::NotFound).
+    pub fn builder() -> crate::error::not_found::Builder {
+        crate::error::not_found::Builder::default()
     }
 }
 /// See [`Forbidden`](crate::error::Forbidden).
@@ -735,6 +1193,61 @@ pub mod internal_error {
             self,
         ) -> Result<crate::error::InternalError, ConstraintViolation> {
             Ok(crate::error::InternalError {
+                message: self.message.ok_or(ConstraintViolation::MissingMessage)?,
+            })
+        }
+    }
+}
+/// See [`NotFound`](crate::error::NotFound).
+pub mod not_found {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `message` was not provided but it is required when building `NotFound`.
+        MissingMessage,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingMessage => write!(
+                    f,
+                    "`message` was not provided but it is required when building `NotFound`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::error::NotFound {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`NotFound`](crate::error::NotFound).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) message: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn message(mut self, input: ::std::string::String) -> Self {
+            self.message = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`NotFound`](crate::error::NotFound).
+        ///
+        /// The builder fails to construct a [`NotFound`](crate::error::NotFound) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::error::NotFound, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::error::NotFound, ConstraintViolation> {
+            Ok(crate::error::NotFound {
                 message: self.message.ok_or(ConstraintViolation::MissingMessage)?,
             })
         }

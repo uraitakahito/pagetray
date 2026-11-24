@@ -5,12 +5,16 @@ $version: "2"
 // 例（@httpRequestTests・@httpResponseTests）の id は、castlist の定義と 1 つの model に入って重なれないので、頭に Pagetray を付ける。
 namespace ai.pagetray
 
+use ai.common#ActorId
 use ai.common#ActorRef
 use ai.common#ActorSummary
 use ai.common#Conflict
 use ai.common#DateTime
 use ai.common#Forbidden
 use ai.common#InternalError
+use ai.common#MaxResults
+use ai.common#NextToken
+use ai.common#NotFound
 use ai.common#PayloadTooLarge
 use ai.common#Unavailable
 use aws.protocols#restJson1
@@ -25,6 +29,10 @@ service Pagetray {
     operations: [
         GetHealth
         CreatePage
+        ListPages
+        SetReplyState
+        AddReviewMarks
+        DeletePages
     ]
 
     // 操作の前の守りの層（server の生成した骨の外）が返す誤り。どの操作の答えにもなり得る。
@@ -271,6 +279,404 @@ operation CreatePage {
     ]
 }
 
+/// ページを探す（新しい順が既定）。どの条件も、書いた物だけで絞る（重ねれば、どれにも合う物）。
+/// - `q` は前後の空白を落とし、空なら絞らない。どの語も 3 字以上なら、語ごとに題と本文の全文の索引（trigram）で探す
+///   （どの語も含む物。大小を問わない。記号はただの字）。3 字に満たない語があれば、`q` 全体を題と本文の字で探す（大小を分ける）。
+/// - `reply` は返事の状態（`waiting`・`answered`）で、`on` はその待ちの相手（既定 `pm`。`reply` と一緒にだけ書く）。
+/// - `actor` は送り手の castlist のアクターの id（castlist の答えの無い送り手のページには当たらない）。
+/// - 頁は `createdAt` と行の順で続ける（同じ時刻の行が頁の境に並んでも、抜けず重ならない）。
+///   `nextToken` は同じ `sort` の答えの物を渡す（違えば 400。ほかの条件は見ない）。
+@readonly
+@paginated(inputToken: "nextToken", outputToken: "nextToken", pageSize: "maxResults", items: "pages")
+@http(method: "GET", uri: "/api/pages")
+@httpRequestTests([
+    {
+        id: "PagetrayListPagesRequest"
+        documentation: "どの条件も引数。名は camelCase"
+        protocol: restJson1
+        method: "GET"
+        uri: "/api/pages"
+        queryParams: [
+            "project=ai"
+            "key=AI-36"
+            "kind=plan"
+            "role=tpm"
+            "workspace=workspace:1"
+            "q=%E8%A8%88%E7%94%BB"
+            "reply=waiting"
+            "on=review"
+            "verdict=approve"
+            "actor=019abcde-0000-7000-8000-000000000001"
+            "sort=createdAt"
+            "maxResults=10"
+            "nextToken=abc"
+        ]
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "plan"
+            role: "tpm"
+            workspace: "workspace:1"
+            q: "計画"
+            reply: "waiting"
+            on: "review"
+            verdict: "approve"
+            actor: "019abcde-0000-7000-8000-000000000001"
+            sort: "createdAt"
+            maxResults: 10
+            nextToken: "abc"
+        }
+    }
+    {
+        id: "PagetrayListPagesEmptyWorkspaceRequest"
+        documentation: "空の workspace も条件（workspace を書かずに置いたページ）"
+        protocol: restJson1
+        method: "GET"
+        uri: "/api/pages"
+        queryParams: ["workspace="]
+        params: { workspace: "" }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetrayListPagesResponse"
+        documentation: "ページの記録（本文と url は無い）。返事・判定・見た物・送り手は、ある時だけ。次の頁があれば nextToken"
+        protocol: restJson1
+        code: 200
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"pages":[{"project":"ai","key":"AI-36","kind":"review","n":"2","title":"レビュー","role":"tpm","workspace":"","createdAt":"2026-11-24T00:00:00Z","size":10,"path":"/ai/AI-36/review-2.html","askedAt":"2026-11-24T00:00:01Z","answeredAt":"2026-11-24T00:00:02Z","waitsOn":"tpm","verdict":"approve","targets":["/ai/AI-36/plan-1.html"]}],"nextToken":"abc"}"""
+        bodyMediaType: "application/json"
+        params: {
+            pages: [
+                {
+                    project: "ai"
+                    key: "AI-36"
+                    kind: "review"
+                    n: "2"
+                    title: "レビュー"
+                    role: "tpm"
+                    workspace: ""
+                    createdAt: 1795478400
+                    size: 10
+                    path: "/ai/AI-36/review-2.html"
+                    askedAt: 1795478401
+                    answeredAt: 1795478402
+                    waitsOn: "tpm"
+                    verdict: "approve"
+                    targets: ["/ai/AI-36/plan-1.html"]
+                }
+            ]
+            nextToken: "abc"
+        }
+    }
+])
+operation ListPages {
+    input := {
+        @httpQuery("project")
+        project: Segment
+
+        @httpQuery("key")
+        key: Segment
+
+        @httpQuery("kind")
+        kind: Name
+
+        @httpQuery("role")
+        role: Name
+
+        /// 空（`workspace=`）も条件: workspace を書かずに置いたページ。
+        @httpQuery("workspace")
+        workspace: Workspace
+
+        /// 題と本文の字で探す語（空白で分ける）。
+        @httpQuery("q")
+        q: String
+
+        /// 返事の状態: `waiting`（求めて、まだ答えていない）か `answered`（答えた）。
+        @httpQuery("reply")
+        reply: ReplyState
+
+        /// `reply` の待ちの相手（既定 `pm`）。`reply` と一緒にだけ書く。
+        @httpQuery("on")
+        on: Party
+
+        /// レビューの判定。
+        @httpQuery("verdict")
+        verdict: Verdict
+
+        /// 送り手の castlist のアクターの id。
+        @httpQuery("actor")
+        actor: ActorId
+
+        /// `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順（新しい順なら後に置いた物が先）。
+        @httpQuery("sort")
+        sort: PageSort
+
+        /// 1 頁の数（既定 100）。
+        @httpQuery("maxResults")
+        maxResults: MaxResults
+
+        /// 前の答えの `nextToken`。
+        @httpQuery("nextToken")
+        nextToken: NextToken
+    }
+
+    output := {
+        @required
+        pages: Pages
+
+        /// 次の頁の印。終わりなら無い。
+        nextToken: NextToken
+    }
+
+    errors: [
+        ValidationException
+        Unavailable
+        InternalError
+    ]
+}
+
+/// ページ 1 枚の返事の状態を書く。答えは、そのページの記録。同じ状態を 2 度書いても同じ答え（時刻は初めの物を保つ）。
+/// - `waiting`: 待ちの相手を `on`（既定 `pm`）にし、答えた時刻を消す。答えた後にもう 1 度求めれば、求めた時刻を今にする
+///   （相手を替えてよい）。今ほかの相手を待っていれば 409（待ちを黙って移さない）。
+/// - `answered`: 答えた時刻を入れる。待ちの相手が `on` と違えば 409。`pm` は、求めていないページも答えたにでき
+///   （求めた時刻と答えた時刻は同じ）、ほかの相手は、求めたページだけ。
+/// - 無いページと消したページは 404。409 の時は何も替えない。
+@idempotent
+@http(method: "PUT", uri: "/api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply")
+@httpRequestTests([
+    {
+        id: "PagetraySetReplyStateRequest"
+        documentation: "道でページを名指し、本文に状態と待ちの相手"
+        protocol: restJson1
+        method: "PUT"
+        uri: "/api/projects/ai/keys/AI-36/kinds/brief/pages/1/reply"
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"state":"waiting","on":"review"}"""
+        bodyMediaType: "application/json"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "brief"
+            n: "1"
+            state: "waiting"
+            on: "review"
+        }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetraySetReplyStateResponse"
+        documentation: "答えはページの記録。Product Manager の待ちには waitsOn が無い"
+        protocol: restJson1
+        code: 200
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"project":"ai","key":"AI-36","kind":"confirm","n":"1","title":"確認","role":"tpm","workspace":"","createdAt":"2026-11-24T00:00:00Z","size":10,"path":"/ai/AI-36/confirm-1.html","askedAt":"2026-11-24T00:00:01Z"}"""
+        bodyMediaType: "application/json"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "confirm"
+            n: "1"
+            title: "確認"
+            role: "tpm"
+            workspace: ""
+            createdAt: 1795478400
+            size: 10
+            path: "/ai/AI-36/confirm-1.html"
+            askedAt: 1795478401
+        }
+    }
+])
+operation SetReplyState {
+    input := {
+        @required
+        @httpLabel
+        project: Segment
+
+        @required
+        @httpLabel
+        key: Segment
+
+        @required
+        @httpLabel
+        kind: Name
+
+        @required
+        @httpLabel
+        n: PageNumber
+
+        /// `waiting`（返事を求める）か `answered`（答えた）。
+        @required
+        state: ReplyState
+
+        /// 待ちの相手（既定 `pm`）。
+        on: Party
+    }
+
+    output := with [PageFields, PageState] {}
+
+    errors: [
+        ValidationException
+        NotFound
+        Conflict
+        Unavailable
+        InternalError
+    ]
+}
+
+/// レビューの印を書く。答えは、そのページの記録。本文は無くてもよい（何も替えずに記録を返す）。
+/// - `verdict` は、書けば替わり、書かなければ前のまま（消す道は無い）。種類が `review` のページだけ（ほかは 400）。
+/// - `targets` は、置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、空白と制御字の無い `https://` の URL
+///   （2048 字まで）を、1 度に 100 個まで。足すだけで、同じ物は 1 つ、書いた順。足すとページ 1 枚で 100 個を超えるなら 400
+///   （判定も替えない）。
+/// - 無いページと消したページは 404。ページを消すと、見た物も消える。
+@http(method: "POST", uri: "/api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review")
+@httpRequestTests([
+    {
+        id: "PagetrayAddReviewMarksRequest"
+        documentation: "道でページを名指し、本文に判定と見た物"
+        protocol: restJson1
+        method: "POST"
+        uri: "/api/projects/ai/keys/AI-36/kinds/review/pages/1/review"
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"verdict":"concerns","targets":["/ai/AI-36/plan-1.html","https://github.com/o/r/pull/1"]}"""
+        bodyMediaType: "application/json"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "review"
+            n: "1"
+            verdict: "concerns"
+            targets: ["/ai/AI-36/plan-1.html", "https://github.com/o/r/pull/1"]
+        }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetrayAddReviewMarksResponse"
+        documentation: "答えはページの記録（判定と見た物の入った物）"
+        protocol: restJson1
+        code: 200
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"project":"ai","key":"AI-36","kind":"review","n":"1","title":"","role":"tpm","workspace":"","createdAt":"2026-11-24T00:00:00Z","size":1,"path":"/ai/AI-36/review-1.html","verdict":"concerns","targets":["/ai/AI-36/plan-1.html"]}"""
+        bodyMediaType: "application/json"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            kind: "review"
+            n: "1"
+            title: ""
+            role: "tpm"
+            workspace: ""
+            createdAt: 1795478400
+            size: 1
+            path: "/ai/AI-36/review-1.html"
+            verdict: "concerns"
+            targets: ["/ai/AI-36/plan-1.html"]
+        }
+    }
+])
+operation AddReviewMarks {
+    input := {
+        @required
+        @httpLabel
+        project: Segment
+
+        @required
+        @httpLabel
+        key: Segment
+
+        @required
+        @httpLabel
+        kind: Name
+
+        @required
+        @httpLabel
+        n: PageNumber
+
+        /// レビューの判定（種類が `review` のページだけ）。
+        verdict: Verdict
+
+        /// 見た物・見てほしい物（足すだけ）。
+        targets: Targets
+    }
+
+    output := with [PageFields, PageState] {}
+
+    errors: [
+        ValidationException
+        NotFound
+        Unavailable
+        InternalError
+    ]
+}
+
+/// 合うページをみな消す（戻せない）。`project` は要り、`key`・`kind`・`n` は書けば絞る（`n` には `key` と `kind` が要る）。
+/// 番号は消した時刻と残し、2 度使わない（消したページの URL は 410）。全文の索引の行と見た物も消え、送り手の行は残る。
+/// 答えは消したページの path（置いた順）。合う物が無ければ空。
+@idempotent
+@http(method: "DELETE", uri: "/api/pages")
+@httpRequestTests([
+    {
+        id: "PagetrayDeletePagesRequest"
+        documentation: "引数で消すページを絞る"
+        protocol: restJson1
+        method: "DELETE"
+        uri: "/api/pages"
+        queryParams: ["project=ai", "key=AI-36", "kind=plan", "n=2"]
+        params: { project: "ai", key: "AI-36", kind: "plan", n: "2" }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetrayDeletePagesResponse"
+        documentation: "消したページの path"
+        protocol: restJson1
+        code: 200
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"removed":["/ai/AI-36/plan-2.html"]}"""
+        bodyMediaType: "application/json"
+        params: { removed: ["/ai/AI-36/plan-2.html"] }
+    }
+])
+operation DeletePages {
+    input := {
+        /// `.`・`..` は 400（server）。
+        @required
+        @httpQuery("project")
+        project: Segment
+
+        @httpQuery("key")
+        key: Segment
+
+        @httpQuery("kind")
+        kind: Name
+
+        /// 1 枚だけ消す時の番号（`key` と `kind` が要る）。
+        @httpQuery("n")
+        n: PageNumber
+    }
+
+    output := {
+        /// 消したページの path（`/<project>/<key>/<kind>-<n>.html`。置いた順）。
+        @required
+        removed: Paths
+    }
+
+    errors: [
+        ValidationException
+        Unavailable
+        InternalError
+    ]
+}
+
 /// ページの記録の欄（本文は入らない）。
 @mixin
 structure PageFields {
@@ -327,6 +733,58 @@ structure Sender {
     /// castlist が答えた時刻（答えの `asOf`）。`actor` と一緒にだけある。
     resolvedAt: DateTime
 }
+
+/// ページの返事と印の欄（どれも、ある時だけ）。置いた時は無い。
+@mixin
+structure PageState {
+    /// 返事待ちにした時刻。返事を求めていなければ無い。
+    askedAt: DateTime
+
+    /// 答えた時刻。まだ答えていなければ無い。
+    answeredAt: DateTime
+
+    /// 誰の返事を待つか（`review`・`tpm`）。Product Manager を待つ・返事を求めていないページには無い。
+    waitsOn: Party
+
+    /// レビューの判定。書いていなければ無い。
+    verdict: Verdict
+
+    /// 見た物・見てほしい物（書いた順）。無ければ欄が無い。
+    targets: Targets
+}
+
+/// 一覧のページの記録（本文と url は入らない）。
+structure Page with [PageFields, PageState] {}
+
+list Pages {
+    member: Page
+}
+
+/// ページの path の並び。
+list Paths {
+    member: String
+}
+
+/// 見た物・見てほしい物の並び。形（ページの path か https の URL）と数（100 個まで）は server が見る。
+list Targets {
+    member: String
+}
+
+/// 返事の状態: `waiting`（求めて、まだ答えていない）か `answered`（答えた）。
+@pattern("^(waiting|answered)$")
+string ReplyState
+
+/// 返事の待ちの相手: `pm`（Product Manager）・`review`・`tpm`。
+@pattern("^(pm|review|tpm)$")
+string Party
+
+/// レビューの判定。
+@pattern("^(approve|concerns|reject|not-assessed)$")
+string Verdict
+
+/// 一覧の並べ方: `-createdAt`（新しい順）か `createdAt`（古い順）。
+@pattern("^-?createdAt$")
+string PageSort
 
 /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
 @pattern("^[A-Za-z0-9._-]{1,255}$")

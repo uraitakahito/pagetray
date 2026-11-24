@@ -177,8 +177,12 @@
 //! pub async fn main() {
 //!    let config = PagetrayConfig::builder().build();
 //!    let app = Pagetray::builder(config)
+//!        .add_review_marks(add_review_marks)
 //!        .create_page(create_page)
+//!        .delete_pages(delete_pages)
 //!        .get_health(get_health)
+//!        .list_pages(list_pages)
+//!        .set_reply_state(set_reply_state)
 //!        .build()
 //!        .expect("failed to build an instance of Pagetray");
 //!
@@ -196,11 +200,27 @@
 //!
 //! use pagetray_sdk::{input, output, error};
 //!
+//! async fn add_review_marks(input: input::AddReviewMarksInput) -> Result<output::AddReviewMarksOutput, error::AddReviewMarksError> {
+//!     todo!()
+//! }
+//!
 //! async fn create_page(input: input::CreatePageInput) -> Result<output::CreatePageOutput, error::CreatePageError> {
 //!     todo!()
 //! }
 //!
+//! async fn delete_pages(input: input::DeletePagesInput) -> Result<output::DeletePagesOutput, error::DeletePagesError> {
+//!     todo!()
+//! }
+//!
 //! async fn get_health(input: input::GetHealthInput) -> Result<output::GetHealthOutput, error::GetHealthError> {
+//!     todo!()
+//! }
+//!
+//! async fn list_pages(input: input::ListPagesInput) -> Result<output::ListPagesOutput, error::ListPagesError> {
+//!     todo!()
+//! }
+//!
+//! async fn set_reply_state(input: input::SetReplyStateInput) -> Result<output::SetReplyStateOutput, error::SetReplyStateError> {
 //!     todo!()
 //! }
 //!

@@ -2,7 +2,8 @@
 use axum::http::{HeaderName, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::{
-    Conflict, CreatePageError, InternalError, Unavailable, ValidationException,
+    AddReviewMarksError, Conflict, CreatePageError, DeletePagesError, InternalError,
+    ListPagesError, SetReplyStateError, Unavailable, ValidationException,
 };
 
 use pagetray_sdk::model::ValidationExceptionField;
@@ -38,7 +39,16 @@ pub fn busy() -> Unavailable {
     }
 }
 
+/// 引数の誤り（400）。定義の形では言えない決まり（組み合わせ・頁の印など）に使う。
+pub fn invalid(message: impl Into<String>) -> ValidationException {
+    ValidationException {
+        message: message.into(),
+        field_list: None,
+    }
+}
+
 /// 読む操作の失敗: 混んでいる（503。送り直せば通る見込み）か、server の中の失敗（500）。
+/// 書く操作（返事・印・消す）の、DB の失敗にも使う（[`Failure::write`]）。
 pub enum Failure {
     Busy,
     Internal(InternalError),
@@ -51,6 +61,20 @@ impl Failure {
             sqlx::Error::PoolTimedOut => Failure::Busy,
             error => Failure::Internal(internal(operation, &error)),
         }
+    }
+
+    /// 書けない訳。書く接続が空かなければ混んでいる、ほかは中の失敗。
+    pub fn write(operation: &str, error: WriteError) -> Self {
+        match error {
+            WriteError::Busy => Failure::Busy,
+            WriteError::Taken => Failure::Internal(internal(operation, &"番号が使われている")),
+            WriteError::Db(e) => Failure::Internal(internal(operation, &e)),
+        }
+    }
+
+    /// 残っている行を答えの形に直せない（中の失敗）。
+    pub fn data(operation: &str, error: &dyn std::fmt::Display) -> Self {
+        Failure::Internal(internal(operation, error))
     }
 
     /// 生成した層の外の道（手の道）の答え（[`reply`] の形。型は生成した層と同じ `Unavailable`・`InternalError`）。
@@ -69,6 +93,26 @@ impl Failure {
         }
     }
 }
+
+macro_rules! from_failure {
+    ($($error:ty),*) => {$(
+        impl From<Failure> for $error {
+            fn from(failure: Failure) -> Self {
+                match failure {
+                    Failure::Busy => busy().into(),
+                    Failure::Internal(e) => e.into(),
+                }
+            }
+        }
+    )*};
+}
+
+from_failure!(
+    ListPagesError,
+    SetReplyStateError,
+    AddReviewMarksError,
+    DeletePagesError
+);
 
 /// 書いて足す操作の失敗: 中身の誤り（400）・castlist に登録の無い送り手（400）・番号が使われている（409）・
 /// 混んでいる（503）・castlist に聞けない（503）・中の失敗（500）。

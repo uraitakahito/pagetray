@@ -22,12 +22,12 @@ pub fn page_path(project: &str, key: &str, kind: &str, n: i64) -> String {
 }
 
 /// URL の 1 段になる字（project・key）。形（英数字と `.` `_` `-` で 1〜255 字）は定義が見るので、ここでは `.` と `..` だけを断る。
-fn is_dot(s: &str) -> bool {
+pub(crate) fn is_dot(s: &str) -> bool {
     s == "." || s == ".."
 }
 
 /// URL の 1 段になる字（project・key）の形（本文の道は生成した層を通らないので、ここで見る）。
-fn is_segment(s: &str) -> bool {
+pub(crate) fn is_segment(s: &str) -> bool {
     (1..=255).contains(&s.len())
         && !is_dot(s)
         && s.bytes()
@@ -43,7 +43,7 @@ fn is_name(s: &str) -> bool {
 }
 
 /// `<kind>-<n>.html` を分ける。番号は、頭に 0 の無い 1 以上の数だけ（1 枚に URL は 1 つ）。
-fn parse_file(file: &str) -> Option<(&str, i64)> {
+pub(crate) fn parse_file(file: &str) -> Option<(&str, i64)> {
     let (kind, n) = file.strip_suffix(".html")?.rsplit_once('-')?;
     let ok = is_name(kind) && !n.starts_with('0') && n.bytes().all(|b| b.is_ascii_digit());
     ok.then(|| n.parse().ok()).flatten().map(|n| (kind, n))

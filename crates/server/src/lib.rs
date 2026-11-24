@@ -2,14 +2,22 @@
 //!
 //! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
 //! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）は、同じ Router に並べる。
+//! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）。
 //! 形の決まりは docs/src/next.md。
 pub mod castlist;
 pub mod db;
 mod errors;
+mod events;
 mod generated;
 mod guard;
+mod list;
+mod marks;
 mod pages;
+mod record;
+mod remove;
+pub mod search;
 mod text;
+mod token;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -60,6 +68,22 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             let db = db.clone();
             let castlist = config.castlist.clone();
             move |input, host| pages::create_page(db.clone(), castlist.clone(), input, host)
+        })
+        .list_pages({
+            let db = db.clone();
+            move |input| list::list_pages(db.clone(), input)
+        })
+        .set_reply_state({
+            let db = db.clone();
+            move |input| marks::set_reply_state(db.clone(), input)
+        })
+        .add_review_marks({
+            let db = db.clone();
+            move |input| marks::add_review_marks(db.clone(), input)
+        })
+        .delete_pages({
+            let db = db.clone();
+            move |input| remove::delete_pages(db.clone(), input)
         })
         .build()
         .expect("どの操作にも handler がある");
