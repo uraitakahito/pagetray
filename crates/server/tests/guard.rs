@@ -108,6 +108,12 @@ async fn head_answers_like_get_without_a_body() {
             get_headers[header::CONTENT_TYPE],
             "{path}"
         );
+        // HEAD で大きさを見る client のため、Content-Length も GET と同じ（review-17）。
+        assert_eq!(
+            headers.get(header::CONTENT_LENGTH),
+            get_headers.get(header::CONTENT_LENGTH),
+            "{path}"
+        );
         assert!(body.is_empty(), "{path}");
     }
 }
