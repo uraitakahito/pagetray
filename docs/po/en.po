@@ -6171,16 +6171,9 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外"
-"す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼"
-"ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build し"
-"ない。HTTP の client は、使う側が設定で渡す。"
+"呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build しない。HTTP の client は、使う側が設定で渡す。次の PR（送り手）の初めに、TLS の無い HTTP/1.1 の client（`aws-smithy-http-client` の hyper の作り）を渡して castlist を 1 度呼べること、1 秒の時間切れ、送り直さないこと（今の pagetray と同じ）を試験で止める。作れなければ、features の替え方を見直す。"
 msgstr ""
-"The https client (rustls, aws-lc) is removed from the calling crate's "
-"default features (`ci/gen.sh` changes one line of its `Cargo.toml`). "
-"pagetray calls castlist only at `http://127.0.0.1` on the same machine, so "
-"no TLS crate is built. The user of the crate passes an HTTP client in its "
-"configuration."
+"The https client (rustls, aws-lc) is removed from the calling crate's default features (`ci/gen.sh` changes one line of its `Cargo.toml`). pagetray calls castlist only at `http://127.0.0.1` on the same machine, so no TLS crate is built. The user of the crate passes an HTTP client in its configuration. The next PR (senders) starts by pinning, in tests, that a TLS-less HTTP/1.1 client (the hyper-based `aws-smithy-http-client`) can call castlist once, with a 1-second timeout and no retries (as pagetray does today). If that cannot be built, the feature change is revisited."
 
 #: src/next.md
 msgid ""

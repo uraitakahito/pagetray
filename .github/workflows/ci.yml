@@ -36,7 +36,8 @@ jobs:
       - run: cargo test --locked -p pagetray_sdk
       # castlist を呼ぶ crate の中の、castlist の定義の例から作った試験。外す 5 つは、castlist の定義（v1.0.0-rc.1）の例が
       # 引数の値の `:` を逃がさずに書いていて、`:` を %3A に逃がす呼ぶ側の試験と合わない物（castlist の server の試験は、
-      # 逃がしを戻してから比べるので通る）。castlist の定義を直した tag に上げたら外す。
+      # 逃がしを戻してから比べるので通る）。castlist の定義を直した tag に上げる PR（ci/gen.sh の CASTLIST_TAG と digest を替える）で、
+      # 一緒にこの --skip を外す。
       - run: >-
           cargo test --locked -p castlist_client --
           --skip operation::get_graph::get_graph_test::get_graph_request_request
@@ -174,6 +175,8 @@ jobs:
           # 弱点と、crate の license（MIT の pagetray と一緒に配れる物か）。
           command: check advisories licenses
           # workspace の member をみな見る（付けないと、頭の crate（今の server）の依存しか見ない。新しい server は crates/server）。
+          # この action の既定は --all-features だが、arguments を書くと置き換わる。見るのは、image と CI で build する
+          # 既定の features の依存だけ、と決めた（crates/castlist-client の既定から外した TLS の crate など、build しない物は見ない）。
           arguments: --workspace
       # 一覧の UI の試験（e2e/）の Node の依存の弱点。lock だけを見る（入れない）。
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1

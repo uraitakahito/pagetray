@@ -4,8 +4,8 @@
 #   ci/gen.sh           castlist の定義（model/castlist/）を下の tag から取り直し、2 つの crate を作り直して置き換える
 #   ci/gen.sh --check   castlist から取った定義が下の digest と合うか、作り直した物と入れてある物が同じかを見る（CI が流す）。違えば exit 1。
 #                       castlist には取りに行かない（入れてある物を digest で見る）
-#   ci/gen.sh --diff    定義を、定義の入った最新の release の tag（v*。rc は除く）と比べ、壊す変わり（DANGER 以上）があれば exit 1（CI が流す）。
-#                       定義の入った tag がまだ無ければ、比べずに通す。rc の間は、まだ誰も使っていない形なので比べない
+#   ci/gen.sh --diff    定義を、定義の入った最新の release の tag（v*。版の後ろに - の付く物（rc など）は除く）と比べ、壊す変わり（DANGER 以上）があれば exit 1（CI が流す）。
+#                       定義の入った tag がまだ無ければ、比べずに通す。pre-release の間は、まだ誰も使っていない形なので比べない
 # 要る物: curl・unzip・shasum か sha256sum・rustfmt（rustup。rust-toolchain.toml の版）。Smithy の CLI は JRE を同梱しているので、Java は要らない。
 # 生成器の版は model/smithy-build.json に書く。そこに名指した Maven の物は、公開から 2 日たっていなければ使わない
 # （crate と pnpm の待ちに合わせた物。名指した物だけを見て、それが引く物は見ない）。
@@ -127,7 +127,7 @@ done
 # 4. 壊す変わりを見る（--diff）。
 if $diff_mode; then
   base=""
-  for tag in $(git -C "$root" tag --list 'v*' --sort=-version:refname | grep -v -- '-rc\.'); do
+  for tag in $(git -C "$root" tag --list 'v*' --sort=-version:refname | grep -v -- '-'); do
     if git -C "$root" cat-file -e "$tag:model/smithy-build.json" 2>/dev/null; then
       base=$tag
       break
