@@ -2014,6 +2014,7 @@ dependencies = [
  "http-body-util",
  "pagetray_sdk",
  "serde_json",
+ "sha2",
  "sqlx",
  "time",
  "tokio",

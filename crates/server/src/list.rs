@@ -25,14 +25,11 @@ pub async fn list_pages(
         .list(&query)
         .await
         .map_err(|e| Failure::db(OPERATION, e))?;
-    let next_token = page.more.then(|| page.rows.last()).flatten().map(|last| {
-        token::encode(&[
-            TOKEN_KIND,
-            sort_name(query.oldest),
-            &last.created_at,
-            &last.id.to_string(),
-        ])
-    });
+    let next_token = page
+        .more
+        .then(|| page.rows.last())
+        .flatten()
+        .map(|last| token::next(TOKEN_KIND, query.oldest, &last.created_at, last.id));
     let pages = page
         .rows
         .into_iter()
@@ -63,7 +60,7 @@ fn query(input: ListPagesInput) -> Result<PageQuery, ListPagesError> {
     let after = input
         .next_token
         .as_deref()
-        .map(|t| after(t, oldest))
+        .map(|t| token::after(t, TOKEN_KIND, "ページの検索", oldest).map_err(invalid))
         .transpose()?;
     Ok(PageQuery {
         project: input.project,
@@ -80,22 +77,4 @@ fn query(input: ListPagesInput) -> Result<PageQuery, ListPagesError> {
         // 1〜1000 は定義が見てある。
         limit: input.max_results.map_or(LIMIT, i64::from),
     })
-}
-
-fn sort_name(oldest: bool) -> &'static str {
-    if oldest { "createdAt" } else { "-createdAt" }
-}
-
-/// 頁の印を読む（前の頁の最後の行の、置いた時刻と id）。崩れた物・ほかの検索の物・sort の違う物は 400。
-/// ほかの条件は印に結ばない（castlist の ListActors と同じ）。
-fn after(token: &str, oldest: bool) -> Result<(String, i64), ListPagesError> {
-    let parts = token::read(token, TOKEN_KIND, 4, "ページの検索").map_err(invalid)?;
-    let [_, sort, created_at, id] = &parts[..] else {
-        return Err(invalid(token::BROKEN).into());
-    };
-    if sort != sort_name(oldest) {
-        return Err(invalid("nextToken は、同じ sort の答えの物を渡す").into());
-    }
-    let id = id.parse().map_err(|_| invalid(token::BROKEN))?;
-    Ok((created_at.clone(), id))
 }

@@ -178,9 +178,12 @@
 //!    let config = PagetrayConfig::builder().build();
 //!    let app = Pagetray::builder(config)
 //!        .add_review_marks(add_review_marks)
+//!        .create_file(create_file)
 //!        .create_page(create_page)
+//!        .delete_files(delete_files)
 //!        .delete_pages(delete_pages)
 //!        .get_health(get_health)
+//!        .list_files(list_files)
 //!        .list_pages(list_pages)
 //!        .set_reply_state(set_reply_state)
 //!        .build()
@@ -204,7 +207,15 @@
 //!     todo!()
 //! }
 //!
+//! async fn create_file(input: input::CreateFileInput) -> Result<output::CreateFileOutput, error::CreateFileError> {
+//!     todo!()
+//! }
+//!
 //! async fn create_page(input: input::CreatePageInput) -> Result<output::CreatePageOutput, error::CreatePageError> {
+//!     todo!()
+//! }
+//!
+//! async fn delete_files(input: input::DeleteFilesInput) -> Result<output::DeleteFilesOutput, error::DeleteFilesError> {
 //!     todo!()
 //! }
 //!
@@ -213,6 +224,10 @@
 //! }
 //!
 //! async fn get_health(input: input::GetHealthInput) -> Result<output::GetHealthOutput, error::GetHealthError> {
+//!     todo!()
+//! }
+//!
+//! async fn list_files(input: input::ListFilesInput) -> Result<output::ListFilesOutput, error::ListFilesError> {
 //!     todo!()
 //! }
 //!

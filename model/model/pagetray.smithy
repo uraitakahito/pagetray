@@ -33,6 +33,9 @@ service Pagetray {
         SetReplyState
         AddReviewMarks
         DeletePages
+        CreateFile
+        ListFiles
+        DeleteFiles
     ]
 
     // 操作の前の守りの層（server の生成した骨の外）が返す誤り。どの操作の答えにもなり得る。
@@ -677,6 +680,405 @@ operation DeletePages {
     ]
 }
 
+/// file を 1 つ置く。本文は中身をそのまま（`Content-Type` は拡張子の種類と同じ。`;` の後ろと大小は問わない）。答えに中身は入らない。
+/// 受ける拡張子は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。ほかの拡張子・拡張子と合わない
+/// `Content-Type`・頭が拡張子の形でない中身（字の file は UTF-8 で NUL の無い物）は 415。
+/// 番号（`n`）を書かなければ、同じ project・key・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。
+/// 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。
+/// 送り手は CreatePage と同じ（castlist には、ほかの検査（400・415）の後に聞く）。
+/// 一覧の UI の form から上げた物（守りの層が `Origin` の例外として通した物）は、役割 `product-manager`・workspace 空で残し、
+/// `n`・`createdAt`・`actorIssuer`・`actorRef` を読まない（`role` も書かなくてよい）。ほかの要求は `role` が要る（無ければ 400）。
+@http(method: "POST", uri: "/api/projects/{project}/keys/{key}/files", code: 201)
+@httpRequestTests([
+    {
+        id: "PagetrayCreateFileRequest"
+        documentation: "道に project・key、引数に名（語.拡張子）と役割、本文は中身、Content-Type は拡張子の種類"
+        protocol: restJson1
+        method: "POST"
+        uri: "/api/projects/ai/keys/AI-36/files"
+        queryParams: ["name=screen.png", "role=tpm", "workspace=workspace:1"]
+        headers: { "Content-Type": "image/png" }
+        body: "png"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            name: "screen.png"
+            role: "tpm"
+            workspace: "workspace:1"
+            contentType: "image/png"
+            body: "png"
+        }
+    }
+    {
+        id: "PagetrayCreateFileImportRequest"
+        documentation: "取り込みは、番号と置いた時刻を書く。Content-Type の後ろの引数はそのまま渡る"
+        protocol: restJson1
+        method: "POST"
+        uri: "/api/projects/ai/keys/AI-36/files"
+        queryParams: ["name=notes.md", "role=tpm", "n=2", "createdAt=2026-11-24T00%3A00%3A00Z"]
+        headers: { "Content-Type": "text/markdown; charset=utf-8" }
+        body: "メモ"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            name: "notes.md"
+            role: "tpm"
+            n: "2"
+            createdAt: 1795478400
+            contentType: "text/markdown; charset=utf-8"
+            body: "メモ"
+        }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetrayCreateFileCreated"
+        documentation: "置けば 201 で、file の記録（中身は無い）と、要求の Host で組んだ URL を返す"
+        protocol: restJson1
+        code: 201
+        headers: {
+            "Content-Type": "application/json"
+            "Location": "http://127.0.0.1:8801/ai/AI-36/files/screen-1.png"
+        }
+        body: """
+            {"project":"ai","key":"AI-36","name":"screen","ext":"png","n":"1","type":"image/png","size":3,"sha256":"8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c","role":"tpm","workspace":"","createdAt":"2026-11-24T00:00:00Z","path":"/ai/AI-36/files/screen-1.png","url":"http://127.0.0.1:8801/ai/AI-36/files/screen-1.png"}"""
+        bodyMediaType: "application/json"
+        params: {
+            project: "ai"
+            key: "AI-36"
+            name: "screen"
+            ext: "png"
+            n: "1"
+            type: "image/png"
+            size: 3
+            sha256: "8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c"
+            role: "tpm"
+            workspace: ""
+            createdAt: 1795478400
+            path: "/ai/AI-36/files/screen-1.png"
+            url: "http://127.0.0.1:8801/ai/AI-36/files/screen-1.png"
+            location: "http://127.0.0.1:8801/ai/AI-36/files/screen-1.png"
+        }
+    }
+])
+operation CreateFile {
+    input := {
+        /// 状態の folder の名。`api`・`.`・`..` は置けない（server が 400）。
+        @required
+        @httpLabel
+        project: Segment
+
+        /// Key。`.`・`..` は置けない（server が 400）。
+        @required
+        @httpLabel
+        key: Segment
+
+        /// `<語>.<拡張子>`。番号は server が付ける。受ける拡張子かは server が見る（ほかは 415）。
+        @required
+        @httpQuery("name")
+        name: FileName
+
+        /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+        @httpQuery("role")
+        role: Name
+
+        /// 置いた担当の workspace の ID（無ければ空）。
+        @httpQuery("workspace")
+        workspace: Workspace
+
+        /// 取り込みの時だけ: 番号。無ければ server が決める。
+        @httpQuery("n")
+        n: PageNumber
+
+        /// 取り込みの時だけ: 置いた時刻（UTC・ミリ秒まで）。無ければ pagetray の今。
+        @httpQuery("createdAt")
+        createdAt: DateTime
+
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+        @httpQuery("actorIssuer")
+        actorIssuer: Issuer
+
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+        @httpQuery("actorRef")
+        actorRef: ActorRef
+
+        /// 中身の種類。拡張子の種類と同じ物（`;` の後ろと大小は問わない）。
+        @required
+        @httpHeader("Content-Type")
+        contentType: String
+
+        /// file の中身（空は 400。16 MiB まで）。
+        @required
+        @httpPayload
+        body: FileBody
+    }
+
+    output := with [FileFields] {
+        /// 要求の `Host` で組んだ、file の URL。
+        @required
+        url: String
+
+        /// `url` と同じ。
+        @required
+        @httpHeader("Location")
+        location: String
+    }
+
+    errors: [
+        ValidationException
+        UnsupportedMediaType
+        Conflict
+        Unavailable
+        InternalError
+    ]
+}
+
+/// file を探す（新しい順が既定）。どの条件も、書いた物だけで絞る（重ねれば、どれにも合う物）。
+/// - `q` は前後の空白を落とし、空なら絞らない。名（`<語>.<拡張子>`）に、小文字にした `q` を含む物。
+/// - `actor` は送り手の castlist のアクターの id（castlist の答えの無い送り手の file には当たらない）。
+/// - 頁は `createdAt` と行の順で続ける（ListPages と同じ）。`nextToken` は同じ `sort` の答えの物を渡す。
+@readonly
+@paginated(inputToken: "nextToken", outputToken: "nextToken", pageSize: "maxResults", items: "files")
+@http(method: "GET", uri: "/api/files")
+@httpRequestTests([
+    {
+        id: "PagetrayListFilesRequest"
+        documentation: "どの条件も引数"
+        protocol: restJson1
+        method: "GET"
+        uri: "/api/files"
+        queryParams: [
+            "project=ai"
+            "key=AI-36"
+            "role=tpm"
+            "workspace=workspace:1"
+            "q=screen"
+            "actor=019abcde-0000-7000-8000-000000000001"
+            "sort=createdAt"
+            "maxResults=10"
+            "nextToken=abc"
+        ]
+        params: {
+            project: "ai"
+            key: "AI-36"
+            role: "tpm"
+            workspace: "workspace:1"
+            q: "screen"
+            actor: "019abcde-0000-7000-8000-000000000001"
+            sort: "createdAt"
+            maxResults: 10
+            nextToken: "abc"
+        }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetrayListFilesResponse"
+        documentation: "file の記録（中身と url は無い）。送り手は、ある時だけ。次の頁があれば nextToken"
+        protocol: restJson1
+        code: 200
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"files":[{"project":"ai","key":"AI-36","name":"screen","ext":"png","n":"1","type":"image/png","size":3,"sha256":"8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c","role":"tpm","workspace":"","createdAt":"2026-11-24T00:00:00Z","path":"/ai/AI-36/files/screen-1.png"}],"nextToken":"abc"}"""
+        bodyMediaType: "application/json"
+        params: {
+            files: [
+                {
+                    project: "ai"
+                    key: "AI-36"
+                    name: "screen"
+                    ext: "png"
+                    n: "1"
+                    type: "image/png"
+                    size: 3
+                    sha256: "8f8cbb7dcf46e0bc7d53265749a6c17d116093a6ba95e442764060c76fd4a86c"
+                    role: "tpm"
+                    workspace: ""
+                    createdAt: 1795478400
+                    path: "/ai/AI-36/files/screen-1.png"
+                }
+            ]
+            nextToken: "abc"
+        }
+    }
+])
+operation ListFiles {
+    input := {
+        @httpQuery("project")
+        project: Segment
+
+        @httpQuery("key")
+        key: Segment
+
+        @httpQuery("role")
+        role: Name
+
+        /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+        @httpQuery("workspace")
+        workspace: Workspace
+
+        /// 名（`<語>.<拡張子>`）に含まれる字（大小を問わない）。
+        @httpQuery("q")
+        q: String
+
+        /// 送り手の castlist のアクターの id。
+        @httpQuery("actor")
+        actor: ActorId
+
+        /// `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順。
+        @httpQuery("sort")
+        sort: PageSort
+
+        /// 1 頁の数（既定 100）。
+        @httpQuery("maxResults")
+        maxResults: MaxResults
+
+        /// 前の答えの `nextToken`。
+        @httpQuery("nextToken")
+        nextToken: NextToken
+    }
+
+    output := {
+        @required
+        files: Files
+
+        /// 次の頁の印。終わりなら無い。
+        nextToken: NextToken
+    }
+
+    errors: [
+        ValidationException
+        Unavailable
+        InternalError
+    ]
+}
+
+/// 合う file をみな消す（戻せない）。`project` は要り、`key`・`name`・`n` は書けば絞る（`n` には `key` と `name` が要る。
+/// `name` だけなら project の中のその名をみな）。番号は消した時刻と残し、2 度使わない（消した file の URL は 410）。
+/// ページは消えない。答えは消した file の path（置いた順）。合う物が無ければ空。
+@idempotent
+@http(method: "DELETE", uri: "/api/files")
+@httpRequestTests([
+    {
+        id: "PagetrayDeleteFilesRequest"
+        documentation: "引数で消す file を絞る"
+        protocol: restJson1
+        method: "DELETE"
+        uri: "/api/files"
+        queryParams: ["project=ai", "key=AI-36", "name=screen.png", "n=2"]
+        params: { project: "ai", key: "AI-36", name: "screen.png", n: "2" }
+    }
+])
+@httpResponseTests([
+    {
+        id: "PagetrayDeleteFilesResponse"
+        documentation: "消した file の path"
+        protocol: restJson1
+        code: 200
+        headers: { "Content-Type": "application/json" }
+        body: """
+            {"removed":["/ai/AI-36/files/screen-2.png"]}"""
+        bodyMediaType: "application/json"
+        params: { removed: ["/ai/AI-36/files/screen-2.png"] }
+    }
+])
+operation DeleteFiles {
+    input := {
+        /// `.`・`..` は 400（server）。
+        @required
+        @httpQuery("project")
+        project: Segment
+
+        @httpQuery("key")
+        key: Segment
+
+        /// `<語>.<拡張子>`。
+        @httpQuery("name")
+        name: FileName
+
+        /// 1 つだけ消す時の番号（`key` と `name` が要る）。
+        @httpQuery("n")
+        n: PageNumber
+    }
+
+    output := {
+        /// 消した file の path（`/<project>/<key>/files/<語>-<n>.<拡張子>`。置いた順）。
+        @required
+        removed: Paths
+    }
+
+    errors: [
+        ValidationException
+        Unavailable
+        InternalError
+    ]
+}
+
+/// file の種類を受けない: 受けない拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（CreateFile）。
+/// 生成した層が返す `UnsupportedMediaTypeException`（操作の決めた `Content-Type` でない要求）とは別。
+@error("client")
+@httpError(415)
+structure UnsupportedMediaType {
+    @required
+    message: String
+}
+
+/// file の記録の欄（中身は入らない）。
+@mixin
+structure FileFields {
+    @required
+    project: Segment
+
+    @required
+    key: Segment
+
+    /// 名の語（`screen`）。
+    @required
+    name: FileStem
+
+    /// 拡張子（`png`）。
+    @required
+    ext: String
+
+    @required
+    n: PageNumber
+
+    /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+    @required
+    type: String
+
+    /// 中身の byte の数。
+    @required
+    size: Long
+
+    /// 中身の SHA-256（16 進の小文字）。
+    @required
+    sha256: String
+
+    @required
+    role: Name
+
+    @required
+    workspace: Workspace
+
+    @required
+    createdAt: DateTime
+
+    /// この server の中の path（`/<project>/<key>/files/<語>-<n>.<拡張子>`）。
+    @required
+    path: String
+
+    /// 送り手。付随する id を書いて置いた時だけ。
+    sender: Sender
+}
+
+/// 一覧の file の記録（中身と url は入らない）。
+structure File with [FileFields] {}
+
+list Files {
+    member: File
+}
+
 /// ページの記録の欄（本文は入らない）。
 @mixin
 structure PageFields {
@@ -782,7 +1184,7 @@ string Party
 @pattern("^(approve|concerns|reject|not-assessed)$")
 string Verdict
 
-/// 一覧の並べ方: `-createdAt`（新しい順）か `createdAt`（古い順）。
+/// 一覧（ページと file）の並べ方: `-createdAt`（新しい順）か `createdAt`（古い順）。
 @pattern("^-?createdAt$")
 string PageSort
 
@@ -798,7 +1200,7 @@ string Name
 @pattern("^[A-Za-z0-9:._-]{0,64}$")
 string Workspace
 
-/// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+/// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
 @pattern("^[1-9][0-9]{0,17}$")
 string PageNumber
 
@@ -809,3 +1211,15 @@ string Issuer
 /// ページの HTML。
 @mediaType("text/html")
 blob Html
+
+/// file の名（`<語>.<拡張子>`）。語は英小文字か数字で始まり、英小文字・数字・`-`・`_` で 64 字まで。拡張子は英数字で 16 字まで
+/// （受ける拡張子かは server が見る）。`.` は 1 つだけ。
+@pattern("^[a-z0-9][a-z0-9_-]{0,63}\\.[A-Za-z0-9]{1,16}$")
+string FileName
+
+/// file の名の語（`<語>.<拡張子>` の `<語>`）。
+@pattern("^[a-z0-9][a-z0-9_-]{0,63}$")
+string FileStem
+
+/// file の中身（種類は要求の `Content-Type`）。
+blob FileBody

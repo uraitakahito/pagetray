@@ -203,7 +203,7 @@ pub struct SetReplyStateInput {
     pub key: ::std::string::String,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub kind: ::std::string::String,
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub n: ::std::string::String,
     /// `waiting`（返事を求める）か `answered`（答えた）。
     pub state: ::std::string::String,
@@ -226,7 +226,7 @@ impl SetReplyStateInput {
         use std::ops::Deref;
         self.kind.deref()
     }
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub fn n(&self) -> &str {
         use std::ops::Deref;
         self.n.deref()
@@ -262,7 +262,7 @@ pub struct AddReviewMarksInput {
     pub key: ::std::string::String,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub kind: ::std::string::String,
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub n: ::std::string::String,
     /// レビューの判定（種類が `review` のページだけ）。
     pub verdict: ::std::option::Option<::std::string::String>,
@@ -285,7 +285,7 @@ impl AddReviewMarksInput {
         use std::ops::Deref;
         self.kind.deref()
     }
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub fn n(&self) -> &str {
         use std::ops::Deref;
         self.n.deref()
@@ -349,6 +349,209 @@ impl DeletePagesInput {
     /// Creates a new builder-style object to manufacture [`DeletePagesInput`](crate::input::DeletePagesInput).
     pub fn builder() -> crate::input::delete_pages_input::Builder {
         crate::input::delete_pages_input::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct CreateFileInput {
+    /// 状態の folder の名。`api`・`.`・`..` は置けない（server が 400）。
+    pub project: ::std::string::String,
+    /// Key。`.`・`..` は置けない（server が 400）。
+    pub key: ::std::string::String,
+    /// `&lt;語&gt;.&lt;拡張子&gt;`。番号は server が付ける。受ける拡張子かは server が見る（ほかは 415）。
+    pub name: ::std::string::String,
+    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    pub role: ::std::option::Option<::std::string::String>,
+    /// 置いた担当の workspace の ID（無ければ空）。
+    pub workspace: ::std::option::Option<::std::string::String>,
+    /// 取り込みの時だけ: 番号。無ければ server が決める。
+    pub n: ::std::option::Option<::std::string::String>,
+    /// 取り込みの時だけ: 置いた時刻（UTC・ミリ秒まで）。無ければ pagetray の今。
+    pub created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+    pub actor_issuer: ::std::option::Option<::std::string::String>,
+    /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+    pub actor_ref: ::std::option::Option<::std::string::String>,
+    /// 中身の種類。拡張子の種類と同じ物（`;` の後ろと大小は問わない）。
+    pub content_type: ::std::string::String,
+    /// file の中身（空は 400。16 MiB まで）。
+    pub body: ::aws_smithy_types::Blob,
+}
+impl CreateFileInput {
+    /// 状態の folder の名。`api`・`.`・`..` は置けない（server が 400）。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// Key。`.`・`..` は置けない（server が 400）。
+    pub fn key(&self) -> &str {
+        use std::ops::Deref;
+        self.key.deref()
+    }
+    /// `&lt;語&gt;.&lt;拡張子&gt;`。番号は server が付ける。受ける拡張子かは server が見る（ほかは 415）。
+    pub fn name(&self) -> &str {
+        use std::ops::Deref;
+        self.name.deref()
+    }
+    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    pub fn role(&self) -> ::std::option::Option<&str> {
+        self.role.as_deref()
+    }
+    /// 置いた担当の workspace の ID（無ければ空）。
+    pub fn workspace(&self) -> ::std::option::Option<&str> {
+        self.workspace.as_deref()
+    }
+    /// 取り込みの時だけ: 番号。無ければ server が決める。
+    pub fn n(&self) -> ::std::option::Option<&str> {
+        self.n.as_deref()
+    }
+    /// 取り込みの時だけ: 置いた時刻（UTC・ミリ秒まで）。無ければ pagetray の今。
+    pub fn created_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.created_at.as_ref()
+    }
+    /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+    pub fn actor_issuer(&self) -> ::std::option::Option<&str> {
+        self.actor_issuer.as_deref()
+    }
+    /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+    pub fn actor_ref(&self) -> ::std::option::Option<&str> {
+        self.actor_ref.as_deref()
+    }
+    /// 中身の種類。拡張子の種類と同じ物（`;` の後ろと大小は問わない）。
+    pub fn content_type(&self) -> &str {
+        use std::ops::Deref;
+        self.content_type.deref()
+    }
+    /// file の中身（空は 400。16 MiB まで）。
+    pub fn body(&self) -> &::aws_smithy_types::Blob {
+        &self.body
+    }
+}
+impl crate::constrained::Constrained for crate::input::CreateFileInput {
+    type Unconstrained = crate::input::create_file_input_internal::Builder;
+}
+impl CreateFileInput {
+    /// Creates a new builder-style object to manufacture [`CreateFileInput`](crate::input::CreateFileInput).
+    pub fn builder() -> crate::input::create_file_input::Builder {
+        crate::input::create_file_input::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ListFilesInput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::option::Option<::std::string::String>,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::option::Option<::std::string::String>,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub role: ::std::option::Option<::std::string::String>,
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    pub workspace: ::std::option::Option<::std::string::String>,
+    /// 名（`&lt;語&gt;.&lt;拡張子&gt;`）に含まれる字（大小を問わない）。
+    pub q: ::std::option::Option<::std::string::String>,
+    /// 送り手の castlist のアクターの id。
+    pub actor: ::std::option::Option<::std::string::String>,
+    /// `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順。
+    pub sort: ::std::option::Option<::std::string::String>,
+    /// 1 頁の数（既定 100）。
+    pub max_results: ::std::option::Option<i32>,
+    /// 前の答えの `nextToken`。
+    pub next_token: ::std::option::Option<::std::string::String>,
+}
+impl ListFilesInput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> ::std::option::Option<&str> {
+        self.project.as_deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> ::std::option::Option<&str> {
+        self.key.as_deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn role(&self) -> ::std::option::Option<&str> {
+        self.role.as_deref()
+    }
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    pub fn workspace(&self) -> ::std::option::Option<&str> {
+        self.workspace.as_deref()
+    }
+    /// 名（`&lt;語&gt;.&lt;拡張子&gt;`）に含まれる字（大小を問わない）。
+    pub fn q(&self) -> ::std::option::Option<&str> {
+        self.q.as_deref()
+    }
+    /// 送り手の castlist のアクターの id。
+    pub fn actor(&self) -> ::std::option::Option<&str> {
+        self.actor.as_deref()
+    }
+    /// `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順。
+    pub fn sort(&self) -> ::std::option::Option<&str> {
+        self.sort.as_deref()
+    }
+    /// 1 頁の数（既定 100）。
+    pub fn max_results(&self) -> ::std::option::Option<i32> {
+        self.max_results
+    }
+    /// 前の答えの `nextToken`。
+    pub fn next_token(&self) -> ::std::option::Option<&str> {
+        self.next_token.as_deref()
+    }
+}
+impl crate::constrained::Constrained for crate::input::ListFilesInput {
+    type Unconstrained = crate::input::list_files_input_internal::Builder;
+}
+impl ListFilesInput {
+    /// Creates a new builder-style object to manufacture [`ListFilesInput`](crate::input::ListFilesInput).
+    pub fn builder() -> crate::input::list_files_input::Builder {
+        crate::input::list_files_input::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct DeleteFilesInput {
+    /// `.`・`..` は 400（server）。
+    pub project: ::std::string::String,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::option::Option<::std::string::String>,
+    /// `&lt;語&gt;.&lt;拡張子&gt;`。
+    pub name: ::std::option::Option<::std::string::String>,
+    /// 1 つだけ消す時の番号（`key` と `name` が要る）。
+    pub n: ::std::option::Option<::std::string::String>,
+}
+impl DeleteFilesInput {
+    /// `.`・`..` は 400（server）。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> ::std::option::Option<&str> {
+        self.key.as_deref()
+    }
+    /// `&lt;語&gt;.&lt;拡張子&gt;`。
+    pub fn name(&self) -> ::std::option::Option<&str> {
+        self.name.as_deref()
+    }
+    /// 1 つだけ消す時の番号（`key` と `name` が要る）。
+    pub fn n(&self) -> ::std::option::Option<&str> {
+        self.n.as_deref()
+    }
+}
+impl crate::constrained::Constrained for crate::input::DeleteFilesInput {
+    type Unconstrained = crate::input::delete_files_input_internal::Builder;
+}
+impl DeleteFilesInput {
+    /// Creates a new builder-style object to manufacture [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+    pub fn builder() -> crate::input::delete_files_input::Builder {
+        crate::input::delete_files_input::Builder::default()
     }
 }
 /// See [`GetHealthInput`](crate::input::GetHealthInput).
@@ -1591,7 +1794,7 @@ pub(crate) mod set_reply_state_input_internal {
             self.kind = Some(input.into());
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub(crate) fn set_n(
             mut self,
             input: impl ::std::convert::Into<
@@ -1759,7 +1962,7 @@ pub mod set_reply_state_input {
             self.kind = Some(input);
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub fn n(mut self, input: ::std::string::String) -> Self {
             self.n = Some(input);
             self
@@ -1950,7 +2153,7 @@ pub(crate) mod add_review_marks_input_internal {
             self.kind = Some(input.into());
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub(crate) fn set_n(
             mut self,
             input: impl ::std::convert::Into<
@@ -2104,7 +2307,7 @@ pub mod add_review_marks_input {
             self.kind = Some(input);
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub fn n(mut self, input: ::std::string::String) -> Self {
             self.n = Some(input);
             self
@@ -2404,6 +2607,1171 @@ pub mod delete_pages_input {
                 project: self.project.ok_or(ConstraintViolation::MissingProject)?,
                 key: self.key,
                 kind: self.kind,
+                n: self.n,
+            })
+        }
+    }
+}
+/// See [`CreateFileInput`](crate::input::CreateFileInput).
+pub(crate) mod create_file_input_internal {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[non_exhaustive]
+    #[allow(clippy::enum_variant_names)]
+    pub(crate) enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `CreateFileInput`.
+        MissingProject,
+        /// Constraint violation occurred building member `project` when building `CreateFileInput`.
+        #[doc(hidden)]
+        Project(crate::model::segment_internal::ConstraintViolation),
+        /// `key` was not provided but it is required when building `CreateFileInput`.
+        MissingKey,
+        /// Constraint violation occurred building member `key` when building `CreateFileInput`.
+        #[doc(hidden)]
+        Key(crate::model::segment_internal::ConstraintViolation),
+        /// `name` was not provided but it is required when building `CreateFileInput`.
+        MissingName,
+        /// Constraint violation occurred building member `name` when building `CreateFileInput`.
+        #[doc(hidden)]
+        Name(crate::model::file_name_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `role` when building `CreateFileInput`.
+        #[doc(hidden)]
+        Role(crate::model::name_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `workspace` when building `CreateFileInput`.
+        #[doc(hidden)]
+        Workspace(crate::model::workspace_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `n` when building `CreateFileInput`.
+        #[doc(hidden)]
+        N(crate::model::page_number_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `actor_issuer` when building `CreateFileInput`.
+        #[doc(hidden)]
+        ActorIssuer(crate::model::issuer_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `actor_ref` when building `CreateFileInput`.
+        #[doc(hidden)]
+        ActorRef(crate::model::actor_ref_internal::ConstraintViolation),
+        /// `content_type` was not provided but it is required when building `CreateFileInput`.
+        MissingContentType,
+        /// `body` was not provided but it is required when building `CreateFileInput`.
+        MissingBody,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::Project(_) => write!(f, "constraint violation occurred building member `project` when building `CreateFileInput`"),
+                ConstraintViolation::MissingKey => write!(f, "`key` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::Key(_) => write!(f, "constraint violation occurred building member `key` when building `CreateFileInput`"),
+                ConstraintViolation::MissingName => write!(f, "`name` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::Name(_) => write!(f, "constraint violation occurred building member `name` when building `CreateFileInput`"),
+                ConstraintViolation::Role(_) => write!(f, "constraint violation occurred building member `role` when building `CreateFileInput`"),
+                ConstraintViolation::Workspace(_) => write!(f, "constraint violation occurred building member `workspace` when building `CreateFileInput`"),
+                ConstraintViolation::N(_) => write!(f, "constraint violation occurred building member `n` when building `CreateFileInput`"),
+                ConstraintViolation::ActorIssuer(_) => write!(f, "constraint violation occurred building member `actor_issuer` when building `CreateFileInput`"),
+                ConstraintViolation::ActorRef(_) => write!(f, "constraint violation occurred building member `actor_ref` when building `CreateFileInput`"),
+                ConstraintViolation::MissingContentType => write!(f, "`content_type` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::MissingBody => write!(f, "`body` was not provided but it is required when building `CreateFileInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+            ConstraintViolation::MissingProject => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/project' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/project",
+                                            },
+            ConstraintViolation::Project(inner) => inner.as_validation_exception_field(path + "/project"),
+            ConstraintViolation::MissingKey => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/key' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/key",
+                                            },
+            ConstraintViolation::Key(inner) => inner.as_validation_exception_field(path + "/key"),
+            ConstraintViolation::MissingName => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/name' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/name",
+                                            },
+            ConstraintViolation::Name(inner) => inner.as_validation_exception_field(path + "/name"),
+            ConstraintViolation::Role(inner) => inner.as_validation_exception_field(path + "/role"),
+            ConstraintViolation::Workspace(inner) => inner.as_validation_exception_field(path + "/workspace"),
+            ConstraintViolation::N(inner) => inner.as_validation_exception_field(path + "/n"),
+            ConstraintViolation::ActorIssuer(inner) => inner.as_validation_exception_field(path + "/actorIssuer"),
+            ConstraintViolation::ActorRef(inner) => inner.as_validation_exception_field(path + "/actorRef"),
+            ConstraintViolation::MissingContentType => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/contentType' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/contentType",
+                                            },
+            ConstraintViolation::MissingBody => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/body' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/body",
+                                            },
+        }
+        }
+    }
+    impl ::std::convert::From<ConstraintViolation>
+        for ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection
+    {
+        fn from(constraint_violation: ConstraintViolation) -> Self {
+            let first_validation_exception_field =
+                constraint_violation.as_validation_exception_field("".to_owned());
+            let validation_exception = crate::error::ValidationException {
+                message: format!(
+                    "1 validation error detected. {}",
+                    &first_validation_exception_field.message
+                ),
+                field_list: Some(vec![first_validation_exception_field]),
+            };
+            Self::ConstraintViolation(
+                                crate::protocol_serde::shape_validation_exception::ser_validation_exception_error(&validation_exception)
+                                    .expect("validation exceptions should never fail to serialize; please file a bug report under https://github.com/smithy-lang/smithy-rs/issues")
+                            )
+        }
+    }
+    impl ::std::convert::From<Builder>
+        for crate::constrained::MaybeConstrained<crate::input::CreateFileInput>
+    {
+        fn from(builder: Builder) -> Self {
+            Self::Unconstrained(builder)
+        }
+    }
+    impl ::std::convert::TryFrom<Builder> for crate::input::CreateFileInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`CreateFileInput`](crate::input::CreateFileInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {
+        pub(crate) project:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) key:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) name:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::FileName>>,
+        pub(crate) role:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Name>>,
+        pub(crate) workspace:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Workspace>>,
+        pub(crate) n:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::PageNumber>>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) actor_issuer:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Issuer>>,
+        pub(crate) actor_ref:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::ActorRef>>,
+        pub(crate) content_type: ::std::option::Option<::std::string::String>,
+        pub(crate) body: ::std::option::Option<::aws_smithy_types::Blob>,
+    }
+    impl Builder {
+        /// 状態の folder の名。`api`・`.`・`..` は置けない（server が 400）。
+        pub(crate) fn set_project(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::Segment>,
+            >,
+        ) -> Self {
+            self.project = Some(input.into());
+            self
+        }
+        /// Key。`.`・`..` は置けない（server が 400）。
+        pub(crate) fn set_key(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::Segment>,
+            >,
+        ) -> Self {
+            self.key = Some(input.into());
+            self
+        }
+        /// `&lt;語&gt;.&lt;拡張子&gt;`。番号は server が付ける。受ける拡張子かは server が見る（ほかは 415）。
+        pub(crate) fn set_name(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::FileName>,
+            >,
+        ) -> Self {
+            self.name = Some(input.into());
+            self
+        }
+        /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+        pub(crate) fn set_role(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Name>>,
+            >,
+        ) -> Self {
+            self.role = input.map(|v| v.into());
+            self
+        }
+        /// 置いた担当の workspace の ID（無ければ空）。
+        pub(crate) fn set_workspace(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Workspace>>,
+            >,
+        ) -> Self {
+            self.workspace = input.map(|v| v.into());
+            self
+        }
+        /// 取り込みの時だけ: 番号。無ければ server が決める。
+        pub(crate) fn set_n(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::PageNumber>,
+                >,
+            >,
+        ) -> Self {
+            self.n = input.map(|v| v.into());
+            self
+        }
+        /// 取り込みの時だけ: 置いた時刻（UTC・ミリ秒まで）。無ければ pagetray の今。
+        pub(crate) fn set_created_at(
+            mut self,
+            input: Option<impl ::std::convert::Into<::aws_smithy_types::DateTime>>,
+        ) -> Self {
+            self.created_at = input.map(|v| v.into());
+            self
+        }
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+        pub(crate) fn set_actor_issuer(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Issuer>>,
+            >,
+        ) -> Self {
+            self.actor_issuer = input.map(|v| v.into());
+            self
+        }
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+        pub(crate) fn set_actor_ref(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::ActorRef>>,
+            >,
+        ) -> Self {
+            self.actor_ref = input.map(|v| v.into());
+            self
+        }
+        /// 中身の種類。拡張子の種類と同じ物（`;` の後ろと大小は問わない）。
+        pub(crate) fn set_content_type(
+            mut self,
+            input: impl ::std::convert::Into<::std::string::String>,
+        ) -> Self {
+            self.content_type = Some(input.into());
+            self
+        }
+        /// file の中身（空は 400。16 MiB まで）。
+        pub(crate) fn set_body(
+            mut self,
+            input: impl ::std::convert::Into<::aws_smithy_types::Blob>,
+        ) -> Self {
+            self.body = Some(input.into());
+            self
+        }
+        /// Consumes the builder and constructs a [`CreateFileInput`](crate::input::CreateFileInput).
+        ///
+        /// The builder fails to construct a [`CreateFileInput`](crate::input::CreateFileInput) if a [`ConstraintViolation`] occurs.
+        ///
+        /// If the builder fails, it will return the _first_ encountered [`ConstraintViolation`].
+        pub fn build(self) -> Result<crate::input::CreateFileInput, ConstraintViolation> {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(
+            self,
+        ) -> Result<crate::input::CreateFileInput, ConstraintViolation> {
+            Ok(crate::input::CreateFileInput {
+                project: self
+                    .project
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Project))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into())
+                    .ok_or(ConstraintViolation::MissingProject)?,
+                key: self
+                    .key
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Key))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into())
+                    .ok_or(ConstraintViolation::MissingKey)?,
+                name: self
+                    .name
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Name))
+                    .transpose()?
+                    .map(|v: crate::model::FileName| v.into())
+                    .ok_or(ConstraintViolation::MissingName)?,
+                role: self
+                    .role
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Role))
+                    .transpose()?
+                    .map(|v: crate::model::Name| v.into()),
+                workspace: self
+                    .workspace
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Workspace))
+                    .transpose()?
+                    .map(|v: crate::model::Workspace| v.into()),
+                n: self
+                    .n
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::N))
+                    .transpose()?
+                    .map(|v: crate::model::PageNumber| v.into()),
+                created_at: self.created_at,
+                actor_issuer: self
+                    .actor_issuer
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::ActorIssuer))
+                    .transpose()?
+                    .map(|v: crate::model::Issuer| v.into()),
+                actor_ref: self
+                    .actor_ref
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::ActorRef))
+                    .transpose()?
+                    .map(|v: crate::model::ActorRef| v.into()),
+                content_type: self
+                    .content_type
+                    .ok_or(ConstraintViolation::MissingContentType)?,
+                body: self.body.ok_or(ConstraintViolation::MissingBody)?,
+            })
+        }
+    }
+}
+/// See [`CreateFileInput`](crate::input::CreateFileInput).
+pub mod create_file_input {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `CreateFileInput`.
+        MissingProject,
+        /// `key` was not provided but it is required when building `CreateFileInput`.
+        MissingKey,
+        /// `name` was not provided but it is required when building `CreateFileInput`.
+        MissingName,
+        /// `content_type` was not provided but it is required when building `CreateFileInput`.
+        MissingContentType,
+        /// `body` was not provided but it is required when building `CreateFileInput`.
+        MissingBody,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::MissingKey => write!(f, "`key` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::MissingName => write!(f, "`name` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::MissingContentType => write!(f, "`content_type` was not provided but it is required when building `CreateFileInput`"),
+                ConstraintViolation::MissingBody => write!(f, "`body` was not provided but it is required when building `CreateFileInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::input::CreateFileInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`CreateFileInput`](crate::input::CreateFileInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) name: ::std::option::Option<::std::string::String>,
+        pub(crate) role: ::std::option::Option<::std::string::String>,
+        pub(crate) workspace: ::std::option::Option<::std::string::String>,
+        pub(crate) n: ::std::option::Option<::std::string::String>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) actor_issuer: ::std::option::Option<::std::string::String>,
+        pub(crate) actor_ref: ::std::option::Option<::std::string::String>,
+        pub(crate) content_type: ::std::option::Option<::std::string::String>,
+        pub(crate) body: ::std::option::Option<::aws_smithy_types::Blob>,
+    }
+    impl Builder {
+        /// 状態の folder の名。`api`・`.`・`..` は置けない（server が 400）。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// Key。`.`・`..` は置けない（server が 400）。
+        pub fn key(mut self, input: ::std::string::String) -> Self {
+            self.key = Some(input);
+            self
+        }
+        /// `&lt;語&gt;.&lt;拡張子&gt;`。番号は server が付ける。受ける拡張子かは server が見る（ほかは 415）。
+        pub fn name(mut self, input: ::std::string::String) -> Self {
+            self.name = Some(input);
+            self
+        }
+        /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+        pub fn role(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.role = input;
+            self
+        }
+        /// 置いた担当の workspace の ID（無ければ空）。
+        pub fn workspace(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.workspace = input;
+            self
+        }
+        /// 取り込みの時だけ: 番号。無ければ server が決める。
+        pub fn n(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.n = input;
+            self
+        }
+        /// 取り込みの時だけ: 置いた時刻（UTC・ミリ秒まで）。無ければ pagetray の今。
+        pub fn created_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.created_at = input;
+            self
+        }
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+        pub fn actor_issuer(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.actor_issuer = input;
+            self
+        }
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+        pub fn actor_ref(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.actor_ref = input;
+            self
+        }
+        /// 中身の種類。拡張子の種類と同じ物（`;` の後ろと大小は問わない）。
+        pub fn content_type(mut self, input: ::std::string::String) -> Self {
+            self.content_type = Some(input);
+            self
+        }
+        /// file の中身（空は 400。16 MiB まで）。
+        pub fn body(mut self, input: ::aws_smithy_types::Blob) -> Self {
+            self.body = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`CreateFileInput`](crate::input::CreateFileInput).
+        ///
+        /// The builder fails to construct a [`CreateFileInput`](crate::input::CreateFileInput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::input::CreateFileInput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::input::CreateFileInput, ConstraintViolation> {
+            Ok(crate::input::CreateFileInput {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                key: self.key.ok_or(ConstraintViolation::MissingKey)?,
+                name: self.name.ok_or(ConstraintViolation::MissingName)?,
+                role: self.role,
+                workspace: self.workspace,
+                n: self.n,
+                created_at: self.created_at,
+                actor_issuer: self.actor_issuer,
+                actor_ref: self.actor_ref,
+                content_type: self
+                    .content_type
+                    .ok_or(ConstraintViolation::MissingContentType)?,
+                body: self.body.ok_or(ConstraintViolation::MissingBody)?,
+            })
+        }
+    }
+}
+/// See [`ListFilesInput`](crate::input::ListFilesInput).
+pub(crate) mod list_files_input_internal {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[non_exhaustive]
+    #[allow(clippy::enum_variant_names)]
+    pub(crate) enum ConstraintViolation {
+        /// Constraint violation occurred building member `project` when building `ListFilesInput`.
+        #[doc(hidden)]
+        Project(crate::model::segment_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `key` when building `ListFilesInput`.
+        #[doc(hidden)]
+        Key(crate::model::segment_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `role` when building `ListFilesInput`.
+        #[doc(hidden)]
+        Role(crate::model::name_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `workspace` when building `ListFilesInput`.
+        #[doc(hidden)]
+        Workspace(crate::model::workspace_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `actor` when building `ListFilesInput`.
+        #[doc(hidden)]
+        Actor(crate::model::actor_id_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `sort` when building `ListFilesInput`.
+        #[doc(hidden)]
+        Sort(crate::model::page_sort_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `max_results` when building `ListFilesInput`.
+        #[doc(hidden)]
+        MaxResults(crate::model::max_results_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `next_token` when building `ListFilesInput`.
+        #[doc(hidden)]
+        NextToken(crate::model::next_token_internal::ConstraintViolation),
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::Project(_) => write!(f, "constraint violation occurred building member `project` when building `ListFilesInput`"),
+                ConstraintViolation::Key(_) => write!(f, "constraint violation occurred building member `key` when building `ListFilesInput`"),
+                ConstraintViolation::Role(_) => write!(f, "constraint violation occurred building member `role` when building `ListFilesInput`"),
+                ConstraintViolation::Workspace(_) => write!(f, "constraint violation occurred building member `workspace` when building `ListFilesInput`"),
+                ConstraintViolation::Actor(_) => write!(f, "constraint violation occurred building member `actor` when building `ListFilesInput`"),
+                ConstraintViolation::Sort(_) => write!(f, "constraint violation occurred building member `sort` when building `ListFilesInput`"),
+                ConstraintViolation::MaxResults(_) => write!(f, "constraint violation occurred building member `max_results` when building `ListFilesInput`"),
+                ConstraintViolation::NextToken(_) => write!(f, "constraint violation occurred building member `next_token` when building `ListFilesInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                ConstraintViolation::Project(inner) => {
+                    inner.as_validation_exception_field(path + "/project")
+                }
+                ConstraintViolation::Key(inner) => {
+                    inner.as_validation_exception_field(path + "/key")
+                }
+                ConstraintViolation::Role(inner) => {
+                    inner.as_validation_exception_field(path + "/role")
+                }
+                ConstraintViolation::Workspace(inner) => {
+                    inner.as_validation_exception_field(path + "/workspace")
+                }
+                ConstraintViolation::Actor(inner) => {
+                    inner.as_validation_exception_field(path + "/actor")
+                }
+                ConstraintViolation::Sort(inner) => {
+                    inner.as_validation_exception_field(path + "/sort")
+                }
+                ConstraintViolation::MaxResults(inner) => {
+                    inner.as_validation_exception_field(path + "/maxResults")
+                }
+                ConstraintViolation::NextToken(inner) => {
+                    inner.as_validation_exception_field(path + "/nextToken")
+                }
+            }
+        }
+    }
+    impl ::std::convert::From<ConstraintViolation>
+        for ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection
+    {
+        fn from(constraint_violation: ConstraintViolation) -> Self {
+            let first_validation_exception_field =
+                constraint_violation.as_validation_exception_field("".to_owned());
+            let validation_exception = crate::error::ValidationException {
+                message: format!(
+                    "1 validation error detected. {}",
+                    &first_validation_exception_field.message
+                ),
+                field_list: Some(vec![first_validation_exception_field]),
+            };
+            Self::ConstraintViolation(
+                                crate::protocol_serde::shape_validation_exception::ser_validation_exception_error(&validation_exception)
+                                    .expect("validation exceptions should never fail to serialize; please file a bug report under https://github.com/smithy-lang/smithy-rs/issues")
+                            )
+        }
+    }
+    impl ::std::convert::From<Builder>
+        for crate::constrained::MaybeConstrained<crate::input::ListFilesInput>
+    {
+        fn from(builder: Builder) -> Self {
+            Self::Unconstrained(builder)
+        }
+    }
+    impl ::std::convert::TryFrom<Builder> for crate::input::ListFilesInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListFilesInput`](crate::input::ListFilesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {
+        pub(crate) project:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) key:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) role:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Name>>,
+        pub(crate) workspace:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Workspace>>,
+        pub(crate) q: ::std::option::Option<::std::string::String>,
+        pub(crate) actor:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::ActorId>>,
+        pub(crate) sort:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::PageSort>>,
+        pub(crate) max_results:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MaxResults>>,
+        pub(crate) next_token:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::NextToken>>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub(crate) fn set_project(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+            >,
+        ) -> Self {
+            self.project = input.map(|v| v.into());
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub(crate) fn set_key(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+            >,
+        ) -> Self {
+            self.key = input.map(|v| v.into());
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub(crate) fn set_role(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Name>>,
+            >,
+        ) -> Self {
+            self.role = input.map(|v| v.into());
+            self
+        }
+        /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+        pub(crate) fn set_workspace(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Workspace>>,
+            >,
+        ) -> Self {
+            self.workspace = input.map(|v| v.into());
+            self
+        }
+        /// 名（`&lt;語&gt;.&lt;拡張子&gt;`）に含まれる字（大小を問わない）。
+        pub(crate) fn set_q(
+            mut self,
+            input: Option<impl ::std::convert::Into<::std::string::String>>,
+        ) -> Self {
+            self.q = input.map(|v| v.into());
+            self
+        }
+        /// 送り手の castlist のアクターの id。
+        pub(crate) fn set_actor(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::ActorId>>,
+            >,
+        ) -> Self {
+            self.actor = input.map(|v| v.into());
+            self
+        }
+        /// `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順。
+        pub(crate) fn set_sort(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::PageSort>>,
+            >,
+        ) -> Self {
+            self.sort = input.map(|v| v.into());
+            self
+        }
+        /// 1 頁の数（既定 100）。
+        pub(crate) fn set_max_results(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MaxResults>,
+                >,
+            >,
+        ) -> Self {
+            self.max_results = input.map(|v| v.into());
+            self
+        }
+        /// 前の答えの `nextToken`。
+        pub(crate) fn set_next_token(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::NextToken>>,
+            >,
+        ) -> Self {
+            self.next_token = input.map(|v| v.into());
+            self
+        }
+        /// Consumes the builder and constructs a [`ListFilesInput`](crate::input::ListFilesInput).
+        ///
+        /// The builder fails to construct a [`ListFilesInput`](crate::input::ListFilesInput) if a [`ConstraintViolation`] occurs.
+        ///
+        /// If the builder fails, it will return the _first_ encountered [`ConstraintViolation`].
+        pub fn build(self) -> Result<crate::input::ListFilesInput, ConstraintViolation> {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(
+            self,
+        ) -> Result<crate::input::ListFilesInput, ConstraintViolation> {
+            Ok(crate::input::ListFilesInput {
+                project: self
+                    .project
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Project))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into()),
+                key: self
+                    .key
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Key))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into()),
+                role: self
+                    .role
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Role))
+                    .transpose()?
+                    .map(|v: crate::model::Name| v.into()),
+                workspace: self
+                    .workspace
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Workspace))
+                    .transpose()?
+                    .map(|v: crate::model::Workspace| v.into()),
+                q: self.q,
+                actor: self
+                    .actor
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Actor))
+                    .transpose()?
+                    .map(|v: crate::model::ActorId| v.into()),
+                sort: self
+                    .sort
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Sort))
+                    .transpose()?
+                    .map(|v: crate::model::PageSort| v.into()),
+                max_results: self
+                    .max_results
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::MaxResults))
+                    .transpose()?
+                    .map(|v: crate::model::MaxResults| v.into()),
+                next_token: self
+                    .next_token
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::NextToken))
+                    .transpose()?
+                    .map(|v: crate::model::NextToken| v.into()),
+            })
+        }
+    }
+}
+/// See [`ListFilesInput`](crate::input::ListFilesInput).
+pub mod list_files_input {
+
+    impl ::std::convert::From<Builder> for crate::input::ListFilesInput {
+        fn from(builder: Builder) -> Self {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListFilesInput`](crate::input::ListFilesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) role: ::std::option::Option<::std::string::String>,
+        pub(crate) workspace: ::std::option::Option<::std::string::String>,
+        pub(crate) q: ::std::option::Option<::std::string::String>,
+        pub(crate) actor: ::std::option::Option<::std::string::String>,
+        pub(crate) sort: ::std::option::Option<::std::string::String>,
+        pub(crate) max_results: ::std::option::Option<i32>,
+        pub(crate) next_token: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.project = input;
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.key = input;
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn role(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.role = input;
+            self
+        }
+        /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+        pub fn workspace(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.workspace = input;
+            self
+        }
+        /// 名（`&lt;語&gt;.&lt;拡張子&gt;`）に含まれる字（大小を問わない）。
+        pub fn q(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.q = input;
+            self
+        }
+        /// 送り手の castlist のアクターの id。
+        pub fn actor(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.actor = input;
+            self
+        }
+        /// `-createdAt`（新しい順。既定）か `createdAt`（古い順）。同じ時刻は置いた順。
+        pub fn sort(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.sort = input;
+            self
+        }
+        /// 1 頁の数（既定 100）。
+        pub fn max_results(mut self, input: ::std::option::Option<i32>) -> Self {
+            self.max_results = input;
+            self
+        }
+        /// 前の答えの `nextToken`。
+        pub fn next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.next_token = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`ListFilesInput`](crate::input::ListFilesInput).
+        pub fn build(self) -> crate::input::ListFilesInput {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(self) -> crate::input::ListFilesInput {
+            crate::input::ListFilesInput {
+                project: self.project,
+                key: self.key,
+                role: self.role,
+                workspace: self.workspace,
+                q: self.q,
+                actor: self.actor,
+                sort: self.sort,
+                max_results: self.max_results,
+                next_token: self.next_token,
+            }
+        }
+    }
+}
+/// See [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+pub(crate) mod delete_files_input_internal {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[non_exhaustive]
+    #[allow(clippy::enum_variant_names)]
+    pub(crate) enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `DeleteFilesInput`.
+        MissingProject,
+        /// Constraint violation occurred building member `project` when building `DeleteFilesInput`.
+        #[doc(hidden)]
+        Project(crate::model::segment_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `key` when building `DeleteFilesInput`.
+        #[doc(hidden)]
+        Key(crate::model::segment_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `name` when building `DeleteFilesInput`.
+        #[doc(hidden)]
+        Name(crate::model::file_name_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `n` when building `DeleteFilesInput`.
+        #[doc(hidden)]
+        N(crate::model::page_number_internal::ConstraintViolation),
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `DeleteFilesInput`"),
+                ConstraintViolation::Project(_) => write!(f, "constraint violation occurred building member `project` when building `DeleteFilesInput`"),
+                ConstraintViolation::Key(_) => write!(f, "constraint violation occurred building member `key` when building `DeleteFilesInput`"),
+                ConstraintViolation::Name(_) => write!(f, "constraint violation occurred building member `name` when building `DeleteFilesInput`"),
+                ConstraintViolation::N(_) => write!(f, "constraint violation occurred building member `n` when building `DeleteFilesInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+            ConstraintViolation::MissingProject => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/project' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/project",
+                                            },
+            ConstraintViolation::Project(inner) => inner.as_validation_exception_field(path + "/project"),
+            ConstraintViolation::Key(inner) => inner.as_validation_exception_field(path + "/key"),
+            ConstraintViolation::Name(inner) => inner.as_validation_exception_field(path + "/name"),
+            ConstraintViolation::N(inner) => inner.as_validation_exception_field(path + "/n"),
+        }
+        }
+    }
+    impl ::std::convert::From<ConstraintViolation>
+        for ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection
+    {
+        fn from(constraint_violation: ConstraintViolation) -> Self {
+            let first_validation_exception_field =
+                constraint_violation.as_validation_exception_field("".to_owned());
+            let validation_exception = crate::error::ValidationException {
+                message: format!(
+                    "1 validation error detected. {}",
+                    &first_validation_exception_field.message
+                ),
+                field_list: Some(vec![first_validation_exception_field]),
+            };
+            Self::ConstraintViolation(
+                                crate::protocol_serde::shape_validation_exception::ser_validation_exception_error(&validation_exception)
+                                    .expect("validation exceptions should never fail to serialize; please file a bug report under https://github.com/smithy-lang/smithy-rs/issues")
+                            )
+        }
+    }
+    impl ::std::convert::From<Builder>
+        for crate::constrained::MaybeConstrained<crate::input::DeleteFilesInput>
+    {
+        fn from(builder: Builder) -> Self {
+            Self::Unconstrained(builder)
+        }
+    }
+    impl ::std::convert::TryFrom<Builder> for crate::input::DeleteFilesInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {
+        pub(crate) project:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) key:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) name:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::FileName>>,
+        pub(crate) n:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::PageNumber>>,
+    }
+    impl Builder {
+        /// `.`・`..` は 400（server）。
+        pub(crate) fn set_project(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::Segment>,
+            >,
+        ) -> Self {
+            self.project = Some(input.into());
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub(crate) fn set_key(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+            >,
+        ) -> Self {
+            self.key = input.map(|v| v.into());
+            self
+        }
+        /// `&lt;語&gt;.&lt;拡張子&gt;`。
+        pub(crate) fn set_name(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::FileName>>,
+            >,
+        ) -> Self {
+            self.name = input.map(|v| v.into());
+            self
+        }
+        /// 1 つだけ消す時の番号（`key` と `name` が要る）。
+        pub(crate) fn set_n(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::PageNumber>,
+                >,
+            >,
+        ) -> Self {
+            self.n = input.map(|v| v.into());
+            self
+        }
+        /// Consumes the builder and constructs a [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+        ///
+        /// The builder fails to construct a [`DeleteFilesInput`](crate::input::DeleteFilesInput) if a [`ConstraintViolation`] occurs.
+        ///
+        /// If the builder fails, it will return the _first_ encountered [`ConstraintViolation`].
+        pub fn build(self) -> Result<crate::input::DeleteFilesInput, ConstraintViolation> {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(
+            self,
+        ) -> Result<crate::input::DeleteFilesInput, ConstraintViolation> {
+            Ok(crate::input::DeleteFilesInput {
+                project: self
+                    .project
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Project))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into())
+                    .ok_or(ConstraintViolation::MissingProject)?,
+                key: self
+                    .key
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Key))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into()),
+                name: self
+                    .name
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Name))
+                    .transpose()?
+                    .map(|v: crate::model::FileName| v.into()),
+                n: self
+                    .n
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::N))
+                    .transpose()?
+                    .map(|v: crate::model::PageNumber| v.into()),
+            })
+        }
+    }
+}
+/// See [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+pub mod delete_files_input {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `DeleteFilesInput`.
+        MissingProject,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `DeleteFilesInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::input::DeleteFilesInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) name: ::std::option::Option<::std::string::String>,
+        pub(crate) n: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// `.`・`..` は 400（server）。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.key = input;
+            self
+        }
+        /// `&lt;語&gt;.&lt;拡張子&gt;`。
+        pub fn name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.name = input;
+            self
+        }
+        /// 1 つだけ消す時の番号（`key` と `name` が要る）。
+        pub fn n(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.n = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`DeleteFilesInput`](crate::input::DeleteFilesInput).
+        ///
+        /// The builder fails to construct a [`DeleteFilesInput`](crate::input::DeleteFilesInput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::input::DeleteFilesInput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::input::DeleteFilesInput, ConstraintViolation> {
+            Ok(crate::input::DeleteFilesInput {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                key: self.key,
+                name: self.name,
                 n: self.n,
             })
         }

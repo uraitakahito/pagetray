@@ -290,7 +290,7 @@ mod test_workspace {
     }
 }
 
-/// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+/// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
 ///
 /// This is a constrained type because its corresponding modeled Smithy shape has one or more
 /// [constraint traits]. Use [`PageNumber::try_from`] to construct values of this type.
@@ -1007,7 +1007,7 @@ mod test_actor_id {
     }
 }
 
-/// 一覧の並べ方: `-createdAt`（新しい順）か `createdAt`（古い順）。
+/// 一覧（ページと file）の並べ方: `-createdAt`（新しい順）か `createdAt`（古い順）。
 ///
 /// This is a constrained type because its corresponding modeled Smithy shape has one or more
 /// [constraint traits]. Use [`PageSort::try_from`] to construct values of this type.
@@ -1245,6 +1245,198 @@ impl ::std::convert::From<NextToken> for ::std::string::String {
     }
 }
 
+/// file の名（`&lt;語&gt;.&lt;拡張子&gt;`）。語は英小文字か数字で始まり、英小文字・数字・`-`・`_` で 64 字まで。拡張子は英数字で 16 字まで （受ける拡張子かは server が見る）。`.` は 1 つだけ。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`FileName::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct FileName(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl FileName {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl FileName {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::file_name_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::file_name_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^[a-z0-9][a-z0-9_-]{0,63}\.[A-Za-z0-9]{1,16}$"#).expect(r#"The regular expression ^[a-z0-9][a-z0-9_-]{0,63}\.[A-Za-z0-9]{1,16}$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for FileName {
+    type Error = crate::model::file_name_internal::ConstraintViolation;
+
+    /// Constructs a `FileName` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for FileName {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::FileName>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for FileName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<FileName> for ::std::string::String {
+    fn from(value: FileName) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_file_name {
+    #[test]
+    fn regex_compiles() {
+        crate::model::FileName::compile_regex();
+    }
+}
+
+/// file の名の語（`&lt;語&gt;.&lt;拡張子&gt;` の `&lt;語&gt;`）。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`FileStem::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct FileStem(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl FileStem {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl FileStem {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::file_stem_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::file_stem_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^[a-z0-9][a-z0-9_-]{0,63}$"#).expect(r#"The regular expression ^[a-z0-9][a-z0-9_-]{0,63}$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for FileStem {
+    type Error = crate::model::file_stem_internal::ConstraintViolation;
+
+    /// Constructs a `FileStem` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for FileStem {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::FileStem>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for FileStem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<FileStem> for ::std::string::String {
+    fn from(value: FileStem) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_file_stem {
+    #[test]
+    fn regex_compiles() {
+        crate::model::FileStem::compile_regex();
+    }
+}
+
 /// アクターを指す時の短い形。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
@@ -1321,7 +1513,7 @@ pub struct Page {
     pub key: ::std::string::String,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub kind: ::std::string::String,
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub n: ::std::string::String,
     /// 本文の初めの `
     /// <title>`（文字参照を戻し、空白を 1 つにまとめる）。無ければ空。</title>
@@ -1376,7 +1568,7 @@ impl Page {
         use std::ops::Deref;
         self.kind.deref()
     }
-    /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
     pub fn n(&self) -> &str {
         use std::ops::Deref;
         self.n.deref()
@@ -1450,6 +1642,125 @@ impl Page {
     /// Creates a new builder-style object to manufacture [`Page`](crate::model::Page).
     pub fn builder() -> crate::model::page::Builder {
         crate::model::page::Builder::default()
+    }
+}
+
+/// 一覧の file の記録（中身と url は入らない）。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct File {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::string::String,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::string::String,
+    /// 名の語（`screen`）。
+    pub name: ::std::string::String,
+    /// 拡張子（`png`）。
+    pub ext: ::std::string::String,
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub n: ::std::string::String,
+    /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+    pub r#type: ::std::string::String,
+    /// 中身の byte の数。
+    pub size: i64,
+    /// 中身の SHA-256（16 進の小文字）。
+    pub sha256: ::std::string::String,
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub role: ::std::string::String,
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub workspace: ::std::string::String,
+    /// 時刻（RFC 3339）。
+    pub created_at: ::aws_smithy_types::DateTime,
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /files/&lt;語&gt;-
+    /// <n>
+    /// .&lt;拡張子&gt;`）。
+    /// </n>
+    /// </key>
+    /// </project>
+    pub path: ::std::string::String,
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub sender: ::std::option::Option<crate::model::Sender>,
+}
+impl File {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> &str {
+        use std::ops::Deref;
+        self.key.deref()
+    }
+    /// 名の語（`screen`）。
+    pub fn name(&self) -> &str {
+        use std::ops::Deref;
+        self.name.deref()
+    }
+    /// 拡張子（`png`）。
+    pub fn ext(&self) -> &str {
+        use std::ops::Deref;
+        self.ext.deref()
+    }
+    /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+    pub fn n(&self) -> &str {
+        use std::ops::Deref;
+        self.n.deref()
+    }
+    /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+    pub fn r#type(&self) -> &str {
+        use std::ops::Deref;
+        self.r#type.deref()
+    }
+    /// 中身の byte の数。
+    pub fn size(&self) -> i64 {
+        self.size
+    }
+    /// 中身の SHA-256（16 進の小文字）。
+    pub fn sha256(&self) -> &str {
+        use std::ops::Deref;
+        self.sha256.deref()
+    }
+    /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+    pub fn role(&self) -> &str {
+        use std::ops::Deref;
+        self.role.deref()
+    }
+    /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+    pub fn workspace(&self) -> &str {
+        use std::ops::Deref;
+        self.workspace.deref()
+    }
+    /// 時刻（RFC 3339）。
+    pub fn created_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.created_at
+    }
+    /// この server の中の path（`/<project>
+    /// /
+    /// <key>
+    /// /files/&lt;語&gt;-
+    /// <n>
+    /// .&lt;拡張子&gt;`）。
+    /// </n>
+    /// </key>
+    /// </project>
+    pub fn path(&self) -> &str {
+        use std::ops::Deref;
+        self.path.deref()
+    }
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
+        self.sender.as_ref()
+    }
+}
+impl File {
+    /// Creates a new builder-style object to manufacture [`File`](crate::model::File).
+    pub fn builder() -> crate::model::file::Builder {
+        crate::model::file::Builder::default()
     }
 }
 
@@ -2124,6 +2435,70 @@ pub(crate) mod next_token_internal {
         }
     }
 }
+pub(crate) mod file_name_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#FileName` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^[a-z0-9][a-z0-9_-]{0,63}\.[A-Za-z0-9]{1,16}$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^[a-z0-9][a-z0-9_-]{0,63}\.[A-Za-z0-9]{1,16}$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod file_stem_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#FileStem` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^[a-z0-9][a-z0-9_-]{0,63}$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+}
 /// See [`ActorSummary`](crate::model::ActorSummary).
 pub mod actor_summary {
 
@@ -2385,7 +2760,7 @@ pub mod page {
             self.kind = Some(input);
             self
         }
-        /// ページの番号（種類ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
         pub fn n(mut self, input: ::std::string::String) -> Self {
             self.n = Some(input);
             self
@@ -2502,6 +2877,223 @@ pub mod page {
                 waits_on: self.waits_on,
                 verdict: self.verdict,
                 targets: self.targets,
+            })
+        }
+    }
+}
+/// See [`File`](crate::model::File).
+pub mod file {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `File`.
+        MissingProject,
+        /// `key` was not provided but it is required when building `File`.
+        MissingKey,
+        /// `name` was not provided but it is required when building `File`.
+        MissingName,
+        /// `ext` was not provided but it is required when building `File`.
+        MissingExt,
+        /// `n` was not provided but it is required when building `File`.
+        MissingN,
+        /// `r#type` was not provided but it is required when building `File`.
+        MissingType,
+        /// `size` was not provided but it is required when building `File`.
+        MissingSize,
+        /// `sha256` was not provided but it is required when building `File`.
+        MissingSha256,
+        /// `role` was not provided but it is required when building `File`.
+        MissingRole,
+        /// `workspace` was not provided but it is required when building `File`.
+        MissingWorkspace,
+        /// `created_at` was not provided but it is required when building `File`.
+        MissingCreatedAt,
+        /// `path` was not provided but it is required when building `File`.
+        MissingPath,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(
+                    f,
+                    "`project` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingKey => write!(
+                    f,
+                    "`key` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingName => write!(
+                    f,
+                    "`name` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingExt => write!(
+                    f,
+                    "`ext` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingN => write!(
+                    f,
+                    "`n` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingType => write!(
+                    f,
+                    "`r#type` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingSize => write!(
+                    f,
+                    "`size` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingSha256 => write!(
+                    f,
+                    "`sha256` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingRole => write!(
+                    f,
+                    "`role` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingWorkspace => write!(
+                    f,
+                    "`workspace` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingCreatedAt => write!(
+                    f,
+                    "`created_at` was not provided but it is required when building `File`"
+                ),
+                ConstraintViolation::MissingPath => write!(
+                    f,
+                    "`path` was not provided but it is required when building `File`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::File {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`File`](crate::model::File).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) name: ::std::option::Option<::std::string::String>,
+        pub(crate) ext: ::std::option::Option<::std::string::String>,
+        pub(crate) n: ::std::option::Option<::std::string::String>,
+        pub(crate) r#type: ::std::option::Option<::std::string::String>,
+        pub(crate) size: ::std::option::Option<i64>,
+        pub(crate) sha256: ::std::option::Option<::std::string::String>,
+        pub(crate) role: ::std::option::Option<::std::string::String>,
+        pub(crate) workspace: ::std::option::Option<::std::string::String>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) path: ::std::option::Option<::std::string::String>,
+        pub(crate) sender: ::std::option::Option<crate::model::Sender>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::string::String) -> Self {
+            self.key = Some(input);
+            self
+        }
+        /// 名の語（`screen`）。
+        pub fn name(mut self, input: ::std::string::String) -> Self {
+            self.name = Some(input);
+            self
+        }
+        /// 拡張子（`png`）。
+        pub fn ext(mut self, input: ::std::string::String) -> Self {
+            self.ext = Some(input);
+            self
+        }
+        /// ページの番号（種類ごと）と file の番号（語と拡張子ごと）。id なので数の字にする: 頭に 0 の無い 1 以上の数（18 桁まで）。
+        pub fn n(mut self, input: ::std::string::String) -> Self {
+            self.n = Some(input);
+            self
+        }
+        /// 返す時の `Content-Type`（拡張子から決まる。字の file は `; charset=utf-8` 付き）。
+        pub fn r#type(mut self, input: ::std::string::String) -> Self {
+            self.r#type = Some(input);
+            self
+        }
+        /// 中身の byte の数。
+        pub fn size(mut self, input: i64) -> Self {
+            self.size = Some(input);
+            self
+        }
+        /// 中身の SHA-256（16 進の小文字）。
+        pub fn sha256(mut self, input: ::std::string::String) -> Self {
+            self.sha256 = Some(input);
+            self
+        }
+        /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
+        pub fn role(mut self, input: ::std::string::String) -> Self {
+            self.role = Some(input);
+            self
+        }
+        /// workspace の ID: 英数字と `:`・`.`・`_`・`-` で 64 字まで（空でもよい）。
+        pub fn workspace(mut self, input: ::std::string::String) -> Self {
+            self.workspace = Some(input);
+            self
+        }
+        /// 時刻（RFC 3339）。
+        pub fn created_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.created_at = Some(input);
+            self
+        }
+        /// この server の中の path（`/<project>
+        /// /
+        /// <key>
+        /// /files/&lt;語&gt;-
+        /// <n>
+        /// .&lt;拡張子&gt;`）。
+        /// </n>
+        /// </key>
+        /// </project>
+        pub fn path(mut self, input: ::std::string::String) -> Self {
+            self.path = Some(input);
+            self
+        }
+        /// 送り手。付随する id を書いて置いた時だけ。
+        pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
+            self.sender = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`File`](crate::model::File).
+        ///
+        /// The builder fails to construct a [`File`](crate::model::File) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::File, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::File, ConstraintViolation> {
+            Ok(crate::model::File {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                key: self.key.ok_or(ConstraintViolation::MissingKey)?,
+                name: self.name.ok_or(ConstraintViolation::MissingName)?,
+                ext: self.ext.ok_or(ConstraintViolation::MissingExt)?,
+                n: self.n.ok_or(ConstraintViolation::MissingN)?,
+                r#type: self.r#type.ok_or(ConstraintViolation::MissingType)?,
+                size: self.size.ok_or(ConstraintViolation::MissingSize)?,
+                sha256: self.sha256.ok_or(ConstraintViolation::MissingSha256)?,
+                role: self.role.ok_or(ConstraintViolation::MissingRole)?,
+                workspace: self
+                    .workspace
+                    .ok_or(ConstraintViolation::MissingWorkspace)?,
+                created_at: self
+                    .created_at
+                    .ok_or(ConstraintViolation::MissingCreatedAt)?,
+                path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                sender: self.sender,
             })
         }
     }

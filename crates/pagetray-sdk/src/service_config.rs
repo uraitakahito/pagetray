@@ -14,9 +14,12 @@ pub(crate) fn service_config() -> &'static ::aws_smithy_http_server::config::Ser
                             .with_request_body(::aws_smithy_http_server::config::ServiceRequestBodyConfig::default()
                                 .with_global(global)
                                 .with_per_operation(std::collections::HashMap::from([("ai.pagetray#AddReviewMarks".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
+("ai.pagetray#CreateFile".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#CreatePage".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
+("ai.pagetray#DeleteFiles".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#DeletePages".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#GetHealth".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
+("ai.pagetray#ListFiles".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#ListPages".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#SetReplyState".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),])))
                             .with_event_stream(::aws_smithy_http_server::config::ServiceEventStreamConfig::default()

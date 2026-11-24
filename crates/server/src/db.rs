@@ -4,6 +4,7 @@
 //! - 読む接続は 4 本で、読むだけ。WAL なので、書いている間も待たずに読める。
 //! - 接続の決まりと、今の server の DB を断る所は、castlist の新しい server（crates/server/src/db.rs）と同じ。
 //! - 返事・印・消すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする（間に別の書く物が入らない）。
+//! - file はページと同じ作り（番号は project・key・語・拡張子ごと。消した番号は files_removed）。
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -97,6 +98,78 @@ pub const PAGE_ROW: &str = "select p.id, p.project, p.key, p.kind, p.n, p.title,
         (select group_concat(t.target, char(10) order by t.rowid) from page_targets t where t.page_id = p.id) as targets,
         s.actor_issuer, s.actor_ref, s.actor_id, s.actor_name, s.actor_kind, s.resolved_at
  from pages p left join senders s on s.id = p.sender_id";
+
+/// 置く file の中身（形・種類・中身は定義と handler が見てある）。
+pub struct NewFile<'a> {
+    pub project: &'a str,
+    pub key: &'a str,
+    /// 名の語。
+    pub name: &'a str,
+    pub ext: &'a str,
+    /// 返す時の Content-Type（拡張子から決まる）。
+    pub content_type: &'a str,
+    /// 中身の SHA-256（16 進の小文字）。
+    pub sha256: &'a str,
+    pub role: &'a str,
+    pub workspace: &'a str,
+    pub body: &'a [u8],
+    /// 取り込みの時だけ。無ければ server が決める。
+    pub n: Option<i64>,
+    /// 取り込みの時だけ（[`stamp`] の字）。無ければ今。
+    pub created_at: Option<&'a str>,
+    /// 送り手。あれば senders に 1 行足し、file から指す（同じ取引）。
+    pub sender: Option<&'a NewSender>,
+}
+
+/// file の記録の行（中身は入らない。送り手の列は senders を left join した物）。
+#[derive(Clone, Debug, FromRow)]
+pub struct FileRow {
+    pub id: i64,
+    pub project: String,
+    pub key: String,
+    pub name: String,
+    pub ext: String,
+    pub n: i64,
+    pub content_type: String,
+    pub size: i64,
+    pub sha256: String,
+    pub role: String,
+    pub workspace: String,
+    pub created_at: String,
+    pub actor_issuer: Option<String>,
+    pub actor_ref: Option<String>,
+    pub actor_id: Option<String>,
+    pub actor_name: Option<String>,
+    pub actor_kind: Option<String>,
+    pub resolved_at: Option<String>,
+}
+
+/// [`FileRow`] を読む select（`files f` と `senders s`。後ろに where を繋ぐ）。
+pub const FILE_ROW: &str =
+    "select f.id, f.project, f.key, f.name, f.ext, f.n, f.type as content_type, f.size, f.sha256,
+        f.role, f.workspace, f.created_at,
+        s.actor_issuer, s.actor_ref, s.actor_id, s.actor_name, s.actor_kind, s.resolved_at
+ from files f left join senders s on s.id = f.sender_id";
+
+/// 名指した file（project・Key・語・拡張子・番号）。
+pub struct FileKey<'a> {
+    pub project: &'a str,
+    pub key: &'a str,
+    pub name: &'a str,
+    pub ext: &'a str,
+    pub n: i64,
+}
+
+/// 消す file。`project` は要る。ほかは、書けば絞る（名は語と拡張子の組）。
+pub struct FileTarget<'a> {
+    pub project: &'a str,
+    pub key: Option<&'a str>,
+    pub name: Option<(&'a str, &'a str)>,
+    pub n: Option<i64>,
+}
+
+/// 消した file（project・Key・語・拡張子・番号）。
+pub type RemovedFile = (String, String, String, String, i64);
 
 /// 返事の状態。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -623,6 +696,146 @@ impl Db {
         .await?;
         tx.commit().await?;
         Ok(removed)
+    }
+
+    /// file を 1 つ置く（1 つの transaction）。番号はページと同じく「置いた番号と消した番号の最大 + 1」（project・key・語・
+    /// 拡張子ごと）。番号を名指せば、置いた番号・消した番号なら [`WriteError::Taken`]（何も替えない）。
+    /// 置いた file の記録（送り手も）を、同じ取引の中で読んで返す。
+    pub async fn put_file(&self, file: &NewFile<'_>) -> Result<FileRow, WriteError> {
+        let mut tx = self.write.begin().await?;
+        if let Some(n) = file.n {
+            let removed: Option<i64> = sqlx::query_scalar(
+                "select 1 from files_removed
+                 where project = ?1 and key = ?2 and name = ?3 and ext = ?4 and n = ?5",
+            )
+            .bind(file.project)
+            .bind(file.key)
+            .bind(file.name)
+            .bind(file.ext)
+            .bind(n)
+            .fetch_optional(&mut *tx)
+            .await?;
+            if removed.is_some() {
+                return Err(WriteError::Taken);
+            }
+        }
+        let created_at = file.created_at.map_or_else(now, str::to_owned);
+        let sender_id = match file.sender {
+            Some(sender) => Some(add_sender(&mut tx, sender).await?),
+            None => None,
+        };
+        let id: i64 = sqlx::query_scalar(
+            "insert into files(project, key, name, ext, n, type, size, sha256, role, workspace, created_at, body, sender_id)
+             values(?1, ?2, ?3, ?4,
+                    coalesce(?5, (select coalesce(max(n), 0) + 1 from
+                                    (select n from files where project = ?1 and key = ?2 and name = ?3 and ext = ?4
+                                     union all
+                                     select n from files_removed
+                                     where project = ?1 and key = ?2 and name = ?3 and ext = ?4))),
+                    ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+             returning id",
+        )
+        .bind(file.project)
+        .bind(file.key)
+        .bind(file.name)
+        .bind(file.ext)
+        .bind(file.n)
+        .bind(file.content_type)
+        .bind(file.body.len() as i64)
+        .bind(file.sha256)
+        .bind(file.role)
+        .bind(file.workspace)
+        .bind(&created_at)
+        .bind(file.body)
+        .bind(sender_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        let row = sqlx::query_as(sqlx::AssertSqlSafe(format!("{FILE_ROW} where f.id = ?1")))
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok(row)
+    }
+
+    /// 合う file を消し、番号を消した時刻と files_removed に残す。消した file を、置いた順（id の順）に返す。
+    /// 送り手の行は残る。ページは見ない。
+    pub async fn remove_files(
+        &self,
+        target: &FileTarget<'_>,
+    ) -> Result<Vec<RemovedFile>, WriteError> {
+        const MATCHES: &str = "project = ?1 and (?2 is null or key = ?2)
+             and (?3 is null or (name = ?3 and ext = ?4)) and (?5 is null or n = ?5)";
+        let (name, ext) = target.name.unzip();
+        let mut tx = self.write.begin().await?;
+        // 消す物を、置いた順（id の順）に先に読む（insert の returning の行の順は、SQLite が決めないので頼らない。ページの remove と同じ）。
+        let removed: Vec<RemovedFile> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "select project, key, name, ext, n from files where {MATCHES} order by id"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(name)
+        .bind(ext)
+        .bind(target.n)
+        .fetch_all(&mut *tx)
+        .await?;
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "insert into files_removed(project, key, name, ext, n, removed_at)
+             select project, key, name, ext, n, ?6 from files where {MATCHES}"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(name)
+        .bind(ext)
+        .bind(target.n)
+        .bind(now())
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "delete from files where {MATCHES}"
+        )))
+        .bind(target.project)
+        .bind(target.key)
+        .bind(name)
+        .bind(ext)
+        .bind(target.n)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(removed)
+    }
+
+    /// file の Content-Type と中身。無ければ None。
+    pub async fn file_body(
+        &self,
+        file: &FileKey<'_>,
+    ) -> Result<Option<(String, Vec<u8>)>, sqlx::Error> {
+        sqlx::query_as(
+            "select type, body from files
+             where project = ?1 and key = ?2 and name = ?3 and ext = ?4 and n = ?5",
+        )
+        .bind(file.project)
+        .bind(file.key)
+        .bind(file.name)
+        .bind(file.ext)
+        .bind(file.n)
+        .fetch_optional(&self.read)
+        .await
+    }
+
+    /// 消した file なら、消した時刻。
+    pub async fn file_removed_at(&self, file: &FileKey<'_>) -> Result<Option<String>, sqlx::Error> {
+        sqlx::query_scalar(
+            "select removed_at from files_removed
+             where project = ?1 and key = ?2 and name = ?3 and ext = ?4 and n = ?5",
+        )
+        .bind(file.project)
+        .bind(file.key)
+        .bind(file.name)
+        .bind(file.ext)
+        .bind(file.n)
+        .fetch_optional(&self.read)
+        .await
     }
 
     /// ページの本文。無ければ None。

@@ -597,6 +597,319 @@ impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::Delet
     }
 }
 
+/// Error type for the `CreateFile` operation.
+/// Each variant represents an error that can occur for the `CreateFile` operation.
+#[derive(::std::fmt::Debug)]
+pub enum CreateFileError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// file の種類を受けない: 受けない拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（CreateFile）。 生成した層が返す `UnsupportedMediaTypeException`（操作の決めた `Content-Type` でない要求）とは別。
+    UnsupportedMediaType(crate::error::UnsupportedMediaType),
+    /// 同じ id の物がもうあり、中身が違う。
+    Conflict(crate::error::Conflict),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for CreateFileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            CreateFileError::ValidationException(_inner) => _inner.fmt(f),
+            CreateFileError::UnsupportedMediaType(_inner) => _inner.fmt(f),
+            CreateFileError::Conflict(_inner) => _inner.fmt(f),
+            CreateFileError::Unavailable(_inner) => _inner.fmt(f),
+            CreateFileError::InternalError(_inner) => _inner.fmt(f),
+            CreateFileError::Forbidden(_inner) => _inner.fmt(f),
+            CreateFileError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl CreateFileError {
+    /// Returns `true` if the error kind is `CreateFileError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, CreateFileError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `CreateFileError::UnsupportedMediaType`.
+    pub fn is_unsupported_media_type(&self) -> bool {
+        matches!(&self, CreateFileError::UnsupportedMediaType(_))
+    }
+    /// Returns `true` if the error kind is `CreateFileError::Conflict`.
+    pub fn is_conflict(&self) -> bool {
+        matches!(&self, CreateFileError::Conflict(_))
+    }
+    /// Returns `true` if the error kind is `CreateFileError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, CreateFileError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `CreateFileError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, CreateFileError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `CreateFileError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, CreateFileError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `CreateFileError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, CreateFileError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            CreateFileError::ValidationException(_inner) => _inner.name(),
+            CreateFileError::UnsupportedMediaType(_inner) => _inner.name(),
+            CreateFileError::Conflict(_inner) => _inner.name(),
+            CreateFileError::Unavailable(_inner) => _inner.name(),
+            CreateFileError::InternalError(_inner) => _inner.name(),
+            CreateFileError::Forbidden(_inner) => _inner.name(),
+            CreateFileError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for CreateFileError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            CreateFileError::ValidationException(_inner) => Some(_inner),
+            CreateFileError::UnsupportedMediaType(_inner) => Some(_inner),
+            CreateFileError::Conflict(_inner) => Some(_inner),
+            CreateFileError::Unavailable(_inner) => Some(_inner),
+            CreateFileError::InternalError(_inner) => Some(_inner),
+            CreateFileError::Forbidden(_inner) => Some(_inner),
+            CreateFileError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::CreateFileError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::CreateFileError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::UnsupportedMediaType> for crate::error::CreateFileError {
+    fn from(variant: crate::error::UnsupportedMediaType) -> crate::error::CreateFileError {
+        Self::UnsupportedMediaType(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Conflict> for crate::error::CreateFileError {
+    fn from(variant: crate::error::Conflict) -> crate::error::CreateFileError {
+        Self::Conflict(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::CreateFileError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::CreateFileError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::CreateFileError {
+    fn from(variant: crate::error::InternalError) -> crate::error::CreateFileError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::CreateFileError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::CreateFileError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::CreateFileError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::CreateFileError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `ListFiles` operation.
+/// Each variant represents an error that can occur for the `ListFiles` operation.
+#[derive(::std::fmt::Debug)]
+pub enum ListFilesError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for ListFilesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            ListFilesError::ValidationException(_inner) => _inner.fmt(f),
+            ListFilesError::Unavailable(_inner) => _inner.fmt(f),
+            ListFilesError::InternalError(_inner) => _inner.fmt(f),
+            ListFilesError::Forbidden(_inner) => _inner.fmt(f),
+            ListFilesError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl ListFilesError {
+    /// Returns `true` if the error kind is `ListFilesError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, ListFilesError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `ListFilesError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, ListFilesError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `ListFilesError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, ListFilesError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `ListFilesError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, ListFilesError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `ListFilesError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, ListFilesError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            ListFilesError::ValidationException(_inner) => _inner.name(),
+            ListFilesError::Unavailable(_inner) => _inner.name(),
+            ListFilesError::InternalError(_inner) => _inner.name(),
+            ListFilesError::Forbidden(_inner) => _inner.name(),
+            ListFilesError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for ListFilesError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            ListFilesError::ValidationException(_inner) => Some(_inner),
+            ListFilesError::Unavailable(_inner) => Some(_inner),
+            ListFilesError::InternalError(_inner) => Some(_inner),
+            ListFilesError::Forbidden(_inner) => Some(_inner),
+            ListFilesError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::ListFilesError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::ListFilesError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::ListFilesError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::ListFilesError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::ListFilesError {
+    fn from(variant: crate::error::InternalError) -> crate::error::ListFilesError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::ListFilesError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::ListFilesError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::ListFilesError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::ListFilesError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `DeleteFiles` operation.
+/// Each variant represents an error that can occur for the `DeleteFiles` operation.
+#[derive(::std::fmt::Debug)]
+pub enum DeleteFilesError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for DeleteFilesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            DeleteFilesError::ValidationException(_inner) => _inner.fmt(f),
+            DeleteFilesError::Unavailable(_inner) => _inner.fmt(f),
+            DeleteFilesError::InternalError(_inner) => _inner.fmt(f),
+            DeleteFilesError::Forbidden(_inner) => _inner.fmt(f),
+            DeleteFilesError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl DeleteFilesError {
+    /// Returns `true` if the error kind is `DeleteFilesError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, DeleteFilesError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `DeleteFilesError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, DeleteFilesError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `DeleteFilesError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, DeleteFilesError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `DeleteFilesError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, DeleteFilesError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `DeleteFilesError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, DeleteFilesError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            DeleteFilesError::ValidationException(_inner) => _inner.name(),
+            DeleteFilesError::Unavailable(_inner) => _inner.name(),
+            DeleteFilesError::InternalError(_inner) => _inner.name(),
+            DeleteFilesError::Forbidden(_inner) => _inner.name(),
+            DeleteFilesError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for DeleteFilesError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            DeleteFilesError::ValidationException(_inner) => Some(_inner),
+            DeleteFilesError::Unavailable(_inner) => Some(_inner),
+            DeleteFilesError::InternalError(_inner) => Some(_inner),
+            DeleteFilesError::Forbidden(_inner) => Some(_inner),
+            DeleteFilesError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::DeleteFilesError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::DeleteFilesError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::DeleteFilesError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::DeleteFilesError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::DeleteFilesError {
+    fn from(variant: crate::error::InternalError) -> crate::error::DeleteFilesError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::DeleteFilesError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::DeleteFilesError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::DeleteFilesError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::DeleteFilesError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
 /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
@@ -858,6 +1171,42 @@ impl NotFound {
     /// Creates a new builder-style object to manufacture [`NotFound`](crate::error::NotFound).
     pub fn builder() -> crate::error::not_found::Builder {
         crate::error::not_found::Builder::default()
+    }
+}
+
+/// file の種類を受けない: 受けない拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（CreateFile）。 生成した層が返す `UnsupportedMediaTypeException`（操作の決めた `Content-Type` でない要求）とは別。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct UnsupportedMediaType {
+    #[allow(missing_docs)] // documentation missing in model
+    pub message: ::std::string::String,
+}
+impl UnsupportedMediaType {
+    /// Returns the error message.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+    #[doc(hidden)]
+    /// Returns the error name.
+    pub fn name(&self) -> &'static str {
+        "UnsupportedMediaType"
+    }
+}
+impl ::std::fmt::Display for UnsupportedMediaType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        ::std::write!(f, "UnsupportedMediaType")?;
+        {
+            ::std::write!(f, ": {}", &self.message)?;
+        }
+        Ok(())
+    }
+}
+impl ::std::error::Error for UnsupportedMediaType {}
+impl UnsupportedMediaType {
+    /// Creates a new builder-style object to manufacture [`UnsupportedMediaType`](crate::error::UnsupportedMediaType).
+    pub fn builder() -> crate::error::unsupported_media_type::Builder {
+        crate::error::unsupported_media_type::Builder::default()
     }
 }
 /// See [`Forbidden`](crate::error::Forbidden).
@@ -1248,6 +1597,58 @@ pub mod not_found {
             self,
         ) -> Result<crate::error::NotFound, ConstraintViolation> {
             Ok(crate::error::NotFound {
+                message: self.message.ok_or(ConstraintViolation::MissingMessage)?,
+            })
+        }
+    }
+}
+/// See [`UnsupportedMediaType`](crate::error::UnsupportedMediaType).
+pub mod unsupported_media_type {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `message` was not provided but it is required when building `UnsupportedMediaType`.
+        MissingMessage,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingMessage => write!(f, "`message` was not provided but it is required when building `UnsupportedMediaType`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::error::UnsupportedMediaType {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`UnsupportedMediaType`](crate::error::UnsupportedMediaType).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) message: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn message(mut self, input: ::std::string::String) -> Self {
+            self.message = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`UnsupportedMediaType`](crate::error::UnsupportedMediaType).
+        ///
+        /// The builder fails to construct a [`UnsupportedMediaType`](crate::error::UnsupportedMediaType) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::error::UnsupportedMediaType, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::error::UnsupportedMediaType, ConstraintViolation> {
+            Ok(crate::error::UnsupportedMediaType {
                 message: self.message.ok_or(ConstraintViolation::MissingMessage)?,
             })
         }

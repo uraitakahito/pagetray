@@ -4,9 +4,12 @@
 /// Constructed via [`Pagetray::builder`].
 pub struct PagetrayBuilder<Body, L, HttpPl, ModelPl> {
     add_review_marks: Option<::aws_smithy_http_server::routing::Route<Body>>,
+    create_file: Option<::aws_smithy_http_server::routing::Route<Body>>,
     create_page: Option<::aws_smithy_http_server::routing::Route<Body>>,
+    delete_files: Option<::aws_smithy_http_server::routing::Route<Body>>,
     delete_pages: Option<::aws_smithy_http_server::routing::Route<Body>>,
     get_health: Option<::aws_smithy_http_server::routing::Route<Body>>,
+    list_files: Option<::aws_smithy_http_server::routing::Route<Body>>,
     list_pages: Option<::aws_smithy_http_server::routing::Route<Body>>,
     set_reply_state: Option<::aws_smithy_http_server::routing::Route<Body>>,
     layer: L,
@@ -189,6 +192,180 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         self
     }
 
+    /// Sets the [`CreateFile`](crate::operation_shape::CreateFile) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::CreateFileInput) -> Result<output::CreateFileOutput, error::CreateFileError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let app = Pagetray::builder(config)
+    ///     .create_file(handler)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn create_file<HandlerType, HandlerExtractors, UpgradeExtractors>(self, handler: HandlerType) -> Self
+                    where
+                        HandlerType: ::aws_smithy_http_server::operation::Handler<crate::operation_shape::CreateFile, HandlerExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::CreateFile,
+                            ::aws_smithy_http_server::operation::IntoService<crate::operation_shape::CreateFile, HandlerType>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::CreateFile,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::CreateFile,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::CreateFile,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::CreateFile::from_handler(handler);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#CreateFile",
+                        "ai.pagetray",
+                        "CreateFile",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#CreateFile",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.create_file_custom(svc)
+    }
+
+    /// Sets the [`CreateFile`](crate::operation_shape::CreateFile) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::CreateFileInput) -> Result<output::CreateFileOutput, error::CreateFileError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let svc = ::tower::util::service_fn(handler);
+    /// let app = Pagetray::builder(config)
+    ///     .create_file_service(svc)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn create_file_service<S, ServiceExtractors, UpgradeExtractors>(self, service: S) -> Self
+                    where
+                        S: ::aws_smithy_http_server::operation::OperationService<crate::operation_shape::CreateFile, ServiceExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::CreateFile,
+                            ::aws_smithy_http_server::operation::Normalize<crate::operation_shape::CreateFile, S>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::CreateFile,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::CreateFile,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::CreateFile,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::CreateFile::from_service(service);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#CreateFile",
+                        "ai.pagetray",
+                        "CreateFile",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#CreateFile",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.create_file_custom(svc)
+    }
+
+    /// Sets the [`CreateFile`](crate::operation_shape::CreateFile) to a custom [`Service`](tower::Service).
+    /// not constrained by the Smithy contract.
+    fn create_file_custom<S>(mut self, svc: S) -> Self
+    where
+        S: ::tower::Service<
+                ::http_1x::Request<Body>,
+                Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>,
+                Error = ::std::convert::Infallible,
+            > + Clone
+            + Send
+            + 'static,
+        S::Future: Send + 'static,
+    {
+        self.create_file = Some(::aws_smithy_http_server::routing::Route::new(svc));
+        self
+    }
+
     /// Sets the [`CreatePage`](crate::operation_shape::CreatePage) operation.
     ///
     /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
@@ -360,6 +537,180 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         S::Future: Send + 'static,
     {
         self.create_page = Some(::aws_smithy_http_server::routing::Route::new(svc));
+        self
+    }
+
+    /// Sets the [`DeleteFiles`](crate::operation_shape::DeleteFiles) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::DeleteFilesInput) -> Result<output::DeleteFilesOutput, error::DeleteFilesError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let app = Pagetray::builder(config)
+    ///     .delete_files(handler)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn delete_files<HandlerType, HandlerExtractors, UpgradeExtractors>(self, handler: HandlerType) -> Self
+                    where
+                        HandlerType: ::aws_smithy_http_server::operation::Handler<crate::operation_shape::DeleteFiles, HandlerExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::DeleteFiles,
+                            ::aws_smithy_http_server::operation::IntoService<crate::operation_shape::DeleteFiles, HandlerType>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::DeleteFiles,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::DeleteFiles,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::DeleteFiles,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::DeleteFiles::from_handler(handler);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#DeleteFiles",
+                        "ai.pagetray",
+                        "DeleteFiles",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#DeleteFiles",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.delete_files_custom(svc)
+    }
+
+    /// Sets the [`DeleteFiles`](crate::operation_shape::DeleteFiles) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::DeleteFilesInput) -> Result<output::DeleteFilesOutput, error::DeleteFilesError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let svc = ::tower::util::service_fn(handler);
+    /// let app = Pagetray::builder(config)
+    ///     .delete_files_service(svc)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn delete_files_service<S, ServiceExtractors, UpgradeExtractors>(self, service: S) -> Self
+                    where
+                        S: ::aws_smithy_http_server::operation::OperationService<crate::operation_shape::DeleteFiles, ServiceExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::DeleteFiles,
+                            ::aws_smithy_http_server::operation::Normalize<crate::operation_shape::DeleteFiles, S>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::DeleteFiles,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::DeleteFiles,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::DeleteFiles,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::DeleteFiles::from_service(service);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#DeleteFiles",
+                        "ai.pagetray",
+                        "DeleteFiles",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#DeleteFiles",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.delete_files_custom(svc)
+    }
+
+    /// Sets the [`DeleteFiles`](crate::operation_shape::DeleteFiles) to a custom [`Service`](tower::Service).
+    /// not constrained by the Smithy contract.
+    fn delete_files_custom<S>(mut self, svc: S) -> Self
+    where
+        S: ::tower::Service<
+                ::http_1x::Request<Body>,
+                Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>,
+                Error = ::std::convert::Infallible,
+            > + Clone
+            + Send
+            + 'static,
+        S::Future: Send + 'static,
+    {
+        self.delete_files = Some(::aws_smithy_http_server::routing::Route::new(svc));
         self
     }
 
@@ -708,6 +1059,180 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         S::Future: Send + 'static,
     {
         self.get_health = Some(::aws_smithy_http_server::routing::Route::new(svc));
+        self
+    }
+
+    /// Sets the [`ListFiles`](crate::operation_shape::ListFiles) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::ListFilesInput) -> Result<output::ListFilesOutput, error::ListFilesError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let app = Pagetray::builder(config)
+    ///     .list_files(handler)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn list_files<HandlerType, HandlerExtractors, UpgradeExtractors>(self, handler: HandlerType) -> Self
+                    where
+                        HandlerType: ::aws_smithy_http_server::operation::Handler<crate::operation_shape::ListFiles, HandlerExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListFiles,
+                            ::aws_smithy_http_server::operation::IntoService<crate::operation_shape::ListFiles, HandlerType>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListFiles,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListFiles,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::ListFiles,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::ListFiles::from_handler(handler);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#ListFiles",
+                        "ai.pagetray",
+                        "ListFiles",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#ListFiles",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.list_files_custom(svc)
+    }
+
+    /// Sets the [`ListFiles`](crate::operation_shape::ListFiles) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::ListFilesInput) -> Result<output::ListFilesOutput, error::ListFilesError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let svc = ::tower::util::service_fn(handler);
+    /// let app = Pagetray::builder(config)
+    ///     .list_files_service(svc)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn list_files_service<S, ServiceExtractors, UpgradeExtractors>(self, service: S) -> Self
+                    where
+                        S: ::aws_smithy_http_server::operation::OperationService<crate::operation_shape::ListFiles, ServiceExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListFiles,
+                            ::aws_smithy_http_server::operation::Normalize<crate::operation_shape::ListFiles, S>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListFiles,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListFiles,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::ListFiles,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::ListFiles::from_service(service);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#ListFiles",
+                        "ai.pagetray",
+                        "ListFiles",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#ListFiles",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.list_files_custom(svc)
+    }
+
+    /// Sets the [`ListFiles`](crate::operation_shape::ListFiles) to a custom [`Service`](tower::Service).
+    /// not constrained by the Smithy contract.
+    fn list_files_custom<S>(mut self, svc: S) -> Self
+    where
+        S: ::tower::Service<
+                ::http_1x::Request<Body>,
+                Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>,
+                Error = ::std::convert::Infallible,
+            > + Clone
+            + Send
+            + 'static,
+        S::Future: Send + 'static,
+    {
+        self.list_files = Some(::aws_smithy_http_server::routing::Route::new(svc));
         self
     }
 
@@ -1090,9 +1615,17 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                     ".add_review_marks()",
                 );
             }
+            if self.create_file.is_none() {
+                missing_operation_names
+                    .insert(crate::operation_shape::CreateFile::ID, ".create_file()");
+            }
             if self.create_page.is_none() {
                 missing_operation_names
                     .insert(crate::operation_shape::CreatePage::ID, ".create_page()");
+            }
+            if self.delete_files.is_none() {
+                missing_operation_names
+                    .insert(crate::operation_shape::DeleteFiles::ID, ".delete_files()");
             }
             if self.delete_pages.is_none() {
                 missing_operation_names
@@ -1101,6 +1634,10 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
             if self.get_health.is_none() {
                 missing_operation_names
                     .insert(crate::operation_shape::GetHealth::ID, ".get_health()");
+            }
+            if self.list_files.is_none() {
+                missing_operation_names
+                    .insert(crate::operation_shape::ListFiles::ID, ".list_files()");
             }
             if self.list_pages.is_none() {
                 missing_operation_names
@@ -1130,6 +1667,8 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
             crate::model::Verdict::compile_regex();
             crate::model::ActorId::compile_regex();
             crate::model::PageSort::compile_regex();
+            crate::model::FileName::compile_regex();
+            crate::model::FileStem::compile_regex();
             crate::model::ActorKind::compile_regex();
 
             ::aws_smithy_http_server::protocol::rest::router::RestRouter::from_iter([
@@ -1138,8 +1677,16 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                     self.add_review_marks.expect(unexpected_error_msg),
                 ),
                 (
+                    request_specs::create_file(),
+                    self.create_file.expect(unexpected_error_msg),
+                ),
+                (
                     request_specs::create_page(),
                     self.create_page.expect(unexpected_error_msg),
+                ),
+                (
+                    request_specs::delete_files(),
+                    self.delete_files.expect(unexpected_error_msg),
                 ),
                 (
                     request_specs::delete_pages(),
@@ -1148,6 +1695,10 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                 (
                     request_specs::get_health(),
                     self.get_health.expect(unexpected_error_msg),
+                ),
+                (
+                    request_specs::list_files(),
+                    self.list_files.expect(unexpected_error_msg),
                 ),
                 (
                     request_specs::list_pages(),
@@ -1192,8 +1743,26 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                 }),
             ),
             (
+                request_specs::create_file(),
+                self.create_file.unwrap_or_else(|| {
+                    let svc = ::aws_smithy_http_server::operation::MissingFailure::<
+                        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+                    >::default();
+                    ::aws_smithy_http_server::routing::Route::new(svc)
+                }),
+            ),
+            (
                 request_specs::create_page(),
                 self.create_page.unwrap_or_else(|| {
+                    let svc = ::aws_smithy_http_server::operation::MissingFailure::<
+                        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+                    >::default();
+                    ::aws_smithy_http_server::routing::Route::new(svc)
+                }),
+            ),
+            (
+                request_specs::delete_files(),
+                self.delete_files.unwrap_or_else(|| {
                     let svc = ::aws_smithy_http_server::operation::MissingFailure::<
                         ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
                     >::default();
@@ -1212,6 +1781,15 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
             (
                 request_specs::get_health(),
                 self.get_health.unwrap_or_else(|| {
+                    let svc = ::aws_smithy_http_server::operation::MissingFailure::<
+                        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+                    >::default();
+                    ::aws_smithy_http_server::routing::Route::new(svc)
+                }),
+            ),
+            (
+                request_specs::list_files(),
+                self.list_files.unwrap_or_else(|| {
                     let svc = ::aws_smithy_http_server::operation::MissingFailure::<
                         ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
                     >::default();
@@ -1303,6 +1881,25 @@ mod request_specs {
                     ),
                 )
     }
+    pub(super) fn create_file() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
+        ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
+                    ::http_1x::Method::POST,
+                    ::aws_smithy_http_server::routing::request_spec::UriSpec::new(
+                        ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
+                            ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("projects")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Label,
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("keys")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Label,
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("files")),
+]),
+                            ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
+])
+                        )
+                    ),
+                )
+    }
     pub(super) fn create_page() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
         ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
                     ::http_1x::Method::POST,
@@ -1317,6 +1914,21 @@ mod request_specs {
     ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("kinds")),
     ::aws_smithy_http_server::routing::request_spec::PathSegment::Label,
     ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("pages")),
+]),
+                            ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
+])
+                        )
+                    ),
+                )
+    }
+    pub(super) fn delete_files() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
+        ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
+                    ::http_1x::Method::DELETE,
+                    ::aws_smithy_http_server::routing::request_spec::UriSpec::new(
+                        ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
+                            ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("files")),
 ]),
                             ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
 ])
@@ -1346,6 +1958,21 @@ mod request_specs {
                         ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
                             ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
     ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("healthz")),
+]),
+                            ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
+])
+                        )
+                    ),
+                )
+    }
+    pub(super) fn list_files() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
+        ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
+                    ::http_1x::Method::GET,
+                    ::aws_smithy_http_server::routing::request_spec::UriSpec::new(
+                        ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
+                            ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("files")),
 ]),
                             ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
 ])
@@ -1424,9 +2051,12 @@ impl Pagetray<()> {
     ) -> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         PagetrayBuilder {
             add_review_marks: None,
+            create_file: None,
             create_page: None,
+            delete_files: None,
             delete_pages: None,
             get_health: None,
+            list_files: None,
             list_pages: None,
             set_reply_state: None,
             layer: config.layers,
@@ -1457,9 +2087,12 @@ impl Pagetray<()> {
     ) -> PagetrayBuilder<Body, ::tower::layer::util::Identity, HttpPl, ModelPl> {
         PagetrayBuilder {
             add_review_marks: None,
+            create_file: None,
             create_page: None,
+            delete_files: None,
             delete_pages: None,
             get_health: None,
+            list_files: None,
             list_pages: None,
             set_reply_state: None,
             layer: ::tower::layer::util::Identity::new(),
@@ -1585,9 +2218,12 @@ where
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Operation {
     AddReviewMarks,
+    CreateFile,
     CreatePage,
+    DeleteFiles,
     DeletePages,
     GetHealth,
+    ListFiles,
     ListPages,
     SetReplyState,
 }
@@ -1601,10 +2237,20 @@ impl Operation {
                 "ai.pagetray",
                 "AddReviewMarks",
             ),
+            Operation::CreateFile => ::aws_smithy_http_server::shape_id::ShapeId::new(
+                "ai.pagetray#CreateFile",
+                "ai.pagetray",
+                "CreateFile",
+            ),
             Operation::CreatePage => ::aws_smithy_http_server::shape_id::ShapeId::new(
                 "ai.pagetray#CreatePage",
                 "ai.pagetray",
                 "CreatePage",
+            ),
+            Operation::DeleteFiles => ::aws_smithy_http_server::shape_id::ShapeId::new(
+                "ai.pagetray#DeleteFiles",
+                "ai.pagetray",
+                "DeleteFiles",
             ),
             Operation::DeletePages => ::aws_smithy_http_server::shape_id::ShapeId::new(
                 "ai.pagetray#DeletePages",
@@ -1615,6 +2261,11 @@ impl Operation {
                 "ai.pagetray#GetHealth",
                 "ai.pagetray",
                 "GetHealth",
+            ),
+            Operation::ListFiles => ::aws_smithy_http_server::shape_id::ShapeId::new(
+                "ai.pagetray#ListFiles",
+                "ai.pagetray",
+                "ListFiles",
             ),
             Operation::ListPages => ::aws_smithy_http_server::shape_id::ShapeId::new(
                 "ai.pagetray#ListPages",
@@ -1634,10 +2285,20 @@ impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_sh
 {
     const VALUE: Operation = Operation::AddReviewMarks;
 }
+impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::CreateFile>
+    for Pagetray<L>
+{
+    const VALUE: Operation = Operation::CreateFile;
+}
 impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::CreatePage>
     for Pagetray<L>
 {
     const VALUE: Operation = Operation::CreatePage;
+}
+impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::DeleteFiles>
+    for Pagetray<L>
+{
+    const VALUE: Operation = Operation::DeleteFiles;
 }
 impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::DeletePages>
     for Pagetray<L>
@@ -1648,6 +2309,11 @@ impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_sh
     for Pagetray<L>
 {
     const VALUE: Operation = Operation::GetHealth;
+}
+impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::ListFiles>
+    for Pagetray<L>
+{
+    const VALUE: Operation = Operation::ListFiles;
 }
 impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::ListPages>
     for Pagetray<L>
@@ -1856,6 +2522,15 @@ macro_rules! scope {
                             scope! { @ $ name, $ contains (AddReviewMarks $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
                         };
 
+                        // CreateFile match found, pop from both `member` and `not_member`
+                        (@ $ name: ident, $ contains: ident (CreateFile $($ member: ident)*) ($($ temp: ident)*) (CreateFile $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
+                        };
+                        // CreateFile match not found, pop from `not_member` into `temp` stack
+                        (@ $ name: ident, $ contains: ident (CreateFile $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains (CreateFile $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
+                        };
+
                         // CreatePage match found, pop from both `member` and `not_member`
                         (@ $ name: ident, $ contains: ident (CreatePage $($ member: ident)*) ($($ temp: ident)*) (CreatePage $($ not_member: ident)*)) => {
                             scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
@@ -1863,6 +2538,15 @@ macro_rules! scope {
                         // CreatePage match not found, pop from `not_member` into `temp` stack
                         (@ $ name: ident, $ contains: ident (CreatePage $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
                             scope! { @ $ name, $ contains (CreatePage $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
+                        };
+
+                        // DeleteFiles match found, pop from both `member` and `not_member`
+                        (@ $ name: ident, $ contains: ident (DeleteFiles $($ member: ident)*) ($($ temp: ident)*) (DeleteFiles $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
+                        };
+                        // DeleteFiles match not found, pop from `not_member` into `temp` stack
+                        (@ $ name: ident, $ contains: ident (DeleteFiles $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains (DeleteFiles $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
                         };
 
                         // DeletePages match found, pop from both `member` and `not_member`
@@ -1881,6 +2565,15 @@ macro_rules! scope {
                         // GetHealth match not found, pop from `not_member` into `temp` stack
                         (@ $ name: ident, $ contains: ident (GetHealth $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
                             scope! { @ $ name, $ contains (GetHealth $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
+                        };
+
+                        // ListFiles match found, pop from both `member` and `not_member`
+                        (@ $ name: ident, $ contains: ident (ListFiles $($ member: ident)*) ($($ temp: ident)*) (ListFiles $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
+                        };
+                        // ListFiles match not found, pop from `not_member` into `temp` stack
+                        (@ $ name: ident, $ contains: ident (ListFiles $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains (ListFiles $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
                         };
 
                         // ListPages match found, pop from both `member` and `not_member`
@@ -1915,7 +2608,7 @@ macro_rules! scope {
                                 excludes: []
                             }
                         }
-                        scope! { @ $ name, False ($($ include)*) () (AddReviewMarks CreatePage DeletePages GetHealth ListPages SetReplyState) }
+                        scope! { @ $ name, False ($($ include)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListPages SetReplyState) }
                     };
                     (
                         $(#[$ attrs:meta])*
@@ -1932,6 +2625,6 @@ macro_rules! scope {
                                 excludes: [$($ exclude),*]
                             }
                         }
-                        scope! { @ $ name, True ($($ exclude)*) () (AddReviewMarks CreatePage DeletePages GetHealth ListPages SetReplyState) }
+                        scope! { @ $ name, True ($($ exclude)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListPages SetReplyState) }
                     };
                 }

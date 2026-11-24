@@ -1,11 +1,12 @@
-//! ページを探す（ListPages）の DB の所。読む接続の 1 つの取引の中で、1 頁を読む。
+//! ページを探す（ListPages）と file を探す（ListFiles）の DB の所。読む接続の 1 つの取引の中で、1 頁を読む。
 //!
 //! - 条件は今の server（src/db.rs の list）と同じ。違うのは頁の続け方で、`created_at` と行の id の組で続ける（keyset）。
 //!   同じ時刻の行が頁の境に並んでも、抜けず重ならない。辿る間に置いたページ（前の頁より新しい）は、新しい順の続きに出ない。
-//! - SQL は書いた条件の欠片だけを繋ぎ、値は bind するだけ（[`plans`] の試験が、pages を索引で引くことを見る）。
+//! - SQL は書いた条件の欠片だけを繋ぎ、値は bind するだけ（[`plans`]・[`file_plans`] の試験が、索引で引くことを見る）。
+//! - file の条件も今の server と同じ（q は名 `<語>.<拡張子>` に、小文字にした q を含む物）。頁の続け方はページと同じ。
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::db::{Db, PAGE_ROW, PageRow, Party, Reply};
+use crate::db::{Db, FILE_ROW, FileRow, PAGE_ROW, PageRow, Party, Reply};
 
 /// 1 頁の既定。
 pub const LIMIT: i64 = 100;
@@ -33,10 +34,60 @@ pub struct PageQuery {
     pub limit: i64,
 }
 
+/// file を探す条件（どれも AND）。形は定義と handler が見てある。
+#[derive(Clone, Debug, Default)]
+pub struct FileQuery {
+    pub project: Option<String>,
+    pub key: Option<String>,
+    pub role: Option<String>,
+    /// 空も条件（workspace を書かずに置いた file）。
+    pub workspace: Option<String>,
+    /// 名（`<語>.<拡張子>`）に含まれる字（前後の空白を落とし、空なら絞らない）。
+    pub q: Option<String>,
+    /// 送り手（castlist のアクターの id）。
+    pub actor: Option<String>,
+    /// 古い順（無ければ新しい順）。
+    pub oldest: bool,
+    /// 前の頁の最後の行の、置いた時刻と id。
+    pub after: Option<(String, i64)>,
+    pub limit: i64,
+}
+
 /// 1 頁と、次の頁があるか。
-pub struct Page {
-    pub rows: Vec<PageRow>,
+pub struct Page<T = PageRow> {
+    pub rows: Vec<T>,
     pub more: bool,
+}
+
+/// 並べ方と頁の続き（`created_at` と id の組の keyset）と、1 つ多く読む limit を足す（ページと file で同じ）。
+fn order(
+    q: &mut QueryBuilder<Sqlite>,
+    table: &str,
+    oldest: bool,
+    after: Option<&(String, i64)>,
+    limit: i64,
+) {
+    let (cmp, dir) = if oldest { (">", "asc") } else { ("<", "desc") };
+    if let Some((created_at, id)) = after {
+        q.push(format!(" and ({table}.created_at, {table}.id) {cmp} ("))
+            .push_bind(created_at.clone())
+            .push(", ")
+            .push_bind(*id)
+            .push(")");
+    }
+    // 次の頁があるかを見るため、1 つ多く読む。
+    q.push(format!(
+        " order by {table}.created_at {dir}, {table}.id {dir} limit "
+    ))
+    .push_bind(limit + 1);
+}
+
+/// 1 頁より 1 つ多く読んだ行を、1 頁と次の頁があるかに分ける。
+fn page<T>(mut rows: Vec<T>, limit: i64) -> Page<T> {
+    let limit = usize::try_from(limit).unwrap_or(usize::MAX);
+    let more = rows.len() > limit;
+    rows.truncate(limit);
+    Page { rows, more }
 }
 
 /// 探す語を、全文の索引で探す形（どの語も 3 字以上の時。語ごとに引用符で囲んだ trigram の句）か、
@@ -105,21 +156,37 @@ impl PageQuery {
                 .push_bind(actor.clone())
                 .push(")");
         }
-        let (cmp, dir) = if self.oldest {
-            (">", "asc")
-        } else {
-            ("<", "desc")
-        };
-        if let Some((created_at, id)) = &self.after {
-            q.push(format!(" and (p.created_at, p.id) {cmp} ("))
-                .push_bind(created_at.clone())
-                .push(", ")
-                .push_bind(*id)
+        order(&mut q, "p", self.oldest, self.after.as_ref(), self.limit);
+        q
+    }
+}
+
+impl FileQuery {
+    fn builder(&self) -> QueryBuilder<Sqlite> {
+        let mut q = QueryBuilder::new(FILE_ROW);
+        q.push(" where 1");
+        for (column, value) in [
+            ("project", &self.project),
+            ("key", &self.key),
+            ("role", &self.role),
+            ("workspace", &self.workspace),
+        ] {
+            if let Some(value) = value {
+                q.push(format!(" and f.{column} = "))
+                    .push_bind(value.clone());
+            }
+        }
+        if let Some(text) = self.q.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+            q.push(" and instr(f.name || '.' || f.ext, lower(")
+                .push_bind(text.to_owned())
+                .push(")) > 0");
+        }
+        if let Some(actor) = &self.actor {
+            q.push(" and f.sender_id in (select id from senders where actor_id = ")
+                .push_bind(actor.clone())
                 .push(")");
         }
-        // 次の頁があるかを見るため、1 つ多く読む。
-        q.push(format!(" order by p.created_at {dir}, p.id {dir} limit "))
-            .push_bind(self.limit + 1);
+        order(&mut q, "f", self.oldest, self.after.as_ref(), self.limit);
         q
     }
 }
@@ -128,12 +195,17 @@ impl Db {
     /// 条件に合うページの 1 頁（読む接続の 1 つの取引の中で読む）。
     pub async fn list(&self, query: &PageQuery) -> Result<Page, sqlx::Error> {
         let mut tx = self.read().begin().await?;
-        let mut rows: Vec<PageRow> = query.builder().build_query_as().fetch_all(&mut *tx).await?;
+        let rows: Vec<PageRow> = query.builder().build_query_as().fetch_all(&mut *tx).await?;
         tx.commit().await?;
-        let limit = usize::try_from(query.limit).unwrap_or(usize::MAX);
-        let more = rows.len() > limit;
-        rows.truncate(limit);
-        Ok(Page { rows, more })
+        Ok(page(rows, query.limit))
+    }
+
+    /// 条件に合う file の 1 頁（読む接続の 1 つの取引の中で読む）。
+    pub async fn list_files(&self, query: &FileQuery) -> Result<Page<FileRow>, sqlx::Error> {
+        let mut tx = self.read().begin().await?;
+        let rows: Vec<FileRow> = query.builder().build_query_as().fetch_all(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(page(rows, query.limit))
     }
 }
 
@@ -198,6 +270,51 @@ pub fn plans() -> Vec<(&'static str, String)> {
                 q.q = Some("絞り込み".to_owned());
                 q.reply = Some((Reply::Answered, Party::Tpm));
                 q.verdict = x();
+                q.actor = x();
+                q.after = after();
+            }),
+        ),
+    ]
+}
+
+/// file を探す SQL（名と SQL）。試験が `explain query plan` で、files を索引なしに端から読まないかを見る。
+pub fn file_plans() -> Vec<(&'static str, String)> {
+    fn x() -> Option<String> {
+        Some("x".to_owned())
+    }
+    fn after() -> Option<(String, i64)> {
+        Some(("2026-11-24T00:00:00.000Z".to_owned(), 1))
+    }
+    let sql = |f: fn(&mut FileQuery)| {
+        let mut q = FileQuery {
+            limit: LIMIT,
+            ..FileQuery::default()
+        };
+        f(&mut q);
+        q.builder().into_string()
+    };
+    vec![
+        ("plain", sql(|_| {})),
+        ("oldest", sql(|q| q.oldest = true)),
+        ("project", sql(|q| q.project = x())),
+        ("project_key", sql(|q| (q.project, q.key) = (x(), x()))),
+        ("role", sql(|q| q.role = x())),
+        ("workspace", sql(|q| q.workspace = Some(String::new()))),
+        ("q", sql(|q| q.q = Some("screen".to_owned()))),
+        ("actor", sql(|q| q.actor = x())),
+        ("after", sql(|q| q.after = after())),
+        (
+            "after_oldest",
+            sql(|q| (q.oldest, q.after) = (true, after())),
+        ),
+        (
+            "all",
+            sql(|q| {
+                q.project = x();
+                q.key = x();
+                q.role = x();
+                q.workspace = x();
+                q.q = x();
                 q.actor = x();
                 q.after = after();
             }),

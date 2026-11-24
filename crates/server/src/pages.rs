@@ -49,33 +49,39 @@ pub(crate) fn parse_file(file: &str) -> Option<(&str, i64)> {
     ok.then(|| n.parse().ok()).flatten().map(|n| (kind, n))
 }
 
-/// 見終えた置く引数。
-struct Checked {
-    n: Option<i64>,
-    created_at: Option<String>,
+/// 見終えた置く引数（ページと file に共通の物）。
+pub(crate) struct Checked {
+    pub n: Option<i64>,
+    pub created_at: Option<String>,
     /// 送り手の付随する id（出した物と参照）。
-    actor: Option<(String, String)>,
+    pub actor: Option<(String, String)>,
 }
 
-/// 置く引数の、定義の形では言えない決まりを見る。合わなければ、その訳。空の本文は、生成した層が先に断る（`/body` が無い）。
-/// 付随する id の形（`Issuer`・`ActorRef`）は、定義が見てある。
-fn check(input: &CreatePageInput) -> Result<Checked, String> {
-    if is_dot(&input.project) || input.project == "api" {
+/// 置く引数（ページと file に共通の物）の、定義の形では言えない決まりを見る。合わなければ、その訳。
+/// 空の本文は、生成した層が先に断る（`/body` が無い）。付随する id の形（`Issuer`・`ActorRef`）は、定義が見てある。
+pub(crate) fn check(
+    project: &str,
+    key: &str,
+    n: Option<&str>,
+    created_at: Option<&aws_smithy_types::DateTime>,
+    actor: (Option<&String>, Option<&String>),
+) -> Result<Checked, String> {
+    if is_dot(project) || project == "api" {
         return Err("project に .・..・api は使えない".to_owned());
     }
-    if is_dot(&input.key) {
+    if is_dot(key) {
         return Err("key に . と .. は使えない".to_owned());
     }
-    let n = match &input.n {
+    let n = match n {
         None => None,
         // 形（頭に 0 の無い 18 桁まで）は定義が見てある。
         Some(n) => Some(n.parse::<i64>().map_err(|_| "n は 1 以上の数".to_owned())?),
     };
-    let created_at = match &input.created_at {
+    let created_at = match created_at {
         None => None,
-        Some(t) => Some(created_at(t)?),
+        Some(t) => Some(self::created_at(t)?),
     };
-    let actor = match (&input.actor_issuer, &input.actor_ref) {
+    let actor = match actor {
         (None, None) => None,
         (Some(issuer), Some(actor_ref)) => Some((issuer.clone(), actor_ref.clone())),
         _ => {
@@ -91,7 +97,7 @@ fn check(input: &CreatePageInput) -> Result<Checked, String> {
 
 /// 付随する id があれば、足す送り手の行を作る。castlist があれば聞いて答えを入れ（無ければ付随する id だけ）、
 /// castlist に登録の無い送り手は 400、聞けなければ 503。書く取引を始める前に呼ぶ（待つ間、書く接続を握らない）。
-async fn ask(
+pub(crate) async fn ask(
     castlist: Option<&Castlist>,
     actor: Option<(String, String)>,
 ) -> Result<Option<NewSender>, PutFailure> {
@@ -168,7 +174,14 @@ pub async fn create_page(
         n,
         created_at,
         actor,
-    } = check(&input).map_err(PutFailure::Invalid)?;
+    } = check(
+        &input.project,
+        &input.key,
+        input.n.as_deref(),
+        input.created_at.as_ref(),
+        (input.actor_issuer.as_ref(), input.actor_ref.as_ref()),
+    )
+    .map_err(PutFailure::Invalid)?;
     let sender = ask(castlist.as_ref(), actor).await?;
     let workspace = input.workspace.as_deref().unwrap_or("");
     let body = input.body.as_ref();

@@ -241,3 +241,117 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Del
         ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
     }
 }
+
+/// file を 1 つ置く。本文は中身をそのまま（`Content-Type` は拡張子の種類と同じ。`;` の後ろと大小は問わない）。答えに中身は入らない。 受ける拡張子は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。ほかの拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（字の file は UTF-8 で NUL の無い物）は 415。 番号（`n`）を書かなければ、同じ project・key・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。 送り手は CreatePage と同じ（castlist には、ほかの検査（400・415）の後に聞く）。 一覧の UI の form から上げた物（守りの層が `Origin` の例外として通した物）は、役割 `product-manager`・workspace 空で残し、 `n`・`createdAt`・`actorIssuer`・`actorRef` を読まない（`role` も書かなくてよい）。ほかの要求は `role` が要る（無ければ 400）。
+pub struct CreateFile;
+
+impl ::aws_smithy_http_server::operation::OperationShape for CreateFile {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#CreateFile",
+            "ai.pagetray",
+            "CreateFile",
+        );
+
+    type Input = crate::input::CreateFileInput;
+    type Output = crate::output::CreateFileOutput;
+    type Error = crate::error::CreateFileError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for CreateFile {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
+
+/// file を探す（新しい順が既定）。どの条件も、書いた物だけで絞る（重ねれば、どれにも合う物）。 - `q` は前後の空白を落とし、空なら絞らない。名（`&lt;語&gt;.&lt;拡張子&gt;`）に、小文字にした `q` を含む物。 - `actor` は送り手の castlist のアクターの id（castlist の答えの無い送り手の file には当たらない）。 - 頁は `createdAt` と行の順で続ける（ListPages と同じ）。`nextToken` は同じ `sort` の答えの物を渡す。
+pub struct ListFiles;
+
+impl ::aws_smithy_http_server::operation::OperationShape for ListFiles {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#ListFiles",
+            "ai.pagetray",
+            "ListFiles",
+        );
+
+    type Input = crate::input::ListFilesInput;
+    type Output = crate::output::ListFilesOutput;
+    type Error = crate::error::ListFilesError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for ListFiles {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
+
+/// 合う file をみな消す（戻せない）。`project` は要り、`key`・`name`・`n` は書けば絞る（`n` には `key` と `name` が要る。 `name` だけなら project の中のその名をみな）。番号は消した時刻と残し、2 度使わない（消した file の URL は 410）。 ページは消えない。答えは消した file の path（置いた順）。合う物が無ければ空。
+pub struct DeleteFiles;
+
+impl ::aws_smithy_http_server::operation::OperationShape for DeleteFiles {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#DeleteFiles",
+            "ai.pagetray",
+            "DeleteFiles",
+        );
+
+    type Input = crate::input::DeleteFilesInput;
+    type Output = crate::output::DeleteFilesOutput;
+    type Error = crate::error::DeleteFilesError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for DeleteFiles {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
