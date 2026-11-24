@@ -81,6 +81,13 @@ impl App {
         .await
     }
 
+    /// DB を閉じて開き直し、同じ設定の Router を作り直す（起こし直しても残るかを見る）。
+    pub async fn reopen(&mut self) {
+        self.db.close().await;
+        self.db = Arc::new(Db::open(&self.path).await.expect("Db::open"));
+        self.app = pagetray_next::app(self.db.clone());
+    }
+
     /// 送り手の行（id の順。付随する id を出した物・付随する id・castlist のアクターの id・名・種類・答えた時刻）。
     pub async fn senders(&self) -> Vec<Sender> {
         sqlx::query_as(
@@ -140,6 +147,67 @@ impl App {
             .as_str()
             .unwrap_or_else(|| panic!("{json}"))
             .to_owned()
+    }
+
+    /// `GET` して、答えの本文を JSON に読む（読めなければ Null）。
+    pub async fn json(&self, uri: &str) -> (StatusCode, HeaderMap, Value) {
+        let (status, headers, body) = self.get(uri).await;
+        (
+            status,
+            headers,
+            serde_json::from_slice(&body).unwrap_or(Value::Null),
+        )
+    }
+
+    /// 探す（`GET /api/pages?{query}`）。200 を見て、答えの 1 頁のページの path を返す。
+    pub async fn paths(&self, query: &str) -> Vec<String> {
+        let (status, _, json) = self.json(&format!("/api/pages?{query}")).await;
+        assert_eq!(status, StatusCode::OK, "{query}: {json}");
+        page_paths(&json)
+    }
+
+    /// 返事の状態を書く（`PUT …/pages/{n}/reply`。本文は JSON）。
+    pub async fn reply(&self, page: &str, body: Value) -> (StatusCode, HeaderMap, Value) {
+        self.send_json(json_request(
+            "PUT",
+            &format!("{}/reply", page_uri(page)),
+            Some(body),
+        ))
+        .await
+    }
+
+    /// レビューの印を書く（`POST …/pages/{n}/review`。本文は JSON。`None` なら本文を付けない）。
+    pub async fn review(&self, page: &str, body: Option<Value>) -> (StatusCode, HeaderMap, Value) {
+        self.send_json(json_request(
+            "POST",
+            &format!("{}/review", page_uri(page)),
+            body,
+        ))
+        .await
+    }
+
+    /// 消す（`DELETE /api/pages?{query}`）。
+    pub async fn remove(&self, query: &str) -> (StatusCode, HeaderMap, Value) {
+        let request = Request::delete(format!("/api/pages?{query}"))
+            .header(header::HOST, HOST)
+            .body(Body::empty())
+            .unwrap();
+        self.send_json(request).await
+    }
+
+    /// 要求を 1 つ通し、答えの本文を JSON に読む（読めなければ Null）。
+    pub async fn send_json(&self, request: Request<Body>) -> (StatusCode, HeaderMap, Value) {
+        let (status, headers, body) = self.send(request).await;
+        (
+            status,
+            headers,
+            serde_json::from_slice(&body).unwrap_or(Value::Null),
+        )
+    }
+
+    /// 外のキーの崩れた行の数。
+    pub async fn foreign_key_violations(&self) -> i64 {
+        scalar(self, "select count(*) from pragma_foreign_key_check").await
     }
 
     /// 表の行の数（読む接続で数える）。
@@ -231,4 +299,62 @@ pub fn refused(headers: &HeaderMap, body: &[u8], kind: &str) -> String {
     let message = json["message"].as_str().unwrap_or_else(|| panic!("{text}"));
     assert!(!message.is_empty());
     message.to_owned()
+}
+
+/// 一覧の答えの、ページの path の並び。
+pub fn page_paths(json: &Value) -> Vec<String> {
+    json["pages"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{json}"))
+        .iter()
+        .map(|p| {
+            p["path"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{p}"))
+                .to_owned()
+        })
+        .collect()
+}
+
+/// ページの path（`/<project>/<key>/<kind>-<n>.html`）を、そのページの API の道
+/// （`/api/projects/<project>/keys/<key>/kinds/<kind>/pages/<n>`）にする。
+pub fn page_uri(path: &str) -> String {
+    let mut parts = path.trim_start_matches('/').splitn(3, '/');
+    let (project, key, file) = (
+        parts.next().unwrap(),
+        parts.next().unwrap(),
+        parts.next().unwrap(),
+    );
+    let (kind, n) = file
+        .strip_suffix(".html")
+        .and_then(|f| f.rsplit_once('-'))
+        .unwrap_or_else(|| panic!("ページの path でない: {path}"));
+    format!("/api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}")
+}
+
+/// JSON の本文の要求（`None` なら本文も `Content-Type` も付けない）。
+pub fn json_request(method: &str, uri: &str, body: Option<Value>) -> Request<Body> {
+    let builder = Request::builder()
+        .method(method)
+        .uri(uri)
+        .header(header::HOST, HOST);
+    match body {
+        Some(body) => builder
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(body.to_string()))
+            .unwrap(),
+        None => builder.body(Body::empty()).unwrap(),
+    }
+}
+
+/// 答えの JSON の欄の名（並べた物）。
+pub fn keys(json: &Value) -> Vec<String> {
+    let mut keys: Vec<String> = json
+        .as_object()
+        .unwrap_or_else(|| panic!("{json}"))
+        .keys()
+        .cloned()
+        .collect();
+    keys.sort();
+    keys
 }

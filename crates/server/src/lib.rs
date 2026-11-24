@@ -8,7 +8,11 @@ pub mod db;
 mod errors;
 mod generated;
 mod guard;
+mod list;
+mod marks;
 mod pages;
+mod remove;
+pub mod search;
 mod text;
 
 use std::sync::Arc;
@@ -60,6 +64,22 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             let db = db.clone();
             let castlist = config.castlist.clone();
             move |input, host| pages::create_page(db.clone(), castlist.clone(), input, host)
+        })
+        .list_pages({
+            let db = db.clone();
+            move |input| list::list_pages(db.clone(), input)
+        })
+        .set_reply_state({
+            let db = db.clone();
+            move |input| marks::set_reply_state(db.clone(), input)
+        })
+        .add_review_marks({
+            let db = db.clone();
+            move |input| marks::add_review_marks(db.clone(), input)
+        })
+        .delete_pages({
+            let db = db.clone();
+            move |input| remove::delete_pages(db.clone(), input)
         })
         .build()
         .expect("どの操作にも handler がある");

@@ -78,3 +78,166 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Cre
         ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
     }
 }
+
+/// ページを探す（新しい順が既定）。どの条件も、書いた物だけで絞る（重ねれば、どれにも合う物）。 - `q` は前後の空白を落とし、空なら絞らない。どの語も 3 字以上なら、語ごとに題と本文の全文の索引（trigram）で探す （どの語も含む物。大小を問わない。記号はただの字）。3 字に満たない語があれば、`q` 全体を題と本文の字で探す（大小を分ける）。 - `reply` は返事の状態（`waiting`・`answered`）で、`on` はその待ちの相手（既定 `pm`。`reply` と一緒にだけ書く）。 - `actor` は送り手の castlist のアクターの id（castlist の答えの無い送り手のページには当たらない）。 - 頁は `createdAt` と行の順で続ける（同じ時刻の行が頁の境に並んでも、抜けず重ならない）。 `nextToken` は同じ `sort` の答えの物を渡す（違えば 400。ほかの条件は見ない）。
+pub struct ListPages;
+
+impl ::aws_smithy_http_server::operation::OperationShape for ListPages {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#ListPages",
+            "ai.pagetray",
+            "ListPages",
+        );
+
+    type Input = crate::input::ListPagesInput;
+    type Output = crate::output::ListPagesOutput;
+    type Error = crate::error::ListPagesError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for ListPages {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
+
+/// ページ 1 枚の返事の状態を書く。答えは、そのページの記録。同じ状態を 2 度書いても同じ答え（時刻は初めの物を保つ）。 - `waiting`: 待ちの相手を `on`（既定 `pm`）にし、答えた時刻を消す。答えた後にもう 1 度求めれば、求めた時刻を今にする （相手を替えてよい）。今ほかの相手を待っていれば 409（待ちを黙って移さない）。 - `answered`: 答えた時刻を入れる。待ちの相手が `on` と違えば 409。`pm` は、求めていないページも答えたにでき （求めた時刻と答えた時刻は同じ）、ほかの相手は、求めたページだけ。 - 無いページと消したページは 404。409 の時は何も替えない。
+pub struct SetReplyState;
+
+impl ::aws_smithy_http_server::operation::OperationShape for SetReplyState {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#SetReplyState",
+            "ai.pagetray",
+            "SetReplyState",
+        );
+
+    type Input = crate::input::SetReplyStateInput;
+    type Output = crate::output::SetReplyStateOutput;
+    type Error = crate::error::SetReplyStateError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for SetReplyState {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
+
+/// レビューの印を書く。答えは、そのページの記録。本文は無くてもよい（何も替えずに記録を返す）。 - `verdict` は、書けば替わり、書かなければ前のまま（消す道は無い）。種類が `review` のページだけ（ほかは 400）。 - `targets` は、置き場のページの path（`/<project>
+/// /
+/// <key>
+/// /
+/// <kind>
+/// -
+/// <n>
+/// .html`）か、空白と制御字の無い `https://` の URL （2048 字まで）を、1 度に 100 個まで。足すだけで、同じ物は 1 つ、書いた順。足すとページ 1 枚で 100 個を超えるなら 400 （判定も替えない）。 - 無いページと消したページは 404。ページを消すと、見た物も消える。
+/// </n>
+/// </kind>
+/// </key>
+/// </project>
+pub struct AddReviewMarks;
+
+impl ::aws_smithy_http_server::operation::OperationShape for AddReviewMarks {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#AddReviewMarks",
+            "ai.pagetray",
+            "AddReviewMarks",
+        );
+
+    type Input = crate::input::AddReviewMarksInput;
+    type Output = crate::output::AddReviewMarksOutput;
+    type Error = crate::error::AddReviewMarksError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for AddReviewMarks {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
+
+/// 合うページをみな消す（戻せない）。`project` は要り、`key`・`kind`・`n` は書けば絞る（`n` には `key` と `kind` が要る）。 番号は消した時刻と残し、2 度使わない（消したページの URL は 410）。全文の索引の行と見た物も消え、送り手の行は残る。 答えは消したページの path（置いた順）。合う物が無ければ空。
+pub struct DeletePages;
+
+impl ::aws_smithy_http_server::operation::OperationShape for DeletePages {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#DeletePages",
+            "ai.pagetray",
+            "DeletePages",
+        );
+
+    type Input = crate::input::DeletePagesInput;
+    type Output = crate::output::DeletePagesOutput;
+    type Error = crate::error::DeletePagesError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for DeletePages {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
