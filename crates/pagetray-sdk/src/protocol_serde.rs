@@ -21,4 +21,8 @@ pub(crate) mod shape_unavailable;
 
 pub(crate) mod shape_validation_exception;
 
+pub(crate) mod shape_sender;
+
 pub(crate) mod shape_validation_exception_field;
+
+pub(crate) mod shape_actor_summary;

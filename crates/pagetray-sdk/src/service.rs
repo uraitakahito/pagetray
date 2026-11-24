@@ -405,6 +405,8 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
             crate::model::PageNumber::compile_regex();
             crate::model::Issuer::compile_regex();
             crate::model::ActorRef::compile_regex();
+            crate::model::ActorId::compile_regex();
+            crate::model::ActorKind::compile_regex();
 
             ::aws_smithy_http_server::protocol::rest::router::RestRouter::from_iter([
                 (

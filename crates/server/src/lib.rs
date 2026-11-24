@@ -3,6 +3,7 @@
 //! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
 //! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）は、同じ Router に並べる。
 //! 形の決まりは docs/src/next.md。
+pub mod castlist;
 pub mod db;
 mod errors;
 mod generated;
@@ -33,12 +34,15 @@ pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 pub struct Config {
     /// 1 つの問い合わせにかけてよい長さ（既定は [`REQUEST_TIMEOUT`]。試験は短くする）。
     pub timeout: Duration,
+    /// 送り手を聞く castlist（[`castlist::Castlist::from_env`]）。無ければ聞かずに、付随する id だけを残す。
+    pub castlist: Option<castlist::Castlist>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             timeout: REQUEST_TIMEOUT,
+            castlist: None,
         }
     }
 }

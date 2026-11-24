@@ -129,6 +129,7 @@ pub async fn create_page(
         created_at,
         size: placed.size,
         path,
+        sender: None,
         location: url.clone(),
         url,
     })

@@ -1,5 +1,5 @@
 //! CreatePage の振る舞い（処理より先に書く）。今の server の「置く」の決まり（docs/src/next.md の「ページを置く」）を、
-//! 新しい道と欄の名で見る。送り手（actorIssuer・actorRef）を受けるのは次の PR で、ここでは断ることだけを見る。
+//! 新しい道と欄の名で見る。送り手（actorIssuer・actorRef）は tests/senders.rs。
 mod common;
 
 use axum::body::Body;
@@ -361,15 +361,9 @@ async fn bad_arguments_are_refused_with_a_validation_error() {
             "plan",
             "role=tpm&createdAt=0000-01-01T00%3A00%3A00Z",
         ),
-        // 送り手は、まだ受けない（片方でも、両方でも）。
+        // 送り手の付随する id は、両方書くか、両方書かない（形と castlist に聞く所は tests/senders.rs）。
         ("p", "k", "plan", "role=tpm&actorIssuer=tpm"),
         ("p", "k", "plan", "role=tpm&actorRef=claude.session%3As-1"),
-        (
-            "p",
-            "k",
-            "plan",
-            "role=tpm&actorIssuer=tpm&actorRef=claude.session%3As-1",
-        ),
     ] {
         let (status, headers, json) = app.put(project, key, kind, query, "<p>x</p>").await;
         assert_eq!(
@@ -424,13 +418,7 @@ async fn the_messages_say_what_is_wrong() {
             "<p>x</p>",
             "ミリ秒",
         ),
-        (
-            "p",
-            "k",
-            "role=tpm&actorIssuer=tpm&actorRef=claude.session%3As-1",
-            "<p>x</p>",
-            "まだ",
-        ),
+        ("p", "k", "role=tpm&actorIssuer=tpm", "<p>x</p>", "両方"),
         // 空の本文は、生成した層が断る（欄の path は /body）。
         ("p", "k", "role=tpm", "", "/body"),
     ] {

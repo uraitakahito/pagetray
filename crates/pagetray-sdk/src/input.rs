@@ -33,9 +33,9 @@ pub struct CreatePageInput {
     pub n: ::std::option::Option<::std::string::String>,
     /// 取り込みの時だけ: 置いた時刻（UTC・ミリ秒まで）。無ければ pagetray の今。
     pub created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
-    /// 付随する id を出した物（`actorRef` と組）。送り手の記録はまだ受けない（書けば 400。AI-36 段 4 の次の PR で受ける）。
+    /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
     pub actor_issuer: ::std::option::Option<::std::string::String>,
-    /// 付随する id（`種類:値`。`actorIssuer` と組）。送り手の記録はまだ受けない（書けば 400）。
+    /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
     pub actor_ref: ::std::option::Option<::std::string::String>,
     /// ページの HTML（空は 400）。UTF-8 でなくても受ける（題と検索の字は、読めない byte を置き換えて取る）。
     pub body: ::aws_smithy_types::Blob,
@@ -73,11 +73,11 @@ impl CreatePageInput {
     pub fn created_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
         self.created_at.as_ref()
     }
-    /// 付随する id を出した物（`actorRef` と組）。送り手の記録はまだ受けない（書けば 400。AI-36 段 4 の次の PR で受ける）。
+    /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
     pub fn actor_issuer(&self) -> ::std::option::Option<&str> {
         self.actor_issuer.as_deref()
     }
-    /// 付随する id（`種類:値`。`actorIssuer` と組）。送り手の記録はまだ受けない（書けば 400）。
+    /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
     pub fn actor_ref(&self) -> ::std::option::Option<&str> {
         self.actor_ref.as_deref()
     }
@@ -359,7 +359,7 @@ pub(crate) mod create_page_input_internal {
             self.created_at = input.map(|v| v.into());
             self
         }
-        /// 付随する id を出した物（`actorRef` と組）。送り手の記録はまだ受けない（書けば 400。AI-36 段 4 の次の PR で受ける）。
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
         pub(crate) fn set_actor_issuer(
             mut self,
             input: Option<
@@ -369,7 +369,7 @@ pub(crate) mod create_page_input_internal {
             self.actor_issuer = input.map(|v| v.into());
             self
         }
-        /// 付随する id（`種類:値`。`actorIssuer` と組）。送り手の記録はまだ受けない（書けば 400）。
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
         pub(crate) fn set_actor_ref(
             mut self,
             input: Option<
@@ -586,12 +586,12 @@ pub mod create_page_input {
             self.created_at = input;
             self
         }
-        /// 付随する id を出した物（`actorRef` と組）。送り手の記録はまだ受けない（書けば 400。AI-36 段 4 の次の PR で受ける）。
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
         pub fn actor_issuer(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
             self.actor_issuer = input;
             self
         }
-        /// 付随する id（`種類:値`。`actorIssuer` と組）。送り手の記録はまだ受けない（書けば 400）。
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
         pub fn actor_ref(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
             self.actor_ref = input;
             self

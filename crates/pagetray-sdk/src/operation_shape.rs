@@ -39,7 +39,9 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Get
 }
 
 /// ページを 1 枚置く。本文は HTML をそのまま（`Content-Type: text/html`）。答えに本文は入らない。 番号（`n`）を書かなければ、同じ project・key・kind の置いた番号と消した番号の最大 + 1（初めは 1）。 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。 題は本文の初めの `
-/// <title>`（無ければ空）。</title>
+/// <title>`（無ければ空）。
+/// 付随する id（`actorIssuer`・`actorRef`）を書けば、送り手を castlist に聞き（書く前に。1 秒・送り直さない）、答えと一緒に残す。
+/// castlist に登録の無い送り手は 400、castlist に聞けなければ 503（どちらも何も残さない）。castlist の無い pagetray は、聞かずに付随する id だけを残す。</title>
 pub struct CreatePage;
 
 impl ::aws_smithy_http_server::operation::OperationShape for CreatePage {

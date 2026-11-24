@@ -40,6 +40,12 @@ pub fn ser_create_page_output_output(
     {
         object.key("role").string(input.role.as_str());
     }
+    if let Some(var_1) = &input.sender {
+        #[allow(unused_mut)]
+        let mut object_2 = object.key("sender").start_object();
+        crate::protocol_serde::shape_sender::ser_sender(&mut object_2, var_1)?;
+        object_2.finish();
+    }
     {
         object.key("size").number(
             #[allow(clippy::useless_conversion)]

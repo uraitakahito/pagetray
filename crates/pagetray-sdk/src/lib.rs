@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 #![allow(clippy::all)]
 #![allow(deprecated)]
 #![allow(unknown_lints)]

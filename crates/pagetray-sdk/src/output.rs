@@ -65,6 +65,8 @@ pub struct CreatePageOutput {
     /// </key>
     /// </project>
     pub path: ::std::string::String,
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub sender: ::std::option::Option<crate::model::Sender>,
     /// 要求の `Host` で組んだ、ページの URL。
     pub url: ::std::string::String,
     /// `url` と同じ。
@@ -130,6 +132,10 @@ impl CreatePageOutput {
     pub fn path(&self) -> &str {
         use std::ops::Deref;
         self.path.deref()
+    }
+    /// 送り手。付随する id を書いて置いた時だけ。
+    pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
+        self.sender.as_ref()
     }
     /// 要求の `Host` で組んだ、ページの URL。
     pub fn url(&self) -> &str {
@@ -287,6 +293,7 @@ pub mod create_page_output {
         pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
         pub(crate) size: ::std::option::Option<i64>,
         pub(crate) path: ::std::option::Option<::std::string::String>,
+        pub(crate) sender: ::std::option::Option<crate::model::Sender>,
         pub(crate) url: ::std::option::Option<::std::string::String>,
         pub(crate) location: ::std::option::Option<::std::string::String>,
     }
@@ -353,6 +360,11 @@ pub mod create_page_output {
             self.path = Some(input);
             self
         }
+        /// 送り手。付随する id を書いて置いた時だけ。
+        pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
+            self.sender = input;
+            self
+        }
         /// 要求の `Host` で組んだ、ページの URL。
         pub fn url(mut self, input: ::std::string::String) -> Self {
             self.url = Some(input);
@@ -388,6 +400,7 @@ pub mod create_page_output {
                     .ok_or(ConstraintViolation::MissingCreatedAt)?,
                 size: self.size.ok_or(ConstraintViolation::MissingSize)?,
                 path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                sender: self.sender,
                 url: self.url.ok_or(ConstraintViolation::MissingUrl)?,
                 location: self.location.ok_or(ConstraintViolation::MissingLocation)?,
             })

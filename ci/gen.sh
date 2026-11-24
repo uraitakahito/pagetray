@@ -167,6 +167,11 @@ for pair in $crates; do
   lib="$made/src/lib.rs"
   [ -f "$lib" ] || ng "$plugin の lib.rs が無い"
   { echo '#![allow(clippy::all)]'; cat "$lib"; } >"$lib.new" && mv "$lib.new" "$lib"
+  # server の骨は、答えにだけ使う形の決まり（ai.common#ActorSummary の id・kind の @pattern）にも、要求を断る時の関数
+  # （as_validation_exception_field）を作り、使われずに dead_code の warning になる。生成した物は直さないので、骨だけ外す。
+  if [ "$plugin" = rust-server-codegen ]; then
+    { echo '#![allow(dead_code)]'; cat "$lib"; } >"$lib.new" && mv "$lib.new" "$lib"
+  fi
   # 呼ぶ側の crate は、既定で https の client（rustls と aws-lc）を引く。pagetray が castlist を呼ぶのは同じ機械の中の
   # http://127.0.0.1 だけなので、既定の features から外す（TLS の crate を build せず、license の見張りにも入れない）。
   # HTTP の client は、使う側（crates/server）が設定で渡す。
