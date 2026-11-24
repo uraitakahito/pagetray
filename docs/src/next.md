@@ -14,7 +14,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | protocol | `aws.protocols#restJson1`。誤りの種類は header `X-Amzn-Errortype` と本文の `message`（今の server の `{"error":…}` はやめる） |
 | 欄と引数の名 | camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`actorIssuer`・`actorRef`・`maxResults`・`nextToken`） |
 | 時刻 | RFC 3339 の UTC（末尾 `Z`。`ai.common#DateTime`）。時差の付いた時刻（`+09:00`）は生成した層が 400 で断る。残す字は UTC・ミリ秒まで・24 字（`2026-11-24T00:00:00.000Z`）にそろえ、字の順が時刻の順になる |
-| 誤り | 定義に書いた型だけ: 400 `ValidationException`・404 `NotFound`・409 `Conflict`・410 `Gone`・500 `InternalError`（server の中の失敗。訳は記録に書き、答えは決まった字。`@retryable` は付けない）・503 `Unavailable`（混んでいる・時間切れ・呼ぶ先の castlist が答えない。`@retryable`）。守りの層が断る 403 `Forbidden`・413 `PayloadTooLarge`・503 `Unavailable` は、service の `errors` に置き、どの操作の誤りにも入る。生成した層の外の道（本文・SSE・backup・logs）の誤りも、同じ形で返す。生成した層が自分で返す物は、知らない道の 404 `UnknownOperationException`（本文は `{}`）・読めない引数の 400 `SerializationException`・違う `Content-Type` の 415 `UnsupportedMediaTypeException` |
+| 誤り | 定義に書いた型だけ: 400 `ValidationException`・404 `NotFound`・409 `Conflict`・410 `Gone`・415 `UnsupportedMediaType`（`ai.pagetray` の型。file の種類を受けない。下の「file を置く」）・500 `InternalError`（server の中の失敗。訳は記録に書き、答えは決まった字。`@retryable` は付けない）・503 `Unavailable`（混んでいる・時間切れ・呼ぶ先の castlist が答えない。`@retryable`）。守りの層が断る 403 `Forbidden`・413 `PayloadTooLarge`・503 `Unavailable` は、service の `errors` に置き、どの操作の誤りにも入る。生成した層の外の道（本文・SSE・backup・logs）の誤りも、同じ形で返す。生成した層が自分で返す物は、知らない道の 404 `UnknownOperationException`（本文は `{}`）・読めない引数の 400 `SerializationException`・違う `Content-Type` の 415 `UnsupportedMediaTypeException` |
 | id | 道に入る id は字にする。ページの番号 `n` も、頭に 0 の無い数の字（`"7"`。`^[1-9][0-9]{0,17}$`）で、答えの `n` も字 |
 | ページ送り | `@paginated`。`maxResults`（1〜1000。既定 100）と、前の答えの `nextToken` をそのまま渡す |
 | 状態の数 | 決まっている物は `@http` の `code`（置けば 201）。答えで替わる物だけ `@httpResponseCode` |
@@ -32,15 +32,15 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `SetReplyState` | `PUT /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/reply`（本文 `{"state":…,"on":…}`） | `POST /api/pages/reply` |
 | `AddReviewMarks` | `POST /api/projects/{project}/keys/{key}/kinds/{kind}/pages/{n}/review`（本文 `{"verdict":…,"targets":[…]}`） | `POST /api/pages/review` |
 | `DeletePages` | `DELETE /api/pages?project&key&kind&n` | `DELETE /api/pages` |
-| `CreateFile` | `POST /api/projects/{project}/keys/{key}/files`（本文は file の中身。`Content-Type` が要る） | `POST /api/files` |
-| `ListFiles` | `GET /api/files` | `GET /api/files` |
-| `DeleteFiles` | `DELETE /api/files` | `DELETE /api/files` |
+| `CreateFile` | `POST /api/projects/{project}/keys/{key}/files`（本文は file の中身。`Content-Type` が要る。引数 `name`・`role`・`workspace`・`n`・`createdAt`・`actorIssuer`・`actorRef`） | `POST /api/files?project&key&name…` |
+| `ListFiles` | `GET /api/files`（引数 `project`・`key`・`role`・`workspace`・`q`・`actor`・`sort`・`maxResults`・`nextToken`） | `GET /api/files` |
+| `DeleteFiles` | `DELETE /api/files?project&key&name&n` | `DELETE /api/files` |
 
 手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`（どちらも今と同じ URL）・新着の知らせ `GET /api/events`（SSE）・`GET /api/backup`・`GET /api/logs`・画面（`/`・`/{project}/`・`/{project}/{key}/`）。
 
 - 置かれたページの URL は切らない。だから本文の URL は今のまま、Smithy の外の手の道にする（`.html` の付いた 1 段は、Smithy の道の label にできない）。
 - `/api/` の下の道は、みな生成した層か、名指した手の道に行く。本文の道（`/{project}/{key}/{file}`）は `/api/…` を受けない（`project` に `api` は置けない）。
-- この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）・`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages` と本文の道。残りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
+- この章の操作は、みな作ってある（手の道は、ページの本文と file の中身）。SSE・backup・logs・画面は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
 
 ## ページを置く（CreatePage）
 
@@ -59,7 +59,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - 検査の順: 引数の形（400）→ 付随する id の組（400）→ castlist（400・503）→ DB（409・503）。前で断れば、後は見ない（castlist に聞かない・何も残さない）。
 - 題は大小を問わない初めの `<title>` の中身（文字参照を戻し、空白を 1 つにまとめる。無ければ空）。検索の索引には、題と、tag・script・style・comment を除いて文字参照を 1 度戻した字を入れる（今の `src/text.rs` と同じ中身の `crates/server/src/text.rs`）。
 - 混んでいて書く接続を 2 秒（`WRITE_WAIT`）待っても取れなければ 503 `Unavailable`（問い合わせの時間切れ 5 秒より前に答える）。
-- 本文の上限（16 MiB で 413 `PayloadTooLarge`）は、守りの層の PR で足す。
+- 本文は 16 MiB まで（超えれば、守りの層が 413 `PayloadTooLarge`。下の「守りの層」）。
 
 ## 送り手
 
@@ -146,9 +146,70 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - 1 つの取引で、番号を残す・索引の行を消す・ページを消す。書く接続を 2 秒待っても取れなければ 503、DB の誤りは 500（どちらも何も消さない）。
 - browser の中のページからは消せない（UI と同じ `Origin` でも 403）。
 
+## file を置く（CreateFile）
+
+ページから参照する file（画面の絵・PDF・字の file）を 1 つ置く。本文は中身をそのまま。答えは 201 で、file の記録（中身は入らない）と、要求の `Host` で組んだ `url`（header `Location` にも）。
+
+| 欄・引数 | 決まり |
+|---|---|
+| `project`・`key`（道） | ページと同じ（`.`・`..`・`project` の `api` は 400） |
+| `name`（引数。要る） | `<語>.<拡張子>`。語は英小文字か数字で始まり、英小文字・数字・`-`・`_` で 1〜64 字。拡張子は英数字で 1〜16 字。`.` は 1 つ（形の違いは、生成した層が 400） |
+| `role` | ページと同じ形。一覧の UI から上げる時のほかは要る（無ければ 400「role が要る」）。定義では `@required` にしない（一覧の UI は書かない） |
+| `workspace`・`n`・`createdAt`・`actorIssuer`・`actorRef` | ページと同じ（番号は語と拡張子ごと） |
+| `Content-Type`（header。要る） | 拡張子の種類と同じ物（`;` の前を、大小を問わずに比べる。`; charset=…` などは問わない）。無ければ、生成した層が 400 `ValidationException`（欄の path は `/contentType`） |
+| 本文 | file の中身（空は、生成した層が 400。欄の path は `/body`）。16 MiB まで |
+
+受ける種類（今の server と同じ。`crates/server/src/files.rs` の `FILE_TYPES`）:
+
+| 拡張子 | 返す時の `Content-Type` | 中身の見方 |
+|---|---|---|
+| `png` | `image/png` | 頭が PNG の印 |
+| `jpg`・`jpeg` | `image/jpeg` | 頭が `FF D8 FF` |
+| `gif` | `image/gif` | 頭が `GIF87a` か `GIF89a` |
+| `webp` | `image/webp` | 頭が `RIFF` で、8〜11 byte 目が `WEBP` |
+| `pdf` | `application/pdf` | 頭が `%PDF-` |
+| `txt`・`log` | `text/plain; charset=utf-8` | UTF-8 で読めて、NUL が無い |
+| `md` | `text/markdown; charset=utf-8` | 同上 |
+| `csv` | `text/csv; charset=utf-8` | 同上 |
+| `json` | `application/json; charset=utf-8` | 同上 |
+
+- 表に無い拡張子（大文字の `PNG` も）・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身は、415 `UnsupportedMediaType`（`message` に訳。受ける拡張子の一覧・`.png の Content-Type は image/png`・`中身が .png の形でない`）。返す時の `Content-Type` は、送った header でなく表の値。
+- 番号: 書かなければ、同じ `project`・`key`・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。書けばその番号で置き、置いた番号・消した番号なら 409 `Conflict`（何も替えない）。ページの番号とは別に数える。
+- `sha256` は中身の SHA-256（16 進の小文字）、`size` は byte の数、`type` は表の `Content-Type`。
+- 検査の順: 引数の形（400）→ 引数の決まりと付随する id の組（400）→ 種類・`Content-Type`・中身（415）→ castlist（400・503）→ DB（409・503）。castlist には、ほかの検査を見終えてから聞く。送り手の残し方は、ページと同じ（上の「送り手」）。
+- 一覧の UI の form から上げた物（守りの層が `Origin` の例外として通し、印を付けた物。下の「守りの層」）は、引数に何が書いてあっても、役割 `product-manager`・workspace 空で残し、`n`・`createdAt`・`actorIssuer`・`actorRef` を読まない（browser から担当を名乗らせない・取り込ませない。送り手の行も作らない）。引数の形の違いは、例外でも生成した層が 400 で断る（今の server は、例外の時に読まない引数の形を見なかった）。
+- 置いた後に、新着の知らせを送る（下の「新着の知らせ」）。
+
+決め:
+
+- 本文の種類: 中身は `@httpPayload` の `blob`（`@mediaType` を付けない）にし、要求の `Content-Type` を `@httpHeader("Content-Type")` の欄 `contentType` に結ぶ。`Content-Type` を欄に結ぶと、smithy-rs の server は `Content-Type` を決まった値（`@mediaType` の無い blob なら `application/octet-stream`）と比べる検査を作らないので、どの種類でも handler まで届き、種類の決まりは handler が見る（S3 の `PutObject` と同じ形）。
+- 415 の型: 生成した層の `UnsupportedMediaTypeException`（操作の決めた `Content-Type` でない要求。ページの本文が `text/html` でない時など）とは別に、`ai.pagetray#UnsupportedMediaType`（`@httpError(415)`）を CreateFile の誤りに置く。呼び手は header `X-Amzn-Errortype` で見分ける（`ai.common` には足さない。file の種類は pagetray だけの決まり）。
+- 一覧の UI の印: 守りの層が要求の extensions に `FromUi` を入れ、handler は smithy-rs の `Extension` の取り出し（`Option<Extension<FromUi>>`）で読む（`Host` を読む `RequestHost` と同じ道）。
+
+## file を探す（ListFiles）
+
+| 引数 | 決まり |
+|---|---|
+| `project`・`key`・`role`・`workspace` | 同じ値の物。形は置く時と同じ（違えば 400）。`workspace=`（空）も条件 |
+| `q` | 前後の空白を落とし、空なら絞らない。名（`<語>.<拡張子>`）に、小文字にした `q` を含む物（今の server と同じ） |
+| `actor` | 送り手の castlist のアクターの id。castlist の答えの無い送り手の file には当たらない |
+| `sort`・`maxResults`・`nextToken` | `ListPages` と同じ（keyset。印の頭は `files` で、ページの検索の印は 400） |
+
+- 行は file の記録（`ai.pagetray#File`。中身と `url` は入らない）。送り手の欄は、付随する id を書いて置いた時だけ。置いた答えと一覧の行は、`url` のほかは同じ欄・同じ値。
+- 今の `limit`・`before`・`after` は無くす（`maxResults`・`nextToken`）。
+- 読む接続・誤りは `ListPages` と同じ。`explain query plan` の試験（`crates/server/tests/files.rs`）が、files を索引なしに端から読まないこと、project・key・送り手・`nextToken` の条件は索引で引くこと、条件の無い一覧と `nextToken` は時刻の索引（`files_created`）の順に読むことを見る。
+
+## file を消す（DeleteFiles）
+
+`DELETE /api/files?project=…[&key=…][&name=<語>.<拡張子>[&n=…]]`。合う file をみな消す（戻せない）。答えは 200 の `{"removed":[path…]}`（置いた順。合う物が無ければ空）。
+
+- `project` は要る（`.`・`..` は 400）。`key`・`name`・`n` は、書けば絞る。`name` だけでもよい（project の中の、その名をみな）。`n` には `key` と `name` が要る（無ければ 400「n を書くときは key と name も書く」）。`name` の形は file を置く時と同じ（違えば生成した層が 400）。
+- 消した file の番号は、消した時刻（残す字）と `files_removed` に残し、2 度使わない（中身の URL は 410）。ページは消えない（ページを消しても file は消えない）。送り手の行は残る。
+- 書く接続・誤り・`Origin`（一覧の UI と同じ `Origin` でも 403）はページを消す時と同じ。消した時は、新着の知らせを送らない。
+
 ## 新着の知らせ（SSE）
 
-SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わらなかった時も）に知らせを送る所は、`crates/server/src/events.rs` の `send` として置いてあり、今は記録に 1 行書くだけ。SSE の PR で、ここを broadcast の channel に送る形にする（今の server と同じく、消した時は送らない）。
+SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わらなかった時も）と、file を置いた後に知らせを送る所は、`crates/server/src/events.rs` の `send` として置いてあり、今は記録に 1 行書くだけ。SSE の PR で、ここを broadcast の channel に送る形にする（今の server と同じく、消した時は送らない）。
 
 ## ページの本文
 
@@ -158,6 +219,15 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 - 置いたページは 200 で、置いたままの byte。`Content-Type: text/html; charset=utf-8`・`Content-Security-Policy: sandbox allow-scripts`（隔てた枠として出す。ページの中の script は動くが、置き場の名で API を呼べない）・`X-Content-Type-Options: nosniff`。
 - 無いページは 404 `NotFound`、消したページは 410 `Gone`（`message` に消した時刻）。
 
+## file の中身
+
+`GET /{project}/{key}/files/{語}-{n}.{拡張子}`（手の道。今と同じ）。
+
+- 形の合わない URL（語が名の形でない・受けない拡張子（大文字も）・`n` が頭に 0 のある数や 0）は 404 `NotFound`。
+- 置いた file は 200 で、置いたままの byte。`Content-Type` は置いた時に表で決めた物・`Content-Security-Policy: sandbox`（直に開いても中の script を動かさない）・`X-Content-Type-Options: nosniff`・`Cache-Control: max-age=31536000, immutable`（同じ URL の中身は替わらない。上げ直すと次の番号）。
+- 無い file は 404 `NotFound`、消した file は 410 `Gone`（`message` に消した時刻）。読む接続を待ちきれなければ 503、DB の誤りは 500。
+- ページの本文の道と段の数が違うので、種類 `files` のページ（`/{project}/{key}/files-1.html`）とぶつからない。
+
 ## 守りの層
 
 生成した道と手の道の前に、外から順に掛ける（`crates/server/src/guard.rs`。castlist と同じ作り）。断る答えは restJson1 の形。
@@ -166,10 +236,10 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 |---|---|---|
 | 1 | 頭の印 | どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-referrer`。今の `Pagetray-Api` は付けない。本文の CSP は本文の道が自分で付ける（画面の CSP は画面の PR で決める） |
 | 2 | 問い合わせの記録 | 1 つにつき 1 行（tower-http の TraceLayer。今の server と同じ設定） |
-| 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほかの要求に `Origin` が付いていれば、403 `Forbidden`。今の server の例外（一覧の UI の form が file を上げる `POST /api/files`）は、file の PR で `CreateFile` の道に足す |
+| 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほかの要求に `Origin` が付いていれば、403 `Forbidden`。例外は 1 つだけ（今の server と同じ）: 一覧の UI の form が file を上げる `POST /api/projects/{project}/keys/{key}/files`（後ろに何も付かない道）で、`Origin` が `http://<Host（port も）>` とそのまま同じで、`Sec-Fetch-Site` が無いか `same-origin` の物。印（`FromUi`）を付けて通す（上の「file を置く」）。ほかの道・本文の枠の中のページ（`Origin: null`）・ほかの port や名や `https` は 403 |
 | 3 | HEAD | `GET` にして通し、本文を捨てる（生成した骨の道は GET だけなので、ここで揃える） |
 | 4 | 時間切れ | 答えの頭まで 5 秒（`REQUEST_TIMEOUT`）を過ぎれば 503 `Unavailable`。接続を待つ長さ（書く `WRITE_WAIT` 2 秒・読む `READ_WAIT` 3 秒）は、これより短くする |
-| 5 | 本文の上限 | 16 MiB（ページも file も）で 413 `PayloadTooLarge`。守りの層の PR で足す |
+| 5 | 本文の上限 | 16 MiB（`MAX_BODY`。ページも file も。今の server と同じ）。`Content-Length` で超えると言う要求は読まずに、大きさを言わずに流す要求は 16 MiB まで読んで、413 `PayloadTooLarge`（何も置かない）。ちょうど 16 MiB は通る。生成した層は本文をみな読んでから引数にするので、ここで読んでおく（smithy-rs の生成した層にも本文の上限の設定があるが、既定は上限無しで、超えた時の答えが 413 にならない） |
 
 ## データ
 
@@ -180,8 +250,8 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 ## 直す今の振る舞い
 
 - 置いた時刻の字: 今の server は `createdAt` を書いた字のまま残す（`…:05Z` と `…:05.5Z` が混ざる）。`.` は `Z` より前の字なので、字で比べると同じ秒の中の順が狂う（`…:05.5Z` が `…:05Z` より前になる）。新しい server は、いつも 24 字（`…:05.000Z`）で残す。
-- 一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。`ListPages` は作ってあり、`crates/server/tests/list.rs` が、同じ時刻の行を頁の境に並べて、抜けず重ならないことを見る。
-- 引数の形: 今の server は一覧の `project`・`kind` などと `actor` の形を見ず、`limit` は 1〜1000 に丸めていた。新しい `ListPages` は定義の形で 400 にする（`maxResults` も）。
+- 一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。`crates/server/tests/list.rs` と `crates/server/tests/files.rs` が、同じ時刻の行を頁の境に並べて、抜けず重ならないことを見る。
+- 引数の形: 今の server は一覧の `project`・`kind` などと `actor` の形を見ず、`limit` は 1〜1000 に丸めていた。新しい `ListPages`・`ListFiles` は定義の形で 400 にする（`maxResults` も）。
 
 ## 定義の取り方
 
@@ -198,5 +268,5 @@ SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印�
 | 1（この章と同じ PR） | この章・定義（`GetHealth`・`CreatePage`）・`ci/gen.sh`・生成した 2 つの crate・新しい server の土台（生成した層の包み・守りの層の Host と Origin と頭の印と時間切れ・誤り・DB）・`CreatePage`・ページの本文の道 |
 | 2 | 送り手（`actorIssuer`・`actorRef` を受け、castlist を生成した client で引く） |
 | 3 | 探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages`）。SSE は 3 の後の別の PR に分けた（知らせを送る所は 3 で置いた。上の「新着の知らせ」） |
-| 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外） |
-| 5 | 守りの層の本文の上限・backup・logs・画面・起こす binary |
+| 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外）と、守りの層の本文の上限（file の上限と一緒に見るため、5 から移した） |
+| 5 | backup・logs・画面・起こす binary |

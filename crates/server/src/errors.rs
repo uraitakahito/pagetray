@@ -2,8 +2,9 @@
 use axum::http::{HeaderName, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::{
-    AddReviewMarksError, Conflict, CreatePageError, DeletePagesError, InternalError,
-    ListPagesError, SetReplyStateError, Unavailable, ValidationException,
+    AddReviewMarksError, Conflict, CreateFileError, CreatePageError, DeleteFilesError,
+    DeletePagesError, InternalError, ListFilesError, ListPagesError, SetReplyStateError,
+    Unavailable, ValidationException,
 };
 
 use pagetray_sdk::model::ValidationExceptionField;
@@ -111,10 +112,12 @@ from_failure!(
     ListPagesError,
     SetReplyStateError,
     AddReviewMarksError,
-    DeletePagesError
+    DeletePagesError,
+    ListFilesError,
+    DeleteFilesError
 );
 
-/// 書いて足す操作の失敗: 中身の誤り（400）・castlist に登録の無い送り手（400）・番号が使われている（409）・
+/// 書いて足す操作（CreatePage・CreateFile）の失敗: 中身の誤り（400）・castlist に登録の無い送り手（400）・番号が使われている（409）・
 /// 混んでいる（503）・castlist に聞けない（503）・中の失敗（500）。
 pub enum PutFailure {
     Invalid(String),
@@ -165,4 +168,4 @@ macro_rules! from_put_failure {
     )*};
 }
 
-from_put_failure!(CreatePageError);
+from_put_failure!(CreatePageError, CreateFileError);

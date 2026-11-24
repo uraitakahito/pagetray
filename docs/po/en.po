@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-24T23:04:43+09:00\n"
+"POT-Creation-Date: 2026-11-24T23:28:58+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -2667,7 +2667,7 @@ msgstr ""
 "Files whose extension is not in this table are rejected (video, HTML, SVG "
 "and so on). Up to 16 MiB per file."
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "拡張子"
 msgstr "Extension"
 
@@ -2675,15 +2675,15 @@ msgstr "Extension"
 msgid "`Content-Type`"
 msgstr "`Content-Type`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "中身の見方"
 msgstr "Contents check"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`png`"
 msgstr "`png`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`image/png`"
 msgstr "`image/png`"
 
@@ -2691,35 +2691,35 @@ msgstr "`image/png`"
 msgid "頭の 8 byte が PNG の印"
 msgstr "The first 8 bytes are the PNG signature"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`jpg`・`jpeg`"
 msgstr "`jpg`, `jpeg`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`image/jpeg`"
 msgstr "`image/jpeg`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "頭が `FF D8 FF`"
 msgstr "Starts with `FF D8 FF`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`gif`"
 msgstr "`gif`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`image/gif`"
 msgstr "`image/gif`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "頭が `GIF87a` か `GIF89a`"
 msgstr "Starts with `GIF87a` or `GIF89a`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`webp`"
 msgstr "`webp`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`image/webp`"
 msgstr "`image/webp`"
 
@@ -2727,23 +2727,23 @@ msgstr "`image/webp`"
 msgid "頭が `RIFF`、9〜12 byte 目が `WEBP`"
 msgstr "Starts with `RIFF`, and bytes 9–12 are `WEBP`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`pdf`"
 msgstr "`pdf`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`application/pdf`"
 msgstr "`application/pdf`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "頭が `%PDF-`"
 msgstr "Starts with `%PDF-`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`txt`・`log`"
 msgstr "`txt`, `log`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`text/plain; charset=utf-8`"
 msgstr "`text/plain; charset=utf-8`"
 
@@ -2751,27 +2751,27 @@ msgstr "`text/plain; charset=utf-8`"
 msgid "UTF-8 として読めて、NUL を含まない"
 msgstr "Valid UTF-8 with no NUL"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`md`"
 msgstr "`md`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`text/markdown; charset=utf-8`"
 msgstr "`text/markdown; charset=utf-8`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`csv`"
 msgstr "`csv`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`text/csv; charset=utf-8`"
 msgstr "`text/csv; charset=utf-8`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`json`"
 msgstr "`json`"
 
-#: src/api.md
+#: src/api.md src/next.md
 msgid "`application/json; charset=utf-8`"
 msgstr "`application/json; charset=utf-8`"
 
@@ -4842,7 +4842,7 @@ msgstr "`title`"
 msgid "本文の `<title>` から取った題"
 msgstr "Title taken from the body's `<title>`"
 
-#: src/db.md src/glossary.md
+#: src/db.md src/next.md src/glossary.md
 msgid "`role`"
 msgstr "`role`"
 
@@ -5503,28 +5503,17 @@ msgstr "Errors"
 #: src/next.md
 msgid ""
 "定義に書いた型だけ: 400 `ValidationException`・404 `NotFound`・409 "
-"`Conflict`・410 `Gone`・500 `InternalError`（server の中の失敗。訳は記録に書"
-"き、答えは決まった字。`@retryable` は付けない）・503 `Unavailable`（混んでい"
-"る・時間切れ・呼ぶ先の castlist が答えない。`@retryable`）。守りの層が断る "
-"403 `Forbidden`・413 `PayloadTooLarge`・503 `Unavailable` は、service の "
-"`errors` に置き、どの操作の誤りにも入る。生成した層の外の道（本文・SSE・"
-"backup・logs）の誤りも、同じ形で返す。生成した層が自分で返す物は、知らない道"
-"の 404 `UnknownOperationException`（本文は `{}`）・読めない引数の 400 "
-"`SerializationException`・違う `Content-Type` の 415 "
+"`Conflict`・410 `Gone`・415 `UnsupportedMediaType`（`ai.pagetray` の型。file "
+"の種類を受けない。下の「file を置く」）・500 `InternalError`（server の中の失"
+"敗。訳は記録に書き、答えは決まった字。`@retryable` は付けない）・503 "
+"`Unavailable`（混んでいる・時間切れ・呼ぶ先の castlist が答えない。"
+"`@retryable`）。守りの層が断る 403 `Forbidden`・413 `PayloadTooLarge`・503 "
+"`Unavailable` は、service の `errors` に置き、どの操作の誤りにも入る。生成し"
+"た層の外の道（本文・SSE・backup・logs）の誤りも、同じ形で返す。生成した層が自"
+"分で返す物は、知らない道の 404 `UnknownOperationException`（本文は `{}`）・読"
+"めない引数の 400 `SerializationException`・違う `Content-Type` の 415 "
 "`UnsupportedMediaTypeException`"
-msgstr ""
-"Only the types written in the model: 400 `ValidationException`, 404 "
-"`NotFound`, 409 `Conflict`, 410 `Gone`, 500 `InternalError` (a failure "
-"inside the server; the reason goes to the log and the response is a fixed "
-"message; no `@retryable`), 503 `Unavailable` (busy, timed out, or castlist "
-"not answering; `@retryable`). The 403 `Forbidden`, 413 `PayloadTooLarge`, "
-"and 503 `Unavailable` that the guard layer returns are in the service's "
-"`errors`, so they are part of every operation's errors. Routes outside the "
-"generated layer (bodies, SSE, backup, logs) return errors in the same shape. "
-"The generated layer itself returns 404 `UnknownOperationException` for an "
-"unknown route (the body is `{}`), 400 `SerializationException` for "
-"parameters it cannot read, and 415 `UnsupportedMediaTypeException` for a "
-"wrong `Content-Type`"
+msgstr "Only the types written in the model: 400 `ValidationException`, 404 `NotFound`, 409 `Conflict`, 410 `Gone`, 415 `UnsupportedMediaType` (a type of `ai.pagetray`; the file type is not accepted; see \"Putting a file\" below), 500 `InternalError` (a failure inside the server; the reason goes to the log and the response is a fixed message; no `@retryable`), 503 `Unavailable` (busy, timed out, or castlist not answering; `@retryable`). The 403 `Forbidden`, 413 `PayloadTooLarge`, and 503 `Unavailable` that the guard layer returns are in the service's `errors`, so they are part of every operation's errors. Routes outside the generated layer (bodies, SSE, backup, logs) return errors in the same shape. The generated layer itself returns 404 `UnknownOperationException` for an unknown route (the body is `{}`), 400 `SerializationException` for parameters it cannot read, and 415 `UnsupportedMediaTypeException` for a wrong `Content-Type`"
 
 #: src/next.md
 msgid "id"
@@ -5703,22 +5692,31 @@ msgstr "`CreateFile`"
 #: src/next.md
 msgid ""
 "`POST /api/projects/{project}/keys/{key}/files`（本文は file の中身。"
-"`Content-Type` が要る）"
-msgstr ""
-"`POST /api/projects/{project}/keys/{key}/files` (the body is the file "
-"contents; `Content-Type` is required)"
+"`Content-Type` が要る。引数 `name`・`role`・`workspace`・`n`・`createdAt`・"
+"`actorIssuer`・`actorRef`）"
+msgstr "`POST /api/projects/{project}/keys/{key}/files` (the body is the file contents; `Content-Type` is required; parameters `name`, `role`, `workspace`, `n`, `createdAt`, `actorIssuer`, `actorRef`)"
 
 #: src/next.md
-msgid "`POST /api/files`"
-msgstr "`POST /api/files`"
+msgid "`POST /api/files?project&key&name…`"
+msgstr "`POST /api/files?project&key&name…`"
 
 #: src/next.md
 msgid "`ListFiles`"
 msgstr "`ListFiles`"
 
 #: src/next.md
+msgid ""
+"`GET /api/files`（引数 `project`・`key`・`role`・`workspace`・`q`・`actor`・"
+"`sort`・`maxResults`・`nextToken`）"
+msgstr "`GET /api/files` (parameters `project`, `key`, `role`, `workspace`, `q`, `actor`, `sort`, `maxResults`, `nextToken`)"
+
+#: src/next.md
 msgid "`DeleteFiles`"
 msgstr "`DeleteFiles`"
+
+#: src/next.md
+msgid "`DELETE /api/files?project&key&name&n`"
+msgstr "`DELETE /api/files?project&key&name&n`"
 
 #: src/next.md
 msgid "`DELETE /api/files`"
@@ -5758,14 +5756,10 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"この章の操作のうち、作ってあるのは `GetHealth`・`CreatePage`（送り手も）・"
-"`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages` と本文の道。残"
-"りは、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。"
-msgstr ""
-"Of the operations in this chapter, `GetHealth`, `CreatePage` (with senders), "
-"`ListPages`, `SetReplyState`, `AddReviewMarks`, `DeletePages`, and the body "
-"route are built. The rest are added in the next PRs of stage 4 of AI-36 (see "
-"\"How stage 4 is split\" below)."
+"この章の操作は、みな作ってある（手の道は、ページの本文と file の中身）。SSE・"
+"backup・logs・画面は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け"
+"方」）。"
+msgstr "All operations in this chapter are built (the hand-written routes are the page body and the file contents). SSE, backup, logs, and the UI are added in the next PRs of stage 4 of AI-36 (see \"How stage 4 is split\" below)."
 
 #: src/next.md
 msgid "ページを置く（CreatePage）"
@@ -5916,10 +5910,10 @@ msgstr ""
 "the 5-second request timeout)."
 
 #: src/next.md
-msgid "本文の上限（16 MiB で 413 `PayloadTooLarge`）は、守りの層の PR で足す。"
-msgstr ""
-"The body limit (413 `PayloadTooLarge` at 16 MiB) is added in the guard layer "
-"PR."
+msgid ""
+"本文は 16 MiB まで（超えれば、守りの層が 413 `PayloadTooLarge`。下の「守りの"
+"層」）。"
+msgstr "The body is up to 16 MiB (beyond that, the guard layer answers 413 `PayloadTooLarge`; see \"Guard layer\" below)."
 
 #: src/next.md
 msgid ""
@@ -6554,21 +6548,255 @@ msgstr ""
 "the UI)."
 
 #: src/next.md
+msgid "file を置く（CreateFile）"
+msgstr "Putting a file (CreateFile)"
+
+#: src/next.md
+msgid ""
+"ページから参照する file（画面の絵・PDF・字の file）を 1 つ置く。本文は中身を"
+"そのまま。答えは 201 で、file の記録（中身は入らない）と、要求の `Host` で組"
+"んだ `url`（header `Location` にも）。"
+msgstr "Puts one file that pages refer to (a screenshot, a PDF, a text file). The body is the contents as is. The answer is 201 with the file record (the contents are not included) and a `url` built from the request's `Host` (also in the `Location` header)."
+
+#: src/next.md
+msgid "ページと同じ（`.`・`..`・`project` の `api` は 400）"
+msgstr "Same as for pages (`.`, `..`, and `api` as `project` are 400)"
+
+#: src/next.md
+msgid "`name`（引数。要る）"
+msgstr "`name` (parameter; required)"
+
+#: src/next.md
+msgid ""
+"`<語>.<拡張子>`。語は英小文字か数字で始まり、英小文字・数字・`-`・`_` で 1〜"
+"64 字。拡張子は英数字で 1〜16 字。`.` は 1 つ（形の違いは、生成した層が 400）"
+msgstr "`<stem>.<ext>`. The stem starts with a lowercase letter or digit and has 1 to 64 lowercase letters, digits, `-`, and `_`. The extension has 1 to 16 letters and digits. Exactly one `.` (a wrong shape is 400 from the generated layer)"
+
+#: src/next.md
+msgid ""
+"ページと同じ形。一覧の UI から上げる時のほかは要る（無ければ 400「role が要"
+"る」）。定義では `@required` にしない（一覧の UI は書かない）"
+msgstr "The same shape as for pages. Required except for uploads from the list UI (otherwise 400 saying role is required). Not `@required` in the definition (the list UI does not send it)"
+
+#: src/next.md
+msgid "`workspace`・`n`・`createdAt`・`actorIssuer`・`actorRef`"
+msgstr "`workspace`, `n`, `createdAt`, `actorIssuer`, `actorRef`"
+
+#: src/next.md
+msgid "ページと同じ（番号は語と拡張子ごと）"
+msgstr "Same as for pages (numbers are per stem and extension)"
+
+#: src/next.md
+msgid "`Content-Type`（header。要る）"
+msgstr "`Content-Type` (header; required)"
+
+#: src/next.md
+msgid ""
+"拡張子の種類と同じ物（`;` の前を、大小を問わずに比べる。`; charset=…` などは"
+"問わない）。無ければ、生成した層が 400 `ValidationException`（欄の path は `/"
+"contentType`）"
+msgstr "The same type as the extension's (compared before `;`, ignoring case; parameters such as `; charset=…` do not matter). If missing, the generated layer answers 400 `ValidationException` (the field path is `/contentType`)"
+
+#: src/next.md
+msgid ""
+"file の中身（空は、生成した層が 400。欄の path は `/body`）。16 MiB まで"
+msgstr "The file contents (empty is 400 from the generated layer; the field path is `/body`). Up to 16 MiB"
+
+#: src/next.md
+msgid ""
+"受ける種類（今の server と同じ。`crates/server/src/files.rs` の "
+"`FILE_TYPES`）:"
+msgstr "Accepted types (the same as the current server; `FILE_TYPES` in `crates/server/src/files.rs`):"
+
+#: src/next.md
+msgid "返す時の `Content-Type`"
+msgstr "`Content-Type` when returned"
+
+#: src/next.md
+msgid "頭が PNG の印"
+msgstr "Starts with the PNG signature"
+
+#: src/next.md
+msgid "頭が `RIFF` で、8〜11 byte 目が `WEBP`"
+msgstr "Starts with `RIFF`, and bytes 8–11 (from 0) are `WEBP`"
+
+#: src/next.md
+msgid "UTF-8 で読めて、NUL が無い"
+msgstr "Valid UTF-8 with no NUL"
+
+#: src/next.md
+msgid "同上"
+msgstr "Same as above"
+
+#: src/next.md
+msgid ""
+"表に無い拡張子（大文字の `PNG` も）・拡張子と合わない `Content-Type`・頭が拡"
+"張子の形でない中身は、415 `UnsupportedMediaType`（`message` に訳。受ける拡張"
+"子の一覧・`.png の Content-Type は image/png`・`中身が .png の形でない`）。返"
+"す時の `Content-Type` は、送った header でなく表の値。"
+msgstr "An extension not in the table (uppercase `PNG` too), a `Content-Type` that does not match the extension, or contents whose head is not of the extension's shape is 415 `UnsupportedMediaType` (the reason is in `message`: the list of accepted extensions, the `Content-Type` the extension needs, or that the contents are not of the extension's shape). The `Content-Type` returned is the table's value, not the header that was sent."
+
+#: src/next.md
+msgid ""
+"番号: 書かなければ、同じ `project`・`key`・語・拡張子の置いた番号と消した番号"
+"の最大 + 1（初めは 1）。書けばその番号で置き、置いた番号・消した番号なら 409 "
+"`Conflict`（何も替えない）。ページの番号とは別に数える。"
+msgstr "Number: if not given, the largest put or removed number for the same `project`, `key`, stem, and extension, plus 1 (1 at first). If given, the file is put with that number, and a number already put or removed is 409 `Conflict` (nothing changes). File numbers are counted apart from page numbers."
+
+#: src/next.md
+msgid ""
+"`sha256` は中身の SHA-256（16 進の小文字）、`size` は byte の数、`type` は表"
+"の `Content-Type`。"
+msgstr "`sha256` is the SHA-256 of the contents (lowercase hex), `size` is the number of bytes, and `type` is the table's `Content-Type`."
+
+#: src/next.md
+msgid ""
+"検査の順: 引数の形（400）→ 引数の決まりと付随する id の組（400）→ 種類・"
+"`Content-Type`・中身（415）→ castlist（400・503）→ DB（409・503）。castlist "
+"には、ほかの検査を見終えてから聞く。送り手の残し方は、ページと同じ（上の「送"
+"り手」）。"
+msgstr "Order of checks: parameter shapes (400) → parameter rules and the attached id pair (400) → type, `Content-Type`, and contents (415) → castlist (400, 503) → DB (409, 503). castlist is asked only after the other checks pass. Senders are kept as for pages (see \"Senders\" above)."
+
+#: src/next.md
+msgid ""
+"一覧の UI の form から上げた物（守りの層が `Origin` の例外として通し、印を付"
+"けた物。下の「守りの層」）は、引数に何が書いてあっても、役割 `product-"
+"manager`・workspace 空で残し、`n`・`createdAt`・`actorIssuer`・`actorRef` を"
+"読まない（browser から担当を名乗らせない・取り込ませない。送り手の行も作らな"
+"い）。引数の形の違いは、例外でも生成した層が 400 で断る（今の server は、例外"
+"の時に読まない引数の形を見なかった）。"
+msgstr "A file uploaded from the list UI's form (one the guard layer let through as the `Origin` exception and marked; see \"Guard layer\" below) is stored with role `product-manager` and an empty workspace whatever the parameters say, and `n`, `createdAt`, `actorIssuer`, and `actorRef` are not read (a browser cannot claim to be a role or import; no sender row is made). Parameters of the wrong shape are still 400 from the generated layer, even for the exception (the current server did not check the shapes of the parameters it did not read for the exception)."
+
+#: src/next.md
+msgid "置いた後に、新着の知らせを送る（下の「新着の知らせ」）。"
+msgstr "After putting, a notice is sent (see \"New-arrival notices\" below)."
+
+#: src/next.md
+msgid "決め:"
+msgstr "Decisions:"
+
+#: src/next.md
+msgid ""
+"本文の種類: 中身は `@httpPayload` の `blob`（`@mediaType` を付けない）にし、"
+"要求の `Content-Type` を `@httpHeader(\"Content-Type\")` の欄 `contentType` "
+"に結ぶ。`Content-Type` を欄に結ぶと、smithy-rs の server は `Content-Type` を"
+"決まった値（`@mediaType` の無い blob なら `application/octet-stream`）と比べ"
+"る検査を作らないので、どの種類でも handler まで届き、種類の決まりは handler "
+"が見る（S3 の `PutObject` と同じ形）。"
+msgstr "Body type: the contents are an `@httpPayload` `blob` (without `@mediaType`), and the request's `Content-Type` is bound to the member `contentType` with `@httpHeader(\"Content-Type\")`. With `Content-Type` bound to a member, the smithy-rs server does not generate the check that compares `Content-Type` with a fixed value (`application/octet-stream` for a blob without `@mediaType`), so any type reaches the handler, and the handler applies the type rules (the same shape as S3's `PutObject`)."
+
+#: src/next.md
+msgid ""
+"415 の型: 生成した層の `UnsupportedMediaTypeException`（操作の決めた "
+"`Content-Type` でない要求。ページの本文が `text/html` でない時など）とは別"
+"に、`ai.pagetray#UnsupportedMediaType`（`@httpError(415)`）を CreateFile の誤"
+"りに置く。呼び手は header `X-Amzn-Errortype` で見分ける（`ai.common` には足さ"
+"ない。file の種類は pagetray だけの決まり）。"
+msgstr "The 415 type: apart from the generated layer's `UnsupportedMediaTypeException` (a request whose `Content-Type` is not the one the operation expects, such as a page body that is not `text/html`), `ai.pagetray#UnsupportedMediaType` (`@httpError(415)`) is among CreateFile's errors. Callers tell them apart by the `X-Amzn-Errortype` header (it is not added to `ai.common`; file types are a pagetray-only rule)."
+
+#: src/next.md
+msgid ""
+"一覧の UI の印: 守りの層が要求の extensions に `FromUi` を入れ、handler は "
+"smithy-rs の `Extension` の取り出し（`Option<Extension<FromUi>>`）で読む"
+"（`Host` を読む `RequestHost` と同じ道）。"
+msgstr "The list UI mark: the guard layer puts `FromUi` in the request's extensions, and the handler reads it with smithy-rs's `Extension` extractor (`Option<Extension<FromUi>>`), the same way `RequestHost` carries `Host`."
+
+#: src/next.md
+msgid "file を探す（ListFiles）"
+msgstr "Searching files (ListFiles)"
+
+#: src/next.md
+msgid "`project`・`key`・`role`・`workspace`"
+msgstr "`project`, `key`, `role`, `workspace`"
+
+#: src/next.md
+msgid "同じ値の物。形は置く時と同じ（違えば 400）。`workspace=`（空）も条件"
+msgstr "Files with the same value. The shapes are the same as when putting (otherwise 400). `workspace=` (empty) is also a condition"
+
+#: src/next.md
+msgid ""
+"前後の空白を落とし、空なら絞らない。名（`<語>.<拡張子>`）に、小文字にした "
+"`q` を含む物（今の server と同じ）"
+msgstr "Leading and trailing spaces are dropped; empty means no filter. Files whose name (`<stem>.<ext>`) contains `q` lowercased (the same as the current server)"
+
+#: src/next.md
+msgid ""
+"送り手の castlist のアクターの id。castlist の答えの無い送り手の file には当"
+"たらない"
+msgstr "The castlist actor id of the sender. Files whose sender has no castlist answer do not match"
+
+#: src/next.md
+msgid "`sort`・`maxResults`・`nextToken`"
+msgstr "`sort`, `maxResults`, `nextToken`"
+
+#: src/next.md
+msgid ""
+"`ListPages` と同じ（keyset。印の頭は `files` で、ページの検索の印は 400）"
+msgstr "Same as `ListPages` (keyset; the token starts with `files`, and a page search token is 400)"
+
+#: src/next.md
+msgid ""
+"行は file の記録（`ai.pagetray#File`。中身と `url` は入らない）。送り手の欄"
+"は、付随する id を書いて置いた時だけ。置いた答えと一覧の行は、`url` のほかは"
+"同じ欄・同じ値。"
+msgstr "Rows are file records (`ai.pagetray#File`; no contents and no `url`). The sender field only when attached ids were given at put time. The put answer and the listed row have the same fields and values except `url`."
+
+#: src/next.md
+msgid "今の `limit`・`before`・`after` は無くす（`maxResults`・`nextToken`）。"
+msgstr "The current `limit`, `before`, and `after` are dropped (`maxResults` and `nextToken` instead)."
+
+#: src/next.md
+msgid ""
+"読む接続・誤りは `ListPages` と同じ。`explain query plan` の試験（`crates/"
+"server/tests/files.rs`）が、files を索引なしに端から読まないこと、project・"
+"key・送り手・`nextToken` の条件は索引で引くこと、条件の無い一覧と "
+"`nextToken` は時刻の索引（`files_created`）の順に読むことを見る。"
+msgstr "Read connections and errors are the same as for `ListPages`. The `explain query plan` test (`crates/server/tests/files.rs`) checks that files are never read end to end without an index, that the project, key, sender, and `nextToken` conditions use an index, and that a list without conditions and `nextToken` read in the order of the time index (`files_created`)."
+
+#: src/next.md
+msgid "file を消す（DeleteFiles）"
+msgstr "Removing files (DeleteFiles)"
+
+#: src/next.md
+msgid ""
+"`DELETE /api/files?project=…[&key=…][&name=<語>.<拡張子>[&n=…]]`。合う file "
+"をみな消す（戻せない）。答えは 200 の `{\"removed\":[path…]}`（置いた順。合う"
+"物が無ければ空）。"
+msgstr "`DELETE /api/files?project=…[&key=…][&name=<stem>.<ext>[&n=…]]`. Removes every matching file (cannot be undone). The answer is 200 with `{\"removed\":[path…]}` (in the order put; empty if nothing matches)."
+
+#: src/next.md
+msgid ""
+"`project` は要る（`.`・`..` は 400）。`key`・`name`・`n` は、書けば絞る。"
+"`name` だけでもよい（project の中の、その名をみな）。`n` には `key` と "
+"`name` が要る（無ければ 400「n を書くときは key と name も書く」）。`name` の"
+"形は file を置く時と同じ（違えば生成した層が 400）。"
+msgstr "`project` is required (`.` and `..` are 400). `key`, `name`, and `n` narrow when given. `name` alone is fine (every file of that name in the project). `n` needs `key` and `name` (otherwise 400 saying to give key and name with n). The shape of `name` is the same as when putting a file (otherwise the generated layer answers 400)."
+
+#: src/next.md
+msgid ""
+"消した file の番号は、消した時刻（残す字）と `files_removed` に残し、2 度使わ"
+"ない（中身の URL は 410）。ページは消えない（ページを消しても file は消えな"
+"い）。送り手の行は残る。"
+msgstr "The numbers of removed files stay in `files_removed` with the time removed (the stored string) and are never used twice (the contents URL is 410). Pages are not removed (and removing pages does not remove files). Sender rows stay."
+
+#: src/next.md
+msgid ""
+"書く接続・誤り・`Origin`（一覧の UI と同じ `Origin` でも 403）はページを消す"
+"時と同じ。消した時は、新着の知らせを送らない。"
+msgstr "Write connections, errors, and `Origin` (403 even with the same `Origin` as the list UI) are the same as for removing pages. No notice is sent on removal."
+
+#: src/next.md
 msgid "新着の知らせ（SSE）"
 msgstr "Push of new arrivals (SSE)"
 
 #: src/next.md
 msgid ""
 "SSE（`GET /api/events`）は、この後の別の PR で足す。返事と印を書いた後（替わ"
-"らなかった時も）に知らせを送る所は、`crates/server/src/events.rs` の `send` "
-"として置いてあり、今は記録に 1 行書くだけ。SSE の PR で、ここを broadcast の "
-"channel に送る形にする（今の server と同じく、消した時は送らない）。"
-msgstr ""
-"SSE (`GET /api/events`) is added in a separate later PR. The place that "
-"sends a notice after writing a reply or marks (even when nothing changed) is "
-"in place as `send` in `crates/server/src/events.rs`, and for now it only "
-"writes one log line. The SSE PR makes it send to a broadcast channel (as "
-"with the current server, nothing is sent on removal)."
+"らなかった時も）と、file を置いた後に知らせを送る所は、`crates/server/src/"
+"events.rs` の `send` として置いてあり、今は記録に 1 行書くだけ。SSE の PR "
+"で、ここを broadcast の channel に送る形にする（今の server と同じく、消した"
+"時は送らない）。"
+msgstr "SSE (`GET /api/events`) is added in a separate later PR. The place that sends a notice after writing a reply or marks (even when nothing changed) and after putting a file is in place as `send` in `crates/server/src/events.rs`, and for now it only writes one log line. The SSE PR makes it send to a broadcast channel (as with the current server, nothing is sent on removal)."
 
 #: src/next.md
 msgid "ページの本文"
@@ -6607,6 +6835,40 @@ msgid ""
 msgstr ""
 "A missing page is 404 `NotFound`; a removed page is 410 `Gone` (the time it "
 "was removed is in `message`)."
+
+#: src/next.md
+msgid "file の中身"
+msgstr "File contents"
+
+#: src/next.md
+msgid "`GET /{project}/{key}/files/{語}-{n}.{拡張子}`（手の道。今と同じ）。"
+msgstr "`GET /{project}/{key}/files/{stem}-{n}.{ext}` (a hand-written route; the same as now)."
+
+#: src/next.md
+msgid ""
+"形の合わない URL（語が名の形でない・受けない拡張子（大文字も）・`n` が頭に 0 "
+"のある数や 0）は 404 `NotFound`。"
+msgstr "A URL of the wrong shape (a stem not of the name shape, an extension not accepted (uppercase too), `n` with a leading zero or 0) is 404 `NotFound`."
+
+#: src/next.md
+msgid ""
+"置いた file は 200 で、置いたままの byte。`Content-Type` は置いた時に表で決め"
+"た物・`Content-Security-Policy: sandbox`（直に開いても中の script を動かさな"
+"い）・`X-Content-Type-Options: nosniff`・`Cache-Control: max-age=31536000, "
+"immutable`（同じ URL の中身は替わらない。上げ直すと次の番号）。"
+msgstr "A stored file is 200 with the stored bytes as is. `Content-Type` is the one chosen from the table when it was put, with `Content-Security-Policy: sandbox` (scripts do not run even when opened directly), `X-Content-Type-Options: nosniff`, and `Cache-Control: max-age=31536000, immutable` (the contents at a URL never change; uploading again gives the next number)."
+
+#: src/next.md
+msgid ""
+"無い file は 404 `NotFound`、消した file は 410 `Gone`（`message` に消した時"
+"刻）。読む接続を待ちきれなければ 503、DB の誤りは 500。"
+msgstr "A missing file is 404 `NotFound`; a removed file is 410 `Gone` (the time it was removed is in `message`). 503 if no read connection is free in time, 500 on a DB error."
+
+#: src/next.md
+msgid ""
+"ページの本文の道と段の数が違うので、種類 `files` のページ（`/{project}/{key}/"
+"files-1.html`）とぶつからない。"
+msgstr "The number of path segments differs from the page body route, so it does not clash with a page of kind `files` (`/{project}/{key}/files-1.html`)."
 
 #: src/next.md
 msgid "守りの層"
@@ -6676,14 +6938,13 @@ msgstr "Host and Origin"
 #: src/next.md
 msgid ""
 "`Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほ"
-"かの要求に `Origin` が付いていれば、403 `Forbidden`。今の server の例外（一覧"
-"の UI の form が file を上げる `POST /api/files`）は、file の PR で "
-"`CreateFile` の道に足す"
-msgstr ""
-"403 `Forbidden` if `Host` (without the port) is not 127.0.0.1 or localhost, "
-"or if a request other than `GET` and `HEAD` has an `Origin`. The current "
-"server's exception (`POST /api/files` from the list UI's upload form) is "
-"added to the `CreateFile` route in the files PR"
+"かの要求に `Origin` が付いていれば、403 `Forbidden`。例外は 1 つだけ（今の "
+"server と同じ）: 一覧の UI の form が file を上げる `POST /api/projects/"
+"{project}/keys/{key}/files`（後ろに何も付かない道）で、`Origin` が `http://"
+"<Host（port も）>` とそのまま同じで、`Sec-Fetch-Site` が無いか `same-origin` "
+"の物。印（`FromUi`）を付けて通す（上の「file を置く」）。ほかの道・本文の枠の"
+"中のページ（`Origin: null`）・ほかの port や名や `https` は 403"
+msgstr "403 `Forbidden` if `Host` (without the port) is not 127.0.0.1 or localhost, or if a request other than `GET` or `HEAD` has an `Origin`. There is exactly one exception (the same as the current server): the list UI's form uploading a file with `POST /api/projects/{project}/keys/{key}/files` (nothing after it in the path), where `Origin` is exactly `http://<Host (with the port)>` and `Sec-Fetch-Site` is absent or `same-origin`. It is let through with a mark (`FromUi`) (see \"Putting a file\" above). Other routes, a page inside the body frame (`Origin: null`), and other ports, names, or `https` are 403"
 
 #: src/next.md
 msgid "HEAD"
@@ -6724,10 +6985,13 @@ msgstr "Body limit"
 
 #: src/next.md
 msgid ""
-"16 MiB（ページも file も）で 413 `PayloadTooLarge`。守りの層の PR で足す"
-msgstr ""
-"413 `PayloadTooLarge` at 16 MiB (for pages and files). Added in the guard "
-"layer PR"
+"16 MiB（`MAX_BODY`。ページも file も。今の server と同じ）。`Content-Length` "
+"で超えると言う要求は読まずに、大きさを言わずに流す要求は 16 MiB まで読んで、"
+"413 `PayloadTooLarge`（何も置かない）。ちょうど 16 MiB は通る。生成した層は本"
+"文をみな読んでから引数にするので、ここで読んでおく（smithy-rs の生成した層に"
+"も本文の上限の設定があるが、既定は上限無しで、超えた時の答えが 413 にならな"
+"い）"
+msgstr "16 MiB (`MAX_BODY`; pages and files alike; the same as the current server). A request whose `Content-Length` says more is refused without reading, and a request streamed without a size is read up to 16 MiB, both with 413 `PayloadTooLarge` (nothing is stored). Exactly 16 MiB passes. The generated layer reads the whole body before building the input, so the body is read here (the generated smithy-rs layer also has a body limit setting, but its default is no limit and exceeding it does not answer 413)"
 
 #: src/next.md
 msgid "データ"
@@ -6796,26 +7060,16 @@ msgid ""
 "一覧の頁: 今の server は `before`・`after` を `created_at` の字で比べ、同じ時"
 "刻の行が頁の境に並ぶと抜けるか重なる。新しい `ListPages`・`ListFiles` は、"
 "`createdAt` と行の id の組で続きを決める（keyset。`nextToken` に入れる）。"
-"`ListPages` は作ってあり、`crates/server/tests/list.rs` が、同じ時刻の行を頁"
-"の境に並べて、抜けず重ならないことを見る。"
-msgstr ""
-"List pages: the current server compares `before` and `after` with the "
-"`created_at` string, so rows with the same time at a page boundary are "
-"skipped or repeated. The new `ListPages` and `ListFiles` continue from the "
-"pair of `createdAt` and the row id (keyset; stored in `nextToken`). "
-"`ListPages` is built, and `crates/server/tests/list.rs` puts rows with the "
-"same time on a page boundary and checks that none is skipped or repeated."
+"`crates/server/tests/list.rs` と `crates/server/tests/files.rs` が、同じ時刻"
+"の行を頁の境に並べて、抜けず重ならないことを見る。"
+msgstr "List pages: the current server compares `before` and `after` with the `created_at` string, so rows with the same time at a page boundary are skipped or repeated. The new `ListPages` and `ListFiles` continue from the pair of `createdAt` and the row id (keyset; stored in `nextToken`). `crates/server/tests/list.rs` and `crates/server/tests/files.rs` put rows with the same time on a page boundary and check that none is skipped or repeated."
 
 #: src/next.md
 msgid ""
 "引数の形: 今の server は一覧の `project`・`kind` などと `actor` の形を見ず、"
-"`limit` は 1〜1000 に丸めていた。新しい `ListPages` は定義の形で 400 にする"
-"（`maxResults` も）。"
-msgstr ""
-"Parameter shapes: the current server did not check the shapes of list "
-"parameters such as `project` and `kind` or of `actor`, and clamped `limit` "
-"to 1 to 1000. The new `ListPages` answers 400 by the shapes in the "
-"definition (`maxResults` too)."
+"`limit` は 1〜1000 に丸めていた。新しい `ListPages`・`ListFiles` は定義の形"
+"で 400 にする（`maxResults` も）。"
+msgstr "Parameter shapes: the current server did not check the shapes of list parameters such as `project` and `kind` or of `actor`, and clamped `limit` to 1 to 1000. The new `ListPages` and `ListFiles` answer 400 by the shapes in the definition (`maxResults` too)."
 
 #: src/next.md
 msgid "定義の取り方"
@@ -6930,16 +7184,13 @@ msgstr ""
 #: src/next.md
 msgid ""
 "file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI か"
-"らの例外）"
-msgstr ""
-"Files (`CreateFile`, `ListFiles`, `DeleteFiles`, the file contents route, "
-"and the exception for the list UI)"
+"らの例外）と、守りの層の本文の上限（file の上限と一緒に見るため、5 から移し"
+"た）"
+msgstr "Files (`CreateFile`, `ListFiles`, `DeleteFiles`, the file contents route, and the exception for the list UI), and the guard layer's body limit (moved from 5 so that it is checked together with the file limit)"
 
 #: src/next.md
-msgid "守りの層の本文の上限・backup・logs・画面・起こす binary"
-msgstr ""
-"The guard layer's body limit, backup, logs, the UI, and the binary that "
-"starts the server"
+msgid "backup・logs・画面・起こす binary"
+msgstr "Backup, logs, the UI, and the binary that starts the server"
 
 #: src/glossary.md
 msgid ""
