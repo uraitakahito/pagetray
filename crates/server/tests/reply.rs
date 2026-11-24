@@ -87,7 +87,10 @@ async fn a_page_waits_for_a_reply_until_it_is_answered() {
     let done = ok(&app, CONFIRM, answered(None)).await;
     assert_eq!(done["askedAt"], asked_at.as_str());
     let answered_at = done["answeredAt"].as_str().unwrap().to_owned();
-    assert!(answered_at > asked_at, "{answered_at} {asked_at}");
+    assert!(
+        instant(&answered_at) > instant(&asked_at),
+        "{answered_at} {asked_at}"
+    );
     assert!(app.paths("project=p&reply=waiting").await.is_empty());
     assert_eq!(app.paths("project=p&reply=answered").await, [CONFIRM]);
     tokio::time::sleep(Duration::from_millis(5)).await;
@@ -100,7 +103,7 @@ async fn a_page_waits_for_a_reply_until_it_is_answered() {
     // 答えた後にもう 1 度求めると、求めた時刻は今になり、答えた時刻は消える。
     tokio::time::sleep(Duration::from_millis(5)).await;
     let again = ok(&app, CONFIRM, waiting(None)).await;
-    assert!(again["askedAt"].as_str().unwrap() > answered_at.as_str());
+    assert!(instant(again["askedAt"].as_str().unwrap()) > instant(&answered_at));
     assert!(again.get("answeredAt").is_none());
     assert_eq!(app.paths("reply=waiting").await, [CONFIRM]);
 }
@@ -357,4 +360,11 @@ async fn a_db_error_is_internal_and_a_busy_writer_is_unavailable() {
     let asked: Option<String> =
         common::scalar(&app, "select asked_at from pages where kind = 'confirm'").await;
     assert_eq!(asked, None);
+}
+
+/// 答えの時刻を、比べられる時刻にする。答えの字は小数の後ろの 0 を落とす（`…46.300Z` は `…46.3Z`）ので、
+/// 字のまま比べると `…46.315Z` が `…46.3Z` より前になる（CI で、ミリ秒が 0 で終わる時だけ落ちた）。
+fn instant(s: &str) -> time::OffsetDateTime {
+    time::OffsetDateTime::parse(s, &time::format_description::well_known::Rfc3339)
+        .unwrap_or_else(|e| panic!("{s}: {e}"))
 }
