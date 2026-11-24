@@ -6,7 +6,8 @@ WORKDIR /src
 COPY . .
 # SQL の検査は commit した .sqlx/ で行う（build の中に DB は無い）。
 ENV SQLX_OFFLINE=true
-RUN cargo build --release --locked && mkdir /data
+# 作るのは今の server だけ（新しい server の crates/server は、切り替えまで image に入らない）。
+RUN cargo build --release --locked -p pagetray && mkdir /data
 
 FROM scratch
 COPY --from=build /src/target/release/pagetray-server /pagetray-server

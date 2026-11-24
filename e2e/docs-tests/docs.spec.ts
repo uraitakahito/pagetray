@@ -3,7 +3,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /** 目次（docs/src/SUMMARY.md）の章。章を足したら、ここにも足す（下の試験が、目次と合っているかを見る）。 */
-const CHAPTERS = ['index', 'run', 'cli', 'api', 'glossary', 'development', 'release', 'db'];
+const CHAPTERS = ['index', 'run', 'cli', 'api', 'glossary', 'development', 'release', 'db', 'next'];
 /** 図（Mermaid）のある章。図を足したら、ここにも足す。 */
 const FIGURES = ['index', 'db'];
 const LANGS = [

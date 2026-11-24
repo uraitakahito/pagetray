@@ -8,3 +8,5 @@
 /e2e/node_modules
 /e2e/test-results
 /e2e/playwright-report
+# 定義から作る時の作業の folder（ci/gen.sh）。
+/model/build

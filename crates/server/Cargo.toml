@@ -1,0 +1,30 @@
+# 新しい pagetray の server（AI-36）。定義（model/）から作った骨（crates/pagetray-sdk/）に処理を入れ、
+# 手の道（ページの本文）と 1 つの axum の Router に並べる。切り替えまで image には入らない。
+[package]
+name = "pagetray-next"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+pagetray_sdk = { path = "../pagetray-sdk" }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+aws-smithy-types = "1.9.4"
+bytes = "1"
+http-body = "1"
+http-body-util = "0.1"
+serde_json = "1"
+# SQL は動く時に組む形（query・query_as）だけを使う（.sqlx/ は要らない）。macros は、移行の SQL を埋め込む migrate!() のため。
+sqlx = { version = "0.9.1", default-features = false, features = ["sqlite", "runtime-tokio", "macros", "migrate"] }
+time = { version = "0.3", features = ["formatting", "parsing"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "fs", "time"] }
+tower = { version = "0.5", features = ["util"] }
+# 問い合わせごとの記録（method・path・status・かかった時間。root の crate と同じ版と features）。
+tower-http = { version = "0.7", default-features = false, features = ["trace"] }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
