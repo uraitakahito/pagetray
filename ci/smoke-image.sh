@@ -4,7 +4,9 @@
 # 使い方: ci/smoke-image.sh <image> [current|next]
 #   current（既定）: 今の server の image（Containerfile）。置く道は `POST /api/pages?project&key&kind…` など今の形
 #   next: 新しい server の image（Containerfile.next。rc の release）。置く道は `POST /api/projects/{project}/keys/{key}/…`、
-#         一覧の並べ方は `createdAt`、版は `GET /healthz` の JSON、断る答えは restJson1 の形（X-Amzn-Errortype）
+#         一覧の並べ方は `createdAt`、版は `GET /healthz` の JSON、断る答えは restJson1 の形（X-Amzn-Errortype）。
+#         終わりに切り替えの予行もする: 今の版（v0.8.0。digest で固める）の写しを、この image の migrate で新しい volume に移し、
+#         新しい API で読む（docs/src/release.md の「rc を動かす時と切り替え」の 2 と 3）
 set -euo pipefail
 
 usage='使い方: ci/smoke-image.sh <image> [current|next]'
@@ -37,7 +39,16 @@ up() {
   done
   return 1
 }
-trap 'docker logs "$name" || true; docker rm -f "$name" >/dev/null 2>&1 || true; docker volume rm "$name-data" >/dev/null 2>&1 || true' EXIT
+# 後片付け: 切り替えの予行の container（今の版の $name-old・移した先の $name-v1）と volume と、写しの folder も消す。
+cleanup() {
+  for c in "$name" "$name-old" "$name-v1"; do
+    if docker inspect "$c" >/dev/null 2>&1; then docker logs "$c" || true; fi
+    docker rm -f "$c" >/dev/null 2>&1 || true
+    docker volume rm "$c-data" >/dev/null 2>&1 || true
+  done
+  if [ -n "${backup_dir:-}" ]; then rm -rf "$backup_dir"; fi
+}
+trap cleanup EXIT
 
 docker run -d --name "$name" -p 127.0.0.1:8801:8080 -v "$name-data:/data" "$image"
 up
@@ -109,4 +120,47 @@ curl -fsS "$url/?q=image" | grep -q 'result-1'
 rm -f "$tmp/got.png"
 curl -fsS -o "$tmp/got.png" "$url/ci/K-1/files/dot-1.png"
 cmp "$tmp/dot.png" "$tmp/got.png"
+# 切り替えの予行（新しい server だけ）: 今の版の image に今の API で置き、`GET /api/backup` の写しを取り、この image の
+# migrate で新しい volume に移し、その volume で起こして新しい API で読む。port は同じ物を使うので、先の container は消す。
+if [ "$mode" = next ]; then
+  docker rm -f "$name" >/dev/null
+  # 今の版は v0.8.0（release の本文の digest で固める。tag を後から替えられても同じ物を取る）。
+  old_image=ghcr.io/uraitakahito/pagetray@sha256:82d1a0e6de15c31b4b7a8a377a687adbfdb79b415b1230a41452e600cd7455af
+  docker run -d --name "$name-old" -p 127.0.0.1:8801:8080 -v "$name-old-data:/data" "$old_image"
+  up
+  # 今の API（`POST /api/pages?project&key&kind…`）で、ページ 2 つ（鍵を分ける）と file 1 つを置く。
+  for key in K-1 K-2; do
+    curl -fsS -X POST "${html[@]}" --data-binary "<title>$key</title><p>moved before $key</p>" \
+      "$url/api/pages?project=ci&key=$key&kind=result&role=tpm" >/dev/null
+  done
+  curl -fsS -X POST -H 'Content-Type: image/png' --data-binary "@$tmp/dot.png" \
+    "$url/api/files?project=ci&key=K-1&name=dot.png&role=tpm" >/dev/null
+  backup_dir=$(mktemp -d "$tmp/backup.XXXXXX")
+  curl -fsS -o "$backup_dir/pages.db" "$url/api/backup"
+  test -s "$backup_dir/pages.db"
+  docker rm -f "$name-old" >/dev/null
+  # release.md の 2 の行と同じ形（新しい volume を /data・写しの folder を /in に読むだけで付ける）。0 で終わらなければ落ちる。
+  docker run --rm -v "$name-v1-data:/data" -v "$backup_dir:/in:ro" "$image" \
+    migrate --from /in/pages.db --to /data/pages.db | tee "$tmp/migrate.txt"
+  # 照らしの行はみな ok で、置いた数が移り、終わりの行は「migrated:」。
+  if sed '$d' "$tmp/migrate.txt" | grep -v ' ok$'; then
+    echo "NG: migrate の照らしに ok でない行がある" >&2
+    exit 1
+  fi
+  grep -qx 'pages 2 → 2 digest .* ok' "$tmp/migrate.txt"
+  grep -qx 'files 1 → 1 digest .* ok' "$tmp/migrate.txt"
+  test "$(tail -n 1 "$tmp/migrate.txt")" = 'migrated: /in/pages.db → /data/pages.db'
+  # 移した volume で起こし、新しい API で、置いた物が同じ数だけ読め、中身も同じ。
+  docker run -d --name "$name-v1" -p 127.0.0.1:8801:8080 -v "$name-v1-data:/data" "$image"
+  up
+  test "$(curl -fsS "$url/api/pages?project=ci" | jq -r '[.pages[].path] | sort | join(" ")')" \
+    = '/ci/K-1/result-1.html /ci/K-2/result-1.html'
+  test "$(curl -fsS "$url/api/files?project=ci&sort=$sort" | jq -r '[.files[].path] | join(" ")')" = '/ci/K-1/files/dot-1.png'
+  curl -fsS "$url/ci/K-2/result-1.html" | grep -q 'moved before K-2'
+  # 探す索引（pages_fts）も移っている。
+  curl -fsS "$url/?q=moved" | grep -q 'result-1'
+  rm -f "$tmp/got.png"
+  curl -fsS -o "$tmp/got.png" "$url/ci/K-1/files/dot-1.png"
+  cmp "$tmp/dot.png" "$tmp/got.png"
+fi
 echo "image は動く（${mode}）: ${image}"
