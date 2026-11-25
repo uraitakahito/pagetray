@@ -13,9 +13,10 @@
 //! この file の SQL は insert と select だけ。
 use std::collections::BTreeMap;
 use std::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
+use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection};
 use sqlx::{AssertSqlSafe, Connection};
 use time::OffsetDateTime;
@@ -36,6 +37,8 @@ struct Table {
     order: &'static str,
     /// 行を指す字（断った行を出す時の印）。
     label: &'static str,
+    /// 元と先の行を結ぶ列（時刻の照らしで使う）。
+    key: &'static [&'static str],
 }
 
 /// 移す表（親が先）。表が無い（今の migrations の途中の版の）写しでは、空として読む。
@@ -56,6 +59,7 @@ const TABLES: &[Table] = &[
         later: &[],
         order: "t.id",
         label: "t.id",
+        key: &["id"],
     },
     Table {
         name: "pages",
@@ -87,6 +91,7 @@ const TABLES: &[Table] = &[
         ],
         order: "t.id",
         label: "t.id",
+        key: &["id"],
     },
     Table {
         name: "removed",
@@ -95,6 +100,7 @@ const TABLES: &[Table] = &[
         later: &[],
         order: "t.project, t.key, t.kind, t.n",
         label: "'/' || t.project || '/' || t.key || '/' || t.kind || '-' || t.n || '.html'",
+        key: &["project", "key", "kind", "n"],
     },
     Table {
         name: "page_targets",
@@ -103,6 +109,7 @@ const TABLES: &[Table] = &[
         later: &[],
         order: "t.rowid",
         label: "t.page_id",
+        key: &["page_id", "target"],
     },
     Table {
         name: "files",
@@ -127,6 +134,7 @@ const TABLES: &[Table] = &[
         later: &["sender_id"],
         order: "t.id",
         label: "t.id",
+        key: &["id"],
     },
     Table {
         name: "files_removed",
@@ -135,8 +143,13 @@ const TABLES: &[Table] = &[
         later: &[],
         order: "t.project, t.key, t.name, t.ext, t.n",
         label: "'/' || t.project || '/' || t.key || '/files/' || t.name || '-' || t.n || '.' || t.ext",
+        key: &["project", "key", "name", "ext", "n"],
     },
 ];
+
+/// 今の server の移行（repo の頭の migrations/。0001〜0006）。移す元の `_sqlx_migrations` の版と中身の写し（checksum）を、
+/// これと突き合わせる（知らない版の写しは、知らない列や表を黙って落とすので移さない）。
+static CURRENT: Migrator = sqlx::migrate!("../../migrations");
 
 /// 本文を持つ表（本文の SHA-256 を突き合わせる）。
 const BODIES: &[&str] = &["pages", "files"];
@@ -210,6 +223,7 @@ impl Summary {
         self.tables.iter().all(TableCheck::ok)
             && self.bodies.iter().all(TableCheck::ok)
             && self.index.ok()
+            && self.times.iter().all(TimeCheck::ok)
             && self.broken.is_empty()
             && self.bad_rows.is_empty()
             && self.bad_times.is_empty()
@@ -235,7 +249,8 @@ impl Summary {
 
 /// 1 行に 1 つ（digest は頭の 16 字）:
 /// `<表> <今の行の数> → <新しい行の数> digest <今> → <新しい> ok|NG`・`body <表> … sha256 … ok|NG`・
-/// `index pages_fts <ページの数> → <索引の行の数> ok|NG`・`foreign_key_check`・`rows`・`times`。
+/// `index pages_fts <ページの数> → <索引の行の数> ok|NG`・
+/// `time <表>.<列> <元で値のある行の数> → <先で同じ時点の行の数> ok|NG`・`foreign_key_check`・`rows`・`times`。
 impl fmt::Display for Summary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mark = |ok: bool| if ok { "ok" } else { "NG" };
@@ -270,6 +285,17 @@ impl fmt::Display for Summary {
             self.index.rows,
             mark(self.index.ok())
         )?;
+        for t in &self.times {
+            writeln!(
+                f,
+                "time {}.{} {} → {} {}",
+                t.table,
+                t.column,
+                t.old_rows,
+                t.same_rows,
+                mark(t.ok())
+            )?;
+        }
         let list = |f: &mut fmt::Formatter<'_>, name: &str, why: &str, items: &[String]| {
             if items.is_empty() {
                 writeln!(f, "{name} ok")
@@ -323,23 +349,63 @@ impl From<sqlx::Error> for MigrateError {
 type Columns = BTreeMap<&'static str, Vec<String>>;
 
 /// 今の server の DB の写し `from` を、新しい DB `to`（無ければ作る）へ移し、突き合わせを返す。
+/// 落ちた時、`to` がこの移しの前に無かったなら、`to` と隣の `-wal`・`-shm` を消す（移行を当てた空の DB を残すと、
+/// 続けて起こした rc が空のまま起き、そこへ書かれた物が元のデータと分かれる）。前から在った物は消さない。
 pub async fn migrate(from: &Path, to: &Path) -> Result<Summary, MigrateError> {
-    let old = inspect_source(from).await?;
-    if same_file(from, to).await {
+    let (real, old) = inspect_source(from).await?;
+    if same_file(&real, to).await {
         return Err(MigrateError::Target(format!(
             "移す元と同じ file: {}",
             to.display()
         )));
     }
-    let db = Db::open(to).await.map_err(MigrateError::Open)?;
-    let result = copy(&db, from, &old).await;
-    db.close().await;
+    // 今の server の DB（今の volume）を移す先にした時は、開けない訳と分ける（打つ命令は合っていて、付ける volume が違う）。
+    if let Err(OpenError::Current(versions)) = crate::db::refuse_current(to).await {
+        return Err(MigrateError::Target(format!(
+            "移す先に今の server の DB を渡した（{}。今の server の移行 {} を当ててある）。何も書いていない。\
+             移す先には、新しい volume（空の DB。image では /data に新しい volume を付けて /data/pages.db）を渡す",
+            to.display(),
+            versions
+                .iter()
+                .map(i64::to_string)
+                .collect::<Vec<_>>()
+                .join("・")
+        )));
+    }
+    let made = !tokio::fs::try_exists(to).await.unwrap_or(true);
+    let result = async {
+        let db = Db::open(to).await.map_err(MigrateError::Open)?;
+        let result = copy(&db, &real, &old).await;
+        db.close().await;
+        result
+    }
+    .await;
+    if result.is_err() && made {
+        remove_target(to).await;
+    }
     result
+}
+
+/// この移しで作った移す先を、隣の `-wal`・`-shm` ごと消す。消せなければ stderr に書く（移しの訳は替えない）。
+async fn remove_target(to: &Path) {
+    let name = to.file_name().unwrap_or_default().to_string_lossy();
+    for suffix in ["", "-wal", "-shm"] {
+        let path = to.with_file_name(format!("{name}{suffix}"));
+        match tokio::fs::remove_file(&path).await {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => {
+                eprintln!(
+                    "pagetray-next migrate: 落ちた移す先を消せない（{}: {e}）。起こす前に消す",
+                    path.display()
+                );
+            }
+            _ => {}
+        }
+    }
 }
 
 /// 今の server の DB の写し `from` と、新しい DB `to` の中身を突き合わせる（どちらにも書かない）。
 pub async fn verify(from: &Path, to: &Path) -> Result<Summary, MigrateError> {
-    let old = inspect_source(from).await?;
+    let (real, old) = inspect_source(from).await?;
     let mut conn = SqliteConnection::connect_with(
         &SqliteConnectOptions::new()
             .filename(to)
@@ -347,24 +413,29 @@ pub async fn verify(from: &Path, to: &Path) -> Result<Summary, MigrateError> {
             .create_if_missing(false),
     )
     .await?;
-    attach(&mut conn, from).await?;
+    attach(&mut conn, &real).await?;
     let summary = summarize(&mut conn, &old).await;
     detach(&mut conn).await;
     let _ = conn.close().await;
     summary
 }
 
-/// 移す元が、読める今の server の DB の写しかを見て、表ごとの列を返す（移す先は、まだ作らない）。
-async fn inspect_source(from: &Path) -> Result<Columns, MigrateError> {
-    match tokio::fs::metadata(from).await {
+/// 移す元が、読める今の server の DB の写しかを見て、指す先の file の path（symlink を辿った物）と表ごとの列を返す
+/// （移す先は、まだ作らない）。隣の `-wal`・`-shm` を見るのも開くのも、指す先の path（symlink で動いている DB を
+/// 指されても、その隣を見る）。
+async fn inspect_source(from: &Path) -> Result<(PathBuf, Columns), MigrateError> {
+    let real = tokio::fs::canonicalize(from)
+        .await
+        .map_err(|e| source(from, &format!("読めない（{e}）")))?;
+    match tokio::fs::metadata(&real).await {
         Ok(m) if m.is_file() => {}
         Ok(_) => return Err(source(from, "file でない")),
         Err(e) => return Err(source(from, &format!("読めない（{e}）"))),
     }
     // GET /api/backup の写しには -wal も -shm も無い。あれば（空でも）動いている DB か、その残りなので断る。
-    let name = from.file_name().unwrap_or_default().to_string_lossy();
+    let name = real.file_name().unwrap_or_default().to_string_lossy();
     for suffix in ["-wal", "-shm"] {
-        let beside = from.with_file_name(format!("{name}{suffix}"));
+        let beside = real.with_file_name(format!("{name}{suffix}"));
         if tokio::fs::try_exists(&beside).await.unwrap_or(true) {
             return Err(source(
                 from,
@@ -376,7 +447,7 @@ async fn inspect_source(from: &Path) -> Result<Columns, MigrateError> {
     }
     let mut conn = SqliteConnection::connect_with(
         &SqliteConnectOptions::new()
-            .filename(from)
+            .filename(&real)
             .read_only(true)
             .immutable(true)
             .create_if_missing(false),
@@ -386,7 +457,7 @@ async fn inspect_source(from: &Path) -> Result<Columns, MigrateError> {
     let found = source_columns(&mut conn).await;
     let _ = conn.close().await;
     match found {
-        Ok(Ok(columns)) => Ok(columns),
+        Ok(Ok(columns)) => Ok((real, columns)),
         Ok(Err(why)) => Err(source(from, &why)),
         Err(e) => Err(source(from, &format!("SQLite の DB として読めない（{e}）"))),
     }
@@ -407,11 +478,63 @@ async fn same_file(a: &Path, b: &Path) -> bool {
     }
 }
 
-/// 移す元の表ごとの列を読む。`pages` が無ければ pagetray の DB でない。在る表に、後の版で足した物のほかの列が
-/// 無ければ、今の server の DB の形でない（外の Err の中の訳）。
+/// 移す元の表ごとの列を読む（断る時は、外の Err の中の訳）。断るのは:
+/// - `_sqlx_migrations` が無い・知らない版（今の migrations に無い版か、中身の写しの違う版。失敗した版も）がある
+/// - 移す表と、SQLite・移行・探す索引の表のほかの表がある
+/// - 在る表に、知らない列がある・後の版で足した物のほかの列が無い・`pages` が無い
+///
+/// 知らない版・表・列を断るのは、写さずに黙って落とさないため（後の版の今の server の写しを、それより前の rc で移す時など）。
 async fn source_columns(
     conn: &mut SqliteConnection,
 ) -> Result<Result<Columns, String>, sqlx::Error> {
+    let has: i64 = sqlx::query_scalar(
+        "select count(*) from sqlite_master where type = 'table' and name = '_sqlx_migrations'",
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    if has == 0 {
+        return Ok(Err(
+            "今の server の DB でない（移行の表 _sqlx_migrations が無い）".to_owned(),
+        ));
+    }
+    let applied: Vec<(i64, Vec<u8>, bool)> =
+        sqlx::query_as("select version, checksum, success from _sqlx_migrations order by version")
+            .fetch_all(&mut *conn)
+            .await?;
+    let unknown: Vec<String> = applied
+        .iter()
+        .filter(|(version, checksum, success)| {
+            !success
+                || !CURRENT
+                    .iter()
+                    .any(|m| m.version == *version && m.checksum.as_ref() == checksum.as_slice())
+        })
+        .map(|(version, _, _)| version.to_string())
+        .collect();
+    if !unknown.is_empty() {
+        return Ok(Err(format!(
+            "知らない移行 {} を当ててある（この版の知らない、後の版の今の server の写しか、別の DB）。\
+             移すと知らない列や表を落とすので移さない。その版を知る新しい server で移す",
+            unknown.join("・")
+        )));
+    }
+    let tables: Vec<String> = sqlx::query_scalar(
+        "select name from sqlite_master where type = 'table' and name not like 'sqlite\\_%' escape '\\'
+           and name <> '_sqlx_migrations' and name not like 'pages\\_fts%' escape '\\' order by name",
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let strange: Vec<&str> = tables
+        .iter()
+        .map(String::as_str)
+        .filter(|t| !TABLES.iter().any(|known| known.name == *t))
+        .collect();
+    if !strange.is_empty() {
+        return Ok(Err(format!(
+            "知らない表 {} がある。移すと落とすので移さない",
+            strange.join("・")
+        )));
+    }
     let mut found = Columns::new();
     for table in TABLES {
         let have: Vec<String> = sqlx::query_scalar("select name from pragma_table_info(?1)")
@@ -432,6 +555,18 @@ async fn source_columns(
                 "今の server の DB の形でない（表 {} に列 {} が無い）",
                 table.name,
                 missing.join("・")
+            )));
+        }
+        let extra: Vec<&str> = have
+            .iter()
+            .map(String::as_str)
+            .filter(|h| !table.columns.contains(h))
+            .collect();
+        if !extra.is_empty() {
+            return Ok(Err(format!(
+                "表 {} に知らない列 {} がある。移すと落とすので移さない",
+                table.name,
+                extra.join("・")
             )));
         }
         found.insert(table.name, have);
@@ -465,11 +600,12 @@ async fn attach(conn: &mut SqliteConnection, from: &Path) -> Result<(), MigrateE
     Ok(())
 }
 
-/// 移す元を外す。commit の後に外せなくても、移した結果（commit した物）は替えない: 落ちたことを記録に書くだけにする
+/// 移す元を外す。commit の後に外せなくても、移した結果（commit した物）は替えない: 落ちたことを stderr に書くだけにする
 /// （接続は閉じれば外れる。ここで誤りにすると、移し終えたのに 1 で終わり、2 度目の移しは「空でない」で断られる）。
 async fn detach(conn: &mut SqliteConnection) {
     if let Err(e) = sqlx::query("detach database old").execute(&mut *conn).await {
-        tracing::warn!("migrate: detach old failed: {e}");
+        // migrate の道は記録の受け手を置かない（起こす前に打つ物）ので、stderr に書く。
+        eprintln!("pagetray-next migrate: 移す元を外せない（{e}）。移した結果は替えない");
     }
 }
 
@@ -492,6 +628,11 @@ async fn copy(db: &Db, from: &Path, old: &Columns) -> Result<Summary, MigrateErr
     attach(&mut conn, from).await?;
     let result = async {
         let mut tx = conn.begin().await?;
+        // 外のキーは、行ごとでなく transaction の終わりに見る（行き先の無い行を、DB の誤りで落とさずに
+        // foreign_key_check で表と行を出して断るため。commit の前に戻すので、崩れた行は残らない）。
+        sqlx::query("pragma defer_foreign_keys = on")
+            .execute(&mut *tx)
+            .await?;
         for table in TABLES {
             if old.contains_key(table.name) {
                 sqlx::query(AssertSqlSafe(copy_sql(table, old)))
@@ -625,6 +766,13 @@ async fn summarize(conn: &mut SqliteConnection, old: &Columns) -> Result<Summary
         rows,
         matched,
     };
+    for table in TABLES {
+        for column in table.times {
+            summary
+                .times
+                .push(time_check(conn, table, column, old).await?);
+        }
+    }
     // 新しい server の Db::open と同じ形（表・rowid・指す先）。
     let broken: Vec<(String, Option<i64>, String)> = sqlx::query_as(
         "select \"table\", rowid, parent from pragma_foreign_key_check(null, 'main')",
@@ -674,6 +822,41 @@ async fn digest(
         hash.update(b"\n");
     }
     Ok((rows.len() as i64, hex(&hash.finalize())))
+}
+
+/// 時刻の列 1 つの照らし: 移す元で値のある行を、移す先の同じ行（[`Table::key`] で結ぶ）と比べ、同じ時点（ms）の
+/// 行を数える。digest は移す元も揃えた式で読むので、揃えた字が元と同じ時刻かは、ここで見る。
+async fn time_check(
+    conn: &mut SqliteConnection,
+    table: &Table,
+    column: &'static str,
+    old: &Columns,
+) -> Result<TimeCheck, sqlx::Error> {
+    let have = old
+        .get(table.name)
+        .is_some_and(|c| c.iter().any(|c| c == column));
+    let (old_rows, same_rows) = if have {
+        let on: Vec<String> = table.key.iter().map(|k| format!("n.{k} = o.{k}")).collect();
+        let ms = |c: &str| format!("cast(round(julianday({c}) * 86400000) as integer)");
+        sqlx::query_as(AssertSqlSafe(format!(
+            "select count(*), coalesce(sum({} = {}), 0) from old.{t} o left join main.{t} n on {}
+             where o.{column} is not null",
+            ms(&format!("o.{column}")),
+            ms(&format!("n.{column}")),
+            on.join(" and "),
+            t = table.name
+        )))
+        .fetch_one(&mut *conn)
+        .await?
+    } else {
+        (0, 0)
+    };
+    Ok(TimeCheck {
+        table: table.name,
+        column,
+        old_rows,
+        same_rows,
+    })
 }
 
 /// 移す元に無い表の突き合わせ（0 行と、空の字の SHA-256）。

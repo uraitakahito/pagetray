@@ -71,7 +71,10 @@ async fn main() -> ExitCode {
     }
 }
 
-const USAGE: &str = "使い方: pagetray-next（環境変数 PAGETRAY_DB・PAGETRAY_LISTEN などで起きる）\n       pagetray-next migrate --from <今の DB の写し> --to <新しい DB>";
+/// 使い方。image の中では、binary は /pagetray-server（ENTRYPOINT なので、引数は image の名の後ろに付ける）。
+const USAGE: &str = "使い方: pagetray-next（image の中では /pagetray-server。環境変数 PAGETRAY_DB・PAGETRAY_LISTEN などで起きる）
+       pagetray-next migrate --from <今の DB の写し> --to <新しい DB>
+       （image では <image> migrate --from <写し> --to /data/pages.db。/data には新しい volume を付ける）";
 
 /// `migrate --from <file> --to <file>`: 移して、突き合わせを出す。合わない・移せない時は 1、引数の誤りは 2 で終わる。
 async fn migrate(args: &[String]) -> ExitCode {
@@ -101,7 +104,8 @@ async fn migrate(args: &[String]) -> ExitCode {
     match pagetray_next::migrate::migrate(&from, &to).await {
         Ok(summary) => {
             print!("{summary}");
-            println!("移し終えた: {} → {}", from.display(), to.display());
+            // ほかの行と同じく英字（docs の例を、訳した本でもそのまま出せる）。
+            println!("migrated: {} → {}", from.display(), to.display());
             ExitCode::SUCCESS
         }
         Err(e) => {
