@@ -985,3 +985,243 @@ fn backup_refused_or_not_sqlite_leaves_no_file() {
         leftovers("refused-backup.db")
     );
 }
+
+#[test]
+fn api_answers_carry_the_port_of_the_url() {
+    // 置き場は、答えの url と Location を要求の Host で組む。Host に --url の port を付けて送るので、開ける link になる。
+    let s = Server::start();
+    let port = s.url.rsplit(':').next().unwrap().to_owned();
+    let ran = run_with(
+        &s.url,
+        &[
+            "api",
+            "/api/projects/p/keys/K/kinds/plan/pages",
+            "--input",
+            "-",
+            "--content-type",
+            "text/html",
+            "-f",
+            "role=tpm",
+        ],
+        &[],
+        Some(b"<title>x</title>"),
+    );
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let json: serde_json::Value = serde_json::from_str(&ran.stdout).unwrap();
+    assert_eq!(
+        json["url"],
+        format!("http://127.0.0.1:{port}/p/K/plan-1.html"),
+        "{json}"
+    );
+    // 頼む先が port を持たなければ（80）、Host にも付けない。
+    let (url, heads) = common::canned(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 33\r\nConnection: close\r\n\r\n{\"status\":\"ok\",\"version\":\"9.9.9\"}",
+    );
+    let ran = run_with(&url, &["status"], &[], None);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let head = heads.recv().unwrap();
+    let port = url.rsplit(':').next().unwrap();
+    assert!(
+        head.contains(&format!("\r\nhost: 127.0.0.1:{port}\r\n")),
+        "{head}"
+    );
+}
+
+#[test]
+fn api_with_a_content_type_that_cannot_be_a_header_is_a_usage_error() {
+    let ran = run_with(
+        &closed_url(),
+        &[
+            "api",
+            "/api/pages",
+            "--input",
+            "-",
+            "--content-type",
+            "text/html\r\nx: y",
+        ],
+        &[],
+        Some(b"x"),
+    );
+    assert_eq!(ran.code, 2, "{}", ran.stderr);
+    assert!(ran.stderr.contains("--content-type"), "{}", ran.stderr);
+}
+
+#[test]
+fn api_to_an_unknown_path_is_refused_with_the_body_not_code_4() {
+    // api は人が path を書くので、知らない道は打ち間違い。置き場の古さ（code 4）とは言わない。
+    let s = Server::start();
+    let ran = s.run(&["api", "/api/page"]);
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert_eq!(ran.stdout.trim(), "{}");
+    assert!(
+        ran.stderr.contains("404 UnknownOperationException"),
+        "{}",
+        ran.stderr
+    );
+}
+
+#[test]
+fn watch_exits_3_when_the_stream_breaks_and_0_when_it_closes() {
+    let event = b"data: {\"path\":\"/p/K/plan-1.html\",\"kind\":\"plan\",\"n\":\"1\"}\n\n".to_vec();
+    // 言った長さより前に切れた（置き場が落ちた）。
+    let url = trickle(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: 1000\r\nConnection: close\r\n\r\n",
+        vec![event.clone()],
+        Duration::from_millis(10),
+        true,
+    );
+    let ran = run_with(&url, &["page", "watch", "--json"], &[], None);
+    assert_eq!(ran.code, 3, "{}", ran.stderr);
+    assert!(ran.stdout.contains("plan-1.html"), "{}", ran.stdout);
+    // 言った長さで閉じた（止める合図で流れを閉じた）。
+    let head: &'static str = Box::leak(
+        format!(
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+            event.len()
+        )
+        .into_boxed_str(),
+    );
+    let url = trickle(head, vec![event], Duration::from_millis(10), true);
+    let ran = run_with(&url, &["page", "watch", "--json"], &[], None);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert!(ran.stdout.contains("plan-1.html"), "{}", ran.stdout);
+}
+
+#[cfg(unix)]
+#[test]
+fn backup_stopped_by_a_signal_leaves_no_partial_file() {
+    for (signal, code) in [("INT", 130), ("TERM", 143)] {
+        // 頭と本文の初めだけを送って黙る置き場。書きかけができてから合図を送る。
+        let url = trickle(
+            "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.sqlite3\r\nContent-Length: 1000\r\n\r\n",
+            vec![sqlite_body(100)],
+            Duration::from_millis(10),
+            false,
+        );
+        let name = format!("signal-{signal}-backup.db");
+        let file = temp(&name);
+        let child = Command::new(common::binary())
+            .args(["backup", "-o", file.to_str().unwrap()])
+            .env_clear()
+            .env("PAGETRAY_URL", &url)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let started = Instant::now();
+        while leftovers(&name).is_empty() {
+            assert!(
+                started.elapsed() < Duration::from_secs(5),
+                "書きかけができない"
+            );
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        // 書きかけに初めの本文が書かれるのを、少し待つ。
+        std::thread::sleep(Duration::from_millis(200));
+        let sent = Command::new("kill")
+            .args([format!("-{signal}"), child.id().to_string()])
+            .status()
+            .unwrap();
+        assert!(sent.success());
+        let out = child.wait_with_output().unwrap();
+        assert_eq!(
+            out.status.code(),
+            Some(code),
+            "{signal}: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        assert!(
+            leftovers(&name).is_empty(),
+            "{signal}: {:?}",
+            leftovers(&name)
+        );
+    }
+}
+
+/// 一覧の答え（記録 1 つ）。
+fn listed_page(path: &str) -> String {
+    let (project, key, file) = {
+        let mut parts = path.trim_start_matches('/').splitn(3, '/');
+        (
+            parts.next().unwrap(),
+            parts.next().unwrap(),
+            parts.next().unwrap(),
+        )
+    };
+    let (kind, n) = file
+        .strip_suffix(".html")
+        .unwrap()
+        .rsplit_once('-')
+        .unwrap();
+    serde_json::json!({"pages": [{
+        "project": project, "key": key, "kind": kind, "n": n, "title": "t", "role": "tpm",
+        "workspace": "", "createdAt": "2026-11-25T00:00:00Z", "size": 1, "path": path,
+    }]})
+    .to_string()
+}
+
+const OK_JSON: &str = "HTTP/1.1 200 OK\r\nContent-Type: application/json";
+const BUSY: &str = "HTTP/1.1 503 Service Unavailable\r\nX-Amzn-Errortype: Unavailable\r\nContent-Type: application/json";
+
+#[test]
+fn deleting_several_pages_reports_what_was_deleted_when_it_stops_midway() {
+    let (a, b) = ("/p/K/plan-1.html", "/p/K/plan-2.html");
+    let (url, _) = common::scripted(vec![
+        (OK_JSON, listed_page(a)),
+        (OK_JSON, listed_page(b)),
+        (OK_JSON, serde_json::json!({ "removed": [a] }).to_string()),
+        (BUSY, r#"{"message":"busy"}"#.to_owned()),
+    ]);
+    let ran = run_with(
+        &url,
+        &["page", "delete", "p/K/plan-1", "p/K/plan-2", "--yes"],
+        &[],
+        None,
+    );
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("（503 Unavailable）"), "{}", ran.stderr);
+    assert!(ran.stderr.contains("消した（1 枚）"), "{}", ran.stderr);
+    assert!(ran.stderr.contains(&format!("{url}{a}")), "{}", ran.stderr);
+    assert!(!ran.stderr.contains(b), "{}", ran.stderr);
+}
+
+/// file の一覧の答え（記録 1 つ）。
+fn listed_file(path: &str) -> String {
+    let parts: Vec<&str> = path.trim_start_matches('/').split('/').collect();
+    let (rest, ext) = parts[3].split_once('.').unwrap();
+    let (name, n) = rest.rsplit_once('-').unwrap();
+    serde_json::json!({"files": [{
+        "project": parts[0], "key": parts[1], "name": name, "ext": ext, "n": n, "type": "image/png",
+        "size": 1, "sha256": "0", "role": "tpm", "workspace": "", "createdAt": "2026-11-25T00:00:00Z",
+        "path": path,
+    }]})
+    .to_string()
+}
+
+#[test]
+fn deleting_several_files_reports_what_was_deleted_when_it_stops_midway() {
+    let (a, b) = ("/p/K/files/screen-1.png", "/p/K/files/screen-2.png");
+    let (url, _) = common::scripted(vec![
+        (OK_JSON, listed_file(a)),
+        (OK_JSON, listed_file(b)),
+        (OK_JSON, serde_json::json!({ "removed": [a] }).to_string()),
+        (BUSY, r#"{"message":"busy"}"#.to_owned()),
+    ]);
+    let ran = run_with(
+        &url,
+        &[
+            "file",
+            "delete",
+            "p/K/files/screen-1.png",
+            "p/K/files/screen-2.png",
+            "--yes",
+        ],
+        &[],
+        None,
+    );
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("（503 Unavailable）"), "{}", ran.stderr);
+    assert!(ran.stderr.contains("消した（1 個）"), "{}", ran.stderr);
+    assert!(ran.stderr.contains(&format!("{url}{a}")), "{}", ran.stderr);
+    assert!(!ran.stderr.contains(b), "{}", ran.stderr);
+}

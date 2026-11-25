@@ -221,6 +221,39 @@ pub fn canned(response: &'static str) -> (String, mpsc::Receiver<String>) {
     (url, received)
 }
 
+/// 要求を受けた順に、`answers` の答えを 1 つずつ返す server（`answers` を使い切れば閉じる）。受けた要求の行（小文字）を
+/// 受けた順に channel に送る。答えは本文の長さ（`Content-Length`）と `Connection: close` を付けて返す。
+pub fn scripted(answers: Vec<(&'static str, String)>) -> (String, mpsc::Receiver<String>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    let (lines, received) = mpsc::channel();
+    std::thread::spawn(move || {
+        for (head, body) in answers {
+            let Ok((mut stream, _)) = listener.accept() else {
+                return;
+            };
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut first = String::new();
+            let _ = reader.read_line(&mut first);
+            loop {
+                let mut line = String::new();
+                if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
+                    break;
+                }
+            }
+            let _ = lines.send(first.trim_end().to_ascii_lowercase());
+            let _ = stream.write_all(
+                format!(
+                    "{head}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                )
+                .as_bytes(),
+            );
+        }
+    });
+    (url, received)
+}
+
 pub fn html(title: &str, text: &str) -> String {
     format!(
         "<!doctype html><html><head><title>{title}</title></head><body><p>{text}</p></body></html>"
