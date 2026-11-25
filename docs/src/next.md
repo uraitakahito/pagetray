@@ -313,14 +313,15 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `pagetray-cli-next file put <file>` | file を置く（`CreateFile`）。置く前の手元の検査は今の CLI と同じ |
 | `pagetray-cli-next file delete <file>…` | file を消す（`DeleteFiles`。戻せない。`--yes` の時だけ） |
 | `pagetray-cli-next browse [<project>[/<key>]]` | 一覧の UI を browser で開く。`-n` は URL を出すだけ |
+| `pagetray-cli-next backup -o <file>` | DB の写し（SQLite の file 1 つ）を取る（`GET /api/backup`。手の道） |
 | `pagetray-cli-next api <path>` | API を直に呼ぶ（手の道）。`-X <method>`・`-f <name>=<value>`・`--input <file>`・`--content-type <type>` |
 | `pagetray-cli-next completion <shell>` | shell の補完の script を出す |
 
 ### 呼び方
 
 - 生成した操作（`GetHealth`・`ListPages` などの定義の道）は、定義から作った client（`crates/pagetray-client/`）で呼ぶ。
-- 手の道（ページの本文・file の中身・新着の知らせ・`api` の命令）は、生成した client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは `crates/cli-next/src/client.rs` の 1 か所で、依存も増えない（lock に前からある crate だけ）。
-- HTTP の設定は、castlist を呼ぶ時（上の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy（`HTTP_PROXY` など）を使わない・`Host: 127.0.0.1` で送り `Origin` は付けない（置き場は `Host` が 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする）。待つのは 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、答えの頭も本文も待ち続ける。
+- 手の道（ページの本文・file の中身・新着の知らせ・DB の写し・`api` の命令）は、生成した client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは `crates/cli-next/src/client.rs` の 1 か所で、依存も増えない（lock に前からある crate だけ）。
+- HTTP の設定は、castlist を呼ぶ時（上の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy（`HTTP_PROXY` など）を使わない・`Host: 127.0.0.1` で送り `Origin` は付けない（置き場は `Host` が 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする）。待つのは 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、答えの頭も本文も待ち続ける。`backup` は、答えの頭まで（置き場が写しを作る間。置き場は 5 秒で 503 を返す）を 10 秒と数え、本文は切れ目ごとに 10 秒（10 秒何も届かなければ、止まった置き場として code 3）で、全部で何秒かかってもよい。訳: 置き場の時間切れも答えの頭までで、送る間は数えない（上の「守りの層」）。DB の写しは大きく、読み終えるまでを 10 秒と数えると、大きな DB の写しが取れなくなる。今の CLI のように待ち続けると、途中で止まった置き場を待って戻らないので、届かない間だけを数える。
 - 置き場の URL は `http://` だけ（`https://` は code 2）。
 
 ### 今の CLI と替えた所
@@ -338,7 +339,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `page reply` | 405 を、0.5.0 より前の置き場と見分けた | 見分けない（定義より古い置き場は code 4）。待ちの相手の違う 409 は、置き場の訳のまま code 1 |
 | `page watch` | `data:` の行をみな読む | event の名の無い知らせ（ページを置いた）だけを出す。新しい server は file・返事・印の知らせ（`file`・`reply`・`review`）も流すため |
 | `api` | 本文の種類は `text/html` に決まっていた | `--content-type`（既定 `application/json`。返事と印は JSON の本文のため）。ページは `text/html`、file は file の種類を書く |
-| `backup` | `GET /api/backup` で DB の写しを取る | まだ無い。新しい server に `GET /api/backup` が無い（下の「段 4 の分け方」の 6）。6 で server に道ができる時に、CLI にも足す |
+| `backup` | `GET /api/backup` で DB の写しを取る。答えを待ち続ける。答えを読めなければ code 1 | 同じ形（書きかけの `<file>.part-<pid>` に読みながら書き、SQLite の頭を見てから名を付け替える。落ちれば書きかけを消す）。待つのは上の「呼び方」の形。途中で止まった・読めない答えは code 3（置き場が応えない） |
 | 送り手 | 命令からは書かない | 同じ（命令からは書かない）。`api` で `actorIssuer`・`actorRef` を書き、castlist に登録の無い送り手なら、400 `ValidationException`（`fieldList` に `/actorRef`）で code 1 |
 
 ### 終わりの code
@@ -348,7 +349,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `0` | できた |
 | `1` | 置き場が断った（`4xx`・`5xx`）。file に書けない時・`PAGETRAY_NO_DELETE` で止めた時・`file put` が置く前に止めた時も（今の CLI と同じ） |
 | `2` | 使い方の誤り（今の CLI と同じ） |
-| `3` | 置き場が応えない（つながらない・10 秒で答えない・答えが読めない） |
+| `3` | 置き場が応えない（つながらない・10 秒で答えない・答えが読めない・`backup` の本文が 10 秒届かない） |
 | `4` | 置き場の API が、この CLI の話す形でない: 答えに header `Pagetray-Api` がある（今の API の置き場。答えを使わずに止まり、今の CLI を使うよう出す）か、生成した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知らない、定義より古い置き場） |
 
 - code 4 は残す。新しい API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（上の「共通の決まり」の「版」）。それでも、切り替えの間は今の server と新しい server が並ぶので、向ける先を違えた時に、読めない答えを code 3 とせず「違う API の置き場」と分けて出す。生成した client は、答えに無い `@required` の欄を既定の値で埋めるので、今の server の答えを読ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見る（生成した client には interceptor で、手の道は答えの頭で）。
@@ -372,4 +373,4 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外）と、守りの層の本文の上限（file の上限と一緒に見るため、5 から移した） |
 | 5 | 新着の知らせ（SSE）・画面・e2e の試験を流せるだけの最小の起こす binary（CI の `ui` が、今の server と新しい server の両方に流す） |
 | 6 | backup・logs・起こす binary の残り（記録・止める合図での閉じ方。上の「起こし方」） |
-| 7 | 人が打つ CLI（`crates/cli-next`・binary `pagetray-cli-next`。上の「CLI」）と、pagetray を呼ぶ crate（`crates/pagetray-client/`）。`backup` の命令は、6 で server に道ができる時に足す |
+| 7 | 人が打つ CLI（`crates/cli-next`・binary `pagetray-cli-next`。上の「CLI」）と、pagetray を呼ぶ crate（`crates/pagetray-client/`） |

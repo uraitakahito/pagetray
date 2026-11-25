@@ -43,6 +43,8 @@ enum Command {
     File(file::FileCommand),
     /// 一覧の UI を browser で開く
     Browse(BrowseArgs),
+    /// DB の写し（SQLite の file 1 つ）を取る
+    Backup(BackupArgs),
     /// 置き場の API を直に呼ぶ（命令がまだ無い操作にも届く）
     Api(ApiArgs),
     /// shell の補完の script を出す
@@ -67,6 +69,13 @@ struct BrowseArgs {
     /// 開かずに、URL だけを出す
     #[arg(short = 'n', long)]
     no_browser: bool,
+}
+
+#[derive(Args)]
+struct BackupArgs {
+    /// 写しを書く file（置かれたページの本文がみな入る。repo にも CI にも置かない）
+    #[arg(short, long, value_name = "FILE")]
+    output: PathBuf,
 }
 
 #[derive(Args)]
@@ -126,6 +135,7 @@ async fn run(cli: Cli) -> Result<Vec<u8>, Failure> {
         Command::Page(command) => page::run(&store, command).await,
         Command::File(command) => file::run(&store, command).await,
         Command::Api(args) => api(&store, &args).await,
+        Command::Backup(args) => backup(&store, &args).await,
         Command::Browse(args) => browse(&store, &args),
         Command::Completion { .. } => unreachable!("上で返した"),
     }
@@ -171,6 +181,54 @@ async fn status(store: &Store, args: &StatusArgs) -> Result<Vec<u8>, Failure> {
         )
     };
     Ok(out.into_bytes())
+}
+
+/// DB の写し（`GET /api/backup`）を file に書く。答えは読みながら、隣の書きかけの file に書き、書き終えて SQLite の file と
+/// 確かめてから名を付け替える（今の CLI と同じ）。途中で落ちれば、書きかけの file を消す。
+/// 待つのは、答えの頭まで 10 秒（置き場が写しを作る間）と、本文の切れ目ごとに 10 秒（届き続ける間は、全部で何秒でもよい）。
+async fn backup(store: &Store, args: &BackupArgs) -> Result<Vec<u8>, Failure> {
+    let mut reply = store
+        .send("GET", "/api/backup", &[], None, Some(TIMEOUT))
+        .await?
+        .ok("置き場が DB の写しを返さなかった")
+        .await?;
+    let mut partial = args.output.clone().into_os_string();
+    partial.push(format!(".part-{}", std::process::id()));
+    let partial = PathBuf::from(partial);
+    let cannot_write = |e: std::io::Error| {
+        Failure::new(
+            REFUSED,
+            format!("写しを書けない（{}）: {e}", args.output.display()),
+        )
+    };
+    let written = async {
+        let mut file = std::fs::File::create(&partial).map_err(cannot_write)?;
+        let mut size: u64 = 0;
+        while let Some(chunk) = reply.chunk_within(TIMEOUT).await? {
+            file.write_all(&chunk).map_err(cannot_write)?;
+            size += chunk.len() as u64;
+        }
+        file.sync_all().map_err(cannot_write)?;
+        // SQLite の file は、決まった 16 字で始まる。違えば、写しではない。
+        let mut head = [0u8; 16];
+        let sqlite = std::fs::File::open(&partial)
+            .and_then(|mut f| f.read_exact(&mut head))
+            .is_ok()
+            && &head == b"SQLite format 3\0";
+        if !sqlite {
+            return Err(cannot_write(std::io::Error::other("SQLite の file でない")));
+        }
+        std::fs::rename(&partial, &args.output).map_err(cannot_write)?;
+        Ok(size)
+    }
+    .await;
+    match written {
+        Ok(size) => Ok(format!("写した: {}（{size} bytes）\n", args.output.display()).into_bytes()),
+        Err(failure) => {
+            let _ = std::fs::remove_file(&partial);
+            Err(failure)
+        }
+    }
 }
 
 /// API を直に呼び、答えの本文をそのまま出す。2xx でなければ、本文を出した上で code 1。

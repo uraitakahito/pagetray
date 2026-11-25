@@ -247,6 +247,30 @@ impl Reply {
             .map_err(|e| Failure::new(DOWN, format!("置き場の答えを読めない: {e}")))
     }
 
+    /// 本文を、届いた分ずつ読む。`idle` のあいだ何も届かなければ、止まった置き場として code 3。終われば `None`。
+    /// 頼んだ時の期限（本文を読み終えるまで）は見ない（大きな DB の写しは、送り終えるまで長くかかってよい）。
+    pub async fn chunk_within(&mut self, idle: Duration) -> Result<Option<Vec<u8>>, Failure> {
+        let seconds = idle.as_secs();
+        loop {
+            let frame = tokio::time::timeout(idle, self.body.frame())
+                .await
+                .map_err(|_| {
+                    Failure::new(
+                        DOWN,
+                        format!("置き場の答えが {seconds} 秒届かない（途中で止まった）"),
+                    )
+                })?;
+            let Some(frame) = frame else {
+                return Ok(None);
+            };
+            let frame =
+                frame.map_err(|e| Failure::new(DOWN, format!("置き場の答えを読めない: {e}")))?;
+            if let Ok(data) = frame.into_data() {
+                return Ok(Some(data.to_vec()));
+            }
+        }
+    }
+
     /// 本文を、届いた分ずつ読む（新着の知らせ）。終われば `None`。
     pub async fn chunk(&mut self) -> Option<Vec<u8>> {
         loop {
