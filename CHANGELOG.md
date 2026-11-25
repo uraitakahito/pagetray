@@ -4,11 +4,19 @@
 
 ## 1.0.0-rc.1
 
-AI-36 の作り直しの初めの候補（pre-release）。この版の image は、新しい server（`crates/server`。Smithy の定義 `model/` から作った骨の上に処理を入れた物）を `Containerfile.next` で作った物で、今の server（0.8.0）とは別の物。動いている置き場（`pagetray`）は替えない。切り替え（AI-36 の段 8）までは、試しと予行にだけ使う。release に付ける CLI は今の CLI（`pagetray`。今の API に向けた物）で、新しい API に向けた CLI（`crates/cli-next`）は付けない。
+API の版: 無くなった（今の API の版 1 との互換は無い。新しい API に版の数は無く、形の替わりは定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）が守る）
+
+AI-36 の作り直しの初めの候補（pre-release）。この版の image は、新しい server（`crates/server`。Smithy の定義 `model/` から作った骨の上に処理を入れた物）を `Containerfile.next` で作った物で、今の server（0.8.0）とは別の物。動いている置き場（`pagetray`）は替えない。roster の `.pagetray-version` は上げない（上げると、今の API を話す roster の試験が落ち、運用の image を作り直すと新しい server が今の volume で起きずに止まる。上げるのは切り替えの時、新しい volume と一緒に）。切り替え（AI-36 の段 8）までは、試しと予行にだけ使う。release に付ける CLI は今の CLI（`pagetray`。今の API に向けた物）で、新しい API に向けた CLI（`crates/cli-next`）は付けない。
 
 - **API がみな替わった**（今の server との互換は無い。Product Manager の決め: AI-36）: protocol は restJson1、欄の名は camelCase、ページの番号 `n` は字、誤りは定義に書いた型（`X-Amzn-Errortype` と `{"message":…}`）、ページ送りは `nextToken`・`maxResults`、時刻は UTC だけ（24 字で残す）。header `Pagetray-Api` と `GET /api/version` は無く、版は `GET /healthz` の `version`。知らない送り手は 422 でなく、`fieldList` に `/actorRef` のある 400。送り手は castlist の新しい API（`v1.0.0-rc.1` の定義）で引く。形は [新しい API の形](https://uraitakahito.github.io/pagetray/next.html)（`docs/src/next.md`）。
 - **ページと file の URL は今のまま**（本文 `/{project}/{key}/{kind}-{n}.html`・file `/{project}/{key}/files/{語}-{n}.{拡張子}`）。消したページと file は 410 のまま。
 - **DB の移行の SQL が替わった**: 新しい server は、新しい migrations（`crates/server/migrations/`）で新しい DB を作る。**今の volume（`pagetray-data`）では起こさない**（新しい server は今の server の DB を開かずに止める）。今のデータは、今の server の `GET /api/backup` の写しから `migrate --from … --to …` で新しい volume に移す（id・番号・消した番号・送り手・印・本文を守り、時刻を 24 字に揃え、行の数と digest・本文の SHA-256・時点・外のキーを照らす）。手順は [release を出す](https://uraitakahito.github.io/pagetray/release.html) の「rc を動かす時と切り替え」。
+- **呼ぶ側に効く振る舞いの替わり**（くわしくは [新しい API の形](https://uraitakahito.github.io/pagetray/next.html)）:
+  - 守りの層の時間切れ: 答えの頭まで 5 秒を過ぎれば 503 `Unavailable`（今の server には無かった）。backup も、写しを作るのに 5 秒を過ぎれば 503（「守りの層」「操作」）。
+  - 一覧の引数は定義の形で見て 400（今の `limit` の丸めは無く、`maxResults` が 1〜1000 の外は 400。「探す」「直す今の振る舞い」）。
+  - 一覧の頁は `createdAt` と id の組で続け、同じ時刻の行が頁の境で抜けず重ならない。画面の「続きを出す」も同じ（直した不具合。「直す今の振る舞い」）。
+  - castlist の設定の形が違う時は、記録の置き場を作らずに 1 で終わる。castlist に聞けない時の記録の訳は、答えと同じ粗い字（「起こし方」「送り手」）。
+  - 引数を付けない起こし方のほかは、`migrate --from <写し> --to <新しい DB>` だけを受け、違う引数は使い方を出して 2 で終わる（「データ」）。
 - 画面（一覧の UI）と新着の知らせ（SSE）は今と同じ働き。画面に CSP を付けた。知らせの記録は camelCase。
 - 止める合図では、走っている問い合わせを 3 秒まで待ってから閉じる（今の server は待たずに閉じていた）。
 - image の中身・環境変数・port は今と同じ（binary は `/pagetray-server`）。起こし方は、volume のほかは今と同じ（volume は新しい物にする）。
