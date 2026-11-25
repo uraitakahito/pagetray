@@ -13,7 +13,7 @@ use axum::body::Body;
 use axum::http::{Method, Request, StatusCode, header};
 use common::{App, HOST, PNG, html, temp_db};
 use http_body_util::BodyExt;
-use pagetray_next::db::{Db, OpenError};
+use pagetray_next::db::Db;
 use pagetray_next::migrate::{self, MigrateError};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
@@ -863,11 +863,15 @@ async fn a_target_that_is_not_empty_is_refused() {
     let e = migrate::migrate(&from, &current)
         .await
         .expect_err("今の server の DB");
+    let MigrateError::Target(why) = &e else {
+        panic!("移す先の断りでない: {e}");
+    };
     assert!(
-        matches!(e, MigrateError::Open(OpenError::Current(_))),
-        "{e}"
+        why.contains("移す先に今の server の DB を渡した") && why.contains("新しい volume"),
+        "{why}"
     );
     assert_eq!(sha256(&current), before);
+    assert_eq!(siblings(&current), Vec::<String>::new());
     drop(new);
     common::remove_db(&from);
     common::remove_db(&done);
@@ -972,14 +976,9 @@ async fn rows_that_do_not_fit_the_new_api_are_refused() {
     assert!(summary.tables.iter().all(|t| t.ok()), "{summary}");
     assert!(summary.bad_times.is_empty(), "{summary}");
     assert!(e.to_string().contains("pages 90: project"), "{e}");
-    // 何も足していない。
-    for table in TABLES {
-        assert_eq!(
-            scalars::<i64>(&to, &format!("select count(*) from {table}")).await,
-            [0],
-            "{table}"
-        );
-    }
+    // 前に無かった移す先は、-wal・-shm ごと残さない。
+    assert!(!to.exists(), "落ちた移す先が残った");
+    assert_eq!(siblings(&to), Vec::<String>::new());
     common::remove_db(&from);
     common::remove_db(&to);
 }
@@ -1026,7 +1025,8 @@ async fn times_that_cannot_be_aligned_are_refused() {
     );
     assert!(summary.bad_rows.is_empty(), "{summary}");
     assert!(summary.tables.iter().all(|t| t.ok()), "{summary}");
-    assert_eq!(scalars::<i64>(&to, "select count(*) from pages").await, [0]);
+    assert!(!to.exists(), "落ちた移す先が残った");
+    assert_eq!(siblings(&to), Vec::<String>::new());
     common::remove_db(&from);
     common::remove_db(&to);
 }
@@ -1098,6 +1098,13 @@ async fn the_binary_migrates_and_prints_the_checks() {
     }
     assert!(stdout.contains("pages 4 → 4 digest "), "{stdout}");
     assert!(stdout.contains("body files 2 → 2 sha256 "), "{stdout}");
+    // 終わりの行も、ほかの行と同じく英字（訳した本の例と同じ字）。
+    let last = stdout.lines().last().unwrap_or_default();
+    assert_eq!(
+        last,
+        format!("migrated: {} → {}", from.display(), to.display()),
+        "{stdout}"
+    );
     assert!(
         !to.with_file_name("logs").exists(),
         "移すだけで記録の置き場を作った"
@@ -1120,6 +1127,11 @@ async fn the_binary_migrates_and_prints_the_checks() {
             .output()
             .unwrap();
         assert_eq!(out.status.code(), Some(2), "{args:?}");
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        assert!(
+            stderr.contains("<image> migrate --from") && stderr.contains("/pagetray-server"),
+            "{args:?}: {stderr}"
+        );
     }
     assert!(!Path::new("b").exists() && !Path::new("c").exists());
 
@@ -1137,6 +1149,201 @@ async fn refusing_the_current_db_points_to_migrate() {
         Ok(_) => panic!("今の server の DB を開いた"),
         Err(e) => e,
     };
-    assert!(e.to_string().contains("pagetray-next migrate"), "{e}");
+    let e = e.to_string();
+    assert!(e.contains("pagetray-next migrate"), "{e}");
+    assert!(e.contains("<image> migrate --from"), "{e}");
     common::remove_db(&from);
+}
+
+/// 写しの複写に SQL を流した物（外のキーは切って書く。閉じた後に -wal・-shm が残らない）。
+async fn altered(from: &Path, tag: &str, sql: &str) -> PathBuf {
+    let path = temp_db(tag);
+    tokio::fs::copy(from, &path).await.unwrap();
+    let pool = pool(&path).await;
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "pragma foreign_keys = off; {sql}"
+    )))
+    .execute(&pool)
+    .await
+    .unwrap_or_else(|e| panic!("{sql}: {e}"));
+    pool.close().await;
+    assert_eq!(siblings(&path), Vec::<String>::new());
+    path
+}
+
+/// 断る移す元を移し、`Source` の訳に `want` があり、移す先を作らないことを見る。
+async fn refused_source(source: &Path, want: &str) {
+    let to = temp_db("new-refused");
+    let e = migrate::migrate(source, &to)
+        .await
+        .expect_err(&source.display().to_string());
+    let MigrateError::Source(why) = &e else {
+        panic!("移す元の断りでない: {e}");
+    };
+    assert!(why.contains(want), "{why}");
+    assert!(!to.exists(), "移す先を作った");
+    common::remove_db(&to);
+}
+
+/// 移す元の `_sqlx_migrations` に、知っている版（今の migrations の 0001〜0006）のほかがあるか、中身の写し（checksum）が
+/// 違えば断る（後の版の今の server の写しを、それより前の rc で移すと、知らない列や表を黙って落とすため）。
+#[tokio::test]
+async fn a_source_with_unknown_migrations_is_refused() {
+    let (_old, from) = backup().await;
+    let newer = altered(
+        &from,
+        "v7",
+        "insert into _sqlx_migrations(version, description, installed_on, success, checksum, execution_time)
+         values(7, 'later', '2026-01-01 00:00:00', 1, x'00', 0)",
+    )
+    .await;
+    refused_source(&newer, "知らない移行 7").await;
+    let changed = altered(
+        &from,
+        "checksum",
+        "update _sqlx_migrations set checksum = x'00' where version = 6",
+    )
+    .await;
+    refused_source(&changed, "知らない移行 6").await;
+    common::remove_db(&newer);
+    common::remove_db(&changed);
+    common::remove_db(&from);
+}
+
+/// 移す元の在る表に、知らない列があれば断る（写さずに落とさない）。
+#[tokio::test]
+async fn a_source_with_an_unknown_column_is_refused() {
+    let (_old, from) = backup().await;
+    let source = altered(&from, "column", "alter table pages add column extra text").await;
+    refused_source(&source, "表 pages に知らない列 extra").await;
+    common::remove_db(&source);
+    common::remove_db(&from);
+}
+
+/// 移す元に、移す表（と SQLite と移行と索引の表）のほかの表があれば断る（写さずに落とさない）。
+#[tokio::test]
+async fn a_source_with_an_unknown_table_is_refused() {
+    let (_old, from) = backup().await;
+    let source = altered(&from, "table", "create table notes(x)").await;
+    refused_source(&source, "知らない表 notes").await;
+    common::remove_db(&source);
+    common::remove_db(&from);
+}
+
+/// 移しが落ちても、前から在った移す先（移行を当てた空の DB）は消さない。消すのは、この移しで作った物だけ。
+#[tokio::test]
+async fn a_failed_move_removes_only_a_target_it_made() {
+    let (_old, from) = backup().await;
+    let bad = altered(
+        &from,
+        "bad-kind",
+        "update pages set kind = 'Plan' where id = 1",
+    )
+    .await;
+    let to = temp_db("new-kept");
+    Db::open(&to).await.expect("空の新しい DB").close().await;
+    let e = migrate::migrate(&bad, &to)
+        .await
+        .expect_err("形の合わない行");
+    assert!(matches!(e, MigrateError::Mismatch(_)), "{e}");
+    assert!(to.exists(), "前から在った移す先を消した");
+    let fresh = temp_db("new-fresh");
+    let e = migrate::migrate(&bad, &fresh)
+        .await
+        .expect_err("形の合わない行");
+    assert!(matches!(e, MigrateError::Mismatch(_)), "{e}");
+    assert!(!fresh.exists(), "落ちた移す先が残った");
+    assert_eq!(siblings(&fresh), Vec::<String>::new());
+    common::remove_db(&from);
+    common::remove_db(&bad);
+    common::remove_db(&to);
+    common::remove_db(&fresh);
+}
+
+/// 移す元が symlink なら、指す先の file の隣の -wal・-shm を見て、指す先を開く（動いている DB を指す link を通さない）。
+#[tokio::test]
+async fn a_symlink_source_is_checked_where_it_points() {
+    let (_old, from) = backup().await;
+    let link = temp_db("link");
+    std::os::unix::fs::symlink(&from, &link).unwrap();
+    let wal = from.with_file_name("pages.db-wal");
+    std::fs::write(&wal, b"x").unwrap();
+    refused_source(&link, "隣に -wal がある").await;
+    std::fs::remove_file(&wal).unwrap();
+    let (to, _) = migrated(&link).await;
+    common::remove_db(&to);
+    common::remove_db(&link);
+    common::remove_db(&from);
+}
+
+/// 時刻の列ごとに、元と先で同じ時点（ms）の行の数を照らす（揃えた字が、元と同じ時刻か）。
+#[tokio::test]
+async fn each_time_column_is_checked_for_the_same_instant() {
+    let (_old, from) = backup().await;
+    let (to, summary) = migrated(&from).await;
+    for ((table, column), rows) in TIMES.into_iter().zip([4, 1, 4, 2, 1, 1, 2, 1]) {
+        let check = summary
+            .time(table, column)
+            .unwrap_or_else(|| panic!("{table}.{column} の照らしが無い: {summary}"));
+        assert!(check.ok(), "{check:?}");
+        assert_eq!(
+            (check.old_rows, check.same_rows),
+            (rows, rows),
+            "{table}.{column}"
+        );
+    }
+    // 先の時刻を 1 ms ずらすと、その列だけが NG になる。
+    let pool = pool(&to).await;
+    sqlx::query("update pages set created_at = '2026-01-02T03:04:05.001Z' where id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+    let summary = migrate::verify(&from, &to).await.expect("突き合わせる");
+    let check = summary.time("pages", "created_at").unwrap();
+    assert_eq!((check.old_rows, check.same_rows), (4, 3), "{summary}");
+    assert!(!check.ok());
+    assert!(summary.time("pages", "asked_at").unwrap().ok());
+    assert!(
+        summary
+            .to_string()
+            .contains("time pages.created_at 4 → 3 NG"),
+        "{summary}"
+    );
+    common::remove_db(&from);
+    common::remove_db(&to);
+}
+
+/// 行き先の無い外のキー（無い送り手を指すページ・無いページを指す見た物）は、DB の誤りで落ちず、表と行を出して断る。
+#[tokio::test]
+async fn rows_whose_parent_is_missing_are_refused_with_the_rows() {
+    let (_old, from) = backup().await;
+    let bad = altered(
+        &from,
+        "dangling",
+        "update pages set sender_id = 999 where id = 1;
+         insert into page_targets(page_id, target) values(998, '/ai/AI-36/plan-1.html');",
+    )
+    .await;
+    let rowid: Vec<i64> = scalars(&bad, "select rowid from page_targets where page_id = 998").await;
+    let to = temp_db("new-dangling");
+    let e = migrate::migrate(&bad, &to)
+        .await
+        .expect_err("行き先の無い行");
+    let MigrateError::Mismatch(summary) = &e else {
+        panic!("突き合わせの NG でない: {e}");
+    };
+    let mut broken = summary.broken.clone();
+    broken.sort();
+    assert_eq!(
+        broken,
+        [
+            format!("page_targets の rowid {}（pages を指す）", rowid[0]),
+            "pages の rowid 1（senders を指す）".to_owned(),
+        ],
+        "{summary}"
+    );
+    assert!(!to.exists(), "落ちた移す先が残った");
+    common::remove_db(&from);
+    common::remove_db(&bad);
 }

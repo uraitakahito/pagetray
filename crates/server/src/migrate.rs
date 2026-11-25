@@ -171,6 +171,21 @@ impl IndexCheck {
     }
 }
 
+/// 時刻の列 1 つの照らし: 移す元で値のある行の数と、そのうち移す先で同じ時点（ms）の行の数。
+#[derive(Clone, Debug)]
+pub struct TimeCheck {
+    pub table: &'static str,
+    pub column: &'static str,
+    pub old_rows: i64,
+    pub same_rows: i64,
+}
+
+impl TimeCheck {
+    pub fn ok(&self) -> bool {
+        self.old_rows == self.same_rows
+    }
+}
+
 /// 突き合わせの全部。
 #[derive(Clone, Debug, Default)]
 pub struct Summary {
@@ -179,6 +194,8 @@ pub struct Summary {
     /// 本文を持つ表ごとの行の数と、本文の SHA-256 を id の順に並べた物の SHA-256。
     pub bodies: Vec<TableCheck>,
     pub index: IndexCheck,
+    /// 時刻の列ごとの、同じ時点の行の数。
+    pub times: Vec<TimeCheck>,
     /// 移す先の `pragma foreign_key_check` に出た行（空なら崩れは無い）。
     pub broken: Vec<String>,
     /// 新しい API の形に合わない行（`<表> <行>: <列>…`。空なら無い）。
@@ -201,6 +218,13 @@ impl Summary {
     /// 名で表の突き合わせを引く。
     pub fn table(&self, name: &str) -> Option<&TableCheck> {
         self.tables.iter().find(|t| t.table == name)
+    }
+
+    /// 表と列の名で、時刻の照らしを引く。
+    pub fn time(&self, table: &str, column: &str) -> Option<&TimeCheck> {
+        self.times
+            .iter()
+            .find(|t| t.table == table && t.column == column)
     }
 
     /// 名で本文の突き合わせを引く。
