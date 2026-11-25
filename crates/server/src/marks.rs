@@ -93,7 +93,7 @@ pub async fn set_reply_state(
 
 /// 見た物として受ける字か: この置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、
 /// `https://` で始まり、空白と制御の字を含まない、[`MAX_TARGET`] 字までの URL（今の crates/api の is_target と同じ）。
-fn is_target(target: &str) -> bool {
+pub(crate) fn is_target(target: &str) -> bool {
     parse_page_path(target).is_some()
         || (target.chars().count() <= MAX_TARGET
             && target.len() > "https://".len()

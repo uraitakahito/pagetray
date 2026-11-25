@@ -330,7 +330,8 @@ impl fmt::Display for OpenError {
             ),
             OpenError::Current(versions) => write!(
                 f,
-                "今の server の DB（新しい server の migrations に無い・中身の違う移行 {} を当ててある）。開かずに止める",
+                "今の server の DB（新しい server の migrations に無い・中身の違う移行 {} を当ててある）。開かずに止める。\
+                 pagetray-next migrate で新しい volume へ移す",
                 versions
                     .iter()
                     .map(i64::to_string)
