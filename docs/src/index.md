@@ -8,7 +8,7 @@ flowchart LR
   roster["roster page<br>（curl）"] -->|"POST・GET・DELETE /api/pages"| srv
   browser["browser"] -->|"一覧の UI・ページの本文"| srv
   subgraph mac["この Mac（127.0.0.1 だけ）"]
-    srv["pagetray<br>（container）"] --> db[("SQLite<br>volume pagetray-data")]
+    srv["pagetray<br>（container）"] --> db[("SQLite<br>volume pagetray-data-v1")]
   end
 ```
 

@@ -18,8 +18,7 @@ fn status_reports_the_server_version() {
         ran.stdout
     );
     assert!(
-        ran.stdout
-            .contains(&format!("pagetray-cli-next の版: {version}")),
+        ran.stdout.contains(&format!("pagetray の版: {version}")),
         "{}",
         ran.stdout
     );
@@ -321,10 +320,7 @@ fn view_prints_the_body_as_placed() {
         assert_eq!(ran.stdout, body, "{page}");
     }
 
-    let file = std::env::temp_dir().join(format!(
-        "pagetray-cli-next-view-{}.html",
-        std::process::id()
-    ));
+    let file = std::env::temp_dir().join(format!("pagetray-view-{}.html", std::process::id()));
     let ran = s.run(&[
         "page",
         "view",
@@ -398,27 +394,22 @@ fn completion_scripts_name_the_command() {
     for shell in ["bash", "zsh", "fish"] {
         let ran = s.run(&["completion", shell]);
         assert_eq!(ran.code, 0, "{shell}");
-        assert!(ran.stdout.contains("pagetray-cli-next"), "{shell}");
+        assert!(ran.stdout.contains("pagetray"), "{shell}");
     }
     assert_eq!(
         s.run(&["--version"]).stdout,
-        format!("pagetray-cli-next {}\n", env!("CARGO_PKG_VERSION"))
+        format!("pagetray {}\n", env!("CARGO_PKG_VERSION"))
     );
 }
 
-/// 新しい API の章（docs/src/next.md）の「CLI」の節に、どの命令の名もあるか。命令を足した時に、文書を忘れると落ちる。
+/// 文書（docs/src/cli.md）に、どの命令の名もあるか。命令を足した時に、文書を忘れると落ちる。
 #[test]
 fn every_command_is_in_the_book() {
-    let book = std::fs::read_to_string(concat!(
+    let section = std::fs::read_to_string(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../docs/src/next.md"
+        "/../../docs/src/cli.md"
     ))
     .unwrap();
-    let section = book
-        .split("\n## CLI\n")
-        .nth(1)
-        .expect("docs/src/next.md に「## CLI」の節が無い");
-    let section = section.split("\n## ").next().unwrap();
     let s = Server::start();
     let commands = |args: &[&str]| -> Vec<String> {
         let help = s.run(args).stdout;
@@ -436,8 +427,8 @@ fn every_command_is_in_the_book() {
         .filter(|c| !matches!(c.as_str(), "page" | "file"))
     {
         assert!(
-            section.contains(&format!("`pagetray-cli-next {command}")),
-            "docs/src/next.md の CLI の節に pagetray-cli-next {command} が無い"
+            section.contains(&format!("`pagetray {command}")),
+            "docs/src/cli.md に pagetray {command} が無い"
         );
     }
     for group in ["page", "file"] {
@@ -445,8 +436,8 @@ fn every_command_is_in_the_book() {
         assert!(sub.contains(&"list".to_owned()), "{sub:?}");
         for command in sub {
             assert!(
-                section.contains(&format!("`pagetray-cli-next {group} {command}")),
-                "docs/src/next.md の CLI の節に pagetray-cli-next {group} {command} が無い"
+                section.contains(&format!("`pagetray {group} {command}")),
+                "docs/src/cli.md に pagetray {group} {command} が無い"
             );
         }
     }
@@ -535,10 +526,7 @@ fn file_view_writes_the_bytes_as_placed() {
         "text/markdown",
         "# 見出し\n".as_bytes(),
     );
-    let out = std::env::temp_dir().join(format!(
-        "pagetray-cli-next-file-view-{}.png",
-        std::process::id()
-    ));
+    let out = std::env::temp_dir().join(format!("pagetray-file-view-{}.png", std::process::id()));
     for file in [
         format!("{}{path}", s.url),
         "p/AI-24/files/screen-1.png".to_owned(),

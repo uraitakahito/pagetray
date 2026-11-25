@@ -6,7 +6,7 @@
 //! - どちらも、TLS の無い HTTP/1.1・接続を使い回さない・送り直さない・環境変数の proxy を使わない・`Host: 127.0.0.1:<port>`
 //!   （置き場は Host が 127.0.0.1・localhost でない要求を断る。つなぐ先の名がどうでも届くように。port は `--url` の物で、
 //!   置き場が答えの `url`・`Location` を Host で組むので、開ける link になる）・`Origin` を付けない。
-//! - どの答えでも、今の API の印（header `Pagetray-Api`）を見て、付いていれば答えを使わずに code 4 で止まる。
+//! - どの答えでも、0.8.x までの API の印（header `Pagetray-Api`）を見て、付いていれば答えを使わずに code 4 で止まる。
 //!   生成した層が知らない道に返す 404 `UnknownOperationException`（定義より古い置き場）も code 4。
 
 use aws_smithy_http_client::Connector;
@@ -328,7 +328,7 @@ impl std::error::Error for CurrentApi {}
 
 impl Intercept for Wire {
     fn name(&self) -> &'static str {
-        "pagetray-cli-next の決まり"
+        "pagetray の決まり"
     }
 
     fn modify_before_transmit(
@@ -378,7 +378,7 @@ fn current_api(base: &str) -> Failure {
     Failure::new(
         API,
         format!(
-            "置き場（{base}）は今の API の置き場（header Pagetray-Api が付いている）で、この CLI（pagetray-cli-next {}）は新しい API だけを話す。今の置き場には pagetray（今の CLI）を使う",
+            "置き場（{base}）は 0.8.x までの今の API の置き場（header Pagetray-Api が付いている）で、この CLI（pagetray {}）は 1.0.0 からの新しい API だけを話す。置き場を 1.0.0 に上げるか、置き場と同じ 0.8.x の版の CLI を使う",
             env!("CARGO_PKG_VERSION")
         ),
     )
@@ -388,7 +388,7 @@ fn unknown_operation(base: &str) -> Failure {
     Failure::new(
         API,
         format!(
-            "置き場（{base}）が、この CLI（pagetray-cli-next {}）の呼ぶ操作を知らない（置き場の版が古い）。置き場を上げて、版を合わせる",
+            "置き場（{base}）が、この CLI（pagetray {}）の呼ぶ操作を知らない（置き場の版が古い）。置き場を上げて、版を合わせる",
             env!("CARGO_PKG_VERSION")
         ),
     )

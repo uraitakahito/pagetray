@@ -10,18 +10,20 @@ image と、release に付ける CLI の binary は public で、だれでも取
 6. roster の `.pagetray-version` を上げる PR を出す（つなぎの試験が、その image に向けて通る）。
 
 - 出した tag は打ち直さない（digest が変わり、書き留めた値と合わなくなる）。直す時は、次の版を出す。
-- **rc（作り直しの間。AI-36）**: tag に `-rc.` の付く物（`v<版>-rc.<n>`。`Cargo.toml` の版も `CHANGELOG.md` の節も `<版>-rc.<n>`）は、image を新しい server の `Containerfile.next` で作り、`ci/smoke-image.sh <image> next`（新しい API の形）で確かめ、GitHub の pre-release にする。ほかの tag は、今までどおり `Containerfile` の今の server。release に付ける CLI は、どちらの tag でも今の CLI（`crates/cli`）。確かめと置く job の分け方・版と CHANGELOG の突き合わせ・main の上にあるか・同じ tag を置き直さないことは、どちらも同じ。 **手順 6（roster の `.pagetray-version` を上げる）はしない**: 上げると、今の API を話す roster のつなぎの試験が落ち、運用の image を作り直すと新しい server が今の volume で起きずに置き場が止まる。上げるのは切り替え（AI-36 の段 8）の時、新しい volume と一緒に。
-- **rc を動かす時と切り替え**: rc の image の中の binary も `/pagetray-server`（`pagetray-next` を、この名で置く）で、環境変数と port も同じなので、[動かす](run.md) の命令で替わるのは image の版と、**volume** だけ。
+- **rc**: tag に `-rc.` の付く物（`v<版>-rc.<n>`。`Cargo.toml` の版も `CHANGELOG.md` の節も `<版>-rc.<n>`）は、GitHub の pre-release にする。作り方と確かめは、ほかの tag と同じ。
+- **どの tag も新しい server と新しい CLI（1.0.0 から。AI-36）**: image は `Containerfile`（新しい server の `pagetray-next` を `/pagetray-server` の名で置く）で作り、`ci/smoke-image.sh <image> next` で確かめる。release に付ける CLI は `crates/cli-next`（binary `pagetray`）。smoke は、新しい API の形で置いて読むほかに、下の「切り替え」の 2・3 の予行も流す: ghcr.io から今の版の image（v0.8.0。`ci/smoke-image.sh` の `old_image` に digest で固める）を取り、今の API でページ・file を置き、ページと file を 1 つずつ足して消し、返事の状態とレビューの印を付けて写しを取り、確かめる image の migrate で新しい volume に移し、照らしの行がみな ok で、新しい API で同じ物が読め、消した URL が 410 で、次に置くページが消した番号を使わないかを見る。だから release の確かめは、ghcr.io の v0.8.0 の image に頼る（下の「機微な物が出てしまった時」で v0.8.0 を消すなら、先に予行を替える PR を出す）。
+- **今の server（0.8.x）と今の CLI は、もう出さない**: 1.0.0 から `Containerfile` は新しい server を作り、今の CLI（`crates/cli`）は消したので、今の server を直して出す道は無い。直しが要れば、新しい server で直して次の版を出す。戻す時に使う今の版は v0.8.0 のままなので、smoke の予行の `old_image` も替えない。今の server の code（`src/` など）と `Containerfile.next` は段 9 で消す。
+- **切り替え（0.8.x から 1.0.0 に上げる時。AI-36 の段 8）**: 1.0.0 の image の中の binary も `/pagetray-server` で、環境変数と port も同じなので、[動かす](run.md) の命令で 0.8.x と替わるのは image の版と、**volume** だけ。手順 6（roster の `.pagetray-version` を上げる）は、3 の後、新しい volume で起こしてからする（先に上げると、roster が 0.8.x の置き場に新しい API で話す）。
   1. **volume は新しい物（`pagetray-data-v1`）にする。新しい server を、今の volume（`pagetray-data`）で起こさない。** 今の DB は新しい server の形でない（新しい server は、今の server の移行を当てた DB を、何も書かずに断って止まる）。今の volume は、戻す時のために、そのまま残す。
-  2. 先にデータを移す: 今の server の `GET /api/backup` で写しを取り（[動かす](run.md) の「DB の写しを取る」）、同じ rc の image に `migrate --from <写し> --to /data/pages.db` を付けて、新しい volume と写しの folder を付けて起こす（例 `container run --rm -v pagetray-data-v1:/data -v "<backup-dir>:/in:ro" ghcr.io/uraitakahito/pagetray:v<版>-rc.<n> migrate --from /in/<backup-file> --to /data/pages.db`）。写しは `-wal`・`-shm` の無い 1 つの file で渡す。表ごとの行の数と digest・本文の SHA-256 などの突き合わせ（[新しい API の形](next.md) の「データ」）が 1 つでも合わなければ、何も足さずに 1 で終わる（新しい volume に作りかけた DB は消す）。**1 で終わったら 3 に進まない（rc を起こさない）。** 訳を直してから、もう 1 度 2 をする。出た行は、予行の時と見比べられるように残す。
-  3. 移し終えてから、新しい volume で rc の image を起こす。
-- **段 8 までに今の server を直して出す時**: 版は workspace で 1 つ（`Cargo.toml` の `[workspace.package]`）なので、main の版は rc のまま。今の server の直しを出すには、版を `0.8.<n>` にして `CHANGELOG.md` に節を足す PR を merge し、`v0.8.<n>` を打つ（`-rc.` の無い tag は今の `Containerfile` で作る）。`CHANGELOG.md` の `## 0.8.<n>` の節は、いちばん上（`## 1.0.0-rc.<n>` の上。file は出した順）に置く。その merge の後は main の版が `0.8.<n>` になるので、次の rc の PR で版を `1.0.0-rc.<n+1>` にし、rc の節を足して打つ。
+  2. 先にデータを移す: 今の server の `GET /api/backup` で写しを取り（止める直前に。[動かす](run.md) の「DB の写しを取る」）、今の container を止めて消してから、1.0.0 の image に `migrate --from <写し> --to /data/pages.db` を付けて、新しい volume と写しの folder を付けて起こす（例 `container run --rm -v pagetray-data-v1:/data -v "<backup-dir>:/in:ro" ghcr.io/uraitakahito/pagetray:v1.0.0 migrate --from /in/<backup-file> --to /data/pages.db`）。写しは `-wal`・`-shm` の無い 1 つの file で渡す。表ごとの行の数と digest・本文の SHA-256 などの突き合わせ（[新しい API の形](next.md) の「データ」）が 1 つでも合わなければ、何も足さずに 1 で終わる（新しい volume に作りかけた DB は消す）。**1 で終わったら 3 に進まない。** 訳を直してから、もう 1 度 2 をする。出た行は、予行の時と見比べられるように残す。
+  3. 移し終えてから、新しい volume で 1.0.0 を起こす（[動かす](run.md) の「起こす」）。
+  - 戻す時は、1.0.0 を止めて消し、v0.8.0 の image と今の volume（`pagetray-data`）で起こす。切り替えから戻すまでに 1.0.0 に置いた物は、今の volume に入らない。0.8.x の置き場には、0.8.x の release の CLI を使う。
 - **機微な物が出てしまった時**: GitHub の package の画面で、その版を消す。CLI の方なら、release の画面で付いた file を消す。秘密なら、すぐ替える（消しても、pull した人の手元には残る前提で動く）。直して次の版を出し、`ci/` の決まりに、同じ物を止める形を足す。
 - **置いた時から public**: この repo は public で、image に repo を指す label を付けて置くので、package は初めの release から、だれでも pull できる（v0.2.0 で確かめた。private の間に人が見る、という段は無い）。人が見られるのは、tag を打つ前だけ。だから、3 の確かめを push の前に置いてあり、決まりを緩める PR（`ci/` の file・`.dockerignore`・`Containerfile`）は、よく見てから merge する。CLI の binary も、release に付いた時から public。
 
 ## image に入る物
 
-image は外に出す物なので、入ってよい物を決めてあり、CI（`ci/check-image.sh`）が毎回確かめる。1 つでも違えば落ちる。rc の image（`Containerfile.next`）も同じ決まり（binary の名も `pagetray-server`）で、CI の job `image-next` が毎回確かめる。
+image は外に出す物なので、入ってよい物を決めてあり、CI（`ci/check-image.sh`）が毎回確かめる。1 つでも違えば落ちる。`Containerfile.next`（1.0.0 から `Containerfile` と同じ中身。段 9 で消す）も同じ決まりで、CI の job `image-next` が確かめる。
 
 | 見る物 | 決まり | 書いてある所 |
 |---|---|---|
@@ -46,7 +48,7 @@ CLI（`pagetray`。macOS の arm64 用）も外に出す物なので、image と
 | binary の形 | macOS の arm64 の実行 file。つながる library は OS の物だけ。`--version` が `Cargo.toml` の版と同じ | `ci/check-cli.sh`・`ci/cli-libs.txt` |
 | binary の中の字 | image の binary と同じ決まり（home の path・mail の形・秘密の鍵や token の頭が無い。gitleaks も掛ける）。同じ script を使う | `ci/scan-binary.sh`・`ci/strings-deny.txt`・`ci/strings-allow.txt` |
 | tar の中身 | `pagetray` と `LICENSE` だけ。持ち主は `root`/`wheel` に固定し、macOS が足す付け足しの file を入れない | `ci/pack-cli.sh`・`ci/cli-contents.txt` |
-| 動くか | その binary を、同じ commit のサーバーに向けて打つ（CLI の試験） | `crates/cli/tests/` |
+| 動くか | その binary を、同じ commit の新しい server に向けて打つ（CLI の試験。`PAGETRAY_TEST_BIN` に出す binary を渡す） | `crates/cli-next/tests/` |
 
 - `check-cli` は、書き込みの権限も秘密も持たない。`push` は、渡された tar の checksum を見てから、作り直さずに release に付ける。
 - CLI は、認証の token も設定の file も持たない。build の時に binary に焼き込む値は、版だけ。

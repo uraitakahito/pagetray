@@ -1,8 +1,8 @@
-//! pagetray-cli-next: 新しい API の置き場（新しい server。binary pagetray-next）を、端末から操作する CLI（AI-36）。
-//! 形の決まりは docs/src/next.md（「CLI」の節）。置き場に認証は無く、相手はこの Mac の中の置き場だけ。
+//! pagetray: 置き場（1.0.0 からの新しい server。AI-36）を、端末から操作する CLI。
+//! 形の決まりは docs/src/cli.md。置き場に認証は無く、相手はこの Mac の中の置き場だけ。
 //!
 //! 終わりの code: 0 できた・1 置き場が断った・2 使い方の誤り・3 置き場が応えない・
-//! 4 置き場の API が、この CLI の話す形でない（今の API の置き場・定義より古い置き場）。
+//! 4 置き場の API が、この CLI の話す形でない（0.8.x までの置き場・定義より古い置き場）。
 
 mod client;
 mod file;
@@ -20,9 +20,9 @@ use std::process::ExitCode;
 /// 置き場の URL の既定（README の「動かす」の port）。
 const DEFAULT_URL: &str = "http://127.0.0.1:8801";
 
-/// ページの置き場（pagetray）を操作する（新しい API 向け）
+/// ページの置き場（pagetray）を操作する
 #[derive(Parser)]
-#[command(name = "pagetray-cli-next", version, disable_help_subcommand = true)]
+#[command(name = "pagetray", version, disable_help_subcommand = true)]
 struct Cli {
     /// 置き場の URL
     #[arg(long, global = true, env = "PAGETRAY_URL", default_value = DEFAULT_URL, value_name = "URL")]
@@ -109,14 +109,14 @@ fn main() -> ExitCode {
     {
         Ok(runtime) => runtime,
         Err(e) => {
-            eprintln!("pagetray-cli-next: 動かせない: {e}");
+            eprintln!("pagetray: 動かせない: {e}");
             return ExitCode::from(1);
         }
     };
     match runtime.block_on(run(cli)).and_then(|out| emit(&out)) {
         Ok(()) => ExitCode::SUCCESS,
         Err(failure) => {
-            eprintln!("pagetray-cli-next: {}", failure.message);
+            eprintln!("pagetray: {}", failure.message);
             ExitCode::from(failure.code)
         }
     }
@@ -126,7 +126,7 @@ fn main() -> ExitCode {
 async fn run(cli: Cli) -> Result<Vec<u8>, Failure> {
     if let Command::Completion { shell } = cli.command {
         let mut script = Vec::new();
-        clap_complete::generate(shell, &mut Cli::command(), "pagetray-cli-next", &mut script);
+        clap_complete::generate(shell, &mut Cli::command(), "pagetray", &mut script);
         return Ok(script);
     }
     let store = Store::new(&cli.url)?;
@@ -170,7 +170,7 @@ async fn status(store: &Store, args: &StatusArgs) -> Result<Vec<u8>, Failure> {
         }))
     } else {
         format!(
-            "置き場: {}（{}）\nサーバーの版: {}\npagetray-cli-next の版: {cli}\n",
+            "置き場: {}（{}）\nサーバーの版: {}\npagetray の版: {cli}\n",
             store.base,
             if health.status() == "ok" {
                 "生きている"
@@ -184,7 +184,7 @@ async fn status(store: &Store, args: &StatusArgs) -> Result<Vec<u8>, Failure> {
 }
 
 /// DB の写し（`GET /api/backup`）を file に書く。答えは読みながら、隣の書きかけの file に書き、書き終えて SQLite の file と
-/// 確かめてから名を付け替える（今の CLI と同じ）。途中で落ちれば、書きかけの file を消す。止める合図（SIGINT・SIGTERM）で
+/// 確かめてから名を付け替える（0.8.x までの CLI と同じ）。途中で落ちれば、書きかけの file を消す。止める合図（SIGINT・SIGTERM）で
 /// 止めた時も、書きかけを消してから 130・143 で終わる（書きかけには、ページの本文がみな入るため）。
 /// 待つのは、答えの頭まで 10 秒（置き場が写しを作る間）と、本文の切れ目ごとに 10 秒（届き続ける間は、全部で何秒でもよい）。
 async fn backup(store: &Store, args: &BackupArgs) -> Result<Vec<u8>, Failure> {

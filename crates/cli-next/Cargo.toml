@@ -1,23 +1,23 @@
-# 新しい pagetray の server（crates/server・binary pagetray-next）を呼ぶ、人が打つ CLI（AI-36）。
+# 人が打つ CLI（binary pagetray）。1.0.0 から、新しい pagetray の server（crates/server・binary pagetray-next。AI-36）を呼ぶ。
 # 生成した操作は、定義（model/）から作った client（crates/pagetray-client/）で呼ぶ。手の道（ページの本文・file の中身・
-# 新着の知らせ・直に呼ぶ api）は、同じ HTTP の client（aws-smithy-http-client の hyper の作り）で直に呼ぶ（docs/src/next.md の「CLI」）。
-# 切り替えまで、今の CLI（crates/cli・binary pagetray）と並べる。release には入らない。
+# 新着の知らせ・直に呼ぶ api）は、同じ HTTP の client（aws-smithy-http-client の hyper の作り）で直に呼ぶ（docs/src/cli.md の「呼び方」）。
+# release に付ける CLI はこれ。package と folder の名（-next）は、段 9 で今の server の code を消す時に直す。
 [package]
 name = "pagetray-cli-next"
-description = "ページの置き場（pagetray）を端末から操作する CLI（新しい API 向け）"
+description = "ページの置き場（pagetray）を端末から操作する CLI"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
-# server の binary の名（pagetray-next）とぶつけない。
+# 人が打つ名は pagetray（server の binary は pagetray-next。image の中では /pagetray-server）。
 [[bin]]
-name = "pagetray-cli-next"
+name = "pagetray"
 path = "src/main.rs"
 
 [dependencies]
-# 名・path・file の種類と中身の見方の決まり（今の CLI と共に使う）。
+# 名・path・file の種類と中身の見方の決まり（今の server と共に使う）。
 pagetray-api = { path = "../api" }
 pagetray_client = { path = "../pagetray-client" }
 # TLS の無い HTTP/1.1（build_http）だけを使うので、features は default-client だけ（crates/server と同じ）。
@@ -33,7 +33,7 @@ serde_json = "1"
 tokio = { version = "1.54", features = ["rt", "time", "signal", "macros"] }
 
 [dev-dependencies]
-# 試験は、同じ commit の新しい server を起こして、build した pagetray-cli-next を打つ。
+# 試験は、同じ commit の新しい server を起こして、build した pagetray を打つ（$PAGETRAY_TEST_BIN があれば、その file）。
 pagetray-next = { path = "../server" }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
 tokio = { version = "1.54", features = ["rt-multi-thread", "net"] }

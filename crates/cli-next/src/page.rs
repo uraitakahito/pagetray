@@ -1,4 +1,4 @@
-//! `pagetray-cli-next page …`: ページを探す・読む・置く・消す・返事の状態を書く・新着を待つ。
+//! `pagetray page …`: ページを探す・読む・置く・消す・返事の状態を書く・新着を待つ。
 
 use crate::client::{Failure, Route, Store, TIMEOUT};
 use crate::output::{self, page_record, page_state};
@@ -321,9 +321,7 @@ async fn list(store: &Store, args: ListArgs) -> Result<String, Failure> {
     };
     let (pages, next) = page_of(store, &filter, args.limit, args.next_token).await?;
     if let Some(next) = next {
-        eprintln!(
-            "pagetray-cli-next: 続きがある（次の頁は、同じ命令に --next-token {next} を付けて打つ）"
-        );
+        eprintln!("pagetray: 続きがある（次の頁は、同じ命令に --next-token {next} を付けて打つ）");
     }
     if let Some(wanted) = wanted {
         return Ok(output::records(pages, &wanted));
@@ -559,10 +557,7 @@ async fn delete(store: &Store, args: DeleteArgs) -> Result<String, Failure> {
                         .iter()
                         .map(|path| format!("{}{path}\n", store.base))
                         .collect();
-                    eprint!(
-                        "pagetray-cli-next: 消した（{} 枚）:\n{lines}",
-                        removed.len()
-                    );
+                    eprint!("pagetray: 消した（{} 枚）:\n{lines}", removed.len());
                 }
                 return Err(store.failure("置き場がページを消さなかった", e));
             }

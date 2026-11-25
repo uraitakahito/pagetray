@@ -7,26 +7,25 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
-# サーバーの binary。人が打つ CLI（crates/cli）が `pagetray` の名を使うので、こちらは pagetray-server。
+# 今の server（0.8.x）の binary。人が打つ CLI（crates/cli-next）が `pagetray` の名を使うので、こちらは pagetray-server。
 [[bin]]
 name = "pagetray-server"
 path = "src/main.rs"
 
-# AI-36 の作り直しの間は、新しい server（crates/server。Smithy の定義 model/ から作った骨 crates/pagetray-sdk/ を使う）を並べて作る。
-# 人が打つ CLI も、新しい server に向けた物（crates/cli-next。定義から作った client crates/pagetray-client/ で呼ぶ）を並べて作る。
-# release の image（Containerfile）に入るのは今の server（この crate）だけ。rc の tag の image（Containerfile.next）だけが新しい server を入れる。
-# release に付ける CLI は、どちらの tag でも今の CLI（crates/cli）だけ。
+# 1.0.0 から、release の image（Containerfile）に入るのは新しい server（crates/server。Smithy の定義 model/ から作った骨
+# crates/pagetray-sdk/ を使う。AI-36）で、release に付ける CLI は新しい server に向けた物（crates/cli-next。binary pagetray。
+# 定義から作った client crates/pagetray-client/ で呼ぶ）。今の server（この crate）は、移す試験の元を作るのに使い、段 9 で消す。
 [workspace]
-members = [".", "crates/api", "crates/cli", "crates/cli-next", "crates/server", "crates/pagetray-sdk", "crates/castlist-client", "crates/pagetray-client"]
+members = [".", "crates/api", "crates/cli-next", "crates/server", "crates/pagetray-sdk", "crates/castlist-client", "crates/pagetray-client"]
 # 生成した crate（crates/pagetray-sdk/・crates/castlist-client/・crates/pagetray-client/）は手で直さないので、既定の cargo の命令
 # （clippy・test）からは外す。その中の、定義の例から作った試験（protocol の試験）は、CI が `cargo test --locked -p pagetray_sdk`・
 # `-p castlist_client`・`-p pagetray_client` で流す。
 # fmt は生成器が整えた物を、CI の `cargo fmt --all --check` が見る（ci/gen.sh は rust-toolchain.toml の rustfmt で整える）。
-default-members = [".", "crates/api", "crates/cli", "crates/cli-next", "crates/server"]
+default-members = [".", "crates/api", "crates/cli-next", "crates/server"]
 
 # 版はここだけに書く（release の workflow が、この file の初めの `version = "…"` の行を tag と突き合わせる）。
 [workspace.package]
-version = "1.0.0-rc.1"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.100"
 license = "MIT"
