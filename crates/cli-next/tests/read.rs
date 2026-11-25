@@ -78,12 +78,19 @@ fn a_store_that_does_not_know_the_operation_exits_4() {
 }
 
 #[test]
-fn requests_name_127_0_0_1_as_the_host_and_do_not_keep_the_connection() {
+fn requests_name_127_0_0_1_as_the_host_and_skip_the_proxy() {
     // 置き場は Host が 127.0.0.1・localhost でない要求を断る。つなぐ先の名がどうでも、Host は 127.0.0.1。
     let (url, heads) = canned(
         "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 33\r\n\r\n{\"status\":\"ok\",\"version\":\"9.9.9\"}",
     );
-    let ran = run_with(&url, &["status"], &[], None);
+    // 環境変数の proxy は使わない（使えば、待ち受けの無い proxy につなごうとして code 3 になる）。
+    let proxy = closed_url();
+    let env = [
+        ("HTTP_PROXY", proxy.as_str()),
+        ("http_proxy", proxy.as_str()),
+        ("ALL_PROXY", proxy.as_str()),
+    ];
+    let ran = run_with(&url, &["status"], &env, None);
     assert_eq!(ran.code, 0, "{}", ran.stderr);
     let head = heads.recv().unwrap();
     assert!(head.starts_with("get /healthz http/1.1\r\n"), "{head}");

@@ -24,6 +24,7 @@
 | `model/`・`ci/gen.sh` | 作り直し（AI-36）の間の、新しい API の Smithy の定義と、そこから crate を作る script（下の「定義と生成」） |
 | `crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/` | 定義から作った server の骨と、castlist を呼ぶ crate と、pagetray を呼ぶ crate（新しい CLI が使う）。手で直さない |
 | `crates/server/` | 作り直している新しい server（package `pagetray-next`）。切り替えまで image に入らない |
+| `crates/cli-next/` | 新しい server に向けた、人が打つ CLI（package・binary `pagetray-cli-next`）。`crates/pagetray-client/` で呼ぶ。切り替えまで release に入らない。試験は、同じ commit の新しい server を起こして打つ |
 
 Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読まない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つと、その版が入って使われる。
 

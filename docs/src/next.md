@@ -295,6 +295,65 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - 画面の続き: 今の server の画面の「続きを出す」は、境の時刻（`at`）だけで続け、同じ時刻の行が境に並ぶと抜けた。新しい画面の `at` は時刻と id の組（`crates/server/tests/ui.rs` が、同じ時刻の 205 枚を抜けずに出すことを見る）。
 - 新着の知らせの記録: snake_case から、API の答えと同じ camelCase に（上の「新着の知らせ」）。
 
+## CLI
+
+人が打つ CLI の新しい形（`crates/cli-next`。package と binary の名は `pagetray-cli-next`。`pagetray-next` は server の binary の名なので使わない）。切り替えまで、今の CLI（`crates/cli`・binary `pagetray`）と並べ、release には入らない。切り替えの日に binary の名を `pagetray` にし、[CLI](cli.md) の章をこの形に書き直す。命令の形・旗・環境変数（`PAGETRAY_URL`・`PAGETRAY_PROJECT`・`PAGETRAY_ROLE`・`PAGETRAY_NO_DELETE`・`BROWSER`）は今の CLI に合わせ、API の違う所だけを新しい API に合わせる（下の「今の CLI と替えた所」）。試験は `crates/cli-next/tests/`（同じ commit の新しい server を起こし、build した `pagetray-cli-next` を打つ）。
+
+| 命令 | すること |
+|---|---|
+| `pagetray-cli-next status` | 置き場が生きているかと、サーバーの版を出す（`GetHealth`） |
+| `pagetray-cli-next page list` | ページを絞って探す（`ListPages`。新しい順） |
+| `pagetray-cli-next page view <page>` | ページの本文を出す（手の道）。`--web` で browser に、`-o <file>` で file に |
+| `pagetray-cli-next page put <file>` | ページを置く（`CreatePage`。`-` は stdin）。置いたページの URL を出す |
+| `pagetray-cli-next page delete <page>…` | ページを消す（`DeletePages`。戻せない。`--yes` の時だけ） |
+| `pagetray-cli-next page reply <page>` | ページの返事の状態を書く（`SetReplyState`）。`--waiting`・`--answered`・`--on` |
+| `pagetray-cli-next page watch` | ページが置かれるたびに 1 行出す（`GET /api/events`） |
+| `pagetray-cli-next file list` | file を絞って探す（`ListFiles`。新しい順） |
+| `pagetray-cli-next file view <file>` | file の中身を出す（手の道）。`-o <file>` で file に |
+| `pagetray-cli-next file put <file>` | file を置く（`CreateFile`）。置く前の手元の検査は今の CLI と同じ |
+| `pagetray-cli-next file delete <file>…` | file を消す（`DeleteFiles`。戻せない。`--yes` の時だけ） |
+| `pagetray-cli-next browse [<project>[/<key>]]` | 一覧の UI を browser で開く。`-n` は URL を出すだけ |
+| `pagetray-cli-next api <path>` | API を直に呼ぶ（手の道）。`-X <method>`・`-f <name>=<value>`・`--input <file>`・`--content-type <type>` |
+| `pagetray-cli-next completion <shell>` | shell の補完の script を出す |
+
+### 呼び方
+
+- 生成した操作（`GetHealth`・`ListPages` などの定義の道）は、定義から作った client（`crates/pagetray-client/`）で呼ぶ。
+- 手の道（ページの本文・file の中身・新着の知らせ・`api` の命令）は、生成した client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは `crates/cli-next/src/client.rs` の 1 か所で、依存も増えない（lock に前からある crate だけ）。
+- HTTP の設定は、castlist を呼ぶ時（上の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy（`HTTP_PROXY` など）を使わない・`Host: 127.0.0.1` で送り `Origin` は付けない（置き場は `Host` が 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする）。待つのは 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、答えの頭も本文も待ち続ける。
+- 置き場の URL は `http://` だけ（`https://` は code 2）。
+
+### 今の CLI と替えた所
+
+| 所 | 今の CLI（`pagetray`） | 新しい CLI（`pagetray-cli-next`） |
+|---|---|---|
+| `--json` の記録 | snake_case（`created_at`・`asked_at`・`waits_on`）。番号 `n` は数 | API の答えと同じ camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`sender.resolvedAt`）。`n` は字（`"7"`）。値の無い欄は出さない。CLI が足すのは、頼んだ先（`--url`）で組んだ `url` だけ |
+| `--json=<欄>` の名 | snake_case | camelCase（知らない名は code 2） |
+| 一覧の続き | `--before`・`--after`（時刻） | `--next-token <印>`。続きがあれば、続きの印を stderr に 1 行で出す（stdout は頼んだ物だけ）。`--before`・`--after` は無い（code 2） |
+| `-L`（件数） | 置き場が 1〜1000 に丸めた | 1〜1000 の外は、送る前に code 2 |
+| 消す前の一覧 | 1 度の答え（1000 件）まで | `nextToken` を辿って、合う物をみな見る |
+| 断られた訳 | `（404）: そのページは無い`（本文の `error`） | `（404 NotFound）: そのページは無い`（状態の数・header `X-Amzn-Errortype`・本文の `message`）。`api` は `置き場が 400 ValidationException を返した` |
+| `status` | サーバーの版と API の版（`/api/version`）。`--json` に `api`・`cli_api` | サーバーの版（`GET /healthz` の `version`）と CLI の版だけ。`--json` は `url`・`server`・`cli` |
+| 版の違い | 答えの header `Pagetray-Api` が違えば code 4 | 下の「終わりの code」 |
+| `page reply` | 405 を、0.5.0 より前の置き場と見分けた | 見分けない（定義より古い置き場は code 4）。待ちの相手の違う 409 は、置き場の訳のまま code 1 |
+| `page watch` | `data:` の行をみな読む | event の名の無い知らせ（ページを置いた）だけを出す。新しい server は file・返事・印の知らせ（`file`・`reply`・`review`）も流すため |
+| `api` | 本文の種類は `text/html` に決まっていた | `--content-type`（既定 `application/json`。返事と印は JSON の本文のため）。ページは `text/html`、file は file の種類を書く |
+| `backup` | `GET /api/backup` で DB の写しを取る | まだ無い。新しい server に `GET /api/backup` が無い（下の「段 4 の分け方」の 6）。6 で server に道ができる時に、CLI にも足す |
+| 送り手 | 命令からは書かない | 同じ（命令からは書かない）。`api` で `actorIssuer`・`actorRef` を書き、castlist に登録の無い送り手なら、400 `ValidationException`（`fieldList` に `/actorRef`）で code 1 |
+
+### 終わりの code
+
+| code | 訳 |
+|---|---|
+| `0` | できた |
+| `1` | 置き場が断った（`4xx`・`5xx`）。file に書けない時・`PAGETRAY_NO_DELETE` で止めた時・`file put` が置く前に止めた時も（今の CLI と同じ） |
+| `2` | 使い方の誤り（今の CLI と同じ） |
+| `3` | 置き場が応えない（つながらない・10 秒で答えない・答えが読めない） |
+| `4` | 置き場の API が、この CLI の話す形でない: 答えに header `Pagetray-Api` がある（今の API の置き場。答えを使わずに止まり、今の CLI を使うよう出す）か、生成した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知らない、定義より古い置き場） |
+
+- code 4 は残す。新しい API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（上の「共通の決まり」の「版」）。それでも、切り替えの間は今の server と新しい server が並ぶので、向ける先を違えた時に、読めない答えを code 3 とせず「違う API の置き場」と分けて出す。生成した client は、答えに無い `@required` の欄を既定の値で埋めるので、今の server の答えを読ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見る（生成した client には interceptor で、手の道は答えの頭で）。
+- 切り替えの後は、今の server が無くなるので、`Pagetray-Api` の見分けは、段 9 で今の CLI と一緒に消す。
+
 ## 定義の取り方
 
 - pagetray の定義は `model/model/pagetray.smithy`（名前空間 `ai.pagetray`）。共通の形 `ai.common` は castlist の `model/model/common.smithy` を使う。
@@ -313,3 +372,4 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外）と、守りの層の本文の上限（file の上限と一緒に見るため、5 から移した） |
 | 5 | 新着の知らせ（SSE）・画面・e2e の試験を流せるだけの最小の起こす binary（CI の `ui` が、今の server と新しい server の両方に流す） |
 | 6 | backup・logs・起こす binary の残り（記録・止める合図での閉じ方。上の「起こし方」） |
+| 7 | 人が打つ CLI（`crates/cli-next`・binary `pagetray-cli-next`。上の「CLI」）と、pagetray を呼ぶ crate（`crates/pagetray-client/`）。`backup` の命令は、6 で server に道ができる時に足す |

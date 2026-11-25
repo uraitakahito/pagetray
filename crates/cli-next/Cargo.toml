@@ -29,7 +29,7 @@ clap_complete = "4.6"
 http-body-util = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1.54", features = ["rt", "macros", "time", "io-std", "io-util"] }
+tokio = { version = "1.54", features = ["rt", "time"] }
 
 [dev-dependencies]
 # 試験は、同じ commit の新しい server を起こして、build した pagetray-cli-next を打つ。

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-25T00:16:49+09:00\n"
+"POT-Creation-Date: 2026-11-25T22:21:26+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -26,7 +26,7 @@ msgstr "Usage"
 msgid "動かす"
 msgstr "Running"
 
-#: src/SUMMARY.md src/cli.md src/glossary.md
+#: src/SUMMARY.md src/cli.md src/next.md src/glossary.md
 msgid "CLI"
 msgstr "CLI"
 
@@ -1260,11 +1260,11 @@ msgid "消す時は `rm ~/.local/bin/pagetray`。ほかに置く file は無い�
 msgstr ""
 "To remove it, run `rm ~/.local/bin/pagetray`. It places no other files."
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "命令"
 msgstr "Commands"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "すること"
 msgstr "What it does"
 
@@ -1370,7 +1370,7 @@ msgstr "Deletes files (cannot be undone)"
 msgid "`pagetray browse [<project>[/<key>]]`"
 msgstr "`pagetray browse [<project>[/<key>]]`"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "一覧の UI を browser で開く。`-n` は URL を出すだけ"
 msgstr "Opens the list UI in a browser. `-n` only prints the URL"
 
@@ -1851,23 +1851,23 @@ msgstr "Proxy environment variables (such as `HTTP_PROXY`) are not used."
 msgid "終わりの code と、API の版"
 msgstr "Exit codes and the API version"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "code"
 msgstr "code"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "訳"
 msgstr "Meaning"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "`0`"
 msgstr "`0`"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "できた"
 msgstr "Success"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "`1`"
 msgstr "`1`"
 
@@ -1882,7 +1882,7 @@ msgstr ""
 "`PAGETRAY_NO_DELETE` stopped the command, and when `file put` stopped before "
 "storing (no `--reviewed`, or a secret pattern was found)"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "`2`"
 msgstr "`2`"
 
@@ -1894,7 +1894,7 @@ msgstr ""
 "Usage error (including, for `file put`, a file of a type that cannot be "
 "stored, too large, or whose contents do not match its extension)"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "`3`"
 msgstr "`3`"
 
@@ -1902,7 +1902,7 @@ msgstr "`3`"
 msgid "置き場が応えない"
 msgstr "The store does not respond"
 
-#: src/cli.md
+#: src/cli.md src/next.md
 msgid "`4`"
 msgstr "`4`"
 
@@ -3895,14 +3895,18 @@ msgstr ""
 "that makes crates from it (see \"Model and generation\" below)"
 
 #: src/development.md
-msgid "`crates/pagetray-sdk/`・`crates/castlist-client/`"
-msgstr "`crates/pagetray-sdk/`, `crates/castlist-client/`"
+msgid ""
+"`crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/`"
+msgstr ""
+"`crates/pagetray-sdk/`, `crates/castlist-client/`, `crates/pagetray-client/`"
 
 #: src/development.md
-msgid "定義から作った server の骨と、castlist を呼ぶ crate。手で直さない"
+msgid ""
+"定義から作った server の骨と、castlist を呼ぶ crate と、pagetray を呼ぶ crate"
+"（新しい CLI が使う）。手で直さない"
 msgstr ""
-"The server skeleton made from the model, and the crate that calls castlist. "
-"Never edited by hand"
+"The server skeleton generated from the model, the crate that calls castlist, "
+"and the crate that calls pagetray (used by the new CLI). Not edited by hand"
 
 #: src/development.md
 msgid "`crates/server/`"
@@ -3915,6 +3919,21 @@ msgid ""
 msgstr ""
 "The new server being rewritten (package `pagetray-next`). Not in the image "
 "until the switch-over"
+
+#: src/development.md
+msgid "`crates/cli-next/`"
+msgstr "`crates/cli-next/`"
+
+#: src/development.md
+msgid ""
+"新しい server に向けた、人が打つ CLI（package・binary `pagetray-cli-next`）。"
+"`crates/pagetray-client/` で呼ぶ。切り替えまで release に入らない。試験は、同"
+"じ commit の新しい server を起こして打つ"
+msgstr ""
+"The CLI that people type, aimed at the new server (package and binary "
+"`pagetray-cli-next`). It calls through `crates/pagetray-client/`. Not in "
+"releases until the switch-over. Its tests start the new server from the same "
+"commit and run the CLI against it"
 
 #: src/development.md
 msgid ""
@@ -4154,20 +4173,28 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`）は `ci/"
-"gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直し"
-"た物も同じ commit に入れる。workspace の member だが、既定の命令（`default-"
-"members`）の外。中の protocol の試験は `cargo test --locked -p "
-"pagetray_sdk`・`-p castlist_client` で流す（`castlist_client` の外す試験は "
-"`.github/workflows/ci.yml` の訳を見る）。"
+"生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/"
+"pagetray-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら "
+"`ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member "
+"だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo "
+"test --locked -p pagetray_sdk`・`-p castlist_client`・`-p pagetray_client` で"
+"流す（`castlist_client` の外す試験は `.github/workflows/ci.yml` の訳を見"
+"る）。定義の例の引数の値は、呼ぶ側が逃がす字（`:` など）を `%3A` と逃がして書"
+"く（逃がさずに書くと、呼ぶ側の crate の試験が合わずに落ちる。server の骨の試"
+"験は、逃がしを戻してから比べるので、どちらでも通る）。"
 msgstr ""
-"The generated crates (`crates/pagetray-sdk/`, `crates/castlist-client/`) are "
-"made by `ci/gen.sh`. **Never edit them by hand**. After changing the model, "
-"run `ci/gen.sh` and commit the regenerated crates in the same commit. They "
-"are workspace members but outside the default commands (`default-members`). "
-"Their protocol tests run with `cargo test --locked -p pagetray_sdk` and `-p "
-"castlist_client` (for the tests skipped in `castlist_client`, see the reason "
-"in `.github/workflows/ci.yml`)."
+"The generated crates (`crates/pagetray-sdk/`, `crates/castlist-client/`, "
+"`crates/pagetray-client/`) are made by `ci/gen.sh`. **Do not edit them by "
+"hand**. When you change the model, run `ci/gen.sh` and put the regenerated "
+"code in the same commit. They are workspace members but outside the default "
+"commands (`default-members`). The protocol tests inside them run with `cargo "
+"test --locked -p pagetray_sdk`, `-p castlist_client`, and `-p "
+"pagetray_client` (for the tests skipped in `castlist_client`, see the reason "
+"in `.github/workflows/ci.yml`). In the model's examples, write parameter "
+"values with the characters a caller escapes (such as `:`) already escaped as "
+"`%3A` (written unescaped, the calling crate's tests do not match and fail; "
+"the server skeleton's tests unescape before comparing, so they pass either "
+"way)."
 
 #: src/development.md
 msgid ""
@@ -5806,30 +5833,32 @@ msgstr "All the operations and hand-written routes in this chapter are built."
 
 #: src/next.md
 msgid ""
-"`GET /api/backup`（`crates/server/src/hand.rs`）: 今の server と同じ。DB の隣の一時"
-"の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で揃ったバックアップを作り、開いてから名を消"
-"し（作る・開く・名を消すは別の task でするので、写しを作る間に時間切れで 503 を返しても、client が切っても、一時の fil"
-"e は残らない。止める合図で、写しを作る途中に process が終わった時だけは残り得る）、`application/vnd.sqlite"
-"3`（`Content-Disposition: attachment; filename=\"pages.db\"`）で読みながら送る。読む接"
-"続で作る（今の server は書く接続。写しを作る間、書く物を待たせない）。誤りは restJson1 の形の 503 `Unavaila"
-"ble`・500 `InternalError`。時間切れは答えの頭まで（写しを作る間）を数え、送る間は数えない（下の「守りの層」）。写しを"
-"作るのに 5 秒を過ぎれば 503 `Unavailable`。"
+"`GET /api/backup`（`crates/server/src/hand.rs`）: 今の server と同じ。DB の隣"
+"の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で揃ったバック"
+"アップを作り、開いてから名を消し（作る・開く・名を消すは別の task でするの"
+"で、写しを作る間に時間切れで 503 を返しても、client が切っても、一時の file "
+"は残らない。止める合図で、写しを作る途中に process が終わった時だけは残り得"
+"る）、`application/vnd.sqlite3`（`Content-Disposition: attachment; "
+"filename=\"pages.db\"`）で読みながら送る。読む接続で作る（今の server は書く"
+"接続。写しを作る間、書く物を待たせない）。誤りは restJson1 の形の 503 "
+"`Unavailable`・500 `InternalError`。時間切れは答えの頭まで（写しを作る間）を"
+"数え、送る間は数えない（下の「守りの層」）。写しを作るのに 5 秒を過ぎれば "
+"503 `Unavailable`。"
 msgstr ""
-"`GET /api/backup` (`crates/server/src/hand.rs`): same as the current s"
-"erver. It makes a consistent backup with `VACUUM INTO` in a temporary "
-"file next to the DB (`<DB>.backup-<pid>-<seq>`), opens it, removes the"
-" name (making, opening and removing the name run in a separate task, s"
-"o the temporary file is not left behind even when the timeout answers "
-"503 while the copy is being made, or the client hangs up; it can be le"
-"ft behind only when the process ends on a stop signal in the middle of"
-" making the copy), and streams it as `application/vnd.sqlite3` (`Conte"
-"nt-Disposition: attachment; filename=\"pages.db\"`). It is made on a rea"
-"d connection (the current server uses the write connection; writers ar"
-"e not kept waiting while the copy is made). Errors are a 503 `Unavaila"
-"ble` or a 500 `InternalError` in the restJson1 shape. The timeout coun"
-"ts up to the response head (while the copy is made), not the time spen"
-"t sending (see \"Guard layer\" below). If making the copy takes more tha"
-"n 5 seconds, the answer is a 503 `Unavailable`."
+"`GET /api/backup` (`crates/server/src/hand.rs`): same as the current server. "
+"It makes a consistent backup with `VACUUM INTO` in a temporary file next to "
+"the DB (`<DB>.backup-<pid>-<seq>`), opens it, removes the name (making, "
+"opening and removing the name run in a separate task, so the temporary file "
+"is not left behind even when the timeout answers 503 while the copy is being "
+"made, or the client hangs up; it can be left behind only when the process "
+"ends on a stop signal in the middle of making the copy), and streams it as "
+"`application/vnd.sqlite3` (`Content-Disposition: attachment; "
+"filename=\"pages.db\"`). It is made on a read connection (the current server "
+"uses the write connection; writers are not kept waiting while the copy is "
+"made). Errors are a 503 `Unavailable` or a 500 `InternalError` in the "
+"restJson1 shape. The timeout counts up to the response head (while the copy "
+"is made), not the time spent sending (see \"Guard layer\" below). If making "
+"the copy takes more than 5 seconds, the answer is a 503 `Unavailable`."
 
 #: src/next.md
 msgid ""
@@ -6152,15 +6181,14 @@ msgstr "Cannot connect, no answer within 1 second, not 2xx, or unreadable"
 
 #: src/next.md
 msgid ""
-"503 `Unavailable`（`message` は「castlist に聞けない（訳）。…」。訳は記録にも書く。記録の訳も答えと同じ"
-"粗い字（`castlist: つながらない ref=…`）で、今の server と違い、つなぎの誤りの細かい字（hyper の誤り）は書か"
-"ない）"
+"503 `Unavailable`（`message` は「castlist に聞けない（訳）。…」。訳は記録にも"
+"書く。記録の訳も答えと同じ粗い字（`castlist: つながらない ref=…`）で、今の "
+"server と違い、つなぎの誤りの細かい字（hyper の誤り）は書かない）"
 msgstr ""
-"503 `Unavailable` (`message` says that castlist could not be asked, wi"
-"th the reason; the reason is also written to the log. The log reason i"
-"s as coarse as the answer (`castlist: <reason> ref=…`); unlike the cur"
-"rent server, the detailed connection error (the hyper error) is not wr"
-"itten)"
+"503 `Unavailable` (`message` says that castlist could not be asked, with the "
+"reason; the reason is also written to the log. The log reason is as coarse "
+"as the answer (`castlist: <reason> ref=…`); unlike the current server, the "
+"detailed connection error (the hyper error) is not written)"
 
 #: src/next.md
 msgid "castlist が無い（`PAGETRAY_CASTLIST_URL` が空）"
@@ -7273,26 +7301,28 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"SIGTERM と SIGINT で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる（印は `signal`"
-" と `stopped`）。今の server は、合図で待ち受けをすぐに捨てていた（走っている物を待たない）。知らせの流れは聞き手が切るま"
-"で続くので、閉じないと止まらない。走っている物を待つのは 3 秒（`SHUTDOWN_WAIT`。問い合わせの時間切れ 5 秒と、conta"
-"iner を止める命令が SIGKILL を送るまでの待ちより短い）まで。過ぎたら記録に `stop wait exceeded wait="
-"3s` を書き、DB を閉じて 0 で終わる（印は `stopped`。固まって切られた時と見分けられる）。ただし backup の写しを作"
-"っている間に合図が来ると、DB を閉じるのは写しを作り終えるまで待つ（その分は上限に入らない）。"
+"SIGTERM と SIGINT で新しい問い合わせを断り、新着の知らせの流れを閉じ、走って"
+"いる物を終えてから閉じる（印は `signal` と `stopped`）。今の server は、合図"
+"で待ち受けをすぐに捨てていた（走っている物を待たない）。知らせの流れは聞き手"
+"が切るまで続くので、閉じないと止まらない。走っている物を待つのは 3 秒"
+"（`SHUTDOWN_WAIT`。問い合わせの時間切れ 5 秒と、container を止める命令が "
+"SIGKILL を送るまでの待ちより短い）まで。過ぎたら記録に `stop wait exceeded "
+"wait=3s` を書き、DB を閉じて 0 で終わる（印は `stopped`。固まって切られた時と"
+"見分けられる）。ただし backup の写しを作っている間に合図が来ると、DB を閉じる"
+"のは写しを作り終えるまで待つ（その分は上限に入らない）。"
 msgstr ""
 "On SIGTERM and SIGINT it refuses new requests, closes the new-arrival "
-"streams, and finishes what is running before closing (marks `signal` a"
-"nd `stopped`). The current server dropped the listener at once on a si"
-"gnal (without waiting for what was running). A new-arrival stream last"
-"s until the listener hangs up, so it would not stop without closing th"
-"em. It waits for running requests for up to 3 seconds (`SHUTDOWN_WAIT`"
-"; shorter than the 5-second request timeout and than the wait before t"
-"he container stop command sends SIGKILL). After that it writes `stop w"
-"ait exceeded wait=3s` to the log, closes the DB, and exits with 0 (mar"
-"k `stopped`, so it can be told apart from being killed while stuck). H"
-"owever, if a signal arrives while a backup copy is being made, closing"
-" the DB waits until the copy is finished (that time is not covered by "
-"the limit)."
+"streams, and finishes what is running before closing (marks `signal` and "
+"`stopped`). The current server dropped the listener at once on a signal "
+"(without waiting for what was running). A new-arrival stream lasts until the "
+"listener hangs up, so it would not stop without closing them. It waits for "
+"running requests for up to 3 seconds (`SHUTDOWN_WAIT`; shorter than the 5-"
+"second request timeout and than the wait before the container stop command "
+"sends SIGKILL). After that it writes `stop wait exceeded wait=3s` to the "
+"log, closes the DB, and exits with 0 (mark `stopped`, so it can be told "
+"apart from being killed while stuck). However, if a signal arrives while a "
+"backup copy is being made, closing the DB waits until the copy is finished "
+"(that time is not covered by the limit)."
 
 #: src/next.md
 msgid ""
@@ -7682,6 +7712,497 @@ msgstr ""
 "as the API responses (see \"Push of new arrivals\" above)."
 
 #: src/next.md
+msgid ""
+"人が打つ CLI の新しい形（`crates/cli-next`。package と binary の名は "
+"`pagetray-cli-next`。`pagetray-next` は server の binary の名なので使わな"
+"い）。切り替えまで、今の CLI（`crates/cli`・binary `pagetray`）と並べ、"
+"release には入らない。切り替えの日に binary の名を `pagetray` にし、[CLI]"
+"(cli.md) の章をこの形に書き直す。命令の形・旗・環境変数（`PAGETRAY_URL`・"
+"`PAGETRAY_PROJECT`・`PAGETRAY_ROLE`・`PAGETRAY_NO_DELETE`・`BROWSER`）は今の "
+"CLI に合わせ、API の違う所だけを新しい API に合わせる（下の「今の CLI と替え"
+"た所」）。試験は `crates/cli-next/tests/`（同じ commit の新しい server を起こ"
+"し、build した `pagetray-cli-next` を打つ）。"
+msgstr ""
+"The new shape of the CLI that people type (`crates/cli-next`; the package "
+"and binary are named `pagetray-cli-next`; `pagetray-next` is not used "
+"because it is the server binary's name). Until the switch-over it sits next "
+"to the current CLI (`crates/cli`, binary `pagetray`) and is not in releases. "
+"On the day of the switch-over, the binary is renamed to `pagetray` and the "
+"[CLI](cli.md) chapter is rewritten in this shape. Commands, flags, and "
+"environment variables (`PAGETRAY_URL`, `PAGETRAY_PROJECT`, `PAGETRAY_ROLE`, "
+"`PAGETRAY_NO_DELETE`, `BROWSER`) follow the current CLI; only where the API "
+"differs do they follow the new API (\"What changed from the current CLI\" "
+"below). The tests are in `crates/cli-next/tests/` (they start the new server "
+"from the same commit and run the built `pagetray-cli-next`)."
+
+#: src/next.md
+msgid "`pagetray-cli-next status`"
+msgstr "`pagetray-cli-next status`"
+
+#: src/next.md
+msgid "置き場が生きているかと、サーバーの版を出す（`GetHealth`）"
+msgstr "Shows whether the store is alive and the server version (`GetHealth`)"
+
+#: src/next.md
+msgid "`pagetray-cli-next page list`"
+msgstr "`pagetray-cli-next page list`"
+
+#: src/next.md
+msgid "ページを絞って探す（`ListPages`。新しい順）"
+msgstr "Finds pages with filters (`ListPages`; newest first)"
+
+#: src/next.md
+msgid "`pagetray-cli-next page view <page>`"
+msgstr "`pagetray-cli-next page view <page>`"
+
+#: src/next.md
+msgid ""
+"ページの本文を出す（手の道）。`--web` で browser に、`-o <file>` で file に"
+msgstr ""
+"Prints the body of a page (hand-written route). `--web` opens it in the "
+"browser, `-o <file>` writes it to a file"
+
+#: src/next.md
+msgid "`pagetray-cli-next page put <file>`"
+msgstr "`pagetray-cli-next page put <file>`"
+
+#: src/next.md
+msgid "ページを置く（`CreatePage`。`-` は stdin）。置いたページの URL を出す"
+msgstr ""
+"Stores a page (`CreatePage`; `-` reads stdin). Prints the URL of the stored "
+"page"
+
+#: src/next.md
+msgid "`pagetray-cli-next page delete <page>…`"
+msgstr "`pagetray-cli-next page delete <page>…`"
+
+#: src/next.md
+msgid "ページを消す（`DeletePages`。戻せない。`--yes` の時だけ）"
+msgstr "Deletes pages (`DeletePages`; cannot be undone; only with `--yes`)"
+
+#: src/next.md
+msgid "`pagetray-cli-next page reply <page>`"
+msgstr "`pagetray-cli-next page reply <page>`"
+
+#: src/next.md
+msgid ""
+"ページの返事の状態を書く（`SetReplyState`）。`--waiting`・`--answered`・`--"
+"on`"
+msgstr ""
+"Writes the reply state of a page (`SetReplyState`). `--waiting`, `--"
+"answered`, `--on`"
+
+#: src/next.md
+msgid "`pagetray-cli-next page watch`"
+msgstr "`pagetray-cli-next page watch`"
+
+#: src/next.md
+msgid "ページが置かれるたびに 1 行出す（`GET /api/events`）"
+msgstr "Prints one line each time a page is stored (`GET /api/events`)"
+
+#: src/next.md
+msgid "`pagetray-cli-next file list`"
+msgstr "`pagetray-cli-next file list`"
+
+#: src/next.md
+msgid "file を絞って探す（`ListFiles`。新しい順）"
+msgstr "Finds files with filters (`ListFiles`; newest first)"
+
+#: src/next.md
+msgid "`pagetray-cli-next file view <file>`"
+msgstr "`pagetray-cli-next file view <file>`"
+
+#: src/next.md
+msgid "file の中身を出す（手の道）。`-o <file>` で file に"
+msgstr ""
+"Prints the contents of a file (hand-written route). `-o <file>` writes it to "
+"a file"
+
+#: src/next.md
+msgid "`pagetray-cli-next file put <file>`"
+msgstr "`pagetray-cli-next file put <file>`"
+
+#: src/next.md
+msgid "file を置く（`CreateFile`）。置く前の手元の検査は今の CLI と同じ"
+msgstr ""
+"Stores a file (`CreateFile`). The local checks before putting are the same "
+"as the current CLI"
+
+#: src/next.md
+msgid "`pagetray-cli-next file delete <file>…`"
+msgstr "`pagetray-cli-next file delete <file>…`"
+
+#: src/next.md
+msgid "file を消す（`DeleteFiles`。戻せない。`--yes` の時だけ）"
+msgstr "Deletes files (`DeleteFiles`; cannot be undone; only with `--yes`)"
+
+#: src/next.md
+msgid "`pagetray-cli-next browse [<project>[/<key>]]`"
+msgstr "`pagetray-cli-next browse [<project>[/<key>]]`"
+
+#: src/next.md
+msgid "`pagetray-cli-next api <path>`"
+msgstr "`pagetray-cli-next api <path>`"
+
+#: src/next.md
+msgid ""
+"API を直に呼ぶ（手の道）。`-X <method>`・`-f <name>=<value>`・`--input "
+"<file>`・`--content-type <type>`"
+msgstr ""
+"Calls the API directly (hand-written route). `-X <method>`, `-f "
+"<name>=<value>`, `--input <file>`, `--content-type <type>`"
+
+#: src/next.md
+msgid "`pagetray-cli-next completion <shell>`"
+msgstr "`pagetray-cli-next completion <shell>`"
+
+#: src/next.md
+msgid "shell の補完の script を出す"
+msgstr "Prints a shell completion script"
+
+#: src/next.md
+msgid "呼び方"
+msgstr "How it calls the store"
+
+#: src/next.md
+msgid ""
+"生成した操作（`GetHealth`・`ListPages` などの定義の道）は、定義から作った "
+"client（`crates/pagetray-client/`）で呼ぶ。"
+msgstr ""
+"Generated operations (the modeled routes such as `GetHealth` and "
+"`ListPages`) are called with the client generated from the model (`crates/"
+"pagetray-client/`)."
+
+#: src/next.md
+msgid ""
+"手の道（ページの本文・file の中身・新着の知らせ・`api` の命令）は、生成した "
+"client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の"
+"作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使"
+"わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP "
+"の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使"
+"わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは "
+"`crates/cli-next/src/client.rs` の 1 か所で、依存も増えない（lock に前からあ"
+"る crate だけ）。"
+msgstr ""
+"Hand-written routes (page bodies, file contents, new-arrival notices, and "
+"the `api` command) are not in the generated client, so they are called "
+"directly with the same HTTP client (the hyper-based connector of `aws-smithy-"
+"http-client`; `Connector::builder().build_http()`). ureq is not used. "
+"Reason: the generated client already pulls in hyper and tokio, so adding "
+"ureq would mean two HTTP clients, and the rules (HTTP/1.1 without TLS, no "
+"connection reuse, no proxy, the `Host` rule) would have to be kept in two "
+"places. With one client, the rules live in one place, `crates/cli-next/src/"
+"client.rs`, and no dependency is added (only crates already in the lock)."
+
+#: src/next.md
+msgid ""
+"HTTP の設定は、castlist を呼ぶ時（上の「送り手」）と同じ: TLS の無い HTTP/1.1"
+"（features は `default-client` だけ）・接続を使い回さない"
+"（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・"
+"環境変数の proxy（`HTTP_PROXY` など）を使わない・`Host: 127.0.0.1` で送り "
+"`Origin` は付けない（置き場は `Host` が 127.0.0.1・localhost でない要求を断"
+"る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする）。待つの"
+"は 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、"
+"答えの頭も本文も待ち続ける。"
+msgstr ""
+"The HTTP settings are the same as when calling castlist (\"Senders\" above): "
+"HTTP/1.1 without TLS (only the `default-client` feature), no connection "
+"reuse (`pool_max_idle_per_host(0)`), no retries (`RetryConfig::disabled()`), "
+"no proxy from environment variables (`HTTP_PROXY` and so on), and requests "
+"are sent with `Host: 127.0.0.1` and no `Origin` (the store refuses requests "
+"whose `Host` is not 127.0.0.1 or localhost; the CLI is not a browser, so it "
+"should reach the store whatever name it connects to). Each call waits up to "
+"10 seconds (connecting, sending, and reading the whole answer). Only `page "
+"watch` waits indefinitely for both the head and the body of the answer."
+
+#: src/next.md
+msgid "置き場の URL は `http://` だけ（`https://` は code 2）。"
+msgstr "The store URL is `http://` only (`https://` exits with code 2)."
+
+#: src/next.md
+msgid "今の CLI と替えた所"
+msgstr "What changed from the current CLI"
+
+#: src/next.md
+msgid "所"
+msgstr "Where"
+
+#: src/next.md
+msgid "今の CLI（`pagetray`）"
+msgstr "Current CLI (`pagetray`)"
+
+#: src/next.md
+msgid "新しい CLI（`pagetray-cli-next`）"
+msgstr "New CLI (`pagetray-cli-next`)"
+
+#: src/next.md
+msgid "`--json` の記録"
+msgstr "`--json` records"
+
+#: src/next.md
+msgid "snake_case（`created_at`・`asked_at`・`waits_on`）。番号 `n` は数"
+msgstr ""
+"snake_case (`created_at`, `asked_at`, `waits_on`). The number `n` is a number"
+
+#: src/next.md
+msgid ""
+"API の答えと同じ camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・"
+"`sender.resolvedAt`）。`n` は字（`\"7\"`）。値の無い欄は出さない。CLI が足す"
+"のは、頼んだ先（`--url`）で組んだ `url` だけ"
+msgstr ""
+"camelCase, the same as the API answers (`createdAt`, `askedAt`, "
+"`answeredAt`, `waitsOn`, `sender.resolvedAt`). `n` is a string (`\"7\"`). "
+"Fields without a value are left out. The only field the CLI adds is `url`, "
+"built from the store it called (`--url`)"
+
+#: src/next.md
+msgid "`--json=<欄>` の名"
+msgstr "Field names in `--json=<fields>`"
+
+#: src/next.md
+msgid "snake_case"
+msgstr "snake_case"
+
+#: src/next.md
+msgid "camelCase（知らない名は code 2）"
+msgstr "camelCase (unknown names exit with code 2)"
+
+#: src/next.md
+msgid "一覧の続き"
+msgstr "Continuing a list"
+
+#: src/next.md
+msgid "`--before`・`--after`（時刻）"
+msgstr "`--before`, `--after` (times)"
+
+#: src/next.md
+msgid ""
+"`--next-token <印>`。続きがあれば、続きの印を stderr に 1 行で出す（stdout は"
+"頼んだ物だけ）。`--before`・`--after` は無い（code 2）"
+msgstr ""
+"`--next-token <token>`. When there is more, the token for the rest is "
+"printed as one line on stderr (stdout carries only what was asked for). "
+"There is no `--before` or `--after` (code 2)"
+
+#: src/next.md
+msgid "`-L`（件数）"
+msgstr "`-L` (count)"
+
+#: src/next.md
+msgid "置き場が 1〜1000 に丸めた"
+msgstr "The store clamped it to 1 to 1000"
+
+#: src/next.md
+msgid "1〜1000 の外は、送る前に code 2"
+msgstr "Outside 1 to 1000, code 2 before anything is sent"
+
+#: src/next.md
+msgid "消す前の一覧"
+msgstr "The list shown before deleting"
+
+#: src/next.md
+msgid "1 度の答え（1000 件）まで"
+msgstr "Up to one answer (1000 items)"
+
+#: src/next.md
+msgid "`nextToken` を辿って、合う物をみな見る"
+msgstr "Follows `nextToken` and looks at every match"
+
+#: src/next.md
+msgid "断られた訳"
+msgstr "Reasons for refusals"
+
+#: src/next.md
+msgid "`（404）: そのページは無い`（本文の `error`）"
+msgstr ""
+"Only the status code before the reason, such as `(404)` (from the body's "
+"`error`)"
+
+#: src/next.md
+msgid ""
+"`（404 NotFound）: そのページは無い`（状態の数・header `X-Amzn-Errortype`・本"
+"文の `message`）。`api` は `置き場が 400 ValidationException を返した`"
+msgstr ""
+"The status code and the error type before the reason, such as `(404 "
+"NotFound)` (the status code, the `X-Amzn-Errortype` header, and the body's "
+"`message`). `api` names the status code and the error type too, such as `400 "
+"ValidationException`"
+
+#: src/next.md
+msgid "`status`"
+msgstr "`status`"
+
+#: src/next.md
+msgid "サーバーの版と API の版（`/api/version`）。`--json` に `api`・`cli_api`"
+msgstr ""
+"The server version and the API version (`/api/version`). `--json` has `api` "
+"and `cli_api`"
+
+#: src/next.md
+msgid ""
+"サーバーの版（`GET /healthz` の `version`）と CLI の版だけ。`--json` は "
+"`url`・`server`・`cli`"
+msgstr ""
+"Only the server version (`version` from `GET /healthz`) and the CLI version. "
+"`--json` has `url`, `server`, `cli`"
+
+#: src/next.md
+msgid "版の違い"
+msgstr "Version mismatch"
+
+#: src/next.md
+msgid "答えの header `Pagetray-Api` が違えば code 4"
+msgstr "Code 4 when the answer's `Pagetray-Api` header differs"
+
+#: src/next.md
+msgid "下の「終わりの code」"
+msgstr "\"Exit codes\" below"
+
+#: src/next.md
+msgid "`page reply`"
+msgstr "`page reply`"
+
+#: src/next.md
+msgid "405 を、0.5.0 より前の置き場と見分けた"
+msgstr "Recognized 405 as a store older than 0.5.0"
+
+#: src/next.md
+msgid ""
+"見分けない（定義より古い置き場は code 4）。待ちの相手の違う 409 は、置き場の"
+"訳のまま code 1"
+msgstr ""
+"Does not (a store older than the model exits with code 4). A 409 for a "
+"different waiting party exits with code 1 with the store's reason as is"
+
+#: src/next.md
+msgid "`page watch`"
+msgstr "`page watch`"
+
+#: src/next.md
+msgid "`data:` の行をみな読む"
+msgstr "Reads every `data:` line"
+
+#: src/next.md
+msgid ""
+"event の名の無い知らせ（ページを置いた）だけを出す。新しい server は file・返"
+"事・印の知らせ（`file`・`reply`・`review`）も流すため"
+msgstr ""
+"Prints only notices without an event name (a page was stored), because the "
+"new server also sends notices for files, replies, and marks (`file`, "
+"`reply`, `review`)"
+
+#: src/next.md
+msgid "`api`"
+msgstr "`api`"
+
+#: src/next.md
+msgid "本文の種類は `text/html` に決まっていた"
+msgstr "The body type was always `text/html`"
+
+#: src/next.md
+msgid ""
+"`--content-type`（既定 `application/json`。返事と印は JSON の本文のため）。"
+"ページは `text/html`、file は file の種類を書く"
+msgstr ""
+"`--content-type` (default `application/json`, because replies and marks take "
+"JSON bodies). Give `text/html` for pages and the file's type for files"
+
+#: src/next.md
+msgid "`backup`"
+msgstr "`backup`"
+
+#: src/next.md
+msgid "`GET /api/backup` で DB の写しを取る"
+msgstr "Takes a copy of the DB with `GET /api/backup`"
+
+#: src/next.md
+msgid ""
+"まだ無い。新しい server に `GET /api/backup` が無い（下の「段 4 の分け方」の "
+"6）。6 で server に道ができる時に、CLI にも足す"
+msgstr ""
+"Not yet. The new server has no `GET /api/backup` (item 6 in \"How stage 4 is "
+"split\" below). It is added to the CLI when the server gets the route in 6"
+
+#: src/next.md
+msgid "命令からは書かない"
+msgstr "Not written from any command"
+
+#: src/next.md
+msgid ""
+"同じ（命令からは書かない）。`api` で `actorIssuer`・`actorRef` を書き、"
+"castlist に登録の無い送り手なら、400 `ValidationException`（`fieldList` に `/"
+"actorRef`）で code 1"
+msgstr ""
+"The same (not written from any command). If `actorIssuer` and `actorRef` are "
+"given through `api` and castlist has no such sender, it exits with code 1 on "
+"400 `ValidationException` (`/actorRef` in `fieldList`)"
+
+#: src/next.md
+msgid "終わりの code"
+msgstr "Exit codes"
+
+#: src/next.md
+msgid ""
+"置き場が断った（`4xx`・`5xx`）。file に書けない時・`PAGETRAY_NO_DELETE` で止"
+"めた時・`file put` が置く前に止めた時も（今の CLI と同じ）"
+msgstr ""
+"The store refused (`4xx`, `5xx`). Also when a file cannot be written, when "
+"`PAGETRAY_NO_DELETE` stopped it, and when `file put` stopped before putting "
+"(same as the current CLI)"
+
+#: src/next.md
+msgid "使い方の誤り（今の CLI と同じ）"
+msgstr "Usage error (same as the current CLI)"
+
+#: src/next.md
+msgid "置き場が応えない（つながらない・10 秒で答えない・答えが読めない）"
+msgstr ""
+"The store does not respond (cannot connect, no answer within 10 seconds, or "
+"the answer is unreadable)"
+
+#: src/next.md
+msgid ""
+"置き場の API が、この CLI の話す形でない: 答えに header `Pagetray-Api` がある"
+"（今の API の置き場。答えを使わずに止まり、今の CLI を使うよう出す）か、生成"
+"した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知ら"
+"ない、定義より古い置き場）"
+msgstr ""
+"The store's API is not the shape this CLI speaks: the answer carries a "
+"`Pagetray-Api` header (a store with the current API; it stops without using "
+"the answer and says to use the current CLI), or the generated layer returned "
+"404 `UnknownOperationException` (a store older than the model that does not "
+"know the operation this CLI calls)"
+
+#: src/next.md
+msgid ""
+"code 4 は残す。新しい API には版の header が無く、形の版は定義の release の "
+"tag との `smithy diff` が守る（上の「共通の決まり」の「版」）。それでも、切り"
+"替えの間は今の server と新しい server が並ぶので、向ける先を違えた時に、読め"
+"ない答えを code 3 とせず「違う API の置き場」と分けて出す。生成した client "
+"は、答えに無い `@required` の欄を既定の値で埋めるので、今の server の答えを読"
+"ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見"
+"る（生成した client には interceptor で、手の道は答えの頭で）。"
+msgstr ""
+"Code 4 stays. The new API has no version header, and the shape's version is "
+"guarded by `smithy diff` against the model's release tag (\"Versions\" in "
+"\"Common rules\" above). Even so, during the switch-over the current server "
+"and the new server run side by side, so when the CLI is pointed at the wrong "
+"one it reports \"a store with a different API\" instead of treating the "
+"answer as unreadable (code 3). The generated client fills `@required` fields "
+"missing from an answer with default values, so reading an answer from the "
+"current server would silently print broken records. So the header is checked "
+"before the answer is read (with an interceptor on the generated client, and "
+"on the answer head for hand-written routes)."
+
+#: src/next.md
+msgid ""
+"切り替えの後は、今の server が無くなるので、`Pagetray-Api` の見分けは、段 9 "
+"で今の CLI と一緒に消す。"
+msgstr ""
+"After the switch-over the current server is gone, so the `Pagetray-Api` "
+"check is removed together with the current CLI in stage 9."
+
+#: src/next.md
 msgid "定義の取り方"
 msgstr "How the model is fetched"
 
@@ -7711,35 +8232,45 @@ msgstr ""
 
 #: src/next.md
 msgid ""
-"1 つの Smithy の build から、2 つの crate を作る: pagetray の server の骨"
+"1 つの Smithy の build から、3 つの crate を作る: pagetray の server の骨"
 "（`crates/pagetray-sdk/`。smithy-rs の codegen-server 0.1.40・`http-1x`・"
 "`publicConstrainedTypes: false`）と、castlist を呼ぶ crate（`crates/castlist-"
-"client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）。呼ぶ"
-"側の crate は、送り手を castlist に聞く処理（上の「送り手」）で使う。"
+"client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）と、"
+"pagetray を呼ぶ crate（`crates/pagetray-client/`。同じ `rust-client-codegen` "
+"を、`model/smithy-build.json` の `rust-client-codegen::pagetray-client`"
+"（`<plugin>::<名>`）の名でもう 1 度使う）。castlist を呼ぶ crate は送り手を "
+"castlist に聞く処理（上の「送り手」）で、pagetray を呼ぶ crate は人が打つ CLI"
+"（下の「CLI」）で使う。"
 msgstr ""
-"One Smithy build makes two crates: the pagetray server skeleton (`crates/"
+"One Smithy build makes three crates: pagetray's server skeleton (`crates/"
 "pagetray-sdk/`; smithy-rs codegen-server 0.1.40, `http-1x`, "
-"`publicConstrainedTypes: false`) and a crate that calls castlist (`crates/"
-"castlist-client/`; `rust-client-codegen` of codegen-client 0.1.40, on http "
-"1). The calling crate is used to ask castlist about the sender (see "
-"\"Senders\" above)."
+"`publicConstrainedTypes: false`), the crate that calls castlist (`crates/"
+"castlist-client/`; `rust-client-codegen` from codegen-client 0.1.40, in the "
+"http 1 shape), and the crate that calls pagetray (`crates/pagetray-client/`; "
+"the same `rust-client-codegen` used a second time under the name `rust-"
+"client-codegen::pagetray-client` (`<plugin>::<name>`) in `model/smithy-"
+"build.json`). The castlist crate is used when asking castlist for the sender "
+"(\"Senders\" above), and the pagetray crate is used by the CLI that people "
+"type (\"CLI\" below)."
 
 #: src/next.md
 msgid ""
-"呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外"
-"す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼"
-"ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build し"
-"ない。HTTP の client は、使う側が設定で渡す（TLS の無い HTTP/1.1。上の「送り"
-"手」）。castlist を 1 度呼べること・1 秒の時間切れ・送り直さないことは、"
-"`crates/server/tests/senders.rs` が偽の castlist で止める。"
+"呼ぶ側の 2 つの crate の既定の features から、https の client（rustls・aws-"
+"lc）を外す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が "
+"castlist を呼ぶのも、CLI が pagetray を呼ぶのも同じ機械の中の `http://` だけ"
+"なので、TLS の crate を build しない。HTTP の client は、使う側が設定で渡す"
+"（TLS の無い HTTP/1.1。上の「送り手」）。castlist を 1 度呼べること・1 秒の時"
+"間切れ・送り直さないことは、`crates/server/tests/senders.rs` が偽の castlist "
+"で止める。"
 msgstr ""
-"The https client (rustls, aws-lc) is removed from the calling crate's "
-"default features (`ci/gen.sh` changes one line of its `Cargo.toml`). "
-"pagetray calls castlist only at `http://127.0.0.1` on the same machine, so "
-"no TLS crate is built. The user of the crate passes an HTTP client in its "
-"configuration (a TLS-less HTTP/1.1 client; see \"Senders\" above). `crates/"
-"server/tests/senders.rs` pins, against a fake castlist, that castlist is "
-"called once, with a 1-second timeout and no retries."
+"The https client (rustls, aws-lc) is removed from the default features of "
+"both calling crates (`ci/gen.sh` replaces one line of `Cargo.toml`). "
+"pagetray calls castlist, and the CLI calls pagetray, only over `http://` "
+"within the same machine, so no TLS crate is built. The HTTP client is passed "
+"in by the user through configuration (HTTP/1.1 without TLS; \"Senders\" "
+"above). That castlist is called once, the 1-second timeout, and that "
+"requests are not retried are pinned by `crates/server/tests/senders.rs` with "
+"a fake castlist."
 
 #: src/next.md
 msgid ""
@@ -7820,6 +8351,20 @@ msgid ""
 msgstr ""
 "Backup, logs, and the rest of the startup binary (logging, closing down on a "
 "stop signal; see \"Starting it\" above)"
+
+#: src/next.md
+msgid "7"
+msgstr "7"
+
+#: src/next.md
+msgid ""
+"人が打つ CLI（`crates/cli-next`・binary `pagetray-cli-next`。上の「CLI」）"
+"と、pagetray を呼ぶ crate（`crates/pagetray-client/`）。`backup` の命令は、6 "
+"で server に道ができる時に足す"
+msgstr ""
+"The CLI that people type (`crates/cli-next`, binary `pagetray-cli-next`; "
+"\"CLI\" above) and the crate that calls pagetray (`crates/pagetray-client/"
+"`). The `backup` command is added when the server gets the route in 6"
 
 #: src/glossary.md
 msgid ""
