@@ -63,7 +63,7 @@ pub const FILE_TYPES: &[(&str, &str, Sniff)] = &[
 ];
 
 /// 拡張子の Content-Type と中身の見方。受けない拡張子なら None。
-fn file_type(ext: &str) -> Option<(&'static str, Sniff)> {
+pub(crate) fn file_type(ext: &str) -> Option<(&'static str, Sniff)> {
     FILE_TYPES
         .iter()
         .find(|(e, _, _)| *e == ext)
@@ -107,7 +107,7 @@ fn accept(ext: &str, content_type: &str, body: &[u8]) -> Result<&'static str, St
 }
 
 /// file の名の語の形: 英小文字・数字・`-`・`_` で 1〜64 字。英小文字か数字で始まる（定義の `FileStem` と同じ）。
-fn is_file_stem(s: &str) -> bool {
+pub(crate) fn is_file_stem(s: &str) -> bool {
     (1..=64).contains(&s.len())
         && matches!(s.as_bytes()[0], b'a'..=b'z' | b'0'..=b'9')
         && s.bytes()

@@ -330,7 +330,9 @@ impl fmt::Display for OpenError {
             ),
             OpenError::Current(versions) => write!(
                 f,
-                "今の server の DB（新しい server の migrations に無い・中身の違う移行 {} を当ててある）。開かずに止める",
+                "今の server の DB（新しい server の migrations に無い・中身の違う移行 {} を当ててある）。開かずに止める。\
+                 今の DB は、写しを取って新しい volume へ移してから起こす: pagetray-next migrate --from <今の DB の写し> --to <新しい DB>\
+                 （image では <image> migrate --from <写し> --to /data/pages.db。/data には新しい volume を付ける）",
                 versions
                     .iter()
                     .map(i64::to_string)

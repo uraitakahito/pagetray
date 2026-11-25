@@ -170,7 +170,7 @@ fn as_of(t: &aws_smithy_types::DateTime) -> Option<String> {
 }
 
 /// castlist のアクターの id の形（`ai.common#ActorId`: 小文字の 16 進の UUID の字）。画面の link の path に入るので見る。
-fn is_actor_id(s: &str) -> bool {
+pub(crate) fn is_actor_id(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5
         && groups.iter().zip([8, 4, 4, 4, 12]).all(|(g, len)| {
