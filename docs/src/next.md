@@ -40,7 +40,9 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - 置かれたページの URL は切らない。だから本文の URL は今のまま、Smithy の外の手の道にする（`.html` の付いた 1 段は、Smithy の道の label にできない）。
 - `/api/` の下の道は、みな生成した層か、名指した手の道に行く。本文の道（`/{project}/{key}/{file}`）は `/api/…` を受けない（`project` に `api` は置けない）。
-- この章の操作は、みな作ってある（手の道は、ページの本文・file の中身・新着の知らせ・画面）。backup・logs は、AI-36 の段 4 の次の PR で足す（下の「段 4 の分け方」）。
+- この章の操作と手の道は、みな作ってある。
+- `GET /api/backup`（`crates/server/src/hand.rs`）: 今の server と同じ。DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で揃ったバックアップを作り、開いてから名を消し、`application/vnd.sqlite3`（`Content-Disposition: attachment; filename="pages.db"`）で読みながら送る。読む接続で作る（今の server は書く接続。写しを作る間、書く物を待たせない）。誤りは restJson1 の形の 503 `Unavailable`・500 `InternalError`。時間切れは答えの頭までを数え、送る間は数えない（下の「守りの層」）。
+- `GET /api/logs`: 今の server と同じ字（`text/plain; charset=utf-8`。印と、古い順の記録）。記録の置き場が無い時（Router を直に呼ぶ試験）は、今の server と同じく 404（形は restJson1 の `NotFound`）。
 
 ## ページを置く（CreatePage）
 
@@ -65,7 +67,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 付随する id（`actorIssuer`・`actorRef`）を書いて置けば、castlist に送り手を聞き、答えと一緒に残す（今の pagetray と同じ振る舞いを、新しい castlist の API で）。
 
-- castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、host の browser から開く所は違う）、形は同じ、無いか空なら `http://127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。起こす binary（`pagetray-next`。下の「起こす binary」）が、DB を開く前に `Castlist::from_env` で見て、形が違えば止まる。link を使うのは画面の送り手の名（下の「画面」）。
+- castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、host の browser から開く所は違う）、形は同じ、無いか空なら `http://127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。起こす binary（`pagetray-next`。下の「起こし方」）が、DB を開く前に `Castlist::from_env` で見て、形が違えば止まる。link を使うのは画面の送り手の名（下の「画面」）。
 - 聞くのは `ResolveActors`（`POST /api/resolve`、本文 `{"issuer":…,"refs":[…]}`）を 1 度。castlist の定義から作った client（`crates/castlist-client/`）で呼ぶ。書く取引を始める前に聞く（castlist を待つ間、書く接続を握らない）。
 - HTTP の client は、`aws-smithy-http-client` の hyper の作りの、TLS の無い HTTP/1.1（`Builder::new().build_http()`。features は `default-client` だけ。`default-client` は証明書を読む crate（`rustls-native-certs`・`rustls-pki-types`）を引くが、TLS の実装（rustls・aws-lc・ring・s2n）は入らない）。接続は使い回さない（`pool_max_idle_per_host(0)`。1 度ごとにつなぐので、castlist が閉じた古い接続で落ちることがない）。
 - 待つのは 1 度に 1 秒（つなぐ・送る・答えを読み終えるまでの全部。client の `operation_timeout`）。送り直さない（`RetryConfig::disabled()`。castlist の `Unavailable` は `@retryable` だが、送り直すかは pagetray の呼び手が決める）。
@@ -236,11 +238,18 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出す（project が `api` なら出さない）。本文の枠の iframe は `sandbox="allow-scripts"`。
 - 答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と script は template の物の hash だけを許す（hash は template から作る。今の server は CSP を付けていなかった）。図は置き場の file と、上げる前の見本（`blob:`）と favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠の送り先は置き場だけ。
 
-## 起こす binary
+## 起こし方
 
-`pagetray-next`（`crates/server/src/main.rs`）。`PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。castlist の設定の形が違えば、DB を開く前に stderr に訳を書いて止まる。e2e の試験（`e2e/`）が、今の server と同じ試験をこの binary にも流す（`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next`。`e2e/tests/wire.ts` が、置く・書く API の道と引数の名を合わせる）。
+起こす binary は `pagetray-next`（`crates/server/src/main.rs`）。今の `pagetray-server` と同じ振る舞いで、切り替えまで image には入らない。
 
-- まだ最小の物: 記録（stdout と回す file）・止める合図での閉じ方・`GET /api/backup`・`GET /api/logs` は、次の PR で足す。image には入らない。
+- 環境変数は今と同じ: `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）・`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`（上の「送り手」）。
+- 起きずに 1 で終わる物: castlist の設定の形が違う時と、今の server の DB の時（下の「データ」）。どちらも stderr に訳を書き、DB も記録の置き場も作らない（今の volume に何も書かない）。今の server は、castlist の設定の誤りを記録の置き場に書いてから止まっていた。
+- 記録の置き場は DB の隣の `logs/`（大きさで回す記録の file・終わり方の印・生きている印。[動かす](run.md) の「落ちた後に調べる」）。起きて初めに前の回の終わり方の行（`previous: …`）、待ち受けたら起きた行（`pagetray <版> listen=… db=…`。castlist を設定すれば後ろに ` castlist=… castlist_link=…`）。どれも今の server と同じ字。
+- 問い合わせごとの 1 行（method・uri・status・latency）は記録の file にだけ書き、stdout には出さない（下の「守りの層」）。
+- SIGTERM と SIGINT で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる（印は `signal` と `stopped`）。今の server は、合図で待ち受けをすぐに捨てていた（走っている物を待たない）。知らせの流れは聞き手が切るまで続くので、閉じないと止まらない。
+- 記録の書き手（`crates/server/src/runlog.rs`）は今の `src/runlog.rs` の写しで、段 9 まで 2 つを同じ中身に保つ（違うのは、hook の試験が見る file の場所の字だけ）。
+- 試験: 本物の binary を空いた port で起こす物は `crates/server/tests/server.rs`（守りの層・backup・止め方・起きた行・今の server の DB を断る）と `crates/server/tests/runlog.rs`（前の回の終わり方・問い合わせの行・logs・上限で回る）。道具は `crates/server/tests/common/server.rs`。backup と logs の中身は `crates/server/tests/backup.rs`（Router を直に呼ぶ）。
+- e2e の試験（`e2e/`）が、今の server と同じ試験をこの binary にも流す（`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next`。`e2e/tests/wire.ts` が、置く・書く API の道と引数の名を合わせる）。
 
 ## ページの本文
 
@@ -266,10 +275,10 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | 順 | 守り | 振る舞い |
 |---|---|---|
 | 1 | 頭の印 | どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-referrer`。今の `Pagetray-Api` は付けない。CSP は、本文の道と画面が自分で付ける（上の「ページの本文」「file の中身」「画面」） |
-| 2 | 問い合わせの記録 | 1 つにつき 1 行（tower-http の TraceLayer。今の server と同じ設定） |
+| 2 | 問い合わせの記録 | 1 つにつき 1 行（method・uri・status・latency。tower-http の TraceLayer を今の server と同じ設定で）。記録の file にだけ書き、stdout には出さない。断った物も残る |
 | 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほかの要求に `Origin` が付いていれば、403 `Forbidden`。例外は 1 つだけ（今の server と同じ）: 一覧の UI の form が file を上げる `POST /api/projects/{project}/keys/{key}/files`（後ろに何も付かない道）で、`Origin` が `http://<Host（port も）>` とそのまま同じで、`Sec-Fetch-Site` が無いか `same-origin` の物。印（`FromUi`）を付けて通す（上の「file を置く」）。ほかの道・本文の枠の中のページ（`Origin: null`）・ほかの port や名や `https` は 403 |
 | 3 | HEAD | `GET` にして通し、本文を捨てる（生成した骨の道は GET だけなので、ここで揃える） |
-| 4 | 時間切れ | 答えの頭まで 5 秒（`REQUEST_TIMEOUT`）を過ぎれば 503 `Unavailable`。接続を待つ長さ（書く `WRITE_WAIT` 2 秒・読む `READ_WAIT` 3 秒）は、これより短くする |
+| 4 | 時間切れ | 答えの頭まで 5 秒（`REQUEST_TIMEOUT`）を過ぎれば 503 `Unavailable`（待っている物は捨てる）。本文を送る間は数えないので、大きな backup の file や新着の知らせの流れを途中で切らない。試験は `Config` で短くする。接続を待つ長さ（書く `WRITE_WAIT` 2 秒・読む `READ_WAIT` 3 秒）は、これより短くする（混んでいる時に「混んでいる」の 503 が先に答える。`crates/server/tests/guard.rs` で止めている） |
 | 5 | 本文の上限 | 16 MiB（`MAX_BODY`。ページも file も。今の server と同じ）。`Content-Length` で超えると言う要求は読まずに、大きさを言わずに流す要求は 16 MiB まで読んで、413 `PayloadTooLarge`（何も置かない）。ちょうど 16 MiB は通る。生成した層は本文をみな読んでから引数にするので、ここで読んでおく（smithy-rs の生成した層にも本文の上限の設定があるが、既定は上限無しで、超えた時の答えが 413 にならない）。本文を読む間も、外の層の 5 秒の時間切れに数える（送り手は同じ機械の中の roster と一覧の UI なので、16 MiB でも 5 秒よりずっと短く届く。遅い送り手に書く接続を握らせない利点もある。今の server には時間切れが無かったので、新しい振る舞い） |
 
 ## データ
@@ -290,7 +299,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - pagetray の定義は `model/model/pagetray.smithy`（名前空間 `ai.pagetray`）。共通の形 `ai.common` は castlist の `model/model/common.smithy` を使う。
 - `ci/gen.sh` が、castlist の release の tag（今は `v1.0.0-rc.1`）の `common.smithy` と `castlist.smithy` を `model/castlist/` に取り、`ci/gen.sh` に固めた SHA-256 と合うかを見てから置く。tag と 2 つの digest は `ci/gen.sh` の 1 か所に書く。取った定義は commit するので、`ci/gen.sh --check` は castlist に取りに行かず、入れてある物が digest と合うかを見る。
-- 1 つの Smithy の build から、2 つの crate を作る: pagetray の server の骨（`crates/pagetray-sdk/`。smithy-rs の codegen-server 0.1.40・`http-1x`・`publicConstrainedTypes: false`）と、castlist を呼ぶ crate（`crates/castlist-client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）。呼ぶ側の crate は、送り手を castlist に聞く処理（段 4 の次の PR）で使う。
+- 1 つの Smithy の build から、2 つの crate を作る: pagetray の server の骨（`crates/pagetray-sdk/`。smithy-rs の codegen-server 0.1.40・`http-1x`・`publicConstrainedTypes: false`）と、castlist を呼ぶ crate（`crates/castlist-client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）。呼ぶ側の crate は、送り手を castlist に聞く処理（上の「送り手」）で使う。
 - 呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build しない。HTTP の client は、使う側が設定で渡す（TLS の無い HTTP/1.1。上の「送り手」）。castlist を 1 度呼べること・1 秒の時間切れ・送り直さないことは、`crates/server/tests/senders.rs` が偽の castlist で止める。
 - 例（`@httpRequestTests`・`@httpResponseTests`）の id は、castlist の定義と 1 つの model に入るので重なれない。pagetray の物は頭に `Pagetray` を付ける。
 
@@ -303,4 +312,4 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | 3 | 探す・返事・レビューの印・消す（`ListPages`・`SetReplyState`・`AddReviewMarks`・`DeletePages`）。SSE は後の PR に分けた（知らせを送る所は 3 で置いた） |
 | 4 | file（`CreateFile`・`ListFiles`・`DeleteFiles`・file の中身の道・一覧の UI からの例外）と、守りの層の本文の上限（file の上限と一緒に見るため、5 から移した） |
 | 5 | 新着の知らせ（SSE）・画面・e2e の試験を流せるだけの最小の起こす binary（CI の `ui` が、今の server と新しい server の両方に流す） |
-| 6 | backup・logs・起こす binary の残り（記録・止める合図での閉じ方） |
+| 6 | backup・logs・起こす binary の残り（記録・止める合図での閉じ方。上の「起こし方」） |

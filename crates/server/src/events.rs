@@ -6,6 +6,8 @@
 //! - event の名: ページは名の無い event（前からの受け手は、これだけを読む）、file は `file`、返事は `reply`、印は `review`。
 //! - 聞いている者が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（[`CAPACITY`] 件を覚える。
 //!   画面は、一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
+//! - 止める合図を受けたら（[`Events::new`] の印）、どの流れも閉じる。閉じないと、止める時に走っている物を終えるのを待つ所
+//!   （src/main.rs）が、聞き手が切るまで待ち続ける。
 use std::convert::Infallible;
 
 use aws_smithy_types::DateTime;
@@ -17,6 +19,7 @@ use serde_json::{Map, Value, json};
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::{Stream, StreamExt};
+use tokio_util::sync::CancellationToken;
 
 /// 聞き手ごとに覚えておく知らせの数（今の server と同じ）。
 pub const CAPACITY: usize = 64;
@@ -42,15 +45,21 @@ struct Message {
 
 /// 知らせを送る所（どの handler も同じ物を使う。複製しても同じ channel）。
 #[derive(Clone)]
-pub struct Events(broadcast::Sender<Message>);
-
-impl Default for Events {
-    fn default() -> Self {
-        Self(broadcast::channel(CAPACITY).0)
-    }
+pub struct Events {
+    sender: broadcast::Sender<Message>,
+    /// 止める合図を受けた印。付いたら、どの流れも閉じる。
+    closing: CancellationToken,
 }
 
 impl Events {
+    /// `closing` が付いたら、どの流れも閉じる。
+    pub fn new(closing: CancellationToken) -> Self {
+        Self {
+            sender: broadcast::channel(CAPACITY).0,
+            closing,
+        }
+    }
+
     /// 知らせを送る。聞き手が無くても失敗にしない。記録を JSON にできなければ（時刻が答えに書けない）、記録に書いて送らない。
     pub fn send(&self, note: Note) {
         let (name, path, data) = match &note {
@@ -62,7 +71,7 @@ impl Events {
         match data {
             Ok(data) => {
                 let listeners = self
-                    .0
+                    .sender
                     .send(Message {
                         name,
                         data: data.to_string(),
@@ -79,8 +88,8 @@ impl Events {
 pub async fn stream(
     State(events): State<Events>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    // 遅れて取りこぼした分（Lagged）は捨てて続ける。
-    let stream = BroadcastStream::new(events.0.subscribe())
+    // 遅れて取りこぼした分（Lagged）は捨てて続ける。止める合図を受けたら閉じる。
+    let stream = BroadcastStream::new(events.sender.subscribe())
         .filter_map(Result::ok)
         .map(|message| {
             let event = Event::default().data(message.data);
@@ -89,6 +98,8 @@ pub async fn stream(
                 None => event,
             })
         });
+    // tokio-stream の StreamExt には take_until が無いので、futures-util の物を名指して呼ぶ（名が重なるため）。
+    let stream = futures_util::StreamExt::take_until(stream, events.closing.cancelled_owned());
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 

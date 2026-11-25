@@ -148,6 +148,36 @@ fn 問い合わせの行は記録の_file_に時刻つきで残り_stdout_には
     remove_db(&db);
 }
 
+/// 処理の中の warn!・error! の行は、記録の file と stdout に出る（binary が tracing の受け手を置く）。
+#[test]
+fn 処理の中の_warn_の行は記録の_file_と_stdout_に出る() {
+    let db = temp_db("warn");
+    // 聞く先の port には、だれも待ち受けていない。
+    let closed = std::net::TcpListener::bind("127.0.0.1:0")
+        .unwrap()
+        .local_addr()
+        .unwrap()
+        .port();
+    let url = format!("http://127.0.0.1:{closed}");
+    let mut server = Server::start_with(&db, &[("PAGETRAY_CASTLIST_URL", url.as_str())]);
+    let answer = server.post(
+        "/api/projects/p/keys/k/kinds/plan/pages?role=tpm&actorIssuer=tpm&actorRef=claude.session%3Aa",
+        "text/html",
+        b"<title>a</title>",
+    );
+    assert_eq!(answer.status, 503, "{answer:?}");
+    let log = read(&db, "server.log");
+    assert!(
+        log.lines()
+            .any(|l| l.contains(" WARN ") && l.contains("castlist: つながらない")),
+        "{log}"
+    );
+    let out = server.stdout();
+    assert!(out.contains("castlist: つながらない"), "{out}");
+    server.stop();
+    remove_db(&db);
+}
+
 #[test]
 fn 多く問い合わせると記録の_file_が上限で回り_logs_は上限の内() {
     let db = temp_db("cap");

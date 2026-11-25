@@ -66,12 +66,12 @@ fn origin_の付いた書く要求を_forbidden_で断る() {
 #[test]
 fn 上限を_1_byte_超える本文は_payload_too_large_で断る() {
     let server = Server::start();
-    let body = vec![b' '; pagetray_next::MAX_BODY + 1];
-    let answer = server.post(
-        "/api/projects/p/keys/k/kinds/plan/pages?role=tpm",
-        "text/html",
-        &body,
-    );
+    // 頭だけを送る（Content-Length で超えると言う要求は、本文を読まずに断る。16 MiB を送り切る前に答えて閉じるので、
+    // 本文まで送ると書く側が切られる）。
+    let answer = server.send_text(&format!(
+        "POST /api/projects/p/keys/k/kinds/plan/pages?role=tpm HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        pagetray_next::MAX_BODY + 1
+    ));
     assert_eq!(answer.status, 413, "{}", answer.head);
     assert_eq!(
         answer.header("x-amzn-errortype").as_deref(),

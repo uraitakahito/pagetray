@@ -7,6 +7,7 @@
 //! - file はページと同じ作り（番号は project・key・語・拡張子ごと。消した番号は files_removed）。
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use sqlx::migrate::Migrator;
@@ -498,6 +499,27 @@ impl Db {
     pub async fn close(&self) {
         self.read.close().await;
         self.write.close().await;
+    }
+
+    /// 揃ったバックアップを、DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で作り、その path を返す
+    /// （今の server と同じ）。読む接続で作る（今の server は書く接続。書く物を、写しを作る間ずっと待たせない）。
+    /// 消すのは呼んだ側。
+    pub async fn backup(&self) -> Result<PathBuf, sqlx::Error> {
+        static SEQ: AtomicU64 = AtomicU64::new(0);
+        let mut name = self.path.clone().into_os_string();
+        name.push(format!(
+            ".backup-{}-{}",
+            std::process::id(),
+            SEQ.fetch_add(1, Ordering::Relaxed)
+        ));
+        let out = PathBuf::from(name);
+        // VACUUM INTO は、在る file には書かない。
+        let _ = tokio::fs::remove_file(&out).await;
+        sqlx::query("vacuum into ?1")
+            .bind(out.to_string_lossy().into_owned())
+            .execute(&self.read)
+            .await?;
+        Ok(out)
     }
 
     /// ページを 1 枚置き、全文の索引にも入れる（1 つの transaction）。

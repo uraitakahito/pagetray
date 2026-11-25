@@ -2,7 +2,8 @@
 //!
 //! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
 //! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）と file の中身（[`files::show`]）と新着の知らせ
-//! （[`events::stream`]）と画面（[`ui`]）は、同じ Router に並べる。
+//! （[`events::stream`]）と画面（[`ui`]）と backup・logs（[`hand`]）は、同じ Router に並べる。
+//! 起こす binary（src/main.rs）は、今の server と同じく記録の file（[`runlog`]）を DB の隣の `logs/` に残す。
 //! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）・
 //! file を置く・探す・消す（[`files`]）。
 //! 形の決まりは docs/src/next.md。
@@ -14,6 +15,7 @@ mod facets;
 mod files;
 mod generated;
 mod guard;
+mod hand;
 mod list;
 mod marks;
 mod pages;
@@ -34,6 +36,7 @@ use axum::routing::get;
 use pagetray_sdk::error::GetHealthError;
 use pagetray_sdk::output::GetHealthOutput;
 use pagetray_sdk::{Pagetray, PagetrayConfig};
+use tokio_util::sync::CancellationToken;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
@@ -56,6 +59,8 @@ pub struct Config {
     pub castlist: Option<castlist::Castlist>,
     /// 記録の置き場。あれば、残した記録を読む道 `GET /api/logs` が答える（無ければ 404 `NotFound`）。
     pub runlog: Option<runlog::RunLog>,
+    /// 止める合図を受けた印（binary が付ける）。付いたら、新着の知らせの流れを閉じる。
+    pub closing: CancellationToken,
 }
 
 impl Default for Config {
@@ -64,6 +69,7 @@ impl Default for Config {
             timeout: REQUEST_TIMEOUT,
             castlist: None,
             runlog: None,
+            closing: CancellationToken::new(),
         }
     }
 }
@@ -76,7 +82,7 @@ pub fn app(db: Arc<Db>) -> Router {
 /// 動かす Router。DB は、どの handler も同じ物を使う。
 pub fn app_with(db: Arc<Db>, config: Config) -> Router {
     // 新着の知らせ。置く・返事・印の handler が送り、`GET /api/events` が流す。
-    let events = Events::default();
+    let events = Events::new(config.closing.clone());
     let generated = Pagetray::builder(PagetrayConfig::builder().build())
         .get_health(get_health)
         .create_page({
@@ -141,7 +147,9 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         // 新着の知らせ（SSE。名指した道が、生成した層の `/api/…` より先に当たる）。
         .route("/api/events", get(events::stream).with_state(events))
         // 画面（`/`・`/{project}/`・`/{project}/{key}/`）。
-        .merge(ui::routes(db, config.castlist))
+        .merge(ui::routes(db.clone(), config.castlist))
+        // backup と logs。
+        .merge(hand::routes(db, config.runlog))
         .route_service("/api/{*rest}", generated.clone())
         .fallback_service(generated)
         .layer(middleware::from_fn(guard::limit))
@@ -150,7 +158,7 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             guard::timeout,
         ))
         .layer(middleware::from_fn(guard::guard))
-        // 問い合わせごとの 1 行。guard が断った物も残る。今の server と同じ。
+        // 問い合わせごとの 1 行（記録の file にだけ書く。src/runlog.rs の init）。guard が断った物も残る。今の server と同じ。
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
