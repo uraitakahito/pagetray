@@ -96,6 +96,26 @@ jobs:
         run: ci/check-image.sh pagetray:ci
       - name: 空の image の中で起き、置いて読めて、止めて起こし直しても残るか
         run: ci/smoke-image.sh pagetray:ci
+  image-next:
+    # rc の release の image（Containerfile.next。新しい server の pagetray-next を /pagetray-server の名で置く）を、
+    # job image と同じ決まり（中身の一覧・設定・秘密の走査）で見て、新しい API の形で動くかを見る。
+    # まだ、main を守る ruleset の必須の check ではない（docs/src/development.md の「main を守る決まり」）。
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # 出どころの記録（provenance・SBOM）は付けない。付ける時は、中身を見てから。
+      - run: docker build --provenance=false --sbom=false -t pagetray-next:ci -f Containerfile.next .
+      - name: gitleaks を入れる（版と checksum を固定）
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_arm64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
+          sudo tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C /usr/local/bin gitleaks
+      - name: image に、入ってよい物だけが入っているか（中身の一覧・設定・秘密の走査）
+        run: ci/check-image.sh pagetray-next:ci
+      - name: 空の image の中で起き、新しい API で置いて読めて、断る答えが restJson1 の形で、止めて起こし直しても残るか
+        run: ci/smoke-image.sh pagetray-next:ci next
   cli:
     if: github.event_name != 'schedule'
     # release に付ける CLI と同じ OS・CPU（macOS・arm64）で、同じ script で作って確かめる。

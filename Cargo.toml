@@ -14,7 +14,8 @@ path = "src/main.rs"
 
 # AI-36 の作り直しの間は、新しい server（crates/server。Smithy の定義 model/ から作った骨 crates/pagetray-sdk/ を使う）を並べて作る。
 # 人が打つ CLI も、新しい server に向けた物（crates/cli-next。定義から作った client crates/pagetray-client/ で呼ぶ）を並べて作る。
-# 切り替えまで、image に入るのは今の server（この crate）だけで、release に付ける CLI は今の CLI（crates/cli）だけ。
+# release の image（Containerfile）に入るのは今の server（この crate）だけ。rc の tag の image（Containerfile.next）だけが新しい server を入れる。
+# release に付ける CLI は、どちらの tag でも今の CLI（crates/cli）だけ。
 [workspace]
 members = [".", "crates/api", "crates/cli", "crates/cli-next", "crates/server", "crates/pagetray-sdk", "crates/castlist-client", "crates/pagetray-client"]
 # 生成した crate（crates/pagetray-sdk/・crates/castlist-client/・crates/pagetray-client/）は手で直さないので、既定の cargo の命令

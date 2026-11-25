@@ -36,7 +36,7 @@ pub(crate) fn is_segment(s: &str) -> bool {
 }
 
 /// 種類と役割の名の形（本文の道で見る。定義の `Name` と同じ）。
-fn is_name(s: &str) -> bool {
+pub(crate) fn is_name(s: &str) -> bool {
     (1..=32).contains(&s.len())
         && s.as_bytes()[0].is_ascii_lowercase()
         && s.bytes()

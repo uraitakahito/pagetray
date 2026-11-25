@@ -2034,6 +2034,7 @@ dependencies = [
  "futures-util",
  "http-body 1.1.0",
  "http-body-util",
+ "pagetray",
  "pagetray_sdk",
  "serde",
  "serde_json",

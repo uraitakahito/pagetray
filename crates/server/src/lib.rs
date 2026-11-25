@@ -18,6 +18,7 @@ mod guard;
 mod hand;
 mod list;
 mod marks;
+pub mod migrate;
 mod pages;
 mod record;
 mod remove;

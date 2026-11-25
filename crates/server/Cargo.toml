@@ -1,5 +1,6 @@
 # 新しい pagetray の server（AI-36）。定義（model/）から作った骨（crates/pagetray-sdk/）に処理を入れ、
-# 手の道（ページと file の本文・新着の知らせ・画面）と 1 つの axum の Router に並べる。切り替えまで image には入らない。
+# 手の道（ページと file の本文・新着の知らせ・画面）と 1 つの axum の Router に並べる。
+# 今の image（Containerfile）には入らず、rc の image（Containerfile.next）に入る。
 # binary は pagetray-next（src/main.rs。今の pagetray-server と同じ環境変数・記録・止め方。e2e が起こす）。
 [package]
 name = "pagetray-next"
@@ -46,5 +47,7 @@ tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "registry"] }
 
 [dev-dependencies]
+# 移す試験（tests/migrate.rs）が、今の server（repo の頭の crate）の DB と今の API で、移す元の DB を作る。
+pagetray = { path = "../.." }
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
