@@ -1,6 +1,6 @@
 # 新しい pagetray の server（AI-36）。定義（model/）から作った骨（crates/pagetray-sdk/）に処理を入れ、
 # 手の道（ページと file の本文・新着の知らせ・画面）と 1 つの axum の Router に並べる。切り替えまで image には入らない。
-# binary は pagetray-next（src/main.rs。e2e が起こす）。
+# binary は pagetray-next（src/main.rs。今の pagetray-server と同じ環境変数・記録・止め方。e2e が起こす）。
 [package]
 name = "pagetray-next"
 version.workspace = true
@@ -21,6 +21,8 @@ axum = { version = "0.8.9", default-features = false, features = ["http1", "quer
 askama = "0.16.1"
 aws-smithy-types = "1.9.4"
 bytes = "1"
+# 新着の知らせの流れを、止める合図で閉じる（take_until。tokio-stream には無い）。lock に前からある版（axum が使う物）。
+futures-util = { version = "0.3", default-features = false }
 http-body = "1"
 http-body-util = "0.1"
 serde = { version = "1", features = ["derive"] }
@@ -30,13 +32,18 @@ sha2 = { version = "0.11.1", default-features = false }
 # SQL は動く時に組む形（query・query_as）だけを使う（.sqlx/ は要らない）。macros は、移行の SQL を埋め込む migrate!() のため。
 sqlx = { version = "0.9.1", default-features = false, features = ["sqlite", "runtime-tokio", "macros", "migrate"] }
 time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "fs", "time", "sync"] }
+# signal は binary の止める合図。
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "fs", "time", "sync"] }
 # 新着の知らせ（SSE）を broadcast の channel から流す（root の crate と同じ版と features）。
 tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
+# backup の file を読みながら送る（io）と、止める合図の印（CancellationToken）。root の crate と同じ版と features。
+tokio-util = { version = "0.7", features = ["io"] }
 tower = { version = "0.5", features = ["util"] }
 # 問い合わせごとの記録（method・path・status・かかった時間。root の crate と同じ版と features）。
 tower-http = { version = "0.7", default-features = false, features = ["trace"] }
 tracing = { version = "0.1", default-features = false, features = ["std"] }
+# 時刻つきの記録。書き先は stdout と、大きさで回す file（src/runlog.rs。root の crate と同じ版と features）。
+tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "registry"] }
 
 [dev-dependencies]
 http-body-util = "0.1"

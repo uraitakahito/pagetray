@@ -2011,6 +2011,7 @@ dependencies = [
  "axum",
  "bytes",
  "castlist_client",
+ "futures-util",
  "http-body 1.1.0",
  "http-body-util",
  "pagetray_sdk",
@@ -2021,9 +2022,11 @@ dependencies = [
  "time",
  "tokio",
  "tokio-stream",
+ "tokio-util",
  "tower 0.5.3",
  "tower-http 0.7.1",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

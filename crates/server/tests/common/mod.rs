@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 
 pub mod castlist;
+pub mod server;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
