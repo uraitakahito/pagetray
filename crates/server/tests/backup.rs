@@ -169,10 +169,17 @@ async fn backup_cut_by_the_timeout_leaves_no_file_beside_the_db() {
     );
     let response = short.oneshot(get("/api/backup")).await.unwrap();
     assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
-    // 作る task が終わるのを待つ。
+    // 作る task が終わるのを待つ。task がまだ file を作り始めていない時に見ると空と見て通ってしまうので、
+    // 読む接続がみな空く（task が接続を返した）まで待ってから見る。
+    let mut held = Vec::new();
+    for _ in 0..4 {
+        held.push(app.db.read().acquire().await.unwrap());
+    }
+    drop(held);
+    // 返した後の「開く・名を消す」が終わるまで。
     let started = std::time::Instant::now();
     while !leftovers(&app.path).is_empty() && started.elapsed() < Duration::from_secs(10) {
-        tokio::time::sleep(Duration::from_millis(50)).await;
+        tokio::time::sleep(Duration::from_millis(20)).await;
     }
     assert_eq!(leftovers(&app.path), Vec::<String>::new());
 }

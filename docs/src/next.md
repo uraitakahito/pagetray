@@ -41,7 +41,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - 置かれたページの URL は切らない。だから本文の URL は今のまま、Smithy の外の手の道にする（`.html` の付いた 1 段は、Smithy の道の label にできない）。
 - `/api/` の下の道は、みな生成した層か、名指した手の道に行く。本文の道（`/{project}/{key}/{file}`）は `/api/…` を受けない（`project` に `api` は置けない）。
 - この章の操作と手の道は、みな作ってある。
-- `GET /api/backup`（`crates/server/src/hand.rs`）: 今の server と同じ。DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で揃ったバックアップを作り、開いてから名を消し（作る・開く・名を消すは別の task でするので、写しを作る間に時間切れで 503 を返しても、client が切っても、一時の file は残らない）、`application/vnd.sqlite3`（`Content-Disposition: attachment; filename="pages.db"`）で読みながら送る。読む接続で作る（今の server は書く接続。写しを作る間、書く物を待たせない）。誤りは restJson1 の形の 503 `Unavailable`・500 `InternalError`。時間切れは答えの頭まで（写しを作る間）を数え、送る間は数えない（下の「守りの層」）。写しを作るのに 5 秒を過ぎれば 503 `Unavailable`。
+- `GET /api/backup`（`crates/server/src/hand.rs`）: 今の server と同じ。DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で揃ったバックアップを作り、開いてから名を消し（作る・開く・名を消すは別の task でするので、写しを作る間に時間切れで 503 を返しても、client が切っても、一時の file は残らない。止める合図で、写しを作る途中に process が終わった時だけは残り得る）、`application/vnd.sqlite3`（`Content-Disposition: attachment; filename="pages.db"`）で読みながら送る。読む接続で作る（今の server は書く接続。写しを作る間、書く物を待たせない）。誤りは restJson1 の形の 503 `Unavailable`・500 `InternalError`。時間切れは答えの頭まで（写しを作る間）を数え、送る間は数えない（下の「守りの層」）。写しを作るのに 5 秒を過ぎれば 503 `Unavailable`。
 - `GET /api/logs`: 今の server と同じ字（`text/plain; charset=utf-8`。印と、古い順の記録）。記録の置き場が無い時（Router を直に呼ぶ試験）は、今の server と同じく 404（形は restJson1 の `NotFound`）。
 
 ## ページを置く（CreatePage）
@@ -246,7 +246,7 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 - 起きずに 1 で終わる物: castlist の設定の形が違う時と、今の server の DB の時（下の「データ」）。どちらも stderr に訳を書き、DB も記録の置き場も作らない（今の volume に何も書かない）。今の server は、castlist の設定の誤りを記録の置き場に書いてから止まっていた。
 - 記録の置き場は DB の隣の `logs/`（大きさで回す記録の file・終わり方の印・生きている印。[動かす](run.md) の「落ちた後に調べる」）。起きて初めに前の回の終わり方の行（`previous: …`）、待ち受けたら起きた行（`pagetray <版> listen=… db=…`。castlist を設定すれば後ろに ` castlist=… castlist_link=…`）。どれも今の server と同じ字。
 - 問い合わせごとの 1 行（method・uri・status・latency）は記録の file にだけ書き、stdout には出さない（下の「守りの層」）。
-- SIGTERM と SIGINT で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる（印は `signal` と `stopped`）。今の server は、合図で待ち受けをすぐに捨てていた（走っている物を待たない）。知らせの流れは聞き手が切るまで続くので、閉じないと止まらない。走っている物を待つのは 3 秒（`SHUTDOWN_WAIT`。問い合わせの時間切れ 5 秒と、container を止める命令が SIGKILL を送るまでの待ちより短い）まで。過ぎたら記録に `stop wait exceeded wait=3s` を書き、DB を閉じて 0 で終わる（印は `stopped`。固まって切られた時と見分けられる）。
+- SIGTERM と SIGINT で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる（印は `signal` と `stopped`）。今の server は、合図で待ち受けをすぐに捨てていた（走っている物を待たない）。知らせの流れは聞き手が切るまで続くので、閉じないと止まらない。走っている物を待つのは 3 秒（`SHUTDOWN_WAIT`。問い合わせの時間切れ 5 秒と、container を止める命令が SIGKILL を送るまでの待ちより短い）まで。過ぎたら記録に `stop wait exceeded wait=3s` を書き、DB を閉じて 0 で終わる（印は `stopped`。固まって切られた時と見分けられる）。ただし backup の写しを作っている間に合図が来ると、DB を閉じるのは写しを作り終えるまで待つ（その分は上限に入らない）。
 - 記録の書き手（`crates/server/src/runlog.rs`）は今の `src/runlog.rs` の写しで、段 9 まで 2 つを同じ中身に保つ（違うのは、hook の試験が見る file の場所の字だけ）。
 - 試験: 本物の binary を空いた port で起こす物は `crates/server/tests/server.rs`（守りの層・backup・止め方・起きた行・今の server の DB を断る）と `crates/server/tests/runlog.rs`（前の回の終わり方・問い合わせの行・logs・上限で回る）。道具は `crates/server/tests/common/server.rs`。backup と logs の中身は `crates/server/tests/backup.rs`（Router を直に呼ぶ）。
 - e2e の試験（`e2e/`）が、今の server と同じ試験をこの binary にも流す（`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next`。`e2e/tests/wire.ts` が、置く・書く API の道と引数の名を合わせる）。
