@@ -1,5 +1,6 @@
 //! 新しい pagetray の server を起こす binary（`pagetray-next`。AI-36）。今の server の src/main.rs と同じ振る舞い。
-//! 切り替えまで image には入らない。e2e の試験と、手で動かして見るのに使う。
+//! 今の image（Containerfile）には入らず、rc の image（Containerfile.next）に /pagetray-server の名で入る。
+//! e2e の試験と、手で動かして見るのにも使う。
 //!
 //! - `PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。
 //! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時と、今の server の DB の時は、

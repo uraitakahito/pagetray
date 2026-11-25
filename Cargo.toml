@@ -13,7 +13,7 @@ name = "pagetray-server"
 path = "src/main.rs"
 
 # AI-36 の作り直しの間は、新しい server（crates/server。Smithy の定義 model/ から作った骨 crates/pagetray-sdk/ を使う）を並べて作る。
-# 切り替えまで、image に入るのは今の server（この crate）だけ。
+# release の image（Containerfile）に入るのは今の server（この crate）だけ。rc の tag の image（Containerfile.next）だけが新しい server を入れる。
 [workspace]
 members = [".", "crates/api", "crates/cli", "crates/server", "crates/pagetray-sdk", "crates/castlist-client"]
 # 生成した crate（crates/pagetray-sdk/・crates/castlist-client/）は手で直さないので、既定の cargo の命令（clippy・test）からは外す。
