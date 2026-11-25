@@ -286,15 +286,17 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - DB は SQLite のまま。新しい migrations（`crates/server/migrations/`）は 1 つ（`0001_init.sql`）で、今の `migrations/0001`〜`0006` を当てた後の作りと同じ表・列（順も）・型・空を許すか・既定・主キー・一意・索引（部分の索引の条件も）・外のキー・check・trigger・全文検索の表を作る（`crates/server/tests/db.rs` が、今の migrations を当てた DB と突き合わせる）。
 - 接続は castlist と同じ: 書く接続は 1 本（`WRITE_WAIT` 2 秒まで待つ）、読む接続は読むだけの 4 本（`READ_WAIT` 3 秒）。どの接続も WAL・`foreign_keys`・`recursive_triggers`・`busy_timeout` 5 秒・一時の物は memory。開く時に移行を当て、`foreign_key_check` に崩れがあれば開かない。
-- 今の server の DB（`_sqlx_migrations` に、新しい migrations に無い版か、中身の checksum の違う版がある物）は、読むだけで見て、何も書かずに断る（castlist の `refuse_current` と同じ。訳は「今の server の DB。…pagetray-next migrate で新しい volume へ移す」）。移す先に今の DB を渡しても、同じ訳で断る。
+- 今の server の DB（`_sqlx_migrations` に、新しい migrations に無い版か、中身の checksum の違う版がある物）は、読むだけで見て、何も書かずに断る（castlist の `refuse_current` と同じ。訳は「今の server の DB。…新しい volume へ移してから起こす: `pagetray-next migrate --from <写し> --to <新しい DB>`（image では `<image> migrate --from <写し> --to /data/pages.db`）」）。
 - 今の DB からの移し（`pagetray-next migrate --from <写し> --to <新しい DB>`。`crates/server/src/migrate.rs`）:
-  - 移す元は、今の server の `GET /api/backup` で取った写し（`VACUUM INTO` の file）。読むだけ（SQLite の URI の `mode=ro&immutable=1`）で開き、書かない。隣に `-wal` か `-shm` があれば（空でも）、動いている DB かその残りなので断る（写しには、どちらも無い）。表 `pages` の無い file・SQLite でない file・無い file も断る。どれも、移す先を作る前に断る。
+  - 移す元は、今の server の `GET /api/backup` で取った写し（`VACUUM INTO` の file）。読むだけ（SQLite の URI の `mode=ro&immutable=1`）で開き、書かない。隣に `-wal` か `-shm` があれば（空でも）、動いている DB かその残りなので断る（写しには、どちらも無い）。symlink は辿り、指す先の file の隣を見て、指す先を開く（動いている DB を指す link を通さない）。表 `pages` の無い file・SQLite でない file・無い file も断る。どれも、移す先を作る前に断る。
   - 今の migrations の途中の版（0001〜0005 まで当てた物）の写しも受ける。無い表（0002 の `removed`・0003 の `files` と `files_removed`・0005 の `senders`・0006 の `page_targets`）は空、後の版で足した列（0004 の `asked_at`・`answered_at`、0005 の `sender_id`、0006 の `waits_on`・`verdict`）は空として読む。在る表に、そのほかの列が無ければ、今の server の DB の形でないので断る。
-  - 移す先は、無ければ作り、新しい migrations を当ててから、行（送り手・ページ・消した番号・見た物・file・消した file の番号・索引）が 1 つも無いことを見る。あれば断る（2 度目の移しも、移し終えた先なので断る）。移す元と同じ file も断る。
-  - 1 つの transaction の中で、親の表から順（`senders`・`pages`・`removed`・`page_targets`・`files`・`files_removed`）に、insert だけで写す。外のキーと足すだけの trigger は効いたまま。替えない物: ページ・file・送り手の id（ページと file から送り手への結びも）・番号・消した番号（落とすと番号が使い回され、古い URL が別のページを指す）・送り手の付随する id と castlist のアクターの id・名・種類・見た物（字は path なので、URL の形を残せばそのまま）とその順（`rowid` も写す。答えの `targets` は書いた順）・返事の状態とレビューの判定・題・本文の byte・file の種類と大きさと SHA-256。
+  - 知らない物は、黙って落とさずに断る: `_sqlx_migrations` が無い・今の migrations（0001〜0006。repo の頭の `migrations/` を binary に埋め込む）に無い版か、中身の写し（checksum）の違う版か、失敗した版がある（後の版の今の server の写しを、それより前の rc で移す時など。その版を知る新しい server で移す）・移す表と SQLite・移行・探す索引（`pages_fts` と、その中の表）のほかの表がある・在る表に知らない列がある。
+  - 移す先は、無ければ作り、新しい migrations を当ててから、行（送り手・ページ・消した番号・見た物・file・消した file の番号・索引）が 1 つも無いことを見る。あれば断る（2 度目の移しも、移し終えた先なので断る）。移す元と同じ file も断る。今の server の DB（今の volume）を移す先にした時は、何も書かずに「移す先に今の server の DB を渡した。…新しい volume を渡す」と分けて断る（打つ命令は合っていて、付ける volume が違う）。
+  - 移しが落ちた時（どの断りでも・DB の誤りでも）、移す先がこの移しの前に無かったなら、移す先と隣の `-wal`・`-shm` を消す（移行を当てた空の DB を残すと、続けて起こした rc が空のまま起き、そこへ書かれた物が元のデータと分かれる）。前から在った移す先は消さない。
+  - 1 つの transaction の中で、親の表から順（`senders`・`pages`・`removed`・`page_targets`・`files`・`files_removed`）に、insert だけで写す。足すだけの trigger は効いたまま。外のキーは、行ごとでなく transaction の終わりに見る（`defer_foreign_keys`。行き先の無い行（無い送り手を指すページ・無いページを指す見た物など）を、DB の誤りで落とさずに、下の `foreign_key_check` で表と行を出して断るため）。替えない物: ページ・file・送り手の id（ページと file から送り手への結びも）・番号・消した番号（落とすと番号が使い回され、古い URL が別のページを指す）・送り手の付随する id と castlist のアクターの id・名・種類・見た物（字は path なので、URL の形を残せばそのまま）とその順（`rowid` も写す。答えの `targets` は書いた順）・返事の状態とレビューの判定・題・本文の byte・file の種類と大きさと SHA-256。
   - 時刻（`created_at`・`asked_at`・`answered_at`・`removed_at`・送り手の `created_at`・`resolved_at`）は、新しい server の残す字（24 字の UTC。下の「直す今の振る舞い」）に揃える（`…:05Z` は `…:05.000Z`、`…:05.5Z` は `…:05.500Z`）。揃えるのは、今の server が受けた形（UTC の `Z` で終わり、秒の下は 0〜3 桁）で、在る日と時刻の物だけ。ほかの字（時差の付いた字・無い日・ミリ秒より細かい字・時刻でない字）は推して直さず（直すと置いた時刻が替わる）、表と列と行と字を出して断る。今の server は、この形のほかを受けないので、ふつうは出ない。
   - 探す索引（`pages_fts`）は写さず、写した本文から作り直す（置く時と同じ字。題は残した題、本文は tag などを除いた字）。途中の版の写しや、索引の欠けた写しでも、移した後は引ける。
-  - 写した後、同じ transaction の中で突き合わせる: 表ごとの行の数と中身の digest（本文の外の列を 1 行 1 つの JSON の配列にして行の順に並べた字の SHA-256。移す元は、移す時と同じ式で読む）・本文の合計（ページと file ごとに、`<id> <本文の SHA-256>` の行を id の順に並べた字の SHA-256）・索引の行がページと同じ数でみなページを指すか・外のキー（`foreign_key_check`）・新しい API の形（下）・時刻の字（上）。1 つでも合わなければ、何も足さずに戻し、1 で終わる。合えば commit し、1 行ずつ出して 0 で終わる。引数の誤りは 2。
+  - 写した後、同じ transaction の中で突き合わせる: 表ごとの行の数と中身の digest（本文の外の列を 1 行 1 つの JSON の配列にして行の順に並べた字の SHA-256。移す元は、移す時と同じ式で読む）・本文の合計（ページと file ごとに、`<id> <本文の SHA-256>` の行を id の順に並べた字の SHA-256）・索引の行がページと同じ数でみなページを指すか・時刻の列ごとの同じ時点（移す元で値のある行の数と、移す先の同じ行（id か主キーで結ぶ）の時刻が同じ ms の行の数。digest は移す元も揃えた式で読むので、揃えた字が元と同じ時刻かは、ここで見る）・外のキー（`foreign_key_check`）・新しい API の形（下）・時刻の字（上）。1 つでも合わなければ、何も足さずに戻し、1 で終わる。合えば commit し、1 行ずつ出して 0 で終わる。引数の誤りは 2。
   - 新しい API の形に合わない行は、表と行と列を出して断る（新しい API の道と URL の形に入らず読めない・送り直しも形の誤りで断られるため。castlist の id の検査と同じ考え）。見るのは、URL の段（`project`・`key`。`.`・`..` と、`project` の `api` も）・種類と役割の名・workspace・番号（1〜18 桁）・file の語と拡張子（受ける種類だけ）・送り手の付随する id（`Issuer`・`ActorRef`）と castlist の答え（アクターの id は `ActorId` の小文字の UUID・名は 1〜128 字で制御字の無い物・種類は `ai` か `human`。3 つは揃って在るか、揃って無い）・見た物（ページの path か `https` の URL）。今の server の形の検査は新しい物と同じか狭いので、castlist のアクターの id（今の pagetray は英数字と `-` の 64 字までを受けた）のほかは、ふつうは出ない。
   - 出す行（予行と切り替えで、元と先の値を見比べる。digest と SHA-256 は頭の 16 字）:
 
@@ -308,13 +310,18 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
     body pages 4 → 4 sha256 … → … ok
     body files 2 → 2 sha256 … → … ok
     index pages_fts 4 → 4 ok
+    time senders.resolved_at 1 → 1 ok
+    time senders.created_at 4 → 4 ok
+    time pages.created_at 4 → 4 ok
+    …
+    time files_removed.removed_at 1 → 1 ok
     foreign_key_check ok
     rows ok
     times ok
-    移し終えた: <写し> → <新しい DB>
+    migrated: <from> → <to>
     ```
 
-  - 起こす前に打つ物で、castlist の設定は読まず、記録の置き場（`logs/`）も作らない。commit の後に移す元を外せなかった時は、記録に書くだけで、移した結果は替えない。試験は `crates/server/tests/migrate.rs`（移す元は、同じ workspace の今の server の Router に今の API で書き、`GET /api/backup` で取る。途中の版は、今の migrations をその版まで当てて SQL で行を置き、`VACUUM INTO` で写しにする。移した後は、新しい API で読み、今の API で読んだ物と比べる）。
+  - 起こす前に打つ物で、castlist の設定は読まず、記録の置き場（`logs/`）も作らない。commit の後に移す元を外せなかった時は、stderr に書くだけで、移した結果は替えない。試験は `crates/server/tests/migrate.rs`（移す元は、同じ workspace の今の server の Router に今の API で書き、`GET /api/backup` で取る。途中の版は、今の migrations をその版まで当てて SQL で行を置き、`VACUUM INTO` で写しにする。移した後は、新しい API で読み、今の API で読んだ物と比べる）。
 
 ## 直す今の振る舞い
 

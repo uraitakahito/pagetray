@@ -66,7 +66,7 @@ API を Smithy の定義で書き直している間（AI-36）は、今の serve
 - 生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo test --locked -p pagetray_sdk`・`-p castlist_client` で流す（`castlist_client` の外す試験は `.github/workflows/ci.yml` の訳を見る）。
 - 生成器の版は `model/smithy-build.json`（Maven の物）と `ci/gen.sh`（Smithy の CLI と digest）に書く。`smithy-build.json` に名指した Maven の物は、公開から 2 日たっていなければ `ci/gen.sh` が断る。
 - CI の job `model` が `ci/gen.sh --check`（取った定義が digest と合い、作り直した物が入れてある物と同じか）と `ci/gen.sh --diff`（定義の入った最新の release（rc を除く）から壊す形に変わっていないか）を流す。
-- 今の DB を新しい DB へ移す `pagetray-next migrate`（`crates/server/src/migrate.rs`。[新しい API の形](next.md) の「データ」）の試験は `crates/server/tests/migrate.rs`。移す元は、今の server（repo の頭の crate。`crates/server` の dev-dependency）の Router に今の API で書いて取った写しと、今の migrations をその版まで当てた写し。今の migrations に版を足したら、新しい migrations（`crates/server/tests/db.rs` が突き合わせる）と、移す表（`migrate.rs` の `TABLES`。後の版で足した列は `later`）と試験の途中の版も、同じ PR で直す。
+- 今の DB を新しい DB へ移す `pagetray-next migrate`（`crates/server/src/migrate.rs`。[新しい API の形](next.md) の「データ」）の試験は `crates/server/tests/migrate.rs`。移す元は、今の server（repo の頭の crate。`crates/server` の dev-dependency）の Router に今の API で書いて取った写しと、今の migrations をその版まで当てた写し。今の migrations に版を足したら、新しい migrations（`crates/server/tests/db.rs` が突き合わせる）と、移す表（`migrate.rs` の `TABLES`。後の版で足した列は `later`）と試験の途中の版も、同じ PR で直す（移す命令は、今の migrations を binary に埋め込んで移す元の版と突き合わせ、知らない版・表・列を断るので、直し忘れても黙って落とさず、移しが断られる）。
 - 新しい server の試験は `crates/server/tests/`。試験だけの commit を先に作り、落ちるのを見てから実装を足す。SQL は動く時に組む形（`query`・`query_as`）だけを使うので、`.sqlx/` は要らない。
 
 ## 一覧の UI の試験
