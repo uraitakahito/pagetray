@@ -28,6 +28,14 @@
       "moduleDescription": "castlist の定義（model/castlist/。castlist の release の tag から取った物）から smithy-rs が作った呼ぶ側の crate。ci/gen.sh で作り直す。手で直さない。",
       "moduleAuthors": ["pagetray"],
       "license": "MIT"
+    },
+    "rust-client-codegen::pagetray-client": {
+      "service": "ai.pagetray#Pagetray",
+      "module": "pagetray_client",
+      "moduleVersion": "0.0.0",
+      "moduleDescription": "pagetray の定義（model/）から smithy-rs が作った呼ぶ側の crate（人が打つ CLI が使う）。ci/gen.sh で作り直す。手で直さない。",
+      "moduleAuthors": ["pagetray"],
+      "license": "MIT"
     }
   }
 }

@@ -299,8 +299,8 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - pagetray の定義は `model/model/pagetray.smithy`（名前空間 `ai.pagetray`）。共通の形 `ai.common` は castlist の `model/model/common.smithy` を使う。
 - `ci/gen.sh` が、castlist の release の tag（今は `v1.0.0-rc.1`）の `common.smithy` と `castlist.smithy` を `model/castlist/` に取り、`ci/gen.sh` に固めた SHA-256 と合うかを見てから置く。tag と 2 つの digest は `ci/gen.sh` の 1 か所に書く。取った定義は commit するので、`ci/gen.sh --check` は castlist に取りに行かず、入れてある物が digest と合うかを見る。
-- 1 つの Smithy の build から、2 つの crate を作る: pagetray の server の骨（`crates/pagetray-sdk/`。smithy-rs の codegen-server 0.1.40・`http-1x`・`publicConstrainedTypes: false`）と、castlist を呼ぶ crate（`crates/castlist-client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）。呼ぶ側の crate は、送り手を castlist に聞く処理（上の「送り手」）で使う。
-- 呼ぶ側の crate の既定の features から、https の client（rustls・aws-lc）を外す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼ぶのは同じ機械の中の `http://127.0.0.1` だけなので、TLS の crate を build しない。HTTP の client は、使う側が設定で渡す（TLS の無い HTTP/1.1。上の「送り手」）。castlist を 1 度呼べること・1 秒の時間切れ・送り直さないことは、`crates/server/tests/senders.rs` が偽の castlist で止める。
+- 1 つの Smithy の build から、3 つの crate を作る: pagetray の server の骨（`crates/pagetray-sdk/`。smithy-rs の codegen-server 0.1.40・`http-1x`・`publicConstrainedTypes: false`）と、castlist を呼ぶ crate（`crates/castlist-client/`。codegen-client 0.1.40 の `rust-client-codegen`。http 1 の形）と、pagetray を呼ぶ crate（`crates/pagetray-client/`。同じ `rust-client-codegen` を、`model/smithy-build.json` の `rust-client-codegen::pagetray-client`（`<plugin>::<名>`）の名でもう 1 度使う）。castlist を呼ぶ crate は送り手を castlist に聞く処理（上の「送り手」）で、pagetray を呼ぶ crate は人が打つ CLI（下の「CLI」）で使う。
+- 呼ぶ側の 2 つの crate の既定の features から、https の client（rustls・aws-lc）を外す（`ci/gen.sh` が `Cargo.toml` の 1 行を替える）。pagetray が castlist を呼ぶのも、CLI が pagetray を呼ぶのも同じ機械の中の `http://` だけなので、TLS の crate を build しない。HTTP の client は、使う側が設定で渡す（TLS の無い HTTP/1.1。上の「送り手」）。castlist を 1 度呼べること・1 秒の時間切れ・送り直さないことは、`crates/server/tests/senders.rs` が偽の castlist で止める。
 - 例（`@httpRequestTests`・`@httpResponseTests`）の id は、castlist の定義と 1 つの model に入るので重なれない。pagetray の物は頭に `Pagetray` を付ける。
 
 ## 段 4 の分け方（予定）

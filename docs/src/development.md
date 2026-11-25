@@ -22,7 +22,7 @@
 | `docs/` | この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側との API の仕様と、API の版の決まり。直し方は下の「この本を直す」 |
 | `.claude/roles/config.jsonc` | `roster` に向けた、環境 `pagetray` の宣言 |
 | `model/`・`ci/gen.sh` | 作り直し（AI-36）の間の、新しい API の Smithy の定義と、そこから crate を作る script（下の「定義と生成」） |
-| `crates/pagetray-sdk/`・`crates/castlist-client/` | 定義から作った server の骨と、castlist を呼ぶ crate。手で直さない |
+| `crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/` | 定義から作った server の骨と、castlist を呼ぶ crate と、pagetray を呼ぶ crate（新しい CLI が使う）。手で直さない |
 | `crates/server/` | 作り直している新しい server（package `pagetray-next`）。切り替えまで image に入らない |
 
 Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読まない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つと、その版が入って使われる。
@@ -62,7 +62,7 @@ API の形（URL・引数の名・JSON の欄）を変える時は、先に [API
 API を Smithy の定義で書き直している間（AI-36）は、今の server（`src/`）の隣に、新しい server（`crates/server`）を並べて作る。切り替えまで image に入るのは今の server だけ（`Containerfile` は `-p pagetray` だけを作る）。形の決まりは [新しい API の形](next.md)。
 
 - 定義は `model/model/pagetray.smithy`。共通の形 `ai.common` と castlist の定義は、castlist の release の tag から取った `model/castlist/`（tag と digest は `ci/gen.sh` の 1 か所。手で直さない）。
-- 生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo test --locked -p pagetray_sdk`・`-p castlist_client` で流す（`castlist_client` の外す試験は `.github/workflows/ci.yml` の訳を見る）。
+- 生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo test --locked -p pagetray_sdk`・`-p castlist_client`・`-p pagetray_client` で流す（`castlist_client` の外す試験は `.github/workflows/ci.yml` の訳を見る）。定義の例の引数の値は、呼ぶ側が逃がす字（`:` など）を `%3A` と逃がして書く（逃がさずに書くと、呼ぶ側の crate の試験が合わずに落ちる。server の骨の試験は、逃がしを戻してから比べるので、どちらでも通る）。
 - 生成器の版は `model/smithy-build.json`（Maven の物）と `ci/gen.sh`（Smithy の CLI と digest）に書く。`smithy-build.json` に名指した Maven の物は、公開から 2 日たっていなければ `ci/gen.sh` が断る。
 - CI の job `model` が `ci/gen.sh --check`（取った定義が digest と合い、作り直した物が入れてある物と同じか）と `ci/gen.sh --diff`（定義の入った最新の release（rc を除く）から壊す形に変わっていないか）を流す。
 - 新しい server の試験は `crates/server/tests/`。試験だけの commit を先に作り、落ちるのを見てから実装を足す。SQL は動く時に組む形（`query`・`query_as`）だけを使うので、`.sqlx/` は要らない。
