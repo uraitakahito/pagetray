@@ -3496,6 +3496,21 @@ msgstr "After the move is done, start the rc image on the new volume."
 
 #: src/release.md
 msgid ""
+"**段 8 までに今の server を直して出す時**: 版は workspace で 1 つ（`Cargo.toml` の `[work"
+"space.package]`）なので、main の版は rc のまま。今の server の直しを出すには、版を `0.8.<n>` にし"
+"て `CHANGELOG.md` に節を足す PR を merge し、`v0.8.<n>` を打つ（`-rc.` の無い tag は今の "
+"`Containerfile` で作る）。次の rc は、また版を上げて打つ。"
+msgstr ""
+"**To ship a fix of the current server before stage 8**: there is one v"
+"ersion for the workspace (`[workspace.package]` in `Cargo.toml`), so t"
+"he version on main stays at the rc. To ship a fix of the current serve"
+"r, merge a PR that sets the version to `0.8.<n>` and adds a section to"
+" `CHANGELOG.md`, then push `v0.8.<n>` (a tag without `-rc.` is built w"
+"ith the current `Containerfile`). For the next rc, raise the version a"
+"gain and push the tag."
+
+#: src/release.md
+msgid ""
 "**機微な物が出てしまった時**: GitHub の package の画面で、その版を消す。CLI "
 "の方なら、release の画面で付いた file を消す。秘密なら、すぐ替える（消して"
 "も、pull した人の手元には残る前提で動く）。直して次の版を出し、`ci/` の決まり"
