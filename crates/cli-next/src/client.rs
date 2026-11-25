@@ -3,8 +3,9 @@
 //! - 生成した操作（`/healthz`・`/api/…` の定義の道）は、定義から作った client（`pagetray_client`）で呼ぶ。
 //! - 手の道（ページの本文・file の中身・新着の知らせ・`api` の命令）は、同じ HTTP の client（aws-smithy-http-client の
 //!   hyper の作りの connector）で直に呼ぶ。
-//! - どちらも、TLS の無い HTTP/1.1・接続を使い回さない・送り直さない・環境変数の proxy を使わない・`Host: 127.0.0.1`
-//!   （置き場は Host が 127.0.0.1・localhost でない要求を断る。つなぐ先の名がどうでも届くように）・`Origin` を付けない。
+//! - どちらも、TLS の無い HTTP/1.1・接続を使い回さない・送り直さない・環境変数の proxy を使わない・`Host: 127.0.0.1:<port>`
+//!   （置き場は Host が 127.0.0.1・localhost でない要求を断る。つなぐ先の名がどうでも届くように。port は `--url` の物で、
+//!   置き場が答えの `url`・`Location` を Host で組むので、開ける link になる）・`Origin` を付けない。
 //! - どの答えでも、今の API の印（header `Pagetray-Api`）を見て、付いていれば答えを使わずに code 4 で止まる。
 //!   生成した層が知らない道に返す 404 `UnknownOperationException`（定義より古い置き場）も code 4。
 
@@ -72,6 +73,17 @@ pub struct Store {
     http: Connector,
     /// 置き場の URL（末尾の `/` は無い）。
     pub base: String,
+    /// 送る `Host`（`127.0.0.1` に、`--url` の port があれば付けた物）。
+    host: String,
+}
+
+/// 手の道の答えの、生成した層の知らない道の 404 `UnknownOperationException` の見方。
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Route {
+    /// CLI が自分で組んだ道。知らない道は、定義より古い置き場（code 4）。
+    Own,
+    /// 人が書いた道（`api` の命令）。知らない道は打ち間違いが多いので、ほかの断りと同じく答えのまま返す。
+    Typed,
 }
 
 /// 手の道の答え。
@@ -92,6 +104,7 @@ impl Store {
                 "置き場の URL は http:// で始める（相手は、この Mac の中の置き場だけ）: {url}"
             )));
         }
+        let host = host_of(&base);
         let config = Config::builder()
             .behavior_version(BehaviorVersion::latest())
             .endpoint_url(&base)
@@ -102,13 +115,14 @@ impl Store {
             )
             .retry_config(RetryConfig::disabled())
             .timeout_config(TimeoutConfig::builder().operation_timeout(TIMEOUT).build())
-            .interceptor(Wire)
+            .interceptor(Wire { host: host.clone() })
             .build();
         let http = Connector::builder().pool_max_idle_per_host(0).build_http();
         Ok(Self {
             api: pagetray_client::Client::from_conf(config),
             http,
             base,
+            host,
         })
     }
 
@@ -155,6 +169,7 @@ impl Store {
     /// 待つのは、頼んでから本文を読み終えるまでで `timeout`。`None` なら待ち続ける（新着の知らせ）。
     pub async fn send(
         &self,
+        route: Route,
         method: &str,
         path: &str,
         query: &[(&str, &str)],
@@ -175,16 +190,22 @@ impl Store {
         let mut request = match body {
             Some((bytes, content_type)) => {
                 let mut request = Request::new(SdkBody::from(bytes));
+                // header にできない値（改行など）は、使い方の誤り（insert は panic する）。
                 request
                     .headers_mut()
-                    .insert("content-type", content_type.to_owned());
+                    .try_insert("content-type", content_type.to_owned())
+                    .map_err(|e| {
+                        Failure::usage(format!(
+                            "本文の種類（--content-type）を header にできない（{content_type:?}）: {e}"
+                        ))
+                    })?;
                 request
             }
             None => Request::new(SdkBody::empty()),
         };
         request.set_method(method).map_err(|e| bad(&e))?;
         request.set_uri(uri.as_str()).map_err(|e| bad(&e))?;
-        request.headers_mut().insert("host", "127.0.0.1");
+        request.headers_mut().insert("host", self.host.clone());
         let deadline = timeout.map(|limit| tokio::time::Instant::now() + limit);
         let call = self.http.call(request);
         let response = match deadline {
@@ -198,7 +219,7 @@ impl Store {
             return Err(current_api(&self.base));
         }
         let error_type = error_type(response.headers());
-        if error_type.as_deref() == Some(UNKNOWN_OPERATION) {
+        if route == Route::Own && error_type.as_deref() == Some(UNKNOWN_OPERATION) {
             return Err(unknown_operation(&self.base));
         }
         Ok(Reply {
@@ -271,20 +292,27 @@ impl Reply {
         }
     }
 
-    /// 本文を、届いた分ずつ読む（新着の知らせ）。終われば `None`。
-    pub async fn chunk(&mut self) -> Option<Vec<u8>> {
+    /// 本文を、届いた分ずつ読む（新着の知らせ）。置き場がきれいに閉じれば `None`。途中で切れた（置き場が落ちた・
+    /// 接続が切れた）時は code 3。
+    pub async fn chunk(&mut self) -> Result<Option<Vec<u8>>, Failure> {
         loop {
-            let frame = self.body.frame().await?.ok()?;
+            let Some(frame) = self.body.frame().await else {
+                return Ok(None);
+            };
+            let frame = frame
+                .map_err(|e| Failure::new(DOWN, format!("置き場の答えが途中で切れた: {e}")))?;
             if let Ok(data) = frame.into_data() {
-                return Some(data.to_vec());
+                return Ok(Some(data.to_vec()));
             }
         }
     }
 }
 
-/// 生成した client の要求と答えに掛ける決まり（`Host` を 127.0.0.1 にする・今の API の答えを使わない）。
+/// 生成した client の要求と答えに掛ける決まり（`Host` を 127.0.0.1 と `--url` の port にする・今の API の答えを使わない）。
 #[derive(Debug)]
-struct Wire;
+struct Wire {
+    host: String,
+}
 
 /// 今の API の答えだった印（[`Wire`] が答えを読む前に止めた訳）。
 #[derive(Debug)]
@@ -312,7 +340,7 @@ impl Intercept for Wire {
         context
             .request_mut()
             .headers_mut()
-            .insert("host", "127.0.0.1");
+            .insert("host", self.host.clone());
         Ok(())
     }
 
@@ -366,6 +394,24 @@ fn unknown_operation(base: &str) -> Failure {
     )
 }
 
+/// 送る `Host`: `127.0.0.1` に、`base`（`http://<名>[:<port>]`）の port があれば付けた物。
+fn host_of(base: &str) -> String {
+    let authority = base
+        .strip_prefix("http://")
+        .unwrap_or(base)
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or("");
+    let port = authority
+        .rsplit_once(':')
+        .map(|(_, port)| port)
+        .filter(|port| !port.is_empty() && port.bytes().all(|b| b.is_ascii_digit()));
+    match port {
+        Some(port) => format!("127.0.0.1:{port}"),
+        None => "127.0.0.1".to_owned(),
+    }
+}
+
 fn error_type(headers: &Headers) -> Option<String> {
     headers
         .get("x-amzn-errortype")
@@ -388,7 +434,15 @@ fn encode(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::encode;
+    use super::{encode, host_of};
+
+    #[test]
+    fn the_host_carries_the_port_of_the_url() {
+        assert_eq!(host_of("http://127.0.0.1:8801"), "127.0.0.1:8801");
+        assert_eq!(host_of("http://pagetray.box:8080/x"), "127.0.0.1:8080");
+        assert_eq!(host_of("http://localhost"), "127.0.0.1");
+        assert_eq!(host_of("http://[::1]"), "127.0.0.1");
+    }
 
     #[test]
     fn query_values_are_percent_encoded() {

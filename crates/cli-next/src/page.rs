@@ -1,6 +1,6 @@
 //! `pagetray-cli-next page …`: ページを探す・読む・置く・消す・返事の状態を書く・新着を待つ。
 
-use crate::client::{Failure, Store, TIMEOUT};
+use crate::client::{Failure, Route, Store, TIMEOUT};
 use crate::output::{self, page_record, page_state};
 use aws_smithy_types::Blob;
 use clap::{Args, Subcommand, ValueEnum};
@@ -406,7 +406,7 @@ async fn view(store: &Store, args: ViewArgs) -> Result<Vec<u8>, Failure> {
         return Ok(Vec::new());
     }
     let body = store
-        .send("GET", &path, &[], None, Some(TIMEOUT))
+        .send(Route::Own, "GET", &path, &[], None, Some(TIMEOUT))
         .await?
         .ok(&format!("ページを読めない: {}{path}", store.base))
         .await?
@@ -448,8 +448,9 @@ async fn put(store: &Store, args: PutArgs) -> Result<String, Failure> {
         .send()
         .await
         .map_err(|e| store.failure("置き場がページを受け取らなかった", e))?;
-    // 置き場の答えの url は、要求の Host で組んだ物。ここでは、頼んだ先（--url）で組む（一覧と同じ形）。
-    let record = page_record!(&placed, store.base);
+    // 答えの url は、置き場が要求の Host（127.0.0.1 と --url の port）で組んだ物をそのまま使う。
+    let mut record = page_record!(&placed, store.base);
+    record.insert("url".into(), placed.url().into());
     if args.json {
         Ok(output::pretty(&Value::Object(record)))
     } else {
@@ -548,9 +549,24 @@ async fn delete(store: &Store, args: DeleteArgs) -> Result<String, Failure> {
             .set_kind(target.kind)
             .set_n(target.n)
             .send()
-            .await
-            .map_err(|e| store.failure("置き場がページを消さなかった", e))?;
-        removed.extend(gone.removed().iter().cloned());
+            .await;
+        match gone {
+            Ok(gone) => removed.extend(gone.removed().iter().cloned()),
+            Err(e) => {
+                // 消した物は戻せないので、途中で落ちても、そこまでに消した物を出してから止まる。
+                if !removed.is_empty() {
+                    let lines: String = removed
+                        .iter()
+                        .map(|path| format!("{}{path}\n", store.base))
+                        .collect();
+                    eprint!(
+                        "pagetray-cli-next: 消した（{} 枚）:\n{lines}",
+                        removed.len()
+                    );
+                }
+                return Err(store.failure("置き場がページを消さなかった", e));
+            }
+        }
     }
     let lines: String = removed
         .iter()
@@ -563,13 +579,13 @@ async fn delete(store: &Store, args: DeleteArgs) -> Result<String, Failure> {
 /// ほかの知らせ（`file`・`reply`・`review`）は出さない。置き場が閉じるか、読む側が閉じるまで続く。
 async fn watch(store: &Store, args: WatchArgs) -> Result<(), Failure> {
     let mut reply = store
-        .send("GET", "/api/events", &[], None, None)
+        .send(Route::Own, "GET", "/api/events", &[], None, None)
         .await?
         .ok("置き場が新着を流さなかった")
         .await?;
     let mut stdout = std::io::stdout().lock();
     let mut events = Events::default();
-    while let Some(chunk) = reply.chunk().await {
+    while let Some(chunk) = reply.chunk().await? {
         for data in events.push(&chunk) {
             let Ok(Value::Object(mut page)) = serde_json::from_str::<Value>(&data) else {
                 continue;

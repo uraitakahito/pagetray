@@ -10,7 +10,7 @@ mod output;
 mod page;
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
-use client::{Failure, REFUSED, Store, TIMEOUT};
+use client::{Failure, REFUSED, Route, Store, TIMEOUT};
 use pagetray_api::is_segment;
 use serde_json::json;
 use std::io::{Read, Write};
@@ -184,17 +184,20 @@ async fn status(store: &Store, args: &StatusArgs) -> Result<Vec<u8>, Failure> {
 }
 
 /// DB の写し（`GET /api/backup`）を file に書く。答えは読みながら、隣の書きかけの file に書き、書き終えて SQLite の file と
-/// 確かめてから名を付け替える（今の CLI と同じ）。途中で落ちれば、書きかけの file を消す。
+/// 確かめてから名を付け替える（今の CLI と同じ）。途中で落ちれば、書きかけの file を消す。止める合図（SIGINT・SIGTERM）で
+/// 止めた時も、書きかけを消してから 130・143 で終わる（書きかけには、ページの本文がみな入るため）。
 /// 待つのは、答えの頭まで 10 秒（置き場が写しを作る間）と、本文の切れ目ごとに 10 秒（届き続ける間は、全部で何秒でもよい）。
 async fn backup(store: &Store, args: &BackupArgs) -> Result<Vec<u8>, Failure> {
     let mut reply = store
-        .send("GET", "/api/backup", &[], None, Some(TIMEOUT))
+        .send(Route::Own, "GET", "/api/backup", &[], None, Some(TIMEOUT))
         .await?
         .ok("置き場が DB の写しを返さなかった")
         .await?;
     let mut partial = args.output.clone().into_os_string();
     partial.push(format!(".part-{}", std::process::id()));
     let partial = PathBuf::from(partial);
+    // 合図は、書きかけを作る前から受ける（作った後・消す前に止められないように）。
+    let mut stop = Stop::listen()?;
     let cannot_write = |e: std::io::Error| {
         Failure::new(
             REFUSED,
@@ -220,13 +223,46 @@ async fn backup(store: &Store, args: &BackupArgs) -> Result<Vec<u8>, Failure> {
         }
         std::fs::rename(&partial, &args.output).map_err(cannot_write)?;
         Ok(size)
-    }
-    .await;
+    };
+    let written = tokio::select! {
+        written = written => written,
+        (name, code) = stop.received() => Err(Failure::new(
+            code,
+            format!("合図（{name}）で止めた。書きかけの写しは消した（{}）", args.output.display()),
+        )),
+    };
     match written {
         Ok(size) => Ok(format!("写した: {}（{size} bytes）\n", args.output.display()).into_bytes()),
         Err(failure) => {
             let _ = std::fs::remove_file(&partial);
             Err(failure)
+        }
+    }
+}
+
+/// 止める合図（SIGINT・SIGTERM）の受け口。受けた合図の名と、終わりの code（128 + 合図の番号）を返す。
+struct Stop {
+    interrupt: tokio::signal::unix::Signal,
+    terminate: tokio::signal::unix::Signal,
+}
+
+impl Stop {
+    fn listen() -> Result<Self, Failure> {
+        use tokio::signal::unix::{SignalKind, signal};
+        let listen = |kind| {
+            signal(kind)
+                .map_err(|e| Failure::new(REFUSED, format!("止める合図を受けられない: {e}")))
+        };
+        Ok(Self {
+            interrupt: listen(SignalKind::interrupt())?,
+            terminate: listen(SignalKind::terminate())?,
+        })
+    }
+
+    async fn received(&mut self) -> (&'static str, u8) {
+        tokio::select! {
+            _ = self.interrupt.recv() => ("SIGINT", 130),
+            _ = self.terminate.recv() => ("SIGTERM", 143),
         }
     }
 }
@@ -272,6 +308,7 @@ async fn api(store: &Store, args: &ApiArgs) -> Result<Vec<u8>, Failure> {
     }
     let reply = store
         .send(
+            Route::Typed,
             &method,
             &args.path,
             &query,

@@ -3,7 +3,7 @@
 //! 手元で見る所（名の作り方・EXIF・秘密の形）は、今の CLI（crates/cli/src/file.rs）と同じ物を写してある
 //! （今の CLI は切り替えの日まで替えない。段 9 で今の CLI を消す時に、ここだけが残る）。
 
-use crate::client::{Failure, REFUSED, Store, TIMEOUT};
+use crate::client::{Failure, REFUSED, Route, Store, TIMEOUT};
 use crate::output::{self, file_record};
 use crate::page::project_name;
 use aws_smithy_types::Blob;
@@ -252,7 +252,7 @@ async fn view(store: &Store, args: ViewArgs) -> Result<Vec<u8>, Failure> {
         ));
     }
     let body = store
-        .send("GET", &path, &[], None, Some(TIMEOUT))
+        .send(Route::Own, "GET", &path, &[], None, Some(TIMEOUT))
         .await?
         .ok(&format!("file を読めない: {}{path}", store.base))
         .await?
@@ -358,8 +358,9 @@ async fn put(store: &Store, args: PutArgs) -> Result<String, Failure> {
         .send()
         .await
         .map_err(|e| store.failure("置き場が file を受け取らなかった", e))?;
-    // 置き場の答えの url は、要求の Host で組んだ物。ここでは、頼んだ先（--url）で組む（一覧と同じ形）。
-    let record = file_record!(&placed, store.base);
+    // 答えの url は、置き場が要求の Host（127.0.0.1 と --url の port）で組んだ物をそのまま使う。
+    let mut record = file_record!(&placed, store.base);
+    record.insert("url".into(), placed.url().into());
     if args.json {
         return Ok(output::pretty(&Value::Object(record)));
     }
@@ -677,9 +678,24 @@ async fn delete(store: &Store, args: DeleteArgs) -> Result<String, Failure> {
             .set_name(target.name)
             .set_n(target.n)
             .send()
-            .await
-            .map_err(|e| store.failure("置き場が file を消さなかった", e))?;
-        removed.extend(gone.removed().iter().cloned());
+            .await;
+        match gone {
+            Ok(gone) => removed.extend(gone.removed().iter().cloned()),
+            Err(e) => {
+                // 消した物は戻せないので、途中で落ちても、そこまでに消した物を出してから止まる。
+                if !removed.is_empty() {
+                    let lines: String = removed
+                        .iter()
+                        .map(|path| format!("{}{path}\n", store.base))
+                        .collect();
+                    eprint!(
+                        "pagetray-cli-next: 消した（{} 個）:\n{lines}",
+                        removed.len()
+                    );
+                }
+                return Err(store.failure("置き場が file を消さなかった", e));
+            }
+        }
     }
     let lines: String = removed
         .iter()

@@ -321,14 +321,14 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 
 - 生成した操作（`GetHealth`・`ListPages` などの定義の道）は、定義から作った client（`crates/pagetray-client/`）で呼ぶ。
 - 手の道（ページの本文・file の中身・新着の知らせ・DB の写し・`api` の命令）は、生成した client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは `crates/cli-next/src/client.rs` の 1 か所で、依存も増えない（lock に前からある crate だけ）。
-- HTTP の設定は、castlist を呼ぶ時（上の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy（`HTTP_PROXY` など）を使わない・`Host: 127.0.0.1` で送り `Origin` は付けない（置き場は `Host` が 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする）。待つのは 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、答えの頭も本文も待ち続ける。`backup` は、答えの頭まで（置き場が写しを作る間。置き場は 5 秒で 503 を返す）を 10 秒と数え、本文は切れ目ごとに 10 秒（10 秒何も届かなければ、止まった置き場として code 3）で、全部で何秒かかってもよい。訳: 置き場の時間切れも答えの頭までで、送る間は数えない（上の「守りの層」）。DB の写しは大きく、読み終えるまでを 10 秒と数えると、大きな DB の写しが取れなくなる。今の CLI のように待ち続けると、途中で止まった置き場を待って戻らないので、届かない間だけを数える。
+- HTTP の設定は、castlist を呼ぶ時（上の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy（`HTTP_PROXY` など）を使わない・`Host: 127.0.0.1:<port>`（port は `--url` の物。無ければ付けない）で送り `Origin` は付けない（置き場は `Host` の port を外して 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする。置き場は答えの `url`・`Location` を `Host` で組むので、port を付けて開ける link にする）。待つのは 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、答えの頭も本文も待ち続ける。`backup` は、答えの頭まで（置き場が写しを作る間。置き場は 5 秒で 503 を返す）を 10 秒と数え、本文は切れ目ごとに 10 秒（10 秒何も届かなければ、止まった置き場として code 3）で、全部で何秒かかってもよい。訳: 置き場の時間切れも答えの頭までで、送る間は数えない（上の「守りの層」）。DB の写しは大きく、読み終えるまでを 10 秒と数えると、大きな DB の写しが取れなくなる。今の CLI のように待ち続けると、途中で止まった置き場を待って戻らないので、届かない間だけを数える。
 - 置き場の URL は `http://` だけ（`https://` は code 2）。
 
 ### 今の CLI と替えた所
 
 | 所 | 今の CLI（`pagetray`） | 新しい CLI（`pagetray-cli-next`） |
 |---|---|---|
-| `--json` の記録 | snake_case（`created_at`・`asked_at`・`waits_on`）。番号 `n` は数 | API の答えと同じ camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`sender.resolvedAt`）。`n` は字（`"7"`）。値の無い欄は出さない。CLI が足すのは、頼んだ先（`--url`）で組んだ `url` だけ |
+| `--json` の記録 | snake_case（`created_at`・`asked_at`・`waits_on`）。番号 `n` は数 | API の答えと同じ camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`sender.resolvedAt`）。`n` は字（`"7"`）。値の無い欄は出さない。一覧の記録には、頼んだ先（`--url`）で組んだ `url` を足す（置く答えの `url` は、置き場が組んだ物のまま） |
 | `--json=<欄>` の名 | snake_case | camelCase（知らない名は code 2） |
 | 一覧の続き | `--before`・`--after`（時刻） | `--next-token <印>`。続きがあれば、続きの印を stderr に 1 行で出す（stdout は頼んだ物だけ）。`--before`・`--after` は無い（code 2） |
 | `-L`（件数） | 置き場が 1〜1000 に丸めた | 1〜1000 の外は、送る前に code 2 |
@@ -337,9 +337,10 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `status` | サーバーの版と API の版（`/api/version`）。`--json` に `api`・`cli_api` | サーバーの版（`GET /healthz` の `version`）と CLI の版だけ。`--json` は `url`・`server`・`cli` |
 | 版の違い | 答えの header `Pagetray-Api` が違えば code 4 | 下の「終わりの code」 |
 | `page reply` | 405 を、0.5.0 より前の置き場と見分けた | 見分けない（定義より古い置き場は code 4）。待ちの相手の違う 409 は、置き場の訳のまま code 1 |
-| `page watch` | `data:` の行をみな読む | event の名の無い知らせ（ページを置いた）だけを出す。新しい server は file・返事・印の知らせ（`file`・`reply`・`review`）も流すため |
-| `api` | 本文の種類は `text/html` に決まっていた | `--content-type`（既定 `application/json`。返事と印は JSON の本文のため）。ページは `text/html`、file は file の種類を書く |
-| `backup` | `GET /api/backup` で DB の写しを取る。答えを待ち続ける。答えを読めなければ code 1 | 同じ形（書きかけの `<file>.part-<pid>` に読みながら書き、SQLite の頭を見てから名を付け替える。落ちれば書きかけを消す）。待つのは上の「呼び方」の形。途中で止まった・読めない答えは code 3（置き場が応えない） |
+| `page watch` | `data:` の行をみな読む。流れが途中で切れても code 0 | event の名の無い知らせ（ページを置いた）だけを出す。新しい server は file・返事・印の知らせ（`file`・`reply`・`review`）も流すため。流れが途中で切れれば（置き場が落ちた・接続が切れた）code 3、置き場がきれいに閉じれば（止める合図で流れを閉じた）code 0 |
+| `api` | 本文の種類は `text/html` に決まっていた | `--content-type`（既定 `application/json`。返事と印は JSON の本文のため）。ページは `text/html`、file は file の種類を書く。header にできない値（改行など）は code 2。知らない道（404 `UnknownOperationException`）は、打ち間違いが多いので code 4 にせず、ほかの断りと同じく本文を出して code 1 |
+| `backup` | `GET /api/backup` で DB の写しを取る。答えを待ち続ける。答えを読めなければ code 1 | 同じ形（書きかけの `<file>.part-<pid>` に読みながら書き、SQLite の頭を見てから名を付け替える。落ちれば書きかけを消す）。止める合図（Ctrl-C の SIGINT・SIGTERM）で止めた時も、書きかけを消してから 130（SIGTERM は 143）で終わる（書きかけには、ページの本文がみな入る）。待つのは上の「呼び方」の形。途中で止まった・読めない答えは code 3（置き場が応えない） |
+| いくつかを名指して消す（`page delete`・`file delete`） | 途中で断られると、それまでに消した物を出さずに止まる | 途中で断られても、それまでに消した物（`消した（N 枚）:` と URL）を stderr に出してから、断られた訳で止まる（消した物は戻せないため） |
 | 送り手 | 命令からは書かない | 同じ（命令からは書かない）。`api` で `actorIssuer`・`actorRef` を書き、castlist に登録の無い送り手なら、400 `ValidationException`（`fieldList` に `/actorRef`）で code 1 |
 
 ### 終わりの code
@@ -349,8 +350,9 @@ castlist の [新しい API の形](https://github.com/uraitakahito/castlist/blo
 | `0` | できた |
 | `1` | 置き場が断った（`4xx`・`5xx`）。file に書けない時・`PAGETRAY_NO_DELETE` で止めた時・`file put` が置く前に止めた時も（今の CLI と同じ） |
 | `2` | 使い方の誤り（今の CLI と同じ） |
-| `3` | 置き場が応えない（つながらない・10 秒で答えない・答えが読めない・`backup` の本文が 10 秒届かない） |
-| `4` | 置き場の API が、この CLI の話す形でない: 答えに header `Pagetray-Api` がある（今の API の置き場。答えを使わずに止まり、今の CLI を使うよう出す）か、生成した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知らない、定義より古い置き場） |
+| `3` | 置き場が応えない（つながらない・10 秒で答えない・答えが読めない・`backup` の本文が 10 秒届かない・`page watch` の流れが途中で切れた） |
+| `4` | 置き場の API が、この CLI の話す形でない: 答えに header `Pagetray-Api` がある（今の API の置き場。答えを使わずに止まり、今の CLI を使うよう出す）か、CLI が自分で組む道に、生成した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知らない、定義より古い置き場。`api` の道では code 1） |
+| `130`・`143` | `backup` を止める合図（SIGINT・SIGTERM）で止めた（書きかけの写しは消した） |
 
 - code 4 は残す。新しい API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（上の「共通の決まり」の「版」）。それでも、切り替えの間は今の server と新しい server が並ぶので、向ける先を違えた時に、読めない答えを code 3 とせず「違う API の置き場」と分けて出す。生成した client は、答えに無い `@required` の欄を既定の値で埋めるので、今の server の答えを読ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見る（生成した client には interceptor で、手の道は答えの頭で）。
 - 切り替えの後は、今の server が無くなるので、`Pagetray-Api` の見分けは、段 9 で今の CLI と一緒に消す。
