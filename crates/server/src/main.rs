@@ -7,6 +7,9 @@
 //! - 記録の置き場は DB の隣の `logs/`（[`pagetray_next::runlog`]）。起きたら初めに、前の回の終わり方の行（`previous: …`）を出す。
 //! - 止める合図（SIGTERM・SIGINT）で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる
 //!   （待つのは [`SHUTDOWN_WAIT`] まで）。
+//!
+//! `pagetray-next migrate --from <今の DB の写し> --to <新しい DB>` は、起きずに、今の server の DB を新しい DB へ移す
+//! （[`pagetray_next::migrate`]。castlist の設定は読まず、記録の置き場も作らない）。
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -22,6 +25,14 @@ use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
 async fn main() -> ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if args.first().map(String::as_str) == Some("migrate") {
+        return migrate(&args[1..]).await;
+    }
+    if !args.is_empty() {
+        eprintln!("{USAGE}");
+        return ExitCode::from(2);
+    }
     let path = PathBuf::from(env_or("PAGETRAY_DB", "/data/pages.db"));
     // 形の違う castlist の設定は、記録の置き場も DB も作らずに断る（castlist の URL が無ければ、付随する id だけを残す）。
     let castlist = match Castlist::from_env() {
@@ -54,6 +65,46 @@ async fn main() -> ExitCode {
             // 誤りで終わった印を残す。残さないと、次の起動で SIGKILL と見分けられない。
             log.failed(&e.to_string());
             tracing::error!("pagetray: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+const USAGE: &str = "使い方: pagetray-next（環境変数 PAGETRAY_DB・PAGETRAY_LISTEN などで起きる）\n       pagetray-next migrate --from <今の DB の写し> --to <新しい DB>";
+
+/// `migrate --from <file> --to <file>`: 移して、突き合わせを出す。合わない・移せない時は 1、引数の誤りは 2 で終わる。
+async fn migrate(args: &[String]) -> ExitCode {
+    let (mut from, mut to) = (None, None);
+    let mut rest = args.iter();
+    while let Some(flag) = rest.next() {
+        let slot = match flag.as_str() {
+            "--from" => &mut from,
+            "--to" => &mut to,
+            _ => {
+                eprintln!("知らない引数: {flag}\n{USAGE}");
+                return ExitCode::from(2);
+            }
+        };
+        match rest.next() {
+            Some(value) if slot.is_none() => *slot = Some(PathBuf::from(value)),
+            _ => {
+                eprintln!("{flag} は値を 1 つだけ\n{USAGE}");
+                return ExitCode::from(2);
+            }
+        }
+    }
+    let (Some(from), Some(to)) = (from, to) else {
+        eprintln!("--from と --to が要る\n{USAGE}");
+        return ExitCode::from(2);
+    };
+    match pagetray_next::migrate::migrate(&from, &to).await {
+        Ok(summary) => {
+            print!("{summary}");
+            println!("移し終えた: {} → {}", from.display(), to.display());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("pagetray-next migrate: {e}");
             ExitCode::FAILURE
         }
     }

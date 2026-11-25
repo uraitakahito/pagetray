@@ -46,5 +46,7 @@ tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "registry"] }
 
 [dev-dependencies]
+# 移す試験（tests/migrate.rs）が、今の server（repo の頭の crate）の DB と今の API で、移す元の DB を作る。
+pagetray = { path = "../.." }
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
