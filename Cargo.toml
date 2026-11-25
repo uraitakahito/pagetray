@@ -26,7 +26,7 @@ default-members = [".", "crates/api", "crates/cli", "crates/cli-next", "crates/s
 
 # 版はここだけに書く（release の workflow が、この file の初めの `version = "…"` の行を tag と突き合わせる）。
 [workspace.package]
-version = "0.8.0"
+version = "1.0.0-rc.1"
 edition = "2024"
 rust-version = "1.100"
 license = "MIT"
