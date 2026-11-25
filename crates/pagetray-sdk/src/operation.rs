@@ -311,7 +311,7 @@ mod create_page_test {
             ))
             .unwrap();
         *http_request.uri_mut() =
-            "/api/projects/ai/keys/AI-36/kinds/plan/pages?role=tpm&workspace=workspace:1"
+            "/api/projects/ai/keys/AI-36/kinds/plan/pages?role=tpm&workspace=workspace%3A1"
                 .parse()
                 .unwrap();
         #[allow(unused_mut)]
@@ -768,7 +768,7 @@ mod list_pages_test {
                 ::http_body_util::Empty::new(),
             ))
             .unwrap();
-        *http_request.uri_mut() = "/api/pages?project=ai&key=AI-36&kind=plan&role=tpm&workspace=workspace:1&q=%E8%A8%88%E7%94%BB&reply=waiting&on=review&verdict=approve&actor=019abcde-0000-7000-8000-000000000001&sort=createdAt&maxResults=10&nextToken=abc".parse().unwrap();
+        *http_request.uri_mut() = "/api/pages?project=ai&key=AI-36&kind=plan&role=tpm&workspace=workspace%3A1&q=%E8%A8%88%E7%94%BB&reply=waiting&on=review&verdict=approve&actor=019abcde-0000-7000-8000-000000000001&sort=createdAt&maxResults=10&nextToken=abc".parse().unwrap();
         #[allow(unused_mut)]
         let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
         let config = crate::service::PagetrayConfig::builder().build();
@@ -1726,7 +1726,7 @@ mod create_file_test {
             ))
             .unwrap();
         *http_request.uri_mut() =
-            "/api/projects/ai/keys/AI-36/files?name=screen.png&role=tpm&workspace=workspace:1"
+            "/api/projects/ai/keys/AI-36/files?name=screen.png&role=tpm&workspace=workspace%3A1"
                 .parse()
                 .unwrap();
         #[allow(unused_mut)]
@@ -2051,7 +2051,7 @@ mod list_files_test {
                 ::http_body_util::Empty::new(),
             ))
             .unwrap();
-        *http_request.uri_mut() = "/api/files?project=ai&key=AI-36&role=tpm&workspace=workspace:1&q=screen&actor=019abcde-0000-7000-8000-000000000001&sort=createdAt&maxResults=10&nextToken=abc".parse().unwrap();
+        *http_request.uri_mut() = "/api/files?project=ai&key=AI-36&role=tpm&workspace=workspace%3A1&q=screen&actor=019abcde-0000-7000-8000-000000000001&sort=createdAt&maxResults=10&nextToken=abc".parse().unwrap();
         #[allow(unused_mut)]
         let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
         let config = crate::service::PagetrayConfig::builder().build();

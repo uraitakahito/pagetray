@@ -99,7 +99,7 @@ operation GetHealth {
         protocol: restJson1
         method: "POST"
         uri: "/api/projects/ai/keys/AI-36/kinds/plan/pages"
-        queryParams: ["role=tpm", "workspace=workspace:1"]
+        queryParams: ["role=tpm", "workspace=workspace%3A1"]
         headers: { "Content-Type": "text/html" }
         body: "<title>計画</title><p>本文</p>"
         bodyMediaType: "text/html"
@@ -304,7 +304,7 @@ operation CreatePage {
             "key=AI-36"
             "kind=plan"
             "role=tpm"
-            "workspace=workspace:1"
+            "workspace=workspace%3A1"
             "q=%E8%A8%88%E7%94%BB"
             "reply=waiting"
             "on=review"
@@ -696,7 +696,7 @@ operation DeletePages {
         protocol: restJson1
         method: "POST"
         uri: "/api/projects/ai/keys/AI-36/files"
-        queryParams: ["name=screen.png", "role=tpm", "workspace=workspace:1"]
+        queryParams: ["name=screen.png", "role=tpm", "workspace=workspace%3A1"]
         headers: { "Content-Type": "image/png" }
         body: "png"
         params: {
@@ -851,7 +851,7 @@ operation CreateFile {
             "project=ai"
             "key=AI-36"
             "role=tpm"
-            "workspace=workspace:1"
+            "workspace=workspace%3A1"
             "q=screen"
             "actor=019abcde-0000-7000-8000-000000000001"
             "sort=createdAt"

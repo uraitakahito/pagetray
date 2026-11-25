@@ -2002,6 +2002,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pagetray-cli-next"
+version = "0.8.0"
+dependencies = [
+ "aws-smithy-http-client",
+ "aws-smithy-runtime-api",
+ "aws-smithy-types",
+ "axum",
+ "clap",
+ "clap_complete",
+ "http-body-util",
+ "pagetray-api",
+ "pagetray-next",
+ "pagetray_client",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower 0.5.3",
+]
+
+[[package]]
 name = "pagetray-next"
 version = "0.8.0"
 dependencies = [
@@ -2028,6 +2048,28 @@ dependencies = [
  "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "pagetray_client"
+version = "0.0.0"
+dependencies = [
+ "aws-smithy-async",
+ "aws-smithy-http",
+ "aws-smithy-http-client",
+ "aws-smithy-json",
+ "aws-smithy-protocol-test",
+ "aws-smithy-runtime",
+ "aws-smithy-runtime-api",
+ "aws-smithy-schema",
+ "aws-smithy-types",
+ "bytes",
+ "fastrand",
+ "http 1.5.0",
+ "pretty_assertions",
+ "tokio",
+ "tracing",
+ "tracing-test",
 ]
 
 [[package]]

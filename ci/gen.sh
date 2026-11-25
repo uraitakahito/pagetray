@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# 定義（model/）から、server の骨（crates/pagetray-sdk/）と、castlist を呼ぶ crate（crates/castlist-client/）を作り直す。
+# 定義（model/）から、server の骨（crates/pagetray-sdk/）と、castlist を呼ぶ crate（crates/castlist-client/）と、
+# pagetray を呼ぶ crate（crates/pagetray-client/。人が打つ CLI が使う）を作り直す。
 # 生成した物は repo に入れ、手で直さない。
-#   ci/gen.sh           castlist の定義（model/castlist/）を下の tag から取り直し、2 つの crate を作り直して置き換える
+#   ci/gen.sh           castlist の定義（model/castlist/）を下の tag から取り直し、3 つの crate を作り直して置き換える
 #   ci/gen.sh --check   castlist から取った定義が下の digest と合うか、作り直した物と入れてある物が同じかを見る（CI が流す）。違えば exit 1。
 #                       castlist には取りに行かない（入れてある物を digest で見る）
 #   ci/gen.sh --diff    定義を、定義の入った最新の release の tag（v*。版の後ろに - の付く物（rc など）は除く）と比べ、壊す変わり（DANGER 以上）があれば exit 1（CI が流す）。
@@ -10,7 +11,7 @@
 # 生成器の版は model/smithy-build.json に書く。そこに名指した Maven の物は、公開から 2 日たっていなければ使わない
 # （crate と pnpm の待ちに合わせた物。名指した物だけを見て、それが引く物は見ない）。
 # 作るのは repo の中（model/build。git は無視）。字の並びは rust-toolchain.toml の版の rustfmt で整える（下の 5）。
-# 作り方は castlist の ci/gen.sh と同じ（違うのは、castlist から取った定義と、作る crate が 2 つなこと）。
+# 作り方は castlist の ci/gen.sh と同じ（違うのは、castlist から取った定義と、作る crate が 3 つなこと）。
 # macOS の bash（3.2）でも動く書き方にする。
 set -euo pipefail
 
@@ -27,7 +28,7 @@ sha_for() {
   esac
 }
 # castlist の定義（ai.common と ai.castlist）を固める所。ここだけに書く。上げる時は tag と 2 つの digest を一緒に替え、
-# ci/gen.sh を流して取った定義と 2 つの crate を作り直し、同じ commit に入れる。
+# ci/gen.sh を流して取った定義と 3 つの crate を作り直し、同じ commit に入れる。
 CASTLIST_TAG=v1.0.0-rc.1
 castlist_sha_for() {
   case "$1" in
@@ -44,8 +45,8 @@ MIN_AGE_SECONDS=$((2 * 24 * 60 * 60))
 CURL_RETRY="--retry 5 --retry-connrefused --retry-delay 5 --connect-timeout 20"
 
 root=$(cd "$(dirname "$0")/.." && pwd)
-# 作る crate: 生成器の plugin の名と、置き場。
-crates="rust-server-codegen:crates/pagetray-sdk rust-client-codegen:crates/castlist-client"
+# 作る crate: 生成器の plugin の名（同じ plugin を 2 度使う物は、smithy-build.json の `<plugin>::<名>` の名）と、置き場。
+crates="rust-server-codegen:crates/pagetray-sdk rust-client-codegen:crates/castlist-client pagetray-client:crates/pagetray-client"
 check=false
 diff_mode=false
 case "${1:-}" in
@@ -172,10 +173,10 @@ for pair in $crates; do
   if [ "$plugin" = rust-server-codegen ]; then
     { echo '#![allow(dead_code)]'; cat "$lib"; } >"$lib.new" && mv "$lib.new" "$lib"
   fi
-  # 呼ぶ側の crate は、既定で https の client（rustls と aws-lc）を引く。pagetray が castlist を呼ぶのは同じ機械の中の
-  # http://127.0.0.1 だけなので、既定の features から外す（TLS の crate を build せず、license の見張りにも入れない）。
-  # HTTP の client は、使う側（crates/server）が設定で渡す。
-  if [ "$plugin" = rust-client-codegen ]; then
+  # 呼ぶ側の crate は、既定で https の client（rustls と aws-lc）を引く。pagetray が castlist を呼ぶのも、人が打つ CLI が
+  # pagetray を呼ぶのも、同じ機械の中の http:// だけなので、既定の features から外す（TLS の crate を build せず、
+  # license の見張りにも入れない）。HTTP の client は、使う側（crates/server・crates/cli-next）が設定で渡す。
+  if [ "$plugin" = rust-client-codegen ] || [ "$plugin" = pagetray-client ]; then
     manifest="$made/Cargo.toml"
     grep -qx 'default = \["rt-tokio", "rustls", "default-https-client"\]' "$manifest" \
       || ng "$plugin の Cargo.toml の既定の features が、思った形でない（ci/gen.sh を見直す）"
