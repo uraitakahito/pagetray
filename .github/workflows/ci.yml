@@ -94,11 +94,12 @@ jobs:
           sudo tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C /usr/local/bin gitleaks
       - name: image に、入ってよい物だけが入っているか（中身の一覧・設定・秘密の走査）
         run: ci/check-image.sh pagetray:ci
-      - name: 空の image の中で起き、置いて読めて、止めて起こし直しても残るか
-        run: ci/smoke-image.sh pagetray:ci
+      # 1.0.0 から、image は新しい server（Containerfile）。新しい API の形で置いて読み、今の版（v0.8.0）の写しを移す予行もする。
+      - name: 空の image の中で起き、新しい API で置いて読めて、止めて起こし直しても残り、今の版の写しを移せるか
+        run: ci/smoke-image.sh pagetray:ci next
   image-next:
-    # rc の release の image（Containerfile.next。新しい server の pagetray-next を /pagetray-server の名で置く）を、
-    # job image と同じ決まり（中身の一覧・設定・秘密の走査）で見て、新しい API の形で動くかを見る。
+    # Containerfile.next（1.0.0 から Containerfile と同じ中身。新しい server の pagetray-next を /pagetray-server の名で置く）を、
+    # job image と同じ決まりで見る。job image と重なるだけで、段 9 で Containerfile.next と一緒に消す。
     # まだ、main を守る ruleset の必須の check ではない（docs/src/development.md の「main を守る決まり」）。
     if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04-arm
@@ -142,7 +143,7 @@ jobs:
       - name: binary に、入ってよい物だけが入っているか（形・library・版・秘密の走査）
         run: ci/check-cli.sh target/release/pagetray
       - name: その binary を、同じ commit のサーバーに向けて打つ
-        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli
+        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli-next
       - name: release に付ける tar を作れるか（中身の一覧と持ち主も見る。作った tar は捨てる）
         run: ci/pack-cli.sh target/release/pagetray v0.0.0-ci "$RUNNER_TEMP/out"
   ui:

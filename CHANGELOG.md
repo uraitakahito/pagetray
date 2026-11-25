@@ -2,6 +2,18 @@
 
 版ごとに、API の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
 
+## 1.0.0
+
+API の版: 無い（1.0.0-rc.1 と同じ。0.8.x の API の版 1 との互換は無い。形の替わりは定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）が守る）
+
+AI-36 の作り直しの新しい server（`crates/server`）を、ふつうの release にした版。この版から、image（`Containerfile`）に入るのは新しい server で、release に付ける CLI（`pagetray`）も新しい API に向けた物になる。今の server（0.8.x）の image と、今の API に向けた CLI は出さない。API と DB の移行の SQL は 1.0.0-rc.1 と同じ（0.8.x からは、どちらも替わる。1.0.0-rc.1 の節）。
+
+- **切り替え（0.8.x から上げる時）: volume は新しい物（`pagetray-data-v1`）にし、先に migrate で移す。** 今の volume（`pagetray-data`）では起こさない（新しい server は今の server の DB を開かずに止める）。今の server の `GET /api/backup` で写しを取り、この版の image に `migrate --from <写し> --to /data/pages.db` を付けて新しい volume に移し、移し終えてから新しい volume で起こす。今の volume は、戻す時のために残す。手順は [release を出す](https://uraitakahito.github.io/pagetray/release.html) の「切り替え」、起こす行は [動かす](https://uraitakahito.github.io/pagetray/run.html)。roster の `.pagetray-version` は、切り替えの時に、新しい volume と一緒に上げる。
+- **CLI（`pagetray`）が新しい物になった**: 1.0.0-rc.1 まで `pagetray-cli-next` の名で並べていた CLI（`crates/cli-next`）の binary を `pagetray` にし、今の CLI（`crates/cli`。今の API に向けた物）を消した。命令の形・旗・環境変数は今の CLI と同じで、替わるのは `--json` の欄の名（camelCase）・一覧の続き（`--before`・`--after` でなく `--next-token`）・`status` の出す物・終わりの code 4 の訳など（[CLI](https://uraitakahito.github.io/pagetray/cli.html) の「0.8.x の CLI と替わった所」）。0.8.x の置き場に向けると、答えを使わずに code 4 で止まる。0.8.x の置き場には、0.8.x の release の CLI を使う。
+- image と release: `Containerfile` が新しい server を作る（binary は今と同じ `/pagetray-server`。環境変数・port も同じ）。CI の job `image` と release の確かめは、新しい API の形の smoke（`ci/smoke-image.sh <image> next`）を流す。release の workflow の rc の分け（`-rc.` の tag だけ `Containerfile.next`）は無くした（`-rc.` の tag を pre-release にする所は残す）。CI の job `cli` と release の `check-cli` は、新しい CLI を作り、同じ commit の新しい server に向けて打つ。`Containerfile.next` と今の server の code は段 9 で消す。
+- smoke の予行（1.0.0-rc.1 の後に足した）: image の smoke の終わりに、今の版（v0.8.0。digest で固める）に今の API でページ・file を置き、ページと file を 1 つずつ足して消し、返事の状態とレビューの印を付けて写しを取る。この image の migrate で新しい volume に移し、照らしの行がみな ok で、新しい API で同じ物が読め、消した URL が 410 で、次に置くページが消した番号を使わないかを見る。予行の途中の container は消さずに止め、落ちた時に log を出す。
+- docs: [動かす](https://uraitakahito.github.io/pagetray/run.html) の起こす行と確かめを、切り替えの後の形（volume `pagetray-data-v1`・`/healthz` の JSON の版）にした。[release を出す](https://uraitakahito.github.io/pagetray/release.html) の rc の節を切り替えの手順にし、今の server（0.8.x）を直して出す道を消した（1.0.0 の後は出さない。戻す時は v0.8.0 の image と今の volume で起こす）。[CLI](https://uraitakahito.github.io/pagetray/cli.html) の章を新しい CLI の形にした（[新しい API の形](https://uraitakahito.github.io/pagetray/next.html) の「CLI」の節の中身を移した）。
+
 ## 1.0.0-rc.1
 
 API の版: 無くなった（今の API の版 1 との互換は無い。新しい API に版の数は無く、形の替わりは定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）が守る）

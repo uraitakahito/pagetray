@@ -10,7 +10,7 @@ use std::time::{Duration, Instant};
 
 /// 試験ごとの、一時の file の path。
 fn temp(name: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("pagetray-cli-next-{}-{name}", std::process::id()))
+    std::env::temp_dir().join(format!("pagetray-{}-{name}", std::process::id()))
 }
 
 fn put_args<'a>(file: &'a str, kind: &'a str) -> Vec<&'a str> {
@@ -451,7 +451,7 @@ fn file_put_names_the_file_and_prints_the_url_and_the_reference() {
 
     let ran = s.run(&file_put(file, &[]));
     assert_eq!(ran.code, 0, "{}", ran.stderr);
-    let name = format!("pagetray-cli-next-{}-my-notes-1", std::process::id());
+    let name = format!("pagetray-{}-my-notes-1", std::process::id());
     assert_eq!(
         ran.stdout,
         format!("{}/p/AI-24/files/{name}-1.txt\nfiles/{name}-1.txt\n", s.url)

@@ -1,7 +1,6 @@
-//! `pagetray-cli-next file …`: file（画像・PDF・字の file）を探す・読む・置く・消す。
+//! `pagetray file …`: file（画像・PDF・字の file）を探す・読む・置く・消す。
 //! 置く前に、人が中身を見たか（`--reviewed`）と、字の file の秘密の形を、手元で見る（送る前に止める）。
-//! 手元で見る所（名の作り方・EXIF・秘密の形）は、今の CLI（crates/cli/src/file.rs）と同じ物を写してある
-//! （今の CLI は切り替えの日まで替えない。段 9 で今の CLI を消す時に、ここだけが残る）。
+//! 手元で見る所（名の作り方・EXIF・秘密の形）は、0.8.x までの CLI と同じ（1.0.0 で、その CLI を消した時に写して残した物）。
 
 use crate::client::{Failure, REFUSED, Route, Store, TIMEOUT};
 use crate::output::{self, file_record};
@@ -205,9 +204,7 @@ async fn list(store: &Store, args: ListArgs) -> Result<String, Failure> {
     };
     let (files, next) = page_of(store, &filter, args.limit, args.next_token).await?;
     if let Some(next) = next {
-        eprintln!(
-            "pagetray-cli-next: 続きがある（次の頁は、同じ命令に --next-token {next} を付けて打つ）"
-        );
+        eprintln!("pagetray: 続きがある（次の頁は、同じ命令に --next-token {next} を付けて打つ）");
     }
     if let Some(wanted) = wanted {
         return Ok(output::records(files, &wanted));
@@ -313,7 +310,7 @@ async fn put(store: &Store, args: PutArgs) -> Result<String, Failure> {
     }
     if kind == Sniff::Jpeg && has_exif(&body) {
         eprintln!(
-            "pagetray-cli-next: 注意: この JPEG には EXIF があり、写した場所（位置情報）が入っているかもしれない。消すなら、exiftool -all= などで消してから置く: {shown}"
+            "pagetray: 注意: この JPEG には EXIF があり、写した場所（位置情報）が入っているかもしれない。消すなら、exiftool -all= などで消してから置く: {shown}"
         );
     }
     if kind == Sniff::Text {
@@ -333,7 +330,7 @@ async fn put(store: &Store, args: PutArgs) -> Result<String, Failure> {
                 ));
             }
             eprintln!(
-                "pagetray-cli-next: 注意: 秘密（token・鍵）の形の字が {at} 行目にあるが、--allow-secret が付いているので置く: {shown}"
+                "pagetray: 注意: 秘密（token・鍵）の形の字が {at} 行目にあるが、--allow-secret が付いているので置く: {shown}"
             );
         }
     } else if !args.reviewed {
@@ -688,10 +685,7 @@ async fn delete(store: &Store, args: DeleteArgs) -> Result<String, Failure> {
                         .iter()
                         .map(|path| format!("{}{path}\n", store.base))
                         .collect();
-                    eprint!(
-                        "pagetray-cli-next: 消した（{} 個）:\n{lines}",
-                        removed.len()
-                    );
+                    eprint!("pagetray: 消した（{} 個）:\n{lines}", removed.len());
                 }
                 return Err(store.failure("置き場が file を消さなかった", e));
             }

@@ -1,5 +1,5 @@
-//! 新しい CLI の試験の土台。同じ commit の新しい server（pagetray-next の app）を、試験ごとに一時の DB と空いている port で
-//! 起こし、build した `pagetray-cli-next` をそこに向けて打つ。試験の材料は、同じ Router に直に要求を通して置く。
+//! CLI の試験の土台。同じ commit の新しい server（pagetray-next の app）を、試験ごとに一時の DB と空いている port で
+//! 起こし、build した `pagetray` をそこに向けて打つ。試験の材料は、同じ Router に直に要求を通して置く。
 #![allow(dead_code)]
 
 use axum::Router;
@@ -28,7 +28,7 @@ impl Server {
     pub fn start() -> Self {
         static SEQ: AtomicU32 = AtomicU32::new(0);
         let dir = std::env::temp_dir().join(format!(
-            "pagetray-cli-next-test-{}-{}",
+            "pagetray-test-{}-{}",
             std::process::id(),
             SEQ.fetch_add(1, Ordering::Relaxed)
         ));
@@ -53,7 +53,7 @@ impl Server {
         }
     }
 
-    /// `pagetray-cli-next` を、この server に向けて打つ。
+    /// `pagetray` を、この server に向けて打つ。
     pub fn run(&self, args: &[&str]) -> Ran {
         run_with(&self.url, args, &[], None)
     }
@@ -146,12 +146,13 @@ pub struct Ran {
     pub stderr: String,
 }
 
-/// 打つ binary（この試験と一緒に build した物）。
-pub fn binary() -> &'static str {
-    env!("CARGO_BIN_EXE_pagetray-cli-next")
+/// 打つ binary。ふだんは、この試験と一緒に build した物。`$PAGETRAY_TEST_BIN` があれば、その file
+/// （CI の job `cli` と release が、外に出すその binary を試すのに使う）。
+pub fn binary() -> String {
+    std::env::var("PAGETRAY_TEST_BIN").unwrap_or_else(|_| env!("CARGO_BIN_EXE_pagetray").to_owned())
 }
 
-/// `pagetray-cli-next` を打つ。環境変数は受け継がず（手元の `PAGETRAY_*` や proxy に左右されないように）、名指した物だけを渡す。
+/// `pagetray` を打つ。環境変数は受け継がず（手元の `PAGETRAY_*` や proxy に左右されないように）、名指した物だけを渡す。
 pub fn run_with(url: &str, args: &[&str], env: &[(&str, &str)], stdin: Option<&[u8]>) -> Ran {
     let mut child = Command::new(binary())
         .args(args)
