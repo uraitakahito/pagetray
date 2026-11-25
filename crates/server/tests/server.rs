@@ -124,6 +124,59 @@ fn 止める合図で自分から終わる() {
     assert_eq!(status.code(), Some(0), "{status:?}");
 }
 
+/// 合図の前に受け始めた問い合わせは、合図の後に答え終わってから閉じる（今の server は待たずに捨てていた）。
+#[test]
+fn 合図の前に受け始めた置く要求は_合図の後に答え終わってから閉じる() {
+    let mut server = Server::start();
+    let body = b"<title>a</title>";
+    let mut stream = server.connect();
+    write!(
+        stream,
+        "POST /api/projects/p/keys/k/kinds/plan/pages?role=tpm HTTP/1.1\r\nHost: 127.0.0.1\r\n\
+         Content-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        body.len()
+    )
+    .unwrap();
+    // 頭を受けさせてから合図を送り、その後に本文を送る。
+    std::thread::sleep(Duration::from_millis(300));
+    server.terminate();
+    std::thread::sleep(Duration::from_millis(300));
+    stream.write_all(body).unwrap();
+    let mut answer = String::new();
+    stream.read_to_string(&mut answer).unwrap();
+    assert!(answer.starts_with("HTTP/1.1 201"), "{answer}");
+    let status = server
+        .wait_for(Duration::from_secs(5))
+        .expect("答えた後 5 秒で終わらない");
+    assert_eq!(status.code(), Some(0), "{status:?}");
+}
+
+/// 合図の後、終わらない問い合わせを待つのは SHUTDOWN_WAIT（3 秒）まで。過ぎたら記録に 1 行書いて閉じ、0 で終わる
+/// （問い合わせの時間切れ 5 秒より前に）。
+#[test]
+fn 終わらない問い合わせがあっても_合図の後_上限で閉じて終わる() {
+    let db = temp_db("stop-wait");
+    let mut server = Server::start_at(&db);
+    let mut stream = server.connect();
+    // 本文を送らずに待たせる。
+    stream
+        .write_all(
+            b"POST /api/projects/p/keys/k/kinds/plan/pages?role=tpm HTTP/1.1\r\nHost: 127.0.0.1\r\n\
+              Content-Type: text/html\r\nContent-Length: 10\r\nConnection: close\r\n\r\n",
+        )
+        .unwrap();
+    std::thread::sleep(Duration::from_millis(200));
+    server.terminate();
+    let status = server
+        .wait_for(Duration::from_millis(4500))
+        .expect("合図の後 4.5 秒で終わらない（待ちに上限が無い）");
+    assert_eq!(status.code(), Some(0), "{status:?}");
+    let log = std::fs::read_to_string(db.with_file_name("logs").join("server.log")).unwrap();
+    assert!(log.contains("stop wait exceeded"), "{log}");
+    drop(stream);
+    remove_db(&db);
+}
+
 #[test]
 fn 新着の知らせを聞いている者がいても_止める合図で閉じて終わる() {
     let mut server = Server::start();
@@ -246,11 +299,32 @@ async fn 今の_server_の_db_では起きず_何も書かない() {
     let before = std::fs::read(&db).unwrap();
     assert_eq!(siblings(&db), Vec::<String>::new());
 
-    let out = command(&db, "127.0.0.1:0")
-        .output()
+    // 守りが崩れて起きてしまうと待ち受けたまま終わらないので、待つのは 10 秒まで（過ぎたら切って落とす）。
+    let mut child = command(&db, "127.0.0.1:0")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
         .expect("pagetray-next を起こす");
-    let stderr = String::from_utf8_lossy(&out.stderr);
-    assert_eq!(out.status.code(), Some(1), "{stderr}");
+    let started = std::time::Instant::now();
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if started.elapsed() > Duration::from_secs(10) {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("今の server の DB なのに、10 秒たっても終わらない（起きてしまった）");
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    let mut stderr = String::new();
+    child
+        .stderr
+        .take()
+        .unwrap()
+        .read_to_string(&mut stderr)
+        .unwrap();
+    assert_eq!(status.code(), Some(1), "{stderr}");
     assert!(stderr.contains("今の server の DB"), "{stderr}");
     assert_eq!(std::fs::read(&db).unwrap(), before, "DB を替えた");
     assert_eq!(siblings(&db), Vec::<String>::new(), "{stderr}");

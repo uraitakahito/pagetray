@@ -5,10 +5,13 @@
 //! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時と、今の server の DB の時は、
 //!   記録の置き場も DB も作らずに、stderr に訳を書いて 1 で終わる（今の volume に何も書かない）。
 //! - 記録の置き場は DB の隣の `logs/`（[`pagetray_next::runlog`]）。起きたら初めに、前の回の終わり方の行（`previous: …`）を出す。
-//! - 止める合図（SIGTERM・SIGINT）で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる。
+//! - 止める合図（SIGTERM・SIGINT）で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる
+//!   （待つのは [`SHUTDOWN_WAIT`] まで）。
+use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
+use std::time::Duration;
 
 use pagetray_next::castlist::Castlist;
 use pagetray_next::db::{Db, OpenError};
@@ -91,7 +94,8 @@ async fn serve(
         closing: closing.clone(),
     };
     let signalled = log.clone();
-    let served = axum::serve(listener, app_with(db.clone(), config))
+    let stopping = closing.clone();
+    let serving = axum::serve(listener, app_with(db.clone(), config))
         .with_graceful_shutdown(async move {
             let name = tokio::select! {
                 _ = term.recv() => "SIGTERM",
@@ -103,11 +107,27 @@ async fn serve(
             tracing::info!("signal {name}");
             closing.cancel();
         })
-        .await;
+        .into_future();
+    // 合図の後、走っている物を待つのは SHUTDOWN_WAIT まで（受け口を作ったので、2 度目の合図でも終わらない。
+    // 遅い送り手・切らない client が居ても、container を止める命令の SIGKILL より前に、DB を閉じて印を残して終わる）。
+    let served = tokio::select! {
+        served = serving => served,
+        () = async {
+            stopping.cancelled().await;
+            tokio::time::sleep(SHUTDOWN_WAIT).await;
+        } => {
+            tracing::warn!("stop wait exceeded wait={}s", SHUTDOWN_WAIT.as_secs());
+            Ok(())
+        }
+    };
     // 受けるのに落ちた時も、DB は閉じてから訳を返す（WAL を畳む）。
     db.close().await;
     Ok(served?)
 }
+
+/// 止める合図の後、走っている問い合わせを待つ長さ。問い合わせの時間切れ（5 秒）と、container を止める命令が SIGKILL を
+/// 送るまでの待ちより短くする。
+const SHUTDOWN_WAIT: Duration = Duration::from_secs(3);
 
 fn env_or(name: &str, default: &str) -> String {
     std::env::var(name).unwrap_or_else(|_| default.to_owned())

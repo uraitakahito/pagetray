@@ -16,7 +16,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use tokio_util::io::ReaderStream;
 
-use crate::db::Db;
+use crate::db::{BackupError, Db};
 use crate::errors::{Failure, reply};
 use crate::runlog::RunLog;
 
@@ -28,15 +28,14 @@ pub fn routes(db: Arc<Db>, runlog: Option<RunLog>) -> Router {
         .route("/api/logs", get(move || logs(runlog.clone())))
 }
 
-/// バックアップを DB の隣の一時の file に作って開き、名を消してから送る（開いた後は名が要らない。消しても、読み終えるまで
-/// 中身は残る）。時間切れ（守りの層）は送り始めるまでを数え、送る間は数えない（大きな DB でも切らない）。
+/// バックアップを作って開いた file を送る（作り方は [`Db::backup`]）。守りの層の時間切れは送り始めるまで（写しを作る間）を
+/// 数えるので、作るのに 5 秒を過ぎれば 503 になる（一時の file は残らない）。送る間は数えないので、大きな DB でも切らない。
 async fn backup(State(db): State<Arc<Db>>) -> Response {
-    let path = match db.backup().await {
-        Ok(path) => path,
-        Err(e) => return Failure::db("backup", e).reply(),
+    let file = match db.backup().await {
+        Ok(file) => Ok(tokio::fs::File::from_std(file)),
+        Err(BackupError::Db(e)) => return Failure::db("backup", e).reply(),
+        Err(BackupError::Io(e)) => Err(e),
     };
-    let file = tokio::fs::File::open(&path).await;
-    let _ = tokio::fs::remove_file(&path).await;
     match file {
         Ok(file) => (
             [

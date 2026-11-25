@@ -151,6 +151,32 @@ async fn backup_body_is_not_cut_by_the_request_timeout() {
     common::remove_db(&copy);
 }
 
+/// 写しを作る間に時間切れで待つのをやめても、一時の file は DB の隣に残らない（作る task が終わりまで走って名を消す）。
+#[tokio::test]
+async fn backup_cut_by_the_timeout_leaves_no_file_beside_the_db() {
+    let app = App::start().await;
+    // 写しを作るのに 1 ms より長くかかる大きさにする。
+    let big = format!("<p>{}</p>", "x".repeat(4 * 1024 * 1024));
+    for _ in 0..4 {
+        app.place("p", "k", "plan", SE, &big).await;
+    }
+    let short = pagetray_next::app_with(
+        app.db.clone(),
+        pagetray_next::Config {
+            timeout: Duration::from_millis(1),
+            ..Default::default()
+        },
+    );
+    let response = short.oneshot(get("/api/backup")).await.unwrap();
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    // 作る task が終わるのを待つ。
+    let started = std::time::Instant::now();
+    while !leftovers(&app.path).is_empty() && started.elapsed() < Duration::from_secs(10) {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(leftovers(&app.path), Vec::<String>::new());
+}
+
 #[tokio::test]
 async fn backup_from_outside_the_host_is_forbidden() {
     let app = App::start().await;

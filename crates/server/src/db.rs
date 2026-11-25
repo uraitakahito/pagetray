@@ -26,6 +26,15 @@ pub const READS: u32 = 4;
 /// 新しい server の移行（crates/server/migrations/）。
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
+/// [`Db::backup`] の失敗。
+#[derive(Debug)]
+pub enum BackupError {
+    /// 写しを作れない（混んでいる・DB の誤り）。
+    Db(sqlx::Error),
+    /// 作った写しを開けない。
+    Io(std::io::Error),
+}
+
 pub struct Db {
     read: SqlitePool,
     /// 書く接続は 1 本だけ。
@@ -501,10 +510,12 @@ impl Db {
         self.write.close().await;
     }
 
-    /// 揃ったバックアップを、DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で作り、その path を返す
-    /// （今の server と同じ）。読む接続で作る（今の server は書く接続。書く物を、写しを作る間ずっと待たせない）。
-    /// 消すのは呼んだ側。
-    pub async fn backup(&self) -> Result<PathBuf, sqlx::Error> {
+    /// 揃ったバックアップを、DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で作って開き、名を消してから
+    /// 開いた file を返す（今の server と同じ。開いた後は名が要らず、消しても読み終えるまで中身は残る）。
+    /// 読む接続で作る（今の server は書く接続。書く物を、写しを作る間ずっと待たせない）。
+    /// 作る・開く・名を消すは、別の task でする。呼んだ側が待つのをやめても（守りの層の時間切れ・client が切った）、
+    /// 終わりまで走って名を消すので、一時の file が DB の隣に残らない。
+    pub async fn backup(&self) -> Result<std::fs::File, BackupError> {
         static SEQ: AtomicU64 = AtomicU64::new(0);
         let mut name = self.path.clone().into_os_string();
         name.push(format!(
@@ -513,13 +524,25 @@ impl Db {
             SEQ.fetch_add(1, Ordering::Relaxed)
         ));
         let out = PathBuf::from(name);
-        // VACUUM INTO は、在る file には書かない。
-        let _ = tokio::fs::remove_file(&out).await;
-        sqlx::query("vacuum into ?1")
-            .bind(out.to_string_lossy().into_owned())
-            .execute(&self.read)
-            .await?;
-        Ok(out)
+        let read = self.read.clone();
+        let task = tokio::spawn(async move {
+            // VACUUM INTO は、在る file には書かない。
+            let _ = tokio::fs::remove_file(&out).await;
+            let made = sqlx::query("vacuum into ?1")
+                .bind(out.to_string_lossy().into_owned())
+                .execute(&read)
+                .await;
+            if let Err(e) = made {
+                // 途中まで書いた file が残っていれば消す。
+                let _ = tokio::fs::remove_file(&out).await;
+                return Err(BackupError::Db(e));
+            }
+            let file = std::fs::File::open(&out);
+            let _ = tokio::fs::remove_file(&out).await;
+            file.map_err(BackupError::Io)
+        });
+        task.await
+            .map_err(|e| BackupError::Io(std::io::Error::other(e)))?
     }
 
     /// ページを 1 枚置き、全文の索引にも入れる（1 つの transaction）。
