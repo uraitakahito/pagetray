@@ -833,3 +833,155 @@ fn reply_names_who_the_page_waits_on_and_list_filters_by_it() {
     ]);
     assert_eq!(ran.code, 0, "{}", ran.stderr);
 }
+
+/// `temp(name)` で始まる、残った file（書きかけの物を含む）。
+fn leftovers(name: &str) -> Vec<std::path::PathBuf> {
+    let head = temp(name)
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    std::fs::read_dir(std::env::temp_dir())
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter(|e| e.file_name().to_string_lossy().starts_with(&head))
+        .map(|e| e.path())
+        .collect()
+}
+
+#[test]
+fn backup_writes_a_sqlite_file_and_leaves_no_partial_file() {
+    let s = Server::start();
+    four_pages(&s);
+    let file = temp("backup.db");
+    let ran = s.run(&["backup", "-o", file.to_str().unwrap()]);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    let bytes = std::fs::read(&file).unwrap();
+    assert!(bytes.starts_with(b"SQLite format 3\0"));
+    assert_eq!(
+        ran.stdout,
+        format!("写した: {}（{} bytes）\n", file.display(), bytes.len())
+    );
+    std::fs::remove_file(&file).unwrap();
+
+    // 書けない先。
+    let ran = s.run(&["backup", "-o", "/nonexistent/dir/backup.db"]);
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("写しを書けない"), "{}", ran.stderr);
+    // 置き場が応えなければ、file を作らない。
+    let ran = run_with(
+        &closed_url(),
+        &["backup", "-o", file.to_str().unwrap()],
+        &[],
+        None,
+    );
+    assert_eq!(ran.code, 3, "{}", ran.stderr);
+    assert!(
+        leftovers("backup.db").is_empty(),
+        "{:?}",
+        leftovers("backup.db")
+    );
+    // -o は要る。
+    assert_eq!(s.run(&["backup"]).code, 2);
+}
+
+/// 要求を 1 つ受け、答えの頭を返した後、本文を `pieces` に分けて `gap` ずつ空けて送る server。
+/// `close` なら送り終えて閉じ、違えば送り終えても閉じずに黙る（途中で止まった置き場のまね）。
+fn trickle(head: &'static str, pieces: Vec<Vec<u8>>, gap: Duration, close: bool) -> String {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let url = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    std::thread::spawn(move || {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+        let mut request = [0; 4096];
+        let _ = stream.read(&mut request);
+        let _ = stream.write_all(head.as_bytes());
+        for piece in pieces {
+            std::thread::sleep(gap);
+            if stream.write_all(&piece).is_err() {
+                return;
+            }
+        }
+        if !close {
+            std::thread::sleep(Duration::from_secs(60));
+        }
+    });
+    url
+}
+
+/// SQLite の頭の印で始まる、`len` byte の本文。
+fn sqlite_body(len: usize) -> Vec<u8> {
+    let mut body = b"SQLite format 3\0".to_vec();
+    body.resize(len, b'x');
+    body
+}
+
+#[test]
+fn backup_keeps_reading_past_ten_seconds_while_bytes_keep_coming() {
+    // 送る間は長くかかってよい。本文が少しずつ届く間は、10 秒を過ぎても切らない。
+    let body = sqlite_body(7 * 16);
+    let pieces: Vec<Vec<u8>> = body.chunks(16).map(<[u8]>::to_vec).collect();
+    let url = trickle(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.sqlite3\r\nContent-Length: 112\r\nConnection: close\r\n\r\n",
+        pieces,
+        Duration::from_secs(2),
+        true,
+    );
+    let file = temp("slow-backup.db");
+    let started = Instant::now();
+    let ran = run_with(&url, &["backup", "-o", file.to_str().unwrap()], &[], None);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert!(started.elapsed() > Duration::from_secs(10));
+    assert_eq!(std::fs::read(&file).unwrap(), body);
+    std::fs::remove_file(&file).unwrap();
+}
+
+#[test]
+fn backup_that_stops_arriving_is_cut_and_leaves_no_file() {
+    // 本文が 10 秒届かなければ、止まった置き場として code 3。書きかけの file は残さない。
+    let url = trickle(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.sqlite3\r\nContent-Length: 1000\r\n\r\n",
+        vec![sqlite_body(100)],
+        Duration::from_millis(10),
+        false,
+    );
+    let file = temp("stalled-backup.db");
+    let ran = run_with(&url, &["backup", "-o", file.to_str().unwrap()], &[], None);
+    assert_eq!(ran.code, 3, "{}", ran.stderr);
+    assert!(ran.stderr.contains("10 秒"), "{}", ran.stderr);
+    assert!(
+        leftovers("stalled-backup.db").is_empty(),
+        "{:?}",
+        leftovers("stalled-backup.db")
+    );
+}
+
+#[test]
+fn backup_refused_or_not_sqlite_leaves_no_file() {
+    let file = temp("refused-backup.db");
+    // 置き場が断れば、置き場の訳で code 1。file は作らない。
+    let (url, _) = common::canned(
+        "HTTP/1.1 503 Service Unavailable\r\nX-Amzn-Errortype: Unavailable\r\nContent-Type: application/json\r\nContent-Length: 20\r\nConnection: close\r\n\r\n{\"message\":\"混む\"}",
+    );
+    let ran = run_with(&url, &["backup", "-o", file.to_str().unwrap()], &[], None);
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(ran.stderr.contains("（503 Unavailable）"), "{}", ran.stderr);
+    // SQLite の file でない答えは、写しにしない。
+    let (url, _) = common::canned(
+        "HTTP/1.1 200 OK\r\nContent-Type: application/vnd.sqlite3\r\nContent-Length: 28\r\nConnection: close\r\n\r\nSQLite でない字の並び",
+    );
+    let ran = run_with(&url, &["backup", "-o", file.to_str().unwrap()], &[], None);
+    assert_eq!(ran.code, 1, "{}", ran.stderr);
+    assert!(
+        ran.stderr.contains("SQLite の file でない"),
+        "{}",
+        ran.stderr
+    );
+    assert!(
+        leftovers("refused-backup.db").is_empty(),
+        "{:?}",
+        leftovers("refused-backup.db")
+    );
+}
