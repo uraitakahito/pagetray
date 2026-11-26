@@ -184,7 +184,9 @@
 //!        .delete_pages(delete_pages)
 //!        .get_health(get_health)
 //!        .list_files(list_files)
+//!        .list_messages(list_messages)
 //!        .list_pages(list_pages)
+//!        .put_message(put_message)
 //!        .set_reply_state(set_reply_state)
 //!        .build()
 //!        .expect("failed to build an instance of Pagetray");
@@ -231,7 +233,15 @@
 //!     todo!()
 //! }
 //!
+//! async fn list_messages(input: input::ListMessagesInput) -> Result<output::ListMessagesOutput, error::ListMessagesError> {
+//!     todo!()
+//! }
+//!
 //! async fn list_pages(input: input::ListPagesInput) -> Result<output::ListPagesOutput, error::ListPagesError> {
+//!     todo!()
+//! }
+//!
+//! async fn put_message(input: input::PutMessageInput) -> Result<output::PutMessageOutput, error::PutMessageError> {
 //!     todo!()
 //! }
 //!

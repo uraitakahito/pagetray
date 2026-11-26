@@ -165,14 +165,20 @@ fn sender_output(sender: &NewSender) -> Result<Sender, String> {
 /// 取り込みの時刻を、残す字（UTC・ミリ秒まで・24 字）にする。ミリ秒より細かい時刻と、0001〜9999 年の外は断る
 /// （0000 年は生成した層が断る。答えの時刻に書けないため）。
 fn created_at(t: &aws_smithy_types::DateTime) -> Result<String, String> {
+    stamp_of("createdAt", t)
+}
+
+/// 呼ぶ側が書いた時刻（欄の名は `name`）を、残す字（UTC・ミリ秒まで・24 字）にする。ミリ秒より細かい時刻と、
+/// 0001〜9999 年の外は断る（切って残すと、書いた時刻が替わる）。
+pub(crate) fn stamp_of(name: &str, t: &aws_smithy_types::DateTime) -> Result<String, String> {
     if !t.subsec_nanos().is_multiple_of(1_000_000) {
-        return Err("createdAt はミリ秒まで".to_owned());
+        return Err(format!("{name} はミリ秒まで"));
     }
     time::OffsetDateTime::from_unix_timestamp_nanos(t.as_nanos())
         .ok()
         .filter(|t| (1..=9999).contains(&t.year()))
         .map(crate::db::stamp)
-        .ok_or_else(|| "createdAt は 0001 年から 9999 年までの時刻".to_owned())
+        .ok_or_else(|| format!("{name} は 0001 年から 9999 年までの時刻"))
 }
 
 /// ページを 1 枚置く。

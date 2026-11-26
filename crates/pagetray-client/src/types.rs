@@ -9,9 +9,13 @@ pub use crate::types::_page::Page;
 
 pub use crate::types::_file::File;
 
+pub use crate::types::_message::Message;
+
 mod _actor_summary;
 
 mod _file;
+
+mod _message;
 
 mod _page;
 

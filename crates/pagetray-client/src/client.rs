@@ -147,6 +147,10 @@ mod get_health;
 
 mod list_files;
 
+mod list_messages;
+
 mod list_pages;
+
+mod put_message;
 
 mod set_reply_state;

@@ -5,6 +5,7 @@
 //! - 接続の決まりは、castlist の server（crates/server/src/db.rs）と同じ。
 //! - 返事・印・消すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする（間に別の書く物が入らない）。
 //! - file はページと同じ作り（番号は project・key・語・拡張子ごと。消した番号は files_removed）。
+//! - メッセージの記録は、project と id で 1 行。置く・書き足すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする。
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -185,6 +186,76 @@ pub struct FileTarget<'a> {
 
 /// 消した file（project・Key・語・拡張子・番号）。
 pub type RemovedFile = (String, String, String, String, i64);
+
+/// 置く・書き足すメッセージの記録の中身（形は定義と handler が見てある。時刻は [`stamp`] の字）。
+pub struct NewMessage<'a> {
+    pub project: &'a str,
+    /// メッセージの id（呼ぶ側が付ける）。
+    pub id: &'a str,
+    pub key: Option<&'a str>,
+    pub heading: &'a str,
+    pub from: &'a str,
+    pub to: &'a str,
+    pub text: &'a str,
+    pub sent_at: &'a str,
+    pub state: &'a str,
+    pub delivered_at: Option<&'a str>,
+    pub via: Option<&'a str>,
+    pub deliveries: Option<i64>,
+    pub reply_to: Option<&'a str>,
+    /// 送り手（「送った側」の書き込みの物だけを渡す）。記録の送り手がまだ空なら、senders に 1 行足して記録から指す（同じ取引）。
+    pub sender: Option<&'a NewSender>,
+}
+
+/// メッセージの記録の行（送り手の列は senders を left join した物）。
+#[derive(Clone, Debug, FromRow)]
+pub struct MessageRow {
+    /// 行の番号（頁の続きの印に使う）。
+    pub id: i64,
+    pub project: String,
+    /// メッセージの id（呼ぶ側が付けた物）。
+    pub message_id: String,
+    pub key: Option<String>,
+    pub heading: String,
+    pub from_name: String,
+    pub to_name: String,
+    pub text: String,
+    pub sent_at: String,
+    pub state: String,
+    pub delivered_at: Option<String>,
+    pub via: Option<String>,
+    pub deliveries: Option<i64>,
+    pub reply_to: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub actor_issuer: Option<String>,
+    pub actor_ref: Option<String>,
+    pub actor_id: Option<String>,
+    pub actor_name: Option<String>,
+    pub actor_kind: Option<String>,
+    pub resolved_at: Option<String>,
+}
+
+/// [`MessageRow`] を読む select（`messages m` と `senders s`。後ろに where を繋ぐ）。
+pub const MESSAGE_ROW: &str = "select m.id, m.project, m.message_id, m.key, m.heading, m.from_name, m.to_name, m.text,
+        m.sent_at, m.state, m.delivered_at, m.via, m.deliveries, m.reply_to, m.created_at, m.updated_at,
+        s.actor_issuer, s.actor_ref, s.actor_id, s.actor_name, s.actor_kind, s.resolved_at
+ from messages m left join senders s on s.id = m.sender_id";
+
+/// メッセージの状態の強さ。書き足しは、今より強い状態の時だけ替える（状態は前へだけ進む）:
+/// `waiting`・`carried`（送った側が書く。0）＜ `expired`・`undeliverable`（1）＜ `delivered`（2）。
+pub fn message_rank(state: &str) -> u8 {
+    match state {
+        "delivered" => 2,
+        "expired" | "undeliverable" => 1,
+        _ => 0,
+    }
+}
+
+/// 「送った側」の書き込みか（状態が `waiting` か `carried`）。送り手を castlist に聞いて残すのは、この書き込みだけ。
+pub fn message_from_sender(state: &str) -> bool {
+    matches!(state, "waiting" | "carried")
+}
 
 /// 返事の状態。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -823,6 +894,98 @@ impl Db {
         .await?;
         tx.commit().await?;
         Ok(removed)
+    }
+
+    /// メッセージの記録を 1 件置く・書き足す（1 つの transaction）。置いた（true）か書き足した（false）かと、書いた後の記録を返す。
+    /// 書き足しは、届く順に依らない（「渡した」の記録が「送った」の記録より先に届いても、同じ記録になる）:
+    /// - 初めての project と id なら置く（状態は来たまま。送り手があれば、senders に 1 行足して指す）。
+    /// - もうあれば書き足す: 状態は前へだけ進む（[`message_rank`] が今より強い時だけ替える）。渡した回数は大きい方を保つ。
+    ///   渡した時は、状態を替えた時か、今が空の時だけ入れる。届いた時刻は、まだ無い時だけ入れる（初めの時刻を保つ）。
+    ///   送り手は、まだ空の時だけ入れる（呼ぶ側は、「送った側」の書き込みの送り手だけを渡す）。ほかの欄は、初めに置いた値を保つ。
+    pub async fn put_message(
+        &self,
+        message: &NewMessage<'_>,
+    ) -> Result<(bool, MessageRow), WriteError> {
+        let mut tx = self.write.begin().await?;
+        let now = now();
+        let existing: Option<(i64, String, Option<i64>)> = sqlx::query_as(
+            "select id, state, sender_id from messages where project = ?1 and message_id = ?2",
+        )
+        .bind(message.project)
+        .bind(message.id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let created = existing.is_none();
+        let id = match existing {
+            Some((id, state, sender_id)) => {
+                let advance = message_rank(message.state) > message_rank(&state);
+                // 送り手の行を足すのは、記録の送り手がまだ空の時だけ（足すだけの表に、指されない行を残さない）。
+                let sender_id = match (sender_id, message.sender) {
+                    (None, Some(sender)) => Some(add_sender(&mut tx, sender).await?),
+                    _ => None,
+                };
+                sqlx::query(
+                    "update messages
+                     set state = case when ?2 then ?3 else state end,
+                         via = case when ?4 is not null and (?2 or via is null) then ?4 else via end,
+                         deliveries = case when ?5 is null then deliveries
+                                           when deliveries is null then ?5
+                                           else max(deliveries, ?5) end,
+                         delivered_at = coalesce(delivered_at, ?6),
+                         sender_id = coalesce(sender_id, ?7),
+                         updated_at = ?8
+                     where id = ?1",
+                )
+                .bind(id)
+                .bind(advance)
+                .bind(message.state)
+                .bind(message.via)
+                .bind(message.deliveries)
+                .bind(message.delivered_at)
+                .bind(sender_id)
+                .bind(&now)
+                .execute(&mut *tx)
+                .await?;
+                id
+            }
+            None => {
+                let sender_id = match message.sender {
+                    Some(sender) => Some(add_sender(&mut tx, sender).await?),
+                    None => None,
+                };
+                sqlx::query_scalar(
+                    "insert into messages(project, message_id, key, heading, from_name, to_name, text, sent_at, state,
+                                          delivered_at, via, deliveries, reply_to, created_at, updated_at, sender_id)
+                     values(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?14, ?15)
+                     returning id",
+                )
+                .bind(message.project)
+                .bind(message.id)
+                .bind(message.key)
+                .bind(message.heading)
+                .bind(message.from)
+                .bind(message.to)
+                .bind(message.text)
+                .bind(message.sent_at)
+                .bind(message.state)
+                .bind(message.delivered_at)
+                .bind(message.via)
+                .bind(message.deliveries)
+                .bind(message.reply_to)
+                .bind(&now)
+                .bind(sender_id)
+                .fetch_one(&mut *tx)
+                .await?
+            }
+        };
+        let row = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "{MESSAGE_ROW} where m.id = ?1"
+        )))
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok((created, row))
     }
 
     /// file の Content-Type と中身。無ければ None。

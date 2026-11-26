@@ -910,6 +910,196 @@ impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::Delet
     }
 }
 
+/// Error type for the `PutMessage` operation.
+/// Each variant represents an error that can occur for the `PutMessage` operation.
+#[derive(::std::fmt::Debug)]
+pub enum PutMessageError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for PutMessageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            PutMessageError::ValidationException(_inner) => _inner.fmt(f),
+            PutMessageError::Unavailable(_inner) => _inner.fmt(f),
+            PutMessageError::InternalError(_inner) => _inner.fmt(f),
+            PutMessageError::Forbidden(_inner) => _inner.fmt(f),
+            PutMessageError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl PutMessageError {
+    /// Returns `true` if the error kind is `PutMessageError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, PutMessageError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `PutMessageError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, PutMessageError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `PutMessageError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, PutMessageError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `PutMessageError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, PutMessageError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `PutMessageError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, PutMessageError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            PutMessageError::ValidationException(_inner) => _inner.name(),
+            PutMessageError::Unavailable(_inner) => _inner.name(),
+            PutMessageError::InternalError(_inner) => _inner.name(),
+            PutMessageError::Forbidden(_inner) => _inner.name(),
+            PutMessageError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for PutMessageError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            PutMessageError::ValidationException(_inner) => Some(_inner),
+            PutMessageError::Unavailable(_inner) => Some(_inner),
+            PutMessageError::InternalError(_inner) => Some(_inner),
+            PutMessageError::Forbidden(_inner) => Some(_inner),
+            PutMessageError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::PutMessageError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::PutMessageError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::PutMessageError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::PutMessageError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::PutMessageError {
+    fn from(variant: crate::error::InternalError) -> crate::error::PutMessageError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::PutMessageError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::PutMessageError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::PutMessageError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::PutMessageError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `ListMessages` operation.
+/// Each variant represents an error that can occur for the `ListMessages` operation.
+#[derive(::std::fmt::Debug)]
+pub enum ListMessagesError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for ListMessagesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            ListMessagesError::ValidationException(_inner) => _inner.fmt(f),
+            ListMessagesError::Unavailable(_inner) => _inner.fmt(f),
+            ListMessagesError::InternalError(_inner) => _inner.fmt(f),
+            ListMessagesError::Forbidden(_inner) => _inner.fmt(f),
+            ListMessagesError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl ListMessagesError {
+    /// Returns `true` if the error kind is `ListMessagesError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, ListMessagesError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `ListMessagesError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, ListMessagesError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `ListMessagesError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, ListMessagesError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `ListMessagesError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, ListMessagesError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `ListMessagesError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, ListMessagesError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            ListMessagesError::ValidationException(_inner) => _inner.name(),
+            ListMessagesError::Unavailable(_inner) => _inner.name(),
+            ListMessagesError::InternalError(_inner) => _inner.name(),
+            ListMessagesError::Forbidden(_inner) => _inner.name(),
+            ListMessagesError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for ListMessagesError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            ListMessagesError::ValidationException(_inner) => Some(_inner),
+            ListMessagesError::Unavailable(_inner) => Some(_inner),
+            ListMessagesError::InternalError(_inner) => Some(_inner),
+            ListMessagesError::Forbidden(_inner) => Some(_inner),
+            ListMessagesError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::ListMessagesError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::ListMessagesError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::ListMessagesError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::ListMessagesError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::ListMessagesError {
+    fn from(variant: crate::error::InternalError) -> crate::error::ListMessagesError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::ListMessagesError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::ListMessagesError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::ListMessagesError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::ListMessagesError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
 /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,

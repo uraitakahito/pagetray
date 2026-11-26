@@ -442,6 +442,57 @@ impl From<crate::operation::list_files::ListFilesError> for Error {
 impl<R>
     From<
         ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::list_messages::ListMessagesError,
+            R,
+        >,
+    > for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::list_messages::ListMessagesError,
+            R,
+        >,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => {
+                Self::from(context.into_err())
+            }
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::list_messages::ListMessagesError> for Error {
+    fn from(err: crate::operation::list_messages::ListMessagesError) -> Self {
+        match err {
+            crate::operation::list_messages::ListMessagesError::ValidationError(inner) => {
+                Error::ValidationError(inner)
+            }
+            crate::operation::list_messages::ListMessagesError::Unavailable(inner) => {
+                Error::Unavailable(inner)
+            }
+            crate::operation::list_messages::ListMessagesError::InternalError(inner) => {
+                Error::InternalError(inner)
+            }
+            crate::operation::list_messages::ListMessagesError::Forbidden(inner) => {
+                Error::Forbidden(inner)
+            }
+            crate::operation::list_messages::ListMessagesError::PayloadTooLarge(inner) => {
+                Error::PayloadTooLarge(inner)
+            }
+            crate::operation::list_messages::ListMessagesError::Unhandled(inner) => {
+                Error::Unhandled(inner)
+            }
+        }
+    }
+}
+impl<R>
+    From<
+        ::aws_smithy_runtime_api::client::result::SdkError<
             crate::operation::list_pages::ListPagesError,
             R,
         >,
@@ -485,6 +536,57 @@ impl From<crate::operation::list_pages::ListPagesError> for Error {
                 Error::PayloadTooLarge(inner)
             }
             crate::operation::list_pages::ListPagesError::Unhandled(inner) => {
+                Error::Unhandled(inner)
+            }
+        }
+    }
+}
+impl<R>
+    From<
+        ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::put_message::PutMessageError,
+            R,
+        >,
+    > for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::put_message::PutMessageError,
+            R,
+        >,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => {
+                Self::from(context.into_err())
+            }
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::put_message::PutMessageError> for Error {
+    fn from(err: crate::operation::put_message::PutMessageError) -> Self {
+        match err {
+            crate::operation::put_message::PutMessageError::ValidationError(inner) => {
+                Error::ValidationError(inner)
+            }
+            crate::operation::put_message::PutMessageError::Unavailable(inner) => {
+                Error::Unavailable(inner)
+            }
+            crate::operation::put_message::PutMessageError::InternalError(inner) => {
+                Error::InternalError(inner)
+            }
+            crate::operation::put_message::PutMessageError::Forbidden(inner) => {
+                Error::Forbidden(inner)
+            }
+            crate::operation::put_message::PutMessageError::PayloadTooLarge(inner) => {
+                Error::PayloadTooLarge(inner)
+            }
+            crate::operation::put_message::PutMessageError::Unhandled(inner) => {
                 Error::Unhandled(inner)
             }
         }

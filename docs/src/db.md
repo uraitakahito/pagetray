@@ -1,6 +1,6 @@
 # DB の作り
 
-置き場は、ページと file を SQLite の file 1 つに持つ（置き場所は [動かす](run.md) の表の「DB」）。この章は、その中の表・列・一意と索引と、表どうしの結びを書く。読む人は、SQL を直す人と、[写し](run.md#db-の写しを取る) を `sqlite3` で開いて調べる人。
+置き場は、ページと file とメッセージの記録を SQLite の file 1 つに持つ（置き場所は [動かす](run.md) の表の「DB」）。この章は、その中の表・列・一意と索引と、表どうしの結びを書く。読む人は、SQL を直す人と、[写し](run.md#db-の写しを取る) を `sqlite3` で開いて調べる人。
 
 - **表を作るのは `crates/server/migrations/` の SQL**: サーバーが起きる時に、まだ当てていない物を当てる。当てた SQL は変えず、次の番号の file を足す（[開発](development.md) の「当てた移行の SQL は変えない」）。
 - **この章と本物の DB は、試験が突き合わせる**: `crates/server/tests/schema_doc.rs` が、移行を当てた DB の表・列・型・空を許すか・主キーと一意と索引を、この章と比べる。表や列を変えたら、同じ PR でこの章も直す。試験が読むので、表ごとの節の形（見出し・列の表・「主キー:」「一意:」「索引:」の行）は崩さない。
@@ -17,16 +17,18 @@ erDiagram
   senders |o--o{ pages : "pages.sender_id = id"
   senders |o--o{ files : "files.sender_id = id"
   pages ||--o{ page_targets : "page_targets.page_id = id"
+  senders |o--o{ messages : "messages.sender_id = id"
 ```
 
-**外部キーは 3 つだけ**: `pages.sender_id` と `files.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`。0.6.0 から）。`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `crates/server/src/db.rs` の SQL が守る。
+**外部キーは 4 つだけ**: `pages.sender_id` と `files.sender_id` と `messages.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`。ページと file は 0.6.0 から、メッセージの記録は 1.1.0 から）。`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `crates/server/src/db.rs` の SQL が守る。
 
 - **接続ごとの決まり**: `Db::open` が、読む接続にも書く接続にも `PRAGMA foreign_keys = ON` と `PRAGMA recursive_triggers = ON` を付ける（SQLite では、どちらも接続ごとに効く）。移行を当てた後に `PRAGMA foreign_key_check` を流し、合わない行が 1 つでもあれば、サーバーは起きない。
-- **送り手**: ページや file を置く時に、呼ぶ側が付随する id を書けば、`senders` に 1 行足し、ページや file の行から指す（同じ取引）。`senders` は足すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り手の行は残る。
+- **送り手**: ページや file を置く時・メッセージの記録の送り手を入れる時（「送った側」の書き込み）に、呼ぶ側が付随する id を書けば、`senders` に 1 行足し、その行から指す（同じ取引）。`senders` は足すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り手の行は残る。
 
 - **番号**: ページの番号は、`pages` と `removed` の両方の、同じ project・Key・種類の番号の最大 ＋ 1。file も同じく、`files` と `files_removed` から取る。だから消した番号は 2 度使わない。書く接続は 1 本なので、番号を取る所は 1 列に並ぶ。
 - **消す**: 1 つの取引で、番号を `removed`（file は `files_removed`）に写し、`pages_fts` と `pages`（file は `files`）の行を消す。本文は残さない。
 - **ページと file**: ページの本文は file を path（`files/<語>-<n>.<拡張子>`）で参照するだけで、DB の中では結ばない。片方を消しても、もう片方は残る。
+- **メッセージの記録**: ページとも file とも結ばない（project と Key の値が同じだけ）。消す道は無い。
 
 ## `pages` — ページ
 
@@ -132,11 +134,11 @@ erDiagram
 
 ## `senders` — 送り手
 
-ページか file を置いた時の送り手 1 つが 1 行（0.6.0 から）。置く時に、呼ぶ側が付随する id（`actor_issuer`・`actor_ref`）を書けば、置くたびに 1 行足す。置き場に castlist の URL（[動かす](run.md) の表の「設定」）があれば、その時に castlist に聞いた答え（アクターの id・名・種類）も残す。
+ページか file を置いた時・メッセージの記録に送り手を入れた時の送り手 1 つが 1 行（0.6.0 から）。置く時に、呼ぶ側が付随する id（`actor_issuer`・`actor_ref`）を書けば、置くたびに 1 行足す。置き場に castlist の URL（[動かす](run.md) の表の「設定」）があれば、その時に castlist に聞いた答え（アクターの id・名・種類）も残す。
 
 | 列 | 型 | 空 | 意味 |
 |---|---|---|---|
-| `id` | integer | 不可 | 行の番号。`pages.sender_id`・`files.sender_id` が指す |
+| `id` | integer | 不可 | 行の番号。`pages.sender_id`・`files.sender_id`・`messages.sender_id` が指す |
 | `actor_issuer` | text | 不可 | 付随する id を出した物（`tpm` など） |
 | `actor_ref` | text | 不可 | 付随する id（`<種類>:<値>`。`claude.session:…` など） |
 | `actor_id` | text | 可 | castlist のアクターの id。castlist に聞かなかった（置き場に castlist の URL が無かった）時は空 |
@@ -147,7 +149,7 @@ erDiagram
 
 - 主キー: `(id)`
 - 索引: `senders_actor` `(actor_id)`
-- 書く所: `Db::put_page`・`Db::put_file`（ページや file と同じ取引）。読む所: `Db::list`・`Db::list_files`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込みの候補）。
+- 書く所: `Db::put_page`・`Db::put_file`・`Db::put_message`（ページ・file・メッセージの記録と同じ取引）。読む所: `Db::list`・`Db::list_files`・`Db::list_messages`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込みの候補）。
 - **足すだけ**: trigger `senders_no_update`・`senders_no_delete` が、書き換えと消しを `append-only: senders` で断る。前からある表（`pages`・`files` など）には trigger を付けていない（返事の状態の書き換え・消すは前のまま）。
 - **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の「送り手」）。
 - `actor_id` に外部キーは無い（アクターは castlist の DB にある）。
@@ -165,6 +167,37 @@ erDiagram
 - 索引: `page_targets_target` `(target)`
 - 書く所: `Db::add_marks`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
 - 見られたページを消しても、その path を見た物に持つ行は残る（一覧の UI の「見た物:」の link は、消したページの `410` を開く）。消すのは TPM 担当だけで数も少ないので、そのままにしている。
+
+## `messages` — メッセージの記録
+
+ほかの道具（roster）が配ったメッセージ 1 通の記録が 1 行（1.1.0 から）。「誰が誰に何を送り、いつ届いたか」を、呼ぶ側が書いたとおりに持つ。置き場は見せるだけで、配らず、状態を自分で決めず、期限を持たない。同じ project と id にもう 1 度置くと、別の行にならず、同じ行に書き足す。
+
+| 列 | 型 | 空 | 意味 |
+|---|---|---|---|
+| `id` | integer | 不可 | 行の番号（一覧の頁の続きに使う） |
+| `project` | text | 不可 | project の名（ページの project と同じ） |
+| `message_id` | text | 不可 | メッセージの id（呼ぶ側が付ける。API の `id`） |
+| `key` | text | 可 | Key。書かずに置けば空 |
+| `heading` | text | 不可 | メッセージの見出しの名 |
+| `from_name` | text | 不可 | 送り手の名（API の `from`） |
+| `to_name` | text | 不可 | 受け手の名（API の `to`） |
+| `text` | text | 不可 | 本文。字のまま（HTML として解釈しない） |
+| `sent_at` | text | 不可 | 送った時刻（呼ぶ側が書いた物） |
+| `state` | text | 不可 | 状態（`waiting`・`delivered`・`undeliverable`・`expired`・`carried`） |
+| `delivered_at` | text | 可 | 届いた時刻（呼ぶ側が書いた物。初めに書かれた時刻を保つ）。まだ無ければ空 |
+| `via` | text | 可 | どの時に渡したかの名。書いていなければ空 |
+| `deliveries` | integer | 可 | 受け手に本文を出した回数（呼ぶ側が数えて書く）。書いていなければ空 |
+| `reply_to` | text | 可 | 返事の先のメッセージの id（外部キーは無い。先の記録が無くてもよい）。書かずに置けば空 |
+| `created_at` | text | 不可 | 置き場が初めて受けた時刻 |
+| `updated_at` | text | 不可 | 最後に書き足された時刻（置いただけなら `created_at` と同じ） |
+| `sender_id` | integer | 可 | 送り手（`senders.id`）。「送った側」の書き込み（状態が `waiting`・`carried`）に付随する id が書かれるまでは空 |
+
+- 主キー: `(id)`
+- 一意: `(project, message_id)`
+- 索引: `messages_sent` `(sent_at)`
+- 書く所: `Db::put_message`（置く・書き足す）。読む所: `Db::list_messages`・`Db::message_facets`（一覧の UI の絞り込みの候補と「まだ届いていない n 件」）。消す所は無い。
+- **書き足しで替わる列**: `state`（今より強い状態の時だけ。前へだけ進む）・`deliveries`（大きい方）・`via`（状態を替えた時か、空の時だけ）・`delivered_at`・`sender_id`（どちらも、空の時だけ入る）・`updated_at`。ほかの列は、初めに置いた値のまま（[API の仕様](api.md) の「書き足しの決まり」）。
+- `state` は、SQL の `check` で上の名だけを受ける。
 
 ## ほかの表
 

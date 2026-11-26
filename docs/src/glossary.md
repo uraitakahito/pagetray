@@ -34,6 +34,8 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | アクター（actor） | `actor` | castlist が本当の id と名を付けた、置く人 1 人（Claude Code の session 1 つか、Product Manager） | — |
 | 付随する id（attached id） | `actor_issuer`・`actor_ref` | ほかの道具が持つ、アクターを指す id（`<種類>:<値>`。`claude.session:…` など）と、それを出した物（`tpm` など）。本当の id への引き当ては castlist がする | — |
 | 送り手（sender） | `senders` | ページか file を置いた時の、付随する id と、その時に castlist が答えたアクター（id・名・種類）。castlist に聞かなかった送り手は「未確認」。足すだけで、書き換えも消しもしない | — |
+| メッセージの記録（message record） | `messages`・`ai.pagetray#Message` | ほかの道具（roster）が配ったメッセージ 1 通の「誰が誰に何を送り、いつ届いたか」を、呼ぶ側が置き場に写した物。置き場は見せるだけで、配らず、状態を自分で決めない。同じ project と id に置くと、書き足す | — |
+| メッセージの状態（message state） | `state` | メッセージの記録に、呼ぶ側が書く状態。まだ届いていない（`waiting`）・届いた（`delivered`）・渡せない（`undeliverable`）・期限切れ（`expired`）・ほかの道具で運んだ（`carried`）。書き足しでは、前へだけ進む | — |
 | file | `files` | ページから参照する file（画像・PDF・字の file）1 つ。置き直すと、別の番号の別の file になる | — |
 | 消した番号（removed number） | `removed`・`files_removed` | 消したページと file の番号。本文は持たない。同じ番号を 2 度使わないためと、消した URL に `410` を返すために残す | — |
 | 全文の索引（full-text index） | `pages_fts` | ページの題と本文の字を、3 字ずつに切って引けるようにした索引（SQLite の FTS5）。探す欄の語は、ここで引く | — |
@@ -57,6 +59,8 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | 語 | code の名 | 意味 | 使わない言い方 |
 |---|---|---|---|
 | 一覧の UI（list UI） | `templates/index.html` | browser で開く、置き場の画面の全体 | — |
+| メッセージの一覧（message list） | `templates/messages.html` | メッセージの記録を見る画面（`/messages`）。操作の帯の link で、ページの一覧と行き来する。区画は、操作の帯・絞り込みの列（状態・受け手・送り手・Key・project）・一覧の列 | — |
+| まだ届いていない数（undelivered count） | `#undelivered` | メッセージの一覧の操作の帯に出る「まだ届いていない N 件」。まだ届いていないメッセージの記録が 1 件でもあると出て、押すとそれだけに絞る。数は、絞り込みに関わらず置き場の全部。tab の題にも同じ数が出る | — |
 | 操作の帯（toolbar） | `#toolbar` | 画面のいちばん上の横の帯。題・探す欄・並び・返事待ちの数・レビュー待ちの数・上げた数・新着の印がある | ヘッダー |
 | 絞り込みの列（filter column） | `#filters` | 返事・判定・送り手・役割・workspace・種類・Key・project の候補と件数が並ぶ列。候補を押すと、一覧の列が絞られる | サイドメニュー |
 | 一覧の列（list column） | `#list` | ページの行が並ぶ列。行を押すと、そのページが本文の枠に出る | リスト |

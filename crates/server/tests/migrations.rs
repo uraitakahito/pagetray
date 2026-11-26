@@ -19,7 +19,7 @@ const RELEASED: [(&str, &str); 1] = [(
     "c70cb75ceb0c5da65701fcf6df1cf036dff939ad5c6a040d033ae3320fb7451e",
 )];
 /// 足したが、まだ出していない移行の file。出したら [`RELEASED`] に移す。
-const UNRELEASED: [&str; 0] = [];
+const UNRELEASED: [&str; 1] = ["0002_messages.sql"];
 
 fn migrations_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations")
@@ -127,14 +127,58 @@ async fn released_migrations_stay_byte_for_byte() {
     }
 }
 
+/// 前の版（1.0.x。移行は 0001 だけ）が書いた DB は、開く時に次の移行（0002 のメッセージの記録の表）を当て、
+/// 前からある行を保つ。
+#[tokio::test]
+async fn a_database_from_1_0_gets_the_messages_table_and_keeps_its_rows() {
+    let path = temp_db("upgrade");
+    // 1.0.x の DB の形にする: この server で作り、0002 の表と、当てた印を消す。
+    let db = Db::open(&path).await.expect("この server の DB を作る");
+    for sql in [
+        "drop table messages",
+        "delete from _sqlx_migrations where version = 2",
+        "insert into pages(project, key, kind, n, title, role, workspace, created_at, body)
+         values('p', 'K-1', 'plan', 1, '計画', 'tpm', '', '2026-11-24T00:00:00.000Z', x'3c703e783c2f703e')",
+    ] {
+        sqlx::query(sql).execute(db.write()).await.unwrap();
+    }
+    db.close().await;
+    let (tables, versions) = contents(&path).await;
+    assert!(!tables.contains(&"messages".to_owned()), "{tables:?}");
+    assert_eq!(versions, [1]);
+
+    let db = Db::open(&path).await.expect("1.0.x の DB を開く");
+    db.close().await;
+    let (tables, versions) = contents(&path).await;
+    assert!(tables.contains(&"messages".to_owned()), "{tables:?}");
+    assert_eq!(versions, [1, 2]);
+    let pool = SqlitePoolOptions::new()
+        .max_connections(1)
+        .connect_with(SqliteConnectOptions::new().filename(&path))
+        .await
+        .unwrap();
+    let pages: Vec<(String, i64)> = sqlx::query_as("select title, n from pages")
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(pages, [("計画".to_owned(), 1)]);
+    let messages: i64 = sqlx::query_scalar("select count(*) from messages")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(messages, 0);
+    pool.close().await;
+    remove_db(&path);
+}
+
 /// 後の版（移行を足した版）が書いた DB は、書いた版で起こすよう言って断り、移行を 1 つも当てない
-/// （この server の版 1 を当てていない DB でも、当てる前に断る）。
+/// （この server の版 1 を当てていない DB でも、当てる前に断る）。この server の移行は 2 つなので、後の版の移行は 3。
 #[tokio::test]
 async fn a_database_from_a_later_version_is_refused_without_applying_migrations() {
     let ours = ours().await;
     for rows in [
-        vec![(1, "init", ours.clone()), (2, "later", "00".repeat(48))],
-        vec![(2, "later", "00".repeat(48))],
+        vec![(1, "init", ours.clone()), (3, "later", "00".repeat(48))],
+        vec![(3, "later", "00".repeat(48))],
     ] {
         let path = ledger_db("refuse-later", &rows).await;
         let before = contents(&path).await;
@@ -143,14 +187,14 @@ async fn a_database_from_a_later_version_is_refused_without_applying_migrations(
             Err(e) => e,
         };
         assert!(
-            matches!(&e, OpenError::Migrate(MigrateError::VersionMissing(2))),
+            matches!(&e, OpenError::Migrate(MigrateError::VersionMissing(3))),
             "{e}"
         );
         assert!(
             e.to_string().contains("この server より新しい版の DB"),
             "{e}"
         );
-        assert!(e.to_string().contains("移行 2"), "{e}");
+        assert!(e.to_string().contains("移行 3"), "{e}");
         assert_eq!(contents(&path).await, before, "{rows:?}");
         remove_db(&path);
     }

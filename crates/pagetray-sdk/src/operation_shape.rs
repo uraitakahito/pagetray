@@ -355,3 +355,79 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Del
         ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
     }
 }
+
+/// メッセージの記録を 1 件置く・書き足す（同じ project と id に、何度打ってもよい）。pagetray は、ほかの道具（roster）が配った メッセージの記録を写して見せるだけで、配らず、状態を自分で決めず、期限を持たない。 - 初めての id なら作る（201。状態は来たまま）。もうある id なら書き足す（200）。書き足しは、届く順に依らない （「渡した」の記録が「送った」の記録より先に届いても、同じ記録になる）: - `state` は前へだけ進む。強さは `waiting`＝`carried` ＜ `expired`＝`undeliverable` ＜ `delivered` で、今より強い時だけ替える。 - `deliveries` は大きい方を保つ。`via` は、`state` を替えた時か、今が空の時だけ入れる（どちらも、書かなければ前のまま）。 - `deliveredAt` は、まだ無い時だけ入れる（初めの時刻を保つ）。 - `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` は、初めに置いた値を保つ（違う値が来ても変えず、 誤りにもしない）。形は、書き足す時も見る。 - 送り手として残すのは、「送った側」の書き込み（`state` が `waiting` か `carried`）の物だけ。その書き込みに付随する id （`actorIssuer`・`actorRef`）があれば、CreatePage と同じく castlist に聞き、登録の無い送り手は 400、聞けなければ 503 （どちらも何も替えない）。記録の送り手がまだ空なら入れ、もう入っていれば替えない。ほかの `state` の書き込みは、 付随する id が付いていても castlist に聞かず、送り手として残さない（組と形は見る。片方だけは 400）。 - 時刻（`sentAt`・`deliveredAt`）は UTC・ミリ秒まで（細かい時刻は 400）。
+pub struct PutMessage;
+
+impl ::aws_smithy_http_server::operation::OperationShape for PutMessage {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#PutMessage",
+            "ai.pagetray",
+            "PutMessage",
+        );
+
+    type Input = crate::input::PutMessageInput;
+    type Output = crate::output::PutMessageOutput;
+    type Error = crate::error::PutMessageError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for PutMessage {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}
+
+/// メッセージの記録を探す（送った時刻の新しい順が既定）。どの条件も、書いた物だけで絞る（重ねれば、どれにも合う物）。 - `to`・`from`・`state`・`heading`・`project`・`key` は、同じ値の物。 - `q` は前後の空白を落とし、空なら絞らない。本文か `from` か `to` に、`q` を含む物（大小を分ける）。 - 頁は `sentAt` と行の順で続ける（ListPages と同じ作り）。`nextToken` は同じ `sort` の答えの物を渡す（違えば 400）。
+pub struct ListMessages;
+
+impl ::aws_smithy_http_server::operation::OperationShape for ListMessages {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#ListMessages",
+            "ai.pagetray",
+            "ListMessages",
+        );
+
+    type Input = crate::input::ListMessagesInput;
+    type Output = crate::output::ListMessagesOutput;
+    type Error = crate::error::ListMessagesError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for ListMessages {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}

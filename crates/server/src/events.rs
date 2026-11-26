@@ -1,9 +1,12 @@
-//! 新着の知らせ（SSE。`GET /api/events`。手の道）。ページか file を置くたび・返事の状態か印を書くたび（替わらなかった時も）に、
-//! その記録を 1 件送る。消した時は送らない（0.8.x の server と同じ）。
+//! 新着の知らせ（SSE。`GET /api/events`。手の道）。ページか file を置くたび・返事の状態か印を書くたび（替わらなかった時も）・
+//! メッセージの記録を置く・書き足すたび（替わらなかった時も）に、その記録を 1 件送る。消した時は送らない（0.8.x の server と同じ）。
 //!
-//! - 中身は、API の答えと同じ camelCase の記録（ページは `ai.pagetray#Page`、file は `ai.pagetray#File`。`url` は入らない）。
+//! - 中身は、API の答えと同じ camelCase の記録（ページは `ai.pagetray#Page`、file は `ai.pagetray#File`、メッセージの記録は
+//!   `ai.pagetray#Message`。`url` は入らない）。
 //!   0.8.x の server は snake_case の記録だった（画面の script が読むのは `path`・`project`・`key` だけで、名は同じ）。
-//! - event の名: ページは名の無い event（前からの受け手は、これだけを読む）、file は `file`、返事は `reply`、印は `review`。
+//! - event の名: ページは名の無い event（前からの受け手は、これだけを読む）、file は `file`、返事は `reply`、印は `review`、
+//!   メッセージの記録は `message-record`（`message` にはしない。EventSource の既定の event の型と同じ名で、名の無い event と
+//!   同じ受け手に届くため）。
 //! - 聞いている者が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（[`CAPACITY`] 件を覚える。
 //!   画面は、一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
 //! - 止める合図を受けたら（[`Events::new`] の印）、どの流れも閉じる。閉じないと、止める時に走っている物を終えるのを待つ所
@@ -14,7 +17,7 @@ use aws_smithy_types::DateTime;
 use aws_smithy_types::date_time::Format;
 use axum::extract::State;
 use axum::response::sse::{Event, KeepAlive, Sse};
-use pagetray_sdk::model::{File, Page, Sender};
+use pagetray_sdk::model::{self, File, Page, Sender};
 use serde_json::{Map, Value, json};
 use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
@@ -34,6 +37,8 @@ pub enum Note {
     Review(Page),
     /// file を置いた。`event: file`。
     File(File),
+    /// メッセージの記録を置いた・書き足した（替わらなかった時も）。`event: message-record`。
+    Message(model::Message),
 }
 
 /// 送る 1 件（event の名と、data の JSON の字）。
@@ -62,11 +67,17 @@ impl Events {
 
     /// 知らせを送る。聞き手が無くても失敗にしない。記録を JSON にできなければ（時刻が答えに書けない）、記録に書いて送らない。
     pub fn send(&self, note: Note) {
+        // 記録に書く名: ページと file は path、メッセージの記録は `<project>/<id>`。
         let (name, path, data) = match &note {
-            Note::Page(page) => (None, &page.path, page_json(page)),
-            Note::Reply(page) => (Some("reply"), &page.path, page_json(page)),
-            Note::Review(page) => (Some("review"), &page.path, page_json(page)),
-            Note::File(file) => (Some("file"), &file.path, file_json(file)),
+            Note::Page(page) => (None, page.path.clone(), page_json(page)),
+            Note::Reply(page) => (Some("reply"), page.path.clone(), page_json(page)),
+            Note::Review(page) => (Some("review"), page.path.clone(), page_json(page)),
+            Note::File(file) => (Some("file"), file.path.clone(), file_json(file)),
+            Note::Message(message) => (
+                Some("message-record"),
+                format!("{}/{}", message.project, message.id),
+                message_json(message),
+            ),
         };
         match data {
             Ok(data) => {
@@ -226,6 +237,46 @@ fn file_json(file: &File) -> Result<Value, String> {
         &mut object,
         "sender",
         file.sender.as_ref().map(sender_json).transpose()?,
+    );
+    Ok(Value::Object(object))
+}
+
+/// メッセージの記録の JSON（生成した層の `Message` の答えと同じ欄と字。ListMessages の行と同じ）。
+fn message_json(message: &model::Message) -> Result<Value, String> {
+    let at = |t: Option<&DateTime>| t.map(time).transpose().map(|t| t.map(Value::from));
+    let mut object = fields([
+        ("project", json!(message.project)),
+        ("id", json!(message.id)),
+        ("heading", json!(message.heading)),
+        ("from", json!(message.from)),
+        ("to", json!(message.to)),
+        ("text", json!(message.text)),
+        ("sentAt", json!(time(&message.sent_at)?)),
+        ("state", json!(message.state)),
+        ("createdAt", json!(time(&message.created_at)?)),
+        ("updatedAt", json!(time(&message.updated_at)?)),
+    ]);
+    put(&mut object, "key", message.key.clone().map(Value::from));
+    put(
+        &mut object,
+        "deliveredAt",
+        at(message.delivered_at.as_ref())?,
+    );
+    put(&mut object, "via", message.via.clone().map(Value::from));
+    put(
+        &mut object,
+        "deliveries",
+        message.deliveries.map(Value::from),
+    );
+    put(
+        &mut object,
+        "replyTo",
+        message.reply_to.clone().map(Value::from),
+    );
+    put(
+        &mut object,
+        "sender",
+        message.sender.as_ref().map(sender_json).transpose()?,
     );
     Ok(Value::Object(object))
 }

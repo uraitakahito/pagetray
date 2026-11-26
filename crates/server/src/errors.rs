@@ -3,8 +3,8 @@ use axum::http::{HeaderName, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::{
     AddReviewMarksError, Conflict, CreateFileError, CreatePageError, DeleteFilesError,
-    DeletePagesError, InternalError, ListFilesError, ListPagesError, SetReplyStateError,
-    Unavailable, ValidationException,
+    DeletePagesError, InternalError, ListFilesError, ListMessagesError, ListPagesError,
+    PutMessageError, SetReplyStateError, Unavailable, ValidationException,
 };
 
 use pagetray_sdk::model::ValidationExceptionField;
@@ -114,7 +114,8 @@ from_failure!(
     AddReviewMarksError,
     DeletePagesError,
     ListFilesError,
-    DeleteFilesError
+    DeleteFilesError,
+    ListMessagesError
 );
 
 /// 書いて足す操作（CreatePage・CreateFile）の失敗: 中身の誤り（400）・castlist に登録の無い送り手（400）・番号が使われている（409）・
@@ -140,24 +141,28 @@ impl PutFailure {
     }
 }
 
+impl PutFailure {
+    /// 引数の誤り（400）と送り手の誤り（400）の答え。
+    fn validation(message: String, sender: bool) -> ValidationException {
+        ValidationException {
+            field_list: sender.then(|| {
+                vec![ValidationExceptionField {
+                    path: "/actorRef".to_owned(),
+                    message: message.clone(),
+                }]
+            }),
+            message,
+        }
+    }
+}
+
 macro_rules! from_put_failure {
     ($($error:ty),*) => {$(
         impl From<PutFailure> for $error {
             fn from(failure: PutFailure) -> Self {
                 match failure {
-                    PutFailure::Invalid(message) => ValidationException {
-                        message,
-                        field_list: None,
-                    }
-                    .into(),
-                    PutFailure::UnknownSender(message) => ValidationException {
-                        field_list: Some(vec![ValidationExceptionField {
-                            path: "/actorRef".to_owned(),
-                            message: message.clone(),
-                        }]),
-                        message,
-                    }
-                    .into(),
+                    PutFailure::Invalid(message) => PutFailure::validation(message, false).into(),
+                    PutFailure::UnknownSender(message) => PutFailure::validation(message, true).into(),
                     PutFailure::Conflict(message) => Conflict { message }.into(),
                     PutFailure::Busy => busy().into(),
                     PutFailure::Unreachable(message) => Unavailable { message }.into(),
@@ -169,3 +174,18 @@ macro_rules! from_put_failure {
 }
 
 from_put_failure!(CreatePageError, CreateFileError);
+
+/// PutMessage は、番号を取り合わない（同じ id は書き足す）ので、409 の型を持たない。来るはずの無い [`PutFailure::Conflict`]
+/// （一意の決まりに当たった）は、中の失敗にする。
+impl From<PutFailure> for PutMessageError {
+    fn from(failure: PutFailure) -> Self {
+        match failure {
+            PutFailure::Invalid(message) => PutFailure::validation(message, false).into(),
+            PutFailure::UnknownSender(message) => PutFailure::validation(message, true).into(),
+            PutFailure::Conflict(message) => internal("PutMessage", &message).into(),
+            PutFailure::Busy => busy().into(),
+            PutFailure::Unreachable(message) => Unavailable { message }.into(),
+            PutFailure::Internal(e) => e.into(),
+        }
+    }
+}

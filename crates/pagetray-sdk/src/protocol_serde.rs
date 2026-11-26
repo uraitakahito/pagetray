@@ -13,7 +13,11 @@ pub(crate) mod shape_get_health;
 
 pub(crate) mod shape_list_files;
 
+pub(crate) mod shape_list_messages;
+
 pub(crate) mod shape_list_pages;
+
+pub(crate) mod shape_put_message;
 
 pub(crate) mod shape_set_reply_state;
 
@@ -57,6 +61,10 @@ pub(crate) mod shape_list_files_input;
 
 pub(crate) mod shape_list_files_output;
 
+pub(crate) mod shape_list_messages_input;
+
+pub(crate) mod shape_list_messages_output;
+
 pub(crate) mod shape_list_pages_input;
 
 pub(crate) mod shape_list_pages_output;
@@ -64,6 +72,10 @@ pub(crate) mod shape_list_pages_output;
 pub(crate) mod shape_not_found;
 
 pub(crate) mod shape_payload_too_large;
+
+pub(crate) mod shape_put_message_input;
+
+pub(crate) mod shape_put_message_output;
 
 pub(crate) mod shape_set_reply_state_input;
 
@@ -78,6 +90,8 @@ pub(crate) mod shape_validation_exception;
 pub(crate) mod shape_targets;
 
 pub(crate) mod shape_file;
+
+pub(crate) mod shape_message;
 
 pub(crate) mod shape_page;
 

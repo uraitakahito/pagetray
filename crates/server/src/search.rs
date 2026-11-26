@@ -4,9 +4,10 @@
 //!   同じ時刻の行が頁の境に並んでも、抜けず重ならない。辿る間に置いたページ（前の頁より新しい）は、新しい順の続きに出ない。
 //! - SQL は書いた条件の欠片だけを繋ぎ、値は bind するだけ（[`plans`]・[`file_plans`] の試験が、索引で引くことを見る）。
 //! - file の条件も 0.8.x の server と同じ（q は名 `<語>.<拡張子>` に、小文字にした q を含む物）。頁の続け方はページと同じ。
+//! - メッセージの記録（ListMessages）は、送った時刻（`sent_at`）と行の id の組で続ける。q は本文と送り手・受け手の名の部分一致。
 use sqlx::{QueryBuilder, Sqlite};
 
-use crate::db::{Db, FILE_ROW, FileRow, PAGE_ROW, PageRow, Party, Reply};
+use crate::db::{Db, FILE_ROW, FileRow, MESSAGE_ROW, MessageRow, PAGE_ROW, PageRow, Party, Reply};
 
 /// 1 頁の既定。
 pub const LIMIT: i64 = 100;
@@ -53,6 +54,26 @@ pub struct FileQuery {
     pub limit: i64,
 }
 
+/// メッセージの記録を探す条件（どれも AND）。形は定義と handler が見てある。
+#[derive(Clone, Debug, Default)]
+pub struct MessageQuery {
+    pub project: Option<String>,
+    pub key: Option<String>,
+    /// 受け手の名（同じ値の物）。
+    pub to: Option<String>,
+    /// 送り手の名（同じ値の物）。
+    pub from: Option<String>,
+    pub state: Option<String>,
+    pub heading: Option<String>,
+    /// 本文と送り手・受け手の名に含まれる字（前後の空白を落とし、空なら絞らない。大小を分ける）。
+    pub q: Option<String>,
+    /// 古い順（無ければ新しい順）。
+    pub oldest: bool,
+    /// 前の頁の最後の行の、送った時刻と id。
+    pub after: Option<(String, i64)>,
+    pub limit: i64,
+}
+
 /// 1 頁と、次の頁があるか。
 pub struct Page<T = PageRow> {
     pub rows: Vec<T>,
@@ -67,17 +88,29 @@ fn order(
     after: Option<&(String, i64)>,
     limit: i64,
 ) {
+    order_by(q, table, "created_at", oldest, after, limit);
+}
+
+/// 時刻の列（`column`）を名指す [`order`]（メッセージは送った時刻で並べる）。
+fn order_by(
+    q: &mut QueryBuilder<Sqlite>,
+    table: &str,
+    column: &str,
+    oldest: bool,
+    after: Option<&(String, i64)>,
+    limit: i64,
+) {
     let (cmp, dir) = if oldest { (">", "asc") } else { ("<", "desc") };
-    if let Some((created_at, id)) = after {
-        q.push(format!(" and ({table}.created_at, {table}.id) {cmp} ("))
-            .push_bind(created_at.clone())
+    if let Some((at, id)) = after {
+        q.push(format!(" and ({table}.{column}, {table}.id) {cmp} ("))
+            .push_bind(at.clone())
             .push(", ")
             .push_bind(*id)
             .push(")");
     }
     // 次の頁があるかを見るため、1 つ多く読む。
     q.push(format!(
-        " order by {table}.created_at {dir}, {table}.id {dir} limit "
+        " order by {table}.{column} {dir}, {table}.id {dir} limit "
     ))
     .push_bind(limit + 1);
 }
@@ -191,6 +224,44 @@ impl FileQuery {
     }
 }
 
+impl MessageQuery {
+    fn builder(&self) -> QueryBuilder<Sqlite> {
+        let mut q = QueryBuilder::new(MESSAGE_ROW);
+        q.push(" where 1");
+        for (column, value) in [
+            ("project", &self.project),
+            ("key", &self.key),
+            ("to_name", &self.to),
+            ("from_name", &self.from),
+            ("state", &self.state),
+            ("heading", &self.heading),
+        ] {
+            if let Some(value) = value {
+                q.push(format!(" and m.{column} = "))
+                    .push_bind(value.clone());
+            }
+        }
+        if let Some(text) = self.q.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+            q.push(" and (instr(m.text, ")
+                .push_bind(text.to_owned())
+                .push(") > 0 or instr(m.from_name, ")
+                .push_bind(text.to_owned())
+                .push(") > 0 or instr(m.to_name, ")
+                .push_bind(text.to_owned())
+                .push(") > 0)");
+        }
+        order_by(
+            &mut q,
+            "m",
+            "sent_at",
+            self.oldest,
+            self.after.as_ref(),
+            self.limit,
+        );
+        q
+    }
+}
+
 impl Db {
     /// 条件に合うページの 1 頁（読む接続の 1 つの取引の中で読む）。
     pub async fn list(&self, query: &PageQuery) -> Result<Page, sqlx::Error> {
@@ -204,6 +275,17 @@ impl Db {
     pub async fn list_files(&self, query: &FileQuery) -> Result<Page<FileRow>, sqlx::Error> {
         let mut tx = self.read().begin().await?;
         let rows: Vec<FileRow> = query.builder().build_query_as().fetch_all(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(page(rows, query.limit))
+    }
+
+    /// 条件に合うメッセージの記録の 1 頁（読む接続の 1 つの取引の中で読む）。
+    pub async fn list_messages(
+        &self,
+        query: &MessageQuery,
+    ) -> Result<Page<MessageRow>, sqlx::Error> {
+        let mut tx = self.read().begin().await?;
+        let rows: Vec<MessageRow> = query.builder().build_query_as().fetch_all(&mut *tx).await?;
         tx.commit().await?;
         Ok(page(rows, query.limit))
     }
@@ -316,6 +398,53 @@ pub fn file_plans() -> Vec<(&'static str, String)> {
                 q.workspace = x();
                 q.q = x();
                 q.actor = x();
+                q.after = after();
+            }),
+        ),
+    ]
+}
+
+/// メッセージの記録を探す SQL（名と SQL）。試験が `explain query plan` で、messages を索引なしに端から読まないかを見る。
+pub fn message_plans() -> Vec<(&'static str, String)> {
+    fn x() -> Option<String> {
+        Some("x".to_owned())
+    }
+    fn after() -> Option<(String, i64)> {
+        Some(("2026-11-24T00:00:00.000Z".to_owned(), 1))
+    }
+    let sql = |f: fn(&mut MessageQuery)| {
+        let mut q = MessageQuery {
+            limit: LIMIT,
+            ..MessageQuery::default()
+        };
+        f(&mut q);
+        q.builder().into_string()
+    };
+    vec![
+        ("plain", sql(|_| {})),
+        ("oldest", sql(|q| q.oldest = true)),
+        ("project", sql(|q| q.project = x())),
+        ("key", sql(|q| q.key = x())),
+        ("to", sql(|q| q.to = x())),
+        ("from", sql(|q| q.from = x())),
+        ("state", sql(|q| q.state = x())),
+        ("heading", sql(|q| q.heading = x())),
+        ("q", sql(|q| q.q = x())),
+        ("after", sql(|q| q.after = after())),
+        (
+            "after_oldest",
+            sql(|q| (q.oldest, q.after) = (true, after())),
+        ),
+        (
+            "all",
+            sql(|q| {
+                q.project = x();
+                q.key = x();
+                q.to = x();
+                q.from = x();
+                q.state = x();
+                q.heading = x();
+                q.q = x();
                 q.after = after();
             }),
         ),

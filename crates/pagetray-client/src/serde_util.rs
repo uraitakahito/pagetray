@@ -236,11 +236,59 @@ pub(crate) fn list_files_output_output_correct_errors(
     builder
 }
 
+pub(crate) fn list_messages_output_output_correct_errors(
+    mut builder: crate::operation::list_messages::builders::ListMessagesOutputBuilder,
+) -> crate::operation::list_messages::builders::ListMessagesOutputBuilder {
+    if builder.messages.is_none() {
+        builder.messages = Some(Default::default())
+    }
+    builder
+}
+
 pub(crate) fn list_pages_output_output_correct_errors(
     mut builder: crate::operation::list_pages::builders::ListPagesOutputBuilder,
 ) -> crate::operation::list_pages::builders::ListPagesOutputBuilder {
     if builder.pages.is_none() {
         builder.pages = Some(Default::default())
+    }
+    builder
+}
+
+pub(crate) fn put_message_output_output_correct_errors(
+    mut builder: crate::operation::put_message::builders::PutMessageOutputBuilder,
+) -> crate::operation::put_message::builders::PutMessageOutputBuilder {
+    if builder.project.is_none() {
+        builder.project = Some(Default::default())
+    }
+    if builder.id.is_none() {
+        builder.id = Some(Default::default())
+    }
+    if builder.heading.is_none() {
+        builder.heading = Some(Default::default())
+    }
+    if builder.from.is_none() {
+        builder.from = Some(Default::default())
+    }
+    if builder.to.is_none() {
+        builder.to = Some(Default::default())
+    }
+    if builder.text.is_none() {
+        builder.text = Some(Default::default())
+    }
+    if builder.sent_at.is_none() {
+        builder.sent_at = Some(::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64))
+    }
+    if builder.state.is_none() {
+        builder.state = Some(Default::default())
+    }
+    if builder.created_at.is_none() {
+        builder.created_at = Some(::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64))
+    }
+    if builder.updated_at.is_none() {
+        builder.updated_at = Some(::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64))
+    }
+    if builder.status.is_none() {
+        builder.status = Some(Default::default())
     }
     builder
 }
@@ -346,6 +394,42 @@ pub(crate) fn file_correct_errors(
     }
     if builder.path.is_none() {
         builder.path = Some(Default::default())
+    }
+    builder
+}
+
+pub(crate) fn message_correct_errors(
+    mut builder: crate::types::builders::MessageBuilder,
+) -> crate::types::builders::MessageBuilder {
+    if builder.project.is_none() {
+        builder.project = Some(Default::default())
+    }
+    if builder.id.is_none() {
+        builder.id = Some(Default::default())
+    }
+    if builder.heading.is_none() {
+        builder.heading = Some(Default::default())
+    }
+    if builder.from.is_none() {
+        builder.from = Some(Default::default())
+    }
+    if builder.to.is_none() {
+        builder.to = Some(Default::default())
+    }
+    if builder.text.is_none() {
+        builder.text = Some(Default::default())
+    }
+    if builder.sent_at.is_none() {
+        builder.sent_at = Some(::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64))
+    }
+    if builder.state.is_none() {
+        builder.state = Some(Default::default())
+    }
+    if builder.created_at.is_none() {
+        builder.created_at = Some(::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64))
+    }
+    if builder.updated_at.is_none() {
+        builder.updated_at = Some(::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64))
     }
     builder
 }

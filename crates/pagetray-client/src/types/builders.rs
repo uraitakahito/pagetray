@@ -8,3 +8,5 @@ pub use crate::types::_validation_exception_field::ValidationExceptionFieldBuild
 pub use crate::types::_page::PageBuilder;
 
 pub use crate::types::_file::FileBuilder;
+
+pub use crate::types::_message::MessageBuilder;

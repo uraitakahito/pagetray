@@ -55,21 +55,31 @@ pub fn sort_name(oldest: bool) -> &'static str {
 
 /// 一覧の次の頁の印: 検索の種類・並べ方・前の頁の最後の行の、置いた時刻（残す字）と id。
 pub fn next(kind: &str, oldest: bool, created_at: &str, id: i64) -> String {
-    encode(&[kind, sort_name(oldest), created_at, &id.to_string()])
+    next_by(kind, sort_name(oldest), created_at, id)
 }
 
 /// 一覧の頁の印を読む（前の頁の最後の行の、置いた時刻と id）。崩れた物・ほかの検索の物・sort の違う物は、その訳。
 /// ほかの条件は印に結ばない（castlist の ListActors と同じ）。
 pub fn after(token: &str, kind: &str, what: &str, oldest: bool) -> Result<(String, i64), String> {
+    after_by(token, kind, what, sort_name(oldest))
+}
+
+/// 並べ方の名（`sort`）を名指す [`next`]（置いた時刻のほかの時刻で並べる一覧。メッセージは送った時刻）。
+pub fn next_by(kind: &str, sort: &str, at: &str, id: i64) -> String {
+    encode(&[kind, sort, at, &id.to_string()])
+}
+
+/// 並べ方の名（`sort`）を名指す [`after`]。
+pub fn after_by(token: &str, kind: &str, what: &str, sort: &str) -> Result<(String, i64), String> {
     let parts = read(token, kind, 4, what)?;
-    let [_, sort, created_at, id] = &parts[..] else {
+    let [_, token_sort, at, id] = &parts[..] else {
         return Err(BROKEN.to_owned());
     };
-    if sort != sort_name(oldest) {
+    if token_sort != sort {
         return Err("nextToken は、同じ sort の答えの物を渡す".to_owned());
     }
     let id = id.parse().map_err(|_| BROKEN.to_owned())?;
-    Ok((created_at.clone(), id))
+    Ok((at.clone(), id))
 }
 
 #[cfg(test)]

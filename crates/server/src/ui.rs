@@ -1,4 +1,4 @@
-//! 画面（一覧の UI。`/`・`/{project}/`・`/{project}/{key}/`）。
+//! 画面（一覧の UI。`/`・`/{project}/`・`/{project}/{key}/`）。メッセージの一覧（`/messages`）は [`messages`]。
 //!
 //! - サーバーが HTML を組んで返す（askama。template は repo の templates/index.html。askama.toml）。
 //!   字はみな HTML として逃がし、URL の引数に入れる値は %XX にする（[`encode`]）。
@@ -9,6 +9,8 @@
 //! - Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出す（project が api なら出さない）。
 //!   上げる枠の script は、API の道（`POST /api/projects/{p}/keys/{k}/files?name=…`）に、file の Content-Type で送る。
 //! - 答えには CSP（[`CSP`]）を付け、inline の style と script は template の物（hash）だけを許す。
+mod messages;
+
 use std::sync::{Arc, LazyLock};
 
 use askama::Template;
@@ -50,19 +52,22 @@ const TEMPLATE: &str = include_str!("../../../templates/index.html");
 /// 画面の答えに付ける Content-Security-Policy。inline の style と script は template の物（[`inline_hash`]）だけ。
 /// 本文の枠（iframe）は置き場のページだけ、知らせ（EventSource）と上げる枠の送り先（fetch）は置き場だけ、
 /// 図は置き場の file と、上げる前の見本（blob:）と favicon（data:）。form は置き場へだけ送れる。ほかの所から枠に入れさせない。
-pub static CSP: LazyLock<HeaderValue> = LazyLock::new(|| {
+pub static CSP: LazyLock<HeaderValue> = LazyLock::new(|| csp(TEMPLATE));
+
+/// `template` の画面の答えに付ける Content-Security-Policy（inline の style と script は、その template の物だけ）。
+fn csp(template: &str) -> HeaderValue {
     let csp = format!(
         "default-src 'none'; script-src {}; style-src {}; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
-        inline_hash("script"),
-        inline_hash("style"),
+        inline_hash(template, "script"),
+        inline_hash(template, "style"),
     );
     HeaderValue::from_str(&csp).expect("CSP は ASCII の字（hash は base64）")
-});
+}
 
 /// template の中の 1 つの `<tag>`…`</tag>` の中身の SHA-256（CSP の `'sha256-…'`）。中身に template の式は無いので、
 /// 組んだ画面の中身と同じ字（tests/ui.rs が、組んだ画面の中身と突き合わせる）。
-fn inline_hash(tag: &str) -> String {
-    let body = TEMPLATE
+fn inline_hash(template: &str, tag: &str) -> String {
+    let body = template
         .split_once(&format!("<{tag}>"))
         .and_then(|(_, rest)| rest.split_once(&format!("</{tag}>")))
         .map_or("", |(body, _)| body);
@@ -86,6 +91,8 @@ pub fn routes(db: Arc<Db>, castlist: Option<Castlist>) -> Router {
         .route("/", get(index))
         .route("/{project}/", get(project))
         .route("/{project}/{key}/", get(key))
+        // メッセージの一覧。`/{project}/` は後ろに `/` が付くので、project の名が messages でもぶつからない。
+        .route("/messages", get(messages::index))
         .with_state(Ui { db, castlist })
 }
 
@@ -384,19 +391,29 @@ async fn key(
 
 async fn render(ui: Ui, view: Params, place: impl FnOnce(&mut View)) -> Response {
     let Ok(Query(mut view)) = view else {
-        return reply(
-            StatusCode::BAD_REQUEST,
-            "ValidationException",
-            "画面の引数が読めない（同じ名の引数を 2 度書いた など）",
-        );
+        return unreadable();
     };
     place(&mut view);
-    match page(&ui, view).await {
+    screen(page(&ui, view).await, &CSP)
+}
+
+/// 画面の引数が読めない時の答え（400）。
+fn unreadable() -> Response {
+    reply(
+        StatusCode::BAD_REQUEST,
+        "ValidationException",
+        "画面の引数が読めない（同じ名の引数を 2 度書いた など）",
+    )
+}
+
+/// 組んだ画面の答え（その画面の CSP を付ける）。組めなければ、その誤りの答え。
+fn screen(html: Result<String, Failure>, csp: &HeaderValue) -> Response {
+    match html {
         Ok(html) => {
             let mut response = Html(html).into_response();
             response
                 .headers_mut()
-                .insert(header::CONTENT_SECURITY_POLICY, CSP.clone());
+                .insert(header::CONTENT_SECURITY_POLICY, csp.clone());
             response
         }
         Err(failure) => failure.reply(),
