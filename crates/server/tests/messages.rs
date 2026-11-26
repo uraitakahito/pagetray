@@ -1320,7 +1320,7 @@ async fn the_via_is_shown_in_words_and_an_unknown_one_as_written() {
         ("delivered", "prompt", "人の入力の時"),
         ("undeliverable", "max-deliveries", "渡し直しの上限を超えた"),
         ("expired", "ttl", "期限で消えた"),
-        ("undeliverable", "closed", "席を閉じた"),
+        ("expired", "closed", "席を閉じた"),
         ("delivered", "output", "output"),
         ("delivered", "session-start", "session-start"),
     ];
