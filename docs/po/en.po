@@ -799,18 +799,6 @@ msgid "http://127.0.0.1:8801"
 msgstr "http://127.0.0.1:8801"
 
 #: src/run.md
-msgid ""
-"置き場を v1.0.0 で動かしている間は（v1.0.0 の試験を取り出して打つ時は）、"
-"`PAGETRAY_E2E_URL` の前に `PAGETRAY_E2E_API=next` も付ける（v1.0.0 の試験の既"
-"定は前の API の形で、付けないと前の道を叩いて落ちる）。1.0.1 から後の試験では"
-"要らない。"
-msgstr ""
-"While the store runs v1.0.0 (when you check out and run the v1.0.0 test), "
-"also put `PAGETRAY_E2E_API=next` before `PAGETRAY_E2E_URL` (the v1.0.0 test "
-"defaults to the previous API's shape and, without it, calls the previous "
-"routes and fails). Tests from 1.0.1 on do not need it."
-
-#: src/run.md
 msgid "一覧の UI から file を上げる"
 msgstr "Uploading a file from the list UI"
 

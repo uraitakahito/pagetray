@@ -68,8 +68,6 @@ container run -d --name pagetray \
    git -C pagetray worktree remove "$PWD/pagetray-smoke"
    ```
 
-   置き場を v1.0.0 で動かしている間は（v1.0.0 の試験を取り出して打つ時は）、`PAGETRAY_E2E_URL` の前に `PAGETRAY_E2E_API=next` も付ける（v1.0.0 の試験の既定は前の API の形で、付けないと前の道を叩いて落ちる）。1.0.1 から後の試験では要らない。
-
 ## 一覧の UI から file を上げる
 
 人（Product Manager）が、画面の絵などを担当に渡す道。担当は `roster file put` で上げる。
