@@ -1,6 +1,5 @@
 //! 受け入れの試験: 本物の binary（pagetray-server）を空いた port で起こし、HTTP で叩く（castlist の server の
-//! tests/server.rs と同じ形）。守りの層の誤りの形・HEAD・本文の上限・backup・止め方・起きた行は、hyper を通した本物の答えでも見る
-//! （0.8.x までの server の DB を断る所は tests/refuse_old.rs）。
+//! tests/server.rs と同じ形）。守りの層の誤りの形・HEAD・本文の上限・backup・止め方・起きた行は、hyper を通した本物の答えでも見る。
 
 mod common;
 

@@ -2,7 +2,7 @@
 //!
 //! - 書く接続は 1 本だけ。番号（今の最大 ＋ 1）を取る所が 1 列に並ぶ。
 //! - 読む接続は 4 本で、読むだけ。WAL なので、書いている間も待たずに読める。
-//! - 接続の決まりと、0.8.x までの server の DB を断る所は、castlist の server（crates/server/src/db.rs）と同じ。
+//! - 接続の決まりは、castlist の server（crates/server/src/db.rs）と同じ。
 //! - 返事・印・消すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする（間に別の書く物が入らない）。
 //! - file はページと同じ作り（番号は project・key・語・拡張子ごと。消した番号は files_removed）。
 use std::fmt;
@@ -10,9 +10,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
-use sqlx::migrate::Migrator;
+use sqlx::migrate::{MigrateError, Migrator};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqliteJournalMode, SqlitePoolOptions};
-use sqlx::{Connection, FromRow, SqlitePool};
+use sqlx::{FromRow, SqlitePool};
 use time::OffsetDateTime;
 
 /// 書く接続を待つ長さ。過ぎれば「混んでいる」で返す。問い合わせの時間切れ（[`crate::REQUEST_TIMEOUT`]）より短くし、
@@ -25,6 +25,11 @@ pub const READS: u32 = 4;
 
 /// この server の移行（crates/server/migrations/）。
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
+
+/// この server の migrations の、最も新しい版。
+fn newest_migration() -> i64 {
+    MIGRATOR.iter().map(|m| m.version).max().unwrap_or(0)
+}
 
 /// [`Db::backup`] の失敗。
 #[derive(Debug)]
@@ -311,46 +316,30 @@ impl From<sqlx::Error> for WriteError {
 #[derive(Debug)]
 pub enum OpenError {
     Db(sqlx::Error),
+    /// 移行に落ちた。sqlx は、当てた移行の表を、当てる前にこの server の migrations と突き合わせる（合わなければ 1 つも当てない）。
     Migrate(sqlx::migrate::MigrateError),
     /// 外のキーの崩れた行がある（表と rowid と、指す先の表）。
     ForeignKey(Vec<String>),
-    /// 0.8.x までの server（か別の版）の移行を当てた DB（この server の migrations に無い・中身の違う移行の版）。何も書かずに断る。
-    Current(Vec<i64>),
 }
 
 impl fmt::Display for OpenError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OpenError::Db(e) => write!(f, "DB を開けない: {e}"),
+            // 無い版がこの server の最も新しい版より後なら、後の版（移行を足した版）が書いた DB（後の版から戻した時など）。
+            OpenError::Migrate(MigrateError::VersionMissing(v)) if *v > newest_migration() => {
+                write!(
+                    f,
+                    "この server より新しい版の DB（この server の migrations に無い移行 {v} を当ててある）。\
+                 開かずに止める。書いた版の image で起こす"
+                )
+            }
             OpenError::Migrate(e) => write!(f, "DB の移行に落ちた: {e}"),
             OpenError::ForeignKey(rows) => write!(
                 f,
                 "外のキーの崩れた行があるので開かない: {}",
                 rows.join("・")
             ),
-            OpenError::Current(versions) => {
-                let list = versions
-                    .iter()
-                    .map(i64::to_string)
-                    .collect::<Vec<_>>()
-                    .join("・");
-                let newest = MIGRATOR.iter().map(|m| m.version).max().unwrap_or(0);
-                // 合わない版がみなこの server の最も新しい版より後なら、後の版（移行を足した版）が書いた DB（後の版から戻した時など）。
-                // 0.8.x の DB は、中身の違う版 1 を持つので、こちらに入らない。
-                if versions.iter().all(|v| *v > newest) {
-                    write!(
-                        f,
-                        "この server より新しい版の DB（この server の migrations に無い移行 {list} を当ててある）。\
-                         開かずに止める。書いた版の image で起こす"
-                    )
-                } else {
-                    write!(
-                        f,
-                        "0.8.x までの server の DB（この server の migrations に無い・中身の違う移行 {list} を当ててある）。\
-                         開かずに止める。移すには v1.0.0 の image の migrate で新しい volume へ（docs の release.md の「切り替え」）"
-                    )
-                }
-            }
         }
     }
 }
@@ -408,75 +397,10 @@ async fn page_row(tx: &mut SqliteConnection, id: i64) -> Result<PageRow, sqlx::E
 
 // --- 開く ---
 
-/// `path` が、0.8.x までの server（か別の版）の移行を当てた DB なら [`OpenError::Current`] で断る。読むだけの接続
-/// （`read_only`）で開き、DB の中身は書き替えない（WAL の DB は -wal も読む）。file が無い・移行の表が無い時は通す（開く時に作る）。
-/// 移行の表の版のうち、この server の migrations に無い物か、中身の写し（checksum）が違う物があれば断る
-/// （0.8.x の DB は 0002〜0006 が無く、0001 も中身が違う。sqlx の移行に任せると、断る前に DB を WAL にする）。
-pub async fn refuse_current(path: &Path) -> Result<(), OpenError> {
-    if !tokio::fs::try_exists(path).await.unwrap_or(false) {
-        return Ok(());
-    }
-    // 隣に -wal と -shm の両方が在る時（動いている・落ちた後の DB）だけ、読むだけの接続で WAL も読む（checkpoint の前の物は
-    // 本体の file だけでは読めず、immutable では「database disk image is malformed」になる。どちらも既に在るので、新しく作る物は無い）。
-    // ほか（止めた DB・写し・-wal だけを手で写した物）は immutable で本体の file だけを読み、隣に何も作らない
-    // （WAL の形の DB を読むだけの接続で開くと、無い -wal と -shm を作る。0.8.x の server の DB は WAL の形）。
-    // -wal だけの時に WAL の分は読めないが、断る訳に要る移行の表は、本体の file にある。
-    let sibling = |suffix: &str| {
-        let mut p = path.as_os_str().to_owned();
-        p.push(suffix);
-        p
-    };
-    let live = tokio::fs::try_exists(sibling("-wal"))
-        .await
-        .unwrap_or(false)
-        && tokio::fs::try_exists(sibling("-shm"))
-            .await
-            .unwrap_or(false);
-    let mut conn = SqliteConnection::connect_with(
-        &SqliteConnectOptions::new()
-            .filename(path)
-            .read_only(true)
-            .immutable(!live),
-    )
-    .await
-    .map_err(OpenError::Db)?;
-    let applied: Result<Vec<(i64, Vec<u8>)>, sqlx::Error> = async {
-        let has: i64 = sqlx::query_scalar(
-            "select count(*) from sqlite_master where type = 'table' and name = '_sqlx_migrations'",
-        )
-        .fetch_one(&mut conn)
-        .await?;
-        if has == 0 {
-            return Ok(Vec::new());
-        }
-        sqlx::query_as("select version, checksum from _sqlx_migrations order by version")
-            .fetch_all(&mut conn)
-            .await
-    }
-    .await;
-    let _ = conn.close().await;
-    let foreign: Vec<i64> = applied
-        .map_err(OpenError::Db)?
-        .into_iter()
-        .filter(|(version, checksum)| {
-            !MIGRATOR
-                .iter()
-                .any(|m| m.version == *version && m.checksum.as_ref() == checksum.as_slice())
-        })
-        .map(|(version, _)| version)
-        .collect();
-    if foreign.is_empty() {
-        Ok(())
-    } else {
-        Err(OpenError::Current(foreign))
-    }
-}
-
 impl Db {
     /// 開き、移行し、外のキーの崩れが無いかを見る。崩れがあれば開かない。
-    /// 0.8.x までの server の DB は、何も書かずに断る（[`refuse_current`]）。
+    /// 後の版（移行を足した版）が書いた DB は、移行を当てずに断る（WAL で開くので、-wal と -shm は作る）。
     pub async fn open(path: &Path) -> Result<Self, OpenError> {
-        refuse_current(path).await?;
         // どの接続にも: 外のキーを効かせ、置き換え（REPLACE）が行を消す時も trigger を動かす。
         // 一時の物は memory に置く（動かす image には /tmp が無い）。
         let options = SqliteConnectOptions::new()

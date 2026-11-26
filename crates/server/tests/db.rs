@@ -1,4 +1,4 @@
-//! DB の決まりの試験: 足すだけの送り手・外のキー・接続の設定・開かない DB（0.8.x までの server の DB は tests/refuse_old.rs）。
+//! DB の決まりの試験: 足すだけの送り手・外のキー・接続の設定・開かない DB（移行の表の合わない DB は tests/migrations.rs）。
 //! 書く接続と読む接続を直に使う。
 mod common;
 

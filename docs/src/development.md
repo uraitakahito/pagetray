@@ -37,7 +37,7 @@ GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験
 API の形（URL・引数の名・JSON の欄）を変える時は、定義（`model/model/pagetray.smithy`）を直す。壊す変わり（前からある呼ぶ側が困る変わり）は、CI の `ci/gen.sh --diff` が落とす（下の「定義と生成」と、[API の仕様](api.md) の「共通の決まり」の「版」）。変えたら、`roster page`（roster の `cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。roster の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
 
 - **SQL**: SQL は動く時に組む形（`query`・`query_as`）だけを使うので、build の時の検査の file（`.sqlx/`）は要らない。
-- **当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えている。表を変える時は `crates/server/migrations/` に次の番号の file を足し、`crates/server/tests/refuse_old.rs` の `UNRELEASED` に名を足す（出したら `RELEASED` に移し、SHA-256 を書く）。出した file が 1 byte でも替わるか、どちらにも名指さない file があると、試験が落ちる。
+- **当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えている。表を変える時は `crates/server/migrations/` に次の番号の file を足し、`crates/server/tests/migrations.rs` の `UNRELEASED` に名を足す（出したら `RELEASED` に移し、SHA-256 を書く）。出した file が 1 byte でも替わるか、どちらにも名指さない file があると、試験が落ちる。
 - **表を変えたら、章も直す**: 表・列・型・空を許すか・主キーと一意と索引を変えたら、同じ PR で [DB の作り](db.md) と、表を足したなら [用語集](glossary.md) も直す。`crates/server/tests/schema_doc.rs` が、移行を当てた DB と章を突き合わせ、食い違えば落ちる。
 - **記録（`crates/server/src/runlog.rs`）**: 終わり方の印と、大きさで回す記録の file（[動かす](run.md) の「落ちた後に調べる」）。ここだけは、tokio の糸を塞ぐ同期の書き方をする（`panic = "abort"` で、落ちる直前の行を残すため）。上限（`LOG_FILE_MAX`・`LOG_FILES`・`RUNS_MAX`）を変えたら、「落ちた後に調べる」の表も直す。binary を起こして終わり方を見る試験は `crates/server/tests/runlog.rs` と `crates/server/tests/server.rs`（試験ごとに空の folder を作り、その中に DB を置く。記録が DB の隣の `logs/` にできるため）、本物の image での確かめは `ci/smoke-image.sh`。log に出す行は、今までの行と同じく英語の `名=値` の形で書く。
 - **版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ（server と CLI が同じ版になる。`Cargo.lock` も変わる）、`CHANGELOG.md` に、API の形が替わったかを書く。

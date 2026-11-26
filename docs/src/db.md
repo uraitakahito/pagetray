@@ -168,5 +168,5 @@ erDiagram
 
 ## ほかの表
 
-- `_sqlx_migrations`: sqlx が持つ表。当てた移行の番号と、その SQL の SHA-384 を覚えていて、起きる時に `crates/server/migrations/` の file と突き合わせる。手で触らない。
+- `_sqlx_migrations`: sqlx が持つ表。当てた移行の番号と、その SQL の SHA-384 を覚えていて、起きる時に `crates/server/migrations/` の file と突き合わせる（合わなければ、移行を当てずに断る。後の版が書いた DB など。[API の仕様](api.md) の「データ」）。手で触らない。
 - `pages_fts_` で始まる表: 上の `pages_fts` の影の表。
