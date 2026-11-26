@@ -1,10 +1,10 @@
 //! `pagetray page …`: ページを探す・読む・置く・消す・返事の状態を書く・新着を待つ。
 
 use crate::client::{Failure, Route, Store, TIMEOUT};
+use crate::names::{is_page_path, is_segment, parse_page_path};
 use crate::output::{self, page_record, page_state};
 use aws_smithy_types::Blob;
 use clap::{Args, Subcommand, ValueEnum};
-use pagetray_api::{is_page_path, is_segment, parse_page_path};
 use serde_json::{Map, Value};
 use std::io::{IsTerminal, Read, Write};
 use std::path::PathBuf;

@@ -3,13 +3,13 @@
 //! 手元で見る所（名の作り方・EXIF・秘密の形）は、0.8.x までの CLI と同じ（1.0.0 で、その CLI を消した時に写して残した物）。
 
 use crate::client::{Failure, REFUSED, Route, Store, TIMEOUT};
+use crate::names::{
+    FILE_TYPES, MAX_FILE, Sniff, file_type, is_segment, parse_file_name, sniff, split_file_name,
+};
 use crate::output::{self, file_record};
 use crate::page::project_name;
 use aws_smithy_types::Blob;
 use clap::{Args, Subcommand};
-use pagetray_api::{
-    FILE_TYPES, MAX_FILE, Sniff, file_type, is_segment, parse_file_name, sniff, split_file_name,
-};
 use serde_json::{Map, Value};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};

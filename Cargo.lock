@@ -1997,7 +1997,6 @@ dependencies = [
  "clap",
  "clap_complete",
  "http-body-util",
- "pagetray-api",
  "pagetray-next",
  "pagetray_client",
  "serde",
