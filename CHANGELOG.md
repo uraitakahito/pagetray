@@ -2,6 +2,19 @@
 
 版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
+## 1.0.1
+
+API の版: 無い（1.0.0 と同じ。定義 `model/` の pagetray の形は替えていない）
+
+1.0.0 の後の片付け（AI-36 の段 9）と、公開の docs を 1.0.0 の形にするための版。API・DB の移行の SQL・image の中身・環境変数・port は 1.0.0 と同じで、1.0.0 の volume（`pagetray-data-v1`）でそのまま起きる。動いている 1.0.0 の置き場は、上げなくてよい。
+
+- **`migrate` を消した**: 0.8.x の DB を移す命令は、この版の image に無い。また切り替える時は、v1.0.0 の image を digest で指して移す（[release を出す](https://uraitakahito.github.io/pagetray/release.html) の「切り替え（済み）」）。0.8.x の server の code と `Containerfile.next` も消した。
+- 1.0.0 から後の server は、0.8.x の DB を何も書かずに断る所を残す（古い volume を消すまで）。断る時に、`-wal` と `-shm` の両方が在る時だけ WAL を読み、ほかは隣に file を作らずに読む。後の版が書いた DB は、0.8.x の DB と分けた訳で断る。
+- CLI（`pagetray`）: `page put`・`file put` の出す URL を、一覧と同じく頼んだ先（`--url`）で組む（`--url` が `127.0.0.1` でない名の時に、一覧と違う字だった）。0.8.x の置き場に向けると code 4 で止まる所は残す。
+- crate の名を替えた: CLI は package `pagetray`（1.0.0 では `pagetray-cli-next`）、server は package も binary も `pagetray-server`（1.0.0 では `pagetray-next`）。release に付く tar と image の中の名は同じ。source から入れる時（[CLI](https://uraitakahito.github.io/pagetray/cli.html) の `cargo install --git … --tag v<version> --locked pagetray`）、1.0.0 を入れるなら package は `pagetray-cli-next`（v1.0.0 の tag の `pagetray` は 0.8.x の server）。
+- castlist の定義を v1.0.0 に上げた（替わったのは定義の例の引数の字だけで、送り手を引く `ResolveActors` の形は替わらない）。
+- docs: 新しい API の形のページ（`next.html`）を [API の仕様](https://uraitakahito.github.io/pagetray/api.html) に入れ、[動かす](https://uraitakahito.github.io/pagetray/run.html)・[CLI](https://uraitakahito.github.io/pagetray/cli.html)・[release を出す](https://uraitakahito.github.io/pagetray/release.html) を 1.0.0 の形にした。
+
 ## 1.0.0
 
 API の版: 無い（1.0.0-rc.1 と同じ。0.8.x の API の版 1 との互換は無い。形の替わりは定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）が守る）
