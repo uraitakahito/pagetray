@@ -27,7 +27,7 @@ image と、release に付ける CLI の binary は public で、だれでも取
 戻す時（要る時だけ）:
 
 1. 1.0.0 を止めて消し、v0.8.0 の image と `pagetray-data` で起こす（[動かす](run.md) の「起こす」の `container run` の、image を `ghcr.io/uraitakahito/pagetray:v0.8.0` に、`-v` を `pagetray-data:/data` に替えた物。`-e PAGETRAY_CASTLIST_URL=http://castlist.box:8080` も付ける）。切り替えから戻すまでに 1.0.0 に置いた物は、`pagetray-data` に入らない。
-2. 呼ぶ側も戻す: roster を 0.8.x の API に向け直す（roster の docs の「設定」）。0.8.x の置き場には、0.8.x の release の CLI を使う（1.0.0 からの CLI は、0.8.x の置き場に向けると code 4 で止まる。[CLI](cli.md) の「終わりの code」）。
+2. 呼ぶ側も戻す: roster も切り替えの前の commit に戻す（1.0.0 からの roster は 1.0.0 の API だけを話し、1.0.0 より前の置き場を版で見て止まる。roster の docs の「運用」の「切り替えの前の版に戻す時」）。0.8.x の置き場には、0.8.x の release の CLI を使う（1.0.0 からの CLI は、0.8.x の置き場に向けると code 4 で止まる。[CLI](cli.md) の「終わりの code」）。
 3. castlist も組で戻す（v0.4.0 と `castlist-data`。手順は castlist の docs の「[release を出す](https://uraitakahito.github.io/castlist/release.html)」の「切り替え（済み）」）。0.8.x の pagetray は送り手を castlist の `POST /v1/resolve` で聞くので、1.0.0 の castlist（`/api/resolve` だけ）には聞けず、送り手を付けた置く要求がみな断られる。逆に、1.0.0 の pagetray は 0.4.x の castlist に聞けない。
 
 戻した後に、また切り替える時（castlist を先に 1.0.0 にしてから pagetray。切り替えの時と同じ順）:
@@ -35,8 +35,8 @@ image と、release に付ける CLI の binary は public で、だれでも取
 1. 0.8.x の `GET /api/backup` で写しを取り（止める直前に。[動かす](run.md) の「DB の写しを取る」）、0.8.x を止めて消す。
 2. 空の新しい volume を作る。`pagetray-data-v1` には 1.0.0 の書いた行があり、`migrate` は行のある先を断るので、そこへは移せない。名は `pagetray-data-v1-2`（3 度目からは番号を上げる）にする。`pagetray-data` で始まる名の volume を付ける命令は、TPM に相談する守り（この repo の `.claude/roles/config.jsonc`）に当たる。
 3. 移すのは **v1.0.0 の image の `migrate`** だけ（後の版には `migrate` が無い）。版の tag でなく digest で指す: `ghcr.io/uraitakahito/pagetray@sha256:612ba0d335e67ca2c91765c58e573b30ab76ace6c844e936099f32cea87ec8cd`。新しい volume を `/data` に、写しの folder を `/in:ro` に付けて、`migrate --from /in/<写しの file> --to /data/pages.db` を付けて起こす（`container run --rm`）。写しは `-wal`・`-shm` の無い 1 つの file で渡す。照らしが 1 つでも合わなければ、何も足さずに 1 で終わる（作りかけた DB は消す）。**1 で終わったら 4 に進まない。** 出た行（表ごとの `… ok` と、終わりの `migrated: …`）は残す。
-4. 移し終えてから、その volume で今の版を起こす（[動かす](run.md) の「起こす」の `container run` の、volume の名を替えた物）。roster も 1.0.0 の API に向け直す。
-5. 動く volume の名が替わったので、[動かす](run.md) の起こす・写しから戻す・記録を読む・止めるの行と、README の起こす行を新しい名に替える。替えないと、その行のとおりに打った時に、古い `pagetray-data-v1` で起こす。
+4. 移し終えてから、その volume で今の版を起こす（[動かす](run.md) の「起こす」の `container run` の、volume の名を替えた物）。roster も 1.0.0 からの版に戻す。
+5. 動く volume の名が替わったので、[動かす](run.md) の起こす・写しから戻す・記録を読む・止めるの行と、README の起こす行と、roster の運用のページ（docs-site の operations.md の「ページの置き場」の起こす行と DB の行）を新しい名に替える（roster にも PR を出す）。替えないと、その行のとおりに打った時に、古い `pagetray-data-v1` で起こす。
 
 ## image に入る物
 
