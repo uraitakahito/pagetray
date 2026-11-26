@@ -8,8 +8,5 @@
 /e2e/node_modules
 /e2e/test-results
 /e2e/playwright-report
-# 新しい server（AI-36）に向けて流した時の物（PAGETRAY_E2E_OUT=-next）。
-/e2e/test-results-*
-/e2e/playwright-report-*
 # 定義から作る時の作業の folder（ci/gen.sh）。
 /model/build

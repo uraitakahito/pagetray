@@ -2,7 +2,7 @@
 //!
 //! - 書く接続は 1 本だけ。番号（今の最大 ＋ 1）を取る所が 1 列に並ぶ。
 //! - 読む接続は 4 本で、読むだけ。WAL なので、書いている間も待たずに読める。
-//! - 接続の決まりと、今の server の DB を断る所は、castlist の新しい server（crates/server/src/db.rs）と同じ。
+//! - 接続の決まりと、0.8.x までの server の DB を断る所は、castlist の server（crates/server/src/db.rs）と同じ。
 //! - 返事・印・消すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする（間に別の書く物が入らない）。
 //! - file はページと同じ作り（番号は project・key・語・拡張子ごと。消した番号は files_removed）。
 use std::fmt;
@@ -23,7 +23,7 @@ pub const READ_WAIT: Duration = Duration::from_secs(3);
 /// 読む接続の本数。
 pub const READS: u32 = 4;
 
-/// 新しい server の移行（crates/server/migrations/）。
+/// この server の移行（crates/server/migrations/）。
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 /// [`Db::backup`] の失敗。
@@ -209,7 +209,7 @@ impl Reply {
     }
 }
 
-/// 返事の待ちの相手。DB では Product Manager を空で持つ（今の server と同じ）。
+/// 返事の待ちの相手。DB では Product Manager を空で持つ（0.8.x の server と同じ）。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Party {
     #[default]
@@ -314,7 +314,7 @@ pub enum OpenError {
     Migrate(sqlx::migrate::MigrateError),
     /// 外のキーの崩れた行がある（表と rowid と、指す先の表）。
     ForeignKey(Vec<String>),
-    /// 今の server（か別の版）の移行を当てた DB（新しい migrations に無い・中身の違う移行の版）。何も書かずに断る。
+    /// 0.8.x までの server（か別の版）の移行を当てた DB（この server の migrations に無い・中身の違う移行の版）。何も書かずに断る。
     Current(Vec<i64>),
 }
 
@@ -328,17 +328,29 @@ impl fmt::Display for OpenError {
                 "外のキーの崩れた行があるので開かない: {}",
                 rows.join("・")
             ),
-            OpenError::Current(versions) => write!(
-                f,
-                "今の server の DB（新しい server の migrations に無い・中身の違う移行 {} を当ててある）。開かずに止める。\
-                 今の DB は、写しを取って新しい volume へ移してから起こす: pagetray-next migrate --from <今の DB の写し> --to <新しい DB>\
-                 （image では <image> migrate --from <写し> --to /data/pages.db。/data には新しい volume を付ける）",
-                versions
+            OpenError::Current(versions) => {
+                let list = versions
                     .iter()
                     .map(i64::to_string)
                     .collect::<Vec<_>>()
-                    .join("・")
-            ),
+                    .join("・");
+                let newest = MIGRATOR.iter().map(|m| m.version).max().unwrap_or(0);
+                // 合わない版がみなこの server の最も新しい版より後なら、後の版（移行を足した版）が書いた DB（後の版から戻した時など）。
+                // 0.8.x の DB は、中身の違う版 1 を持つので、こちらに入らない。
+                if versions.iter().all(|v| *v > newest) {
+                    write!(
+                        f,
+                        "この server より新しい版の DB（この server の migrations に無い移行 {list} を当ててある）。\
+                         開かずに止める。書いた版の image で起こす"
+                    )
+                } else {
+                    write!(
+                        f,
+                        "0.8.x までの server の DB（この server の migrations に無い・中身の違う移行 {list} を当ててある）。\
+                         開かずに止める。移すには v1.0.0 の image の migrate で新しい volume へ（docs の release.md の「切り替え」）"
+                    )
+                }
+            }
         }
     }
 }
@@ -362,7 +374,7 @@ pub fn stamp(t: OffsetDateTime) -> String {
     )
 }
 
-/// 今の pagetray の時刻（[`stamp`] の字）。
+/// いまの時刻（[`stamp`] の字）。
 pub fn now() -> String {
     stamp(OffsetDateTime::now_utc())
 }
@@ -396,18 +408,29 @@ async fn page_row(tx: &mut SqliteConnection, id: i64) -> Result<PageRow, sqlx::E
 
 // --- 開く ---
 
-/// `path` が、今の server（か別の版）の移行を当てた DB なら [`OpenError::Current`] で断る。読むだけの接続
+/// `path` が、0.8.x までの server（か別の版）の移行を当てた DB なら [`OpenError::Current`] で断る。読むだけの接続
 /// （`read_only`）で開き、DB の中身は書き替えない（WAL の DB は -wal も読む）。file が無い・移行の表が無い時は通す（開く時に作る）。
-/// 移行の表の版のうち、新しい migrations に無い物か、中身の写し（checksum）が違う物があれば断る
-/// （今の server の DB は 0002〜0006 が無く、0001 も中身が違う。sqlx の移行に任せると、断る前に DB を WAL にする）。
+/// 移行の表の版のうち、この server の migrations に無い物か、中身の写し（checksum）が違う物があれば断る
+/// （0.8.x の DB は 0002〜0006 が無く、0001 も中身が違う。sqlx の移行に任せると、断る前に DB を WAL にする）。
 pub async fn refuse_current(path: &Path) -> Result<(), OpenError> {
     if !tokio::fs::try_exists(path).await.unwrap_or(false) {
         return Ok(());
     }
-    let mut conn =
-        SqliteConnection::connect_with(&SqliteConnectOptions::new().filename(path).read_only(true))
-            .await
-            .map_err(OpenError::Db)?;
+    // 隣に -wal が無ければ（止めた DB・写し）、本体の file だけに全てがあるので immutable で読み、隣に何も作らない
+    // （WAL の形の DB を読むだけの接続で開くと、-wal と -shm を作る。0.8.x の server の DB は WAL の形）。
+    // -wal があれば、checkpoint の前の物は本体の file だけでは読めない（immutable では「database disk image is
+    // malformed」になる）ので、読むだけの接続で WAL も読む（-wal と -shm は既に在るので、新しく作る物は無い）。
+    let mut wal = path.as_os_str().to_owned();
+    wal.push("-wal");
+    let wal_present = tokio::fs::try_exists(&wal).await.unwrap_or(false);
+    let mut conn = SqliteConnection::connect_with(
+        &SqliteConnectOptions::new()
+            .filename(path)
+            .read_only(true)
+            .immutable(!wal_present),
+    )
+    .await
+    .map_err(OpenError::Db)?;
     let applied: Result<Vec<(i64, Vec<u8>)>, sqlx::Error> = async {
         let has: i64 = sqlx::query_scalar(
             "select count(*) from sqlite_master where type = 'table' and name = '_sqlx_migrations'",
@@ -442,7 +465,7 @@ pub async fn refuse_current(path: &Path) -> Result<(), OpenError> {
 
 impl Db {
     /// 開き、移行し、外のキーの崩れが無いかを見る。崩れがあれば開かない。
-    /// 今の server の DB は、何も書かずに断る（[`refuse_current`]）。
+    /// 0.8.x までの server の DB は、何も書かずに断る（[`refuse_current`]）。
     pub async fn open(path: &Path) -> Result<Self, OpenError> {
         refuse_current(path).await?;
         // どの接続にも: 外のキーを効かせ、置き換え（REPLACE）が行を消す時も trigger を動かす。
@@ -513,8 +536,8 @@ impl Db {
     }
 
     /// 揃ったバックアップを、DB の隣の一時の file（`<DB>.backup-<pid>-<番号>`）に `VACUUM INTO` で作って開き、名を消してから
-    /// 開いた file を返す（今の server と同じ。開いた後は名が要らず、消しても読み終えるまで中身は残る）。
-    /// 読む接続で作る（今の server は書く接続。書く物を、写しを作る間ずっと待たせない）。
+    /// 開いた file を返す（開いた後は名が要らず、消しても読み終えるまで中身は残る）。
+    /// 読む接続で作る（0.8.x の server は書く接続。書く物を、写しを作る間ずっと待たせない）。
     /// 作る・開く・名を消すは、別の task でする。呼んだ側が待つのをやめても（守りの層の時間切れ・client が切った）、
     /// 終わりまで走って名を消すので、一時の file が DB の隣に残らない。
     pub async fn backup(&self) -> Result<std::fs::File, BackupError> {

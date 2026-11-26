@@ -1,4 +1,4 @@
-//! ページを置く操作（CreatePage）と、ページの本文を返す手の道（`GET /{project}/{key}/{kind}-{n}.html`。今の server と同じ URL）。
+//! ページを置く操作（CreatePage）と、ページの本文を返す手の道（`GET /{project}/{key}/{kind}-{n}.html`。0.8.x の server と同じ URL）。
 use std::sync::Arc;
 
 use axum::extract::{Path, State};

@@ -1,5 +1,5 @@
 //! file（CreateFile・ListFiles・DeleteFiles と、file の中身の道 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`）の振る舞い
-//! （処理より先に書く）。今の server の tests/api.rs の file の試験を、新しい道と欄の名で見る。
+//! （処理より先に書く）。v0.8.0 の tag の tests/api.rs の file の試験を、1.0.0 の道と欄の名で見る。
 //! 送り手は tests/senders.rs、本文の上限は tests/guard.rs。
 mod common;
 
@@ -860,7 +860,7 @@ async fn a_db_error_is_internal_and_a_busy_db_is_unavailable() {
     assert_eq!(error_type(&headers), "Unavailable");
     drop(held);
     let mut held = Vec::new();
-    for _ in 0..pagetray_next::db::READS {
+    for _ in 0..pagetray_server::db::READS {
         held.push(app.db.read().acquire().await.expect("読む接続"));
     }
     let (status, headers, json) = app.json("/api/files").await;
@@ -1233,13 +1233,13 @@ async fn files_from_the_list_ui_are_recorded_as_the_product_manager() {
 
 // --- 索引 ---
 
-/// file を探す SQL（`pagetray_next::search::file_plans()`）が、files を索引なしに端から読まない。
+/// file を探す SQL（`pagetray_server::search::file_plans()`）が、files を索引なしに端から読まない。
 /// 条件の無い一覧と nextToken は時刻の索引（files_created）の順に読み、並べ替えの一時の表を作らない。
 /// project（と key）は一意の索引で、送り手は files_sender で引く。
 #[tokio::test]
 async fn the_file_list_sql_reads_files_by_an_index() {
     let app = App::start().await;
-    let plans = pagetray_next::search::file_plans();
+    let plans = pagetray_server::search::file_plans();
     let names: Vec<&str> = plans.iter().map(|(name, _)| *name).collect();
     let searched = ["project", "project_key", "actor", "after", "after_oldest"];
     let ordered = ["plain", "oldest", "after", "after_oldest"];

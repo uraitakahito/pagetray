@@ -1,37 +1,36 @@
-//! 新しい pagetray の server を起こす binary（`pagetray-next`。AI-36）。今の server の src/main.rs と同じ振る舞い。
-//! 今の image（Containerfile）には入らず、rc の image（Containerfile.next）に /pagetray-server の名で入る。
+//! pagetray の server を起こす binary（`pagetray-server`）。release の image（Containerfile）に /pagetray-server の名で入る。
 //! e2e の試験と、手で動かして見るのにも使う。
 //!
 //! - `PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。
-//! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時と、今の server の DB の時は、
-//!   記録の置き場も DB も作らずに、stderr に訳を書いて 1 で終わる（今の volume に何も書かない）。
-//! - 記録の置き場は DB の隣の `logs/`（[`pagetray_next::runlog`]）。起きたら初めに、前の回の終わり方の行（`previous: …`）を出す。
+//! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時と、0.8.x までの server の DB の時は、
+//!   記録の置き場も DB も作らずに、stderr に訳を書いて 1 で終わる（古い volume に何も書かない）。
+//! - 記録の置き場は DB の隣の `logs/`（[`pagetray_server::runlog`]）。起きたら初めに、前の回の終わり方の行（`previous: …`）を出す。
 //! - 止める合図（SIGTERM・SIGINT）で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる
 //!   （待つのは [`SHUTDOWN_WAIT`] まで）。
-//!
-//! `pagetray-next migrate --from <今の DB の写し> --to <新しい DB>` は、起きずに、今の server の DB を新しい DB へ移す
-//! （[`pagetray_next::migrate`]。castlist の設定は読まず、記録の置き場も作らない）。
 use std::future::IntoFuture;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::time::Duration;
 
-use pagetray_next::castlist::Castlist;
-use pagetray_next::db::{Db, OpenError};
-use pagetray_next::runlog::{self, RunLog};
-use pagetray_next::{Config, REQUEST_TIMEOUT, app_with};
+use pagetray_server::castlist::Castlist;
+use pagetray_server::db::{Db, OpenError};
+use pagetray_server::runlog::{self, RunLog};
+use pagetray_server::{Config, REQUEST_TIMEOUT, app_with};
 use tokio::signal::unix::{SignalKind, signal};
 use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
 async fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    if args.first().map(String::as_str) == Some("migrate") {
-        return migrate(&args[1..]).await;
-    }
     if !args.is_empty() {
         eprintln!("{USAGE}");
+        if args[0] == "migrate" {
+            // 0.8.x の DB を移す命令は、v1.0.0 の image にだけある。
+            eprintln!(
+                "migrate は v1.0.0 の image（ghcr.io/uraitakahito/pagetray:v1.0.0）にある（docs の release.md の「切り替え」）"
+            );
+        }
         return ExitCode::from(2);
     }
     let path = PathBuf::from(env_or("PAGETRAY_DB", "/data/pages.db"));
@@ -43,8 +42,8 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    // 今の server の DB（今の volume）なら、記録の置き場も作らずに止める（その volume に何も書かない）。
-    if let Err(e @ OpenError::Current(_)) = pagetray_next::db::refuse_current(&path).await {
+    // 0.8.x までの server の DB（古い volume）なら、記録の置き場も作らずに止める（その volume に何も書かない）。
+    if let Err(e @ OpenError::Current(_)) = pagetray_server::db::refuse_current(&path).await {
         eprintln!("pagetray: {e}");
         return ExitCode::FAILURE;
     }
@@ -71,49 +70,8 @@ async fn main() -> ExitCode {
     }
 }
 
-/// 使い方。image の中では、binary は /pagetray-server（ENTRYPOINT なので、引数は image の名の後ろに付ける）。
-const USAGE: &str = "使い方: pagetray-next（image の中では /pagetray-server。環境変数 PAGETRAY_DB・PAGETRAY_LISTEN などで起きる）
-       pagetray-next migrate --from <今の DB の写し> --to <新しい DB>
-       （image では <image> migrate --from <写し> --to /data/pages.db。/data には新しい volume を付ける）";
-
-/// `migrate --from <file> --to <file>`: 移して、突き合わせを出す。合わない・移せない時は 1、引数の誤りは 2 で終わる。
-async fn migrate(args: &[String]) -> ExitCode {
-    let (mut from, mut to) = (None, None);
-    let mut rest = args.iter();
-    while let Some(flag) = rest.next() {
-        let slot = match flag.as_str() {
-            "--from" => &mut from,
-            "--to" => &mut to,
-            _ => {
-                eprintln!("知らない引数: {flag}\n{USAGE}");
-                return ExitCode::from(2);
-            }
-        };
-        match rest.next() {
-            Some(value) if slot.is_none() => *slot = Some(PathBuf::from(value)),
-            _ => {
-                eprintln!("{flag} は値を 1 つだけ\n{USAGE}");
-                return ExitCode::from(2);
-            }
-        }
-    }
-    let (Some(from), Some(to)) = (from, to) else {
-        eprintln!("--from と --to が要る\n{USAGE}");
-        return ExitCode::from(2);
-    };
-    match pagetray_next::migrate::migrate(&from, &to).await {
-        Ok(summary) => {
-            print!("{summary}");
-            // ほかの行と同じく英字（docs の例を、訳した本でもそのまま出せる）。
-            println!("migrated: {} → {}", from.display(), to.display());
-            ExitCode::SUCCESS
-        }
-        Err(e) => {
-            eprintln!("pagetray-next migrate: {e}");
-            ExitCode::FAILURE
-        }
-    }
-}
+/// 使い方。引数は取らない。
+const USAGE: &str = "使い方: pagetray-server（image の中では /pagetray-server。環境変数 PAGETRAY_DB・PAGETRAY_LISTEN などで起きる。引数は取らない）";
 
 /// 起きて、止める合図まで受け続ける。
 async fn serve(

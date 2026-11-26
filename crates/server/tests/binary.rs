@@ -1,4 +1,4 @@
-//! 起こす binary（`pagetray-next`）。`PAGETRAY_DB`・`PAGETRAY_LISTEN` で起き、castlist の設定（`PAGETRAY_CASTLIST_URL`・
+//! 起こす binary（`pagetray-server`）。`PAGETRAY_DB`・`PAGETRAY_LISTEN` で起き、castlist の設定（`PAGETRAY_CASTLIST_URL`・
 //! `PAGETRAY_CASTLIST_LINK_URL`）の形が違えば、DB を開く前に断って止まる。記録・止め方・起きた行・backup は
 //! tests/server.rs と tests/runlog.rs（本物の binary を起こす道具は tests/common/server.rs）。
 
@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-const BIN: &str = env!("CARGO_BIN_EXE_pagetray-next");
+const BIN: &str = env!("CARGO_BIN_EXE_pagetray-server");
 
 /// 空いている port。
 fn free_port() -> u16 {

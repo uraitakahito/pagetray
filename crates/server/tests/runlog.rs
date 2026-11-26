@@ -1,5 +1,5 @@
-//! binary（pagetray-next）を起こして、終わり方の印と記録の file を見る（決まりは docs/src/run.md の「落ちた後に調べる」）。
-//! 今の server の tests/server.rs の記録の試験を移した物（castlist の新しい server の tests/runlog.rs と同じ形）。
+//! binary（pagetray-server）を起こして、終わり方の印と記録の file を見る（決まりは docs/src/run.md の「落ちた後に調べる」）。
+//! v0.8.0 の tag の tests/server.rs の記録の試験を移した物（castlist の server の tests/runlog.rs と同じ形）。
 //! 試験ごとに空の folder を作り、その中に DB を置く。記録は DB の隣の logs/ にできるので、試験どうしで混ざらない。
 
 mod common;
@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use common::server::{Server, command};
 use common::{remove_db, temp_db};
-use pagetray_next::runlog::{LOG_FILE_MAX, LOG_FILES, RUNS_MAX};
+use pagetray_server::runlog::{LOG_FILE_MAX, LOG_FILES, RUNS_MAX};
 
 fn logs(db: &Path) -> PathBuf {
     db.with_file_name("logs")

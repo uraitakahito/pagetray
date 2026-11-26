@@ -1,9 +1,9 @@
-//! 新しい pagetray の server（AI-36）。
+//! pagetray の server。
 //!
 //! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
 //! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）と file の中身（[`files::show`]）と新着の知らせ
 //! （[`events::stream`]）と画面（[`ui`]）と backup・logs（[`hand`]）は、同じ Router に並べる。
-//! 起こす binary（src/main.rs）は、今の server と同じく記録の file（[`runlog`]）を DB の隣の `logs/` に残す。
+//! 起こす binary（src/main.rs）は、記録の file（[`runlog`]）を DB の隣の `logs/` に残す。
 //! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）・
 //! file を置く・探す・消す（[`files`]）。
 //! 形の決まりは docs/src/next.md。
@@ -18,7 +18,6 @@ mod guard;
 mod hand;
 mod list;
 mod marks;
-pub mod migrate;
 mod pages;
 mod record;
 mod remove;
@@ -48,7 +47,7 @@ use crate::generated::Generated;
 /// 1 つの問い合わせにかけてよい長さ。過ぎれば 503 `Unavailable` で返す（castlist と同じ）。
 pub const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// 本文の上限（ページも file も。今の server と同じ）。超えれば守りの層が 413 `PayloadTooLarge`（[`guard::limit`]）。
+/// 本文の上限（ページも file も）。超えれば守りの層が 413 `PayloadTooLarge`（[`guard::limit`]）。
 pub const MAX_BODY: usize = 16 * 1024 * 1024;
 
 /// 守りの層の設定。
@@ -139,10 +138,10 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .expect("どの操作にも handler がある");
     let generated = Generated::new(generated);
     Router::new()
-        // ページの本文（今の server と同じ URL）。`project` に `api` は置けないので、`/api/…` は本文の道に入れず、
+        // ページの本文（0.8.x の server と同じ URL）。`project` に `api` は置けないので、`/api/…` は本文の道に入れず、
         // みな生成した層に渡す（名指した道が先に当たる）。
         .route("/{project}/{key}/{file}", get(pages::show))
-        // file の中身（今の server と同じ URL）。段の数がページの本文と違うので、種類 files のページ（`files-1.html`）とぶつからない。
+        // file の中身（0.8.x の server と同じ URL）。段の数がページの本文と違うので、種類 files のページ（`files-1.html`）とぶつからない。
         .route("/{project}/{key}/files/{file}", get(files::show))
         .with_state(db.clone())
         // 新着の知らせ（SSE。名指した道が、生成した層の `/api/…` より先に当たる）。
@@ -159,7 +158,7 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             guard::timeout,
         ))
         .layer(middleware::from_fn(guard::guard))
-        // 問い合わせごとの 1 行（記録の file にだけ書く。src/runlog.rs の init）。guard が断った物も残る。今の server と同じ。
+        // 問い合わせごとの 1 行（記録の file にだけ書く。src/runlog.rs の init）。guard が断った物も残る。
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))

@@ -1,5 +1,5 @@
-//! CreatePage の振る舞い（処理より先に書く）。今の server の「置く」の決まり（docs/src/next.md の「ページを置く」）を、
-//! 新しい道と欄の名で見る。送り手（actorIssuer・actorRef）は tests/senders.rs。
+//! CreatePage の振る舞い（処理より先に書く）。0.8.x の server の「置く」の決まり（docs/src/next.md の「ページを置く」）を、
+//! 1.0.0 の道と欄の名で見る。送り手（actorIssuer・actorRef）は tests/senders.rs。
 mod common;
 
 use axum::body::Body;
@@ -244,9 +244,9 @@ async fn created_at_is_utc_to_the_millisecond_and_now_when_missing() {
         assert_eq!(got, stored, "{given}");
     }
     // 書かなければ今（UTC・ミリ秒まで・24 字）。
-    let before = pagetray_next::db::now();
+    let before = pagetray_server::db::now();
     let (_, _, json) = app.put("p", "k", "result", "role=tpm", "<p>x</p>").await;
-    let after = pagetray_next::db::now();
+    let after = pagetray_server::db::now();
     let got: String = scalar(&app, "select created_at from pages where kind = 'result'").await;
     assert_eq!(got.len(), 24, "{got}");
     assert!(got.ends_with('Z'), "{got}");
@@ -462,19 +462,4 @@ async fn the_body_must_be_html() {
         );
     }
     assert_eq!(app.count("pages").await, 1);
-}
-
-/// 新しい server の題と索引の字の取り出しは、今の server（src/text.rs）と同じ中身（作り直しの間は 2 つを同じに保つ）。
-#[test]
-fn the_text_extraction_is_the_same_as_the_current_server() {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let current = std::fs::read_to_string(root.join("../../src/text.rs")).unwrap();
-    let next = std::fs::read_to_string(root.join("src/text.rs")).unwrap();
-    let body = |s: &str| {
-        s.lines()
-            .filter(|l| !l.starts_with("//!"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-    assert_eq!(body(&current), body(&next));
 }

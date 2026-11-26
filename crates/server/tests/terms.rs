@@ -1,5 +1,5 @@
-//! 語の決まり（docs/src/glossary.md の用語集）が、新しい server の画面と文書に合っているか（今の server の tests/terms.rs と同じ決まり。
-//! template は repo の templates/ を共に使うので、ここでは新しい server が組んだ画面を見る）。
+//! 語の決まり（docs/src/glossary.md の用語集）が、server の画面と文書に合っているか（template は repo の templates/ にあり、
+//! ここでは server が組んだ画面を見る）。
 
 mod common;
 
@@ -29,7 +29,7 @@ fn files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-/// 用語集に書いた id と class と区画の名が、新しい server の Key の画面に在るか。名を変える時は、両方を一緒に変える。
+/// 用語集に書いた id と class と区画の名が、server の Key の画面に在るか。名を変える時は、両方を一緒に変える。
 #[tokio::test]
 async fn ids_in_the_glossary_exist_in_the_ui() {
     let s = App::start().await;
@@ -92,18 +92,17 @@ async fn ids_in_the_glossary_exist_in_the_ui() {
     }
 }
 
-/// 用語集の「使わない言い方」が、文書・画面・code に戻って来ていないか（今の server の試験と同じ所を見る）。
-/// 見ない所: 用語集そのもの・CHANGELOG・2 つの server の語の試験・英語の訳。
+/// 用語集の「使わない言い方」が、文書・画面・code に戻って来ていないか。
+/// 見ない所: 用語集そのもの・CHANGELOG・この試験・英語の訳。
 #[test]
 fn retired_terms_stay_out() {
     let retired = ["口の約束", "口の版", "右の枠", "サイドメニュー"];
     let mut paths = vec![root().join("README.md")];
-    for dir in ["docs/src", "src", "templates", "tests", "crates", "ci"] {
+    for dir in ["docs/src", "templates", "crates", "ci"] {
         files(&root().join(dir), &mut paths);
     }
     let skip = [
         root().join("docs/src/glossary.md"),
-        root().join("tests/terms.rs"),
         root().join("crates/server/tests/terms.rs"),
     ];
     for path in paths.iter().filter(|p| !skip.contains(p)) {

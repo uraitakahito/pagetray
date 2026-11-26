@@ -1,4 +1,4 @@
-//! ページの本文の道（`GET /{project}/{key}/{kind}-{n}.html`。手の道。今の server と同じ URL）の振る舞い。
+//! ページの本文の道（`GET /{project}/{key}/{kind}-{n}.html`。手の道。0.8.x の server と同じ URL）の振る舞い。
 mod common;
 
 use axum::http::{StatusCode, header};

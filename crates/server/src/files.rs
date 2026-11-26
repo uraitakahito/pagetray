@@ -1,7 +1,7 @@
 //! file の操作（CreateFile・ListFiles・DeleteFiles）と、file の中身を返す手の道
-//! （`GET /{project}/{key}/files/{語}-{n}.{拡張子}`。今の server と同じ URL）。
+//! （`GET /{project}/{key}/files/{語}-{n}.{拡張子}`。0.8.x の server と同じ URL）。
 //!
-//! - 受ける種類（拡張子・返す時の Content-Type・中身の見方）は [`FILE_TYPES`]（今の crates/api と同じ表）。
+//! - 受ける種類（拡張子・返す時の Content-Type・中身の見方）は [`FILE_TYPES`]。
 //! - 置く時の検査の順: 引数の形（生成した層の 400）→ 引数の決まり（400）→ 種類・Content-Type・中身（415）→
 //!   castlist（400・503）→ DB（409・503）。前で断れば、後は見ない（castlist に聞かない・何も残さない）。
 //! - 一覧の UI の form から上げた物（守りの層の印 [`FromUi`]）は、役割 [`UI_ROLE`]・workspace 空で残し、番号・時刻・

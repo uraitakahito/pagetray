@@ -1,5 +1,5 @@
 //! 頁の印（nextToken）: 中身の字を改行で繋ぎ、16 進にした物。中は読まずに、前の答えの物をそのまま渡してもらう。
-//! 頭の字は検索の種類で、ほかの検索の印と分ける（castlist の新しい server の crates/server/src/token.rs と同じ形）。
+//! 頭の字は検索の種類で、ほかの検索の印と分ける（castlist の server の crates/server/src/token.rs と同じ形）。
 
 /// 崩れた印の訳。
 pub const BROKEN: &str = "nextToken が読めない（前の答えの nextToken を、そのまま渡す）";

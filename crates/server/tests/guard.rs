@@ -1,6 +1,6 @@
 //! 守りの層の振る舞い。生成した道の前でも、手の道（ページの本文）の前でも効く。
 //! - 断る答えは、生成した層の誤りと同じ restJson1 の形（header `X-Amzn-Errortype` と、本文の JSON の `message`）。
-//! - Host と Origin（今の server と同じ）・HEAD（GET と同じに答え、本文を捨てる）・頭の印・時間切れ。
+//! - Host と Origin（0.8.x の server と同じ）・HEAD（GET と同じに答え、本文を捨てる）・頭の印・時間切れ。
 mod common;
 
 use std::time::{Duration, Instant};
@@ -138,8 +138,8 @@ async fn every_answer_is_stamped_and_the_old_api_header_is_gone() {
 /// 書く接続を握ったままにすると、置く要求は書く接続を待ち（WRITE_WAIT）、問い合わせの時間切れより前に「混んでいる」の 503。
 #[tokio::test]
 async fn a_busy_writer_is_unavailable_before_the_request_timeout() {
-    assert!(pagetray_next::db::WRITE_WAIT < pagetray_next::REQUEST_TIMEOUT);
-    assert!(pagetray_next::db::READ_WAIT < pagetray_next::REQUEST_TIMEOUT);
+    assert!(pagetray_server::db::WRITE_WAIT < pagetray_server::REQUEST_TIMEOUT);
+    assert!(pagetray_server::db::READ_WAIT < pagetray_server::REQUEST_TIMEOUT);
     let app = App::start().await;
     let held = app.db.write().acquire().await.expect("書く接続");
     let started = Instant::now();
@@ -152,15 +152,15 @@ async fn a_busy_writer_is_unavailable_before_the_request_timeout() {
         json["message"].as_str().unwrap().contains("混んでいる"),
         "{json}"
     );
-    assert!(took >= pagetray_next::db::WRITE_WAIT, "{took:?}");
-    assert!(took < pagetray_next::REQUEST_TIMEOUT, "{took:?}");
+    assert!(took >= pagetray_server::db::WRITE_WAIT, "{took:?}");
+    assert!(took < pagetray_server::REQUEST_TIMEOUT, "{took:?}");
     assert_eq!(app.count("pages").await, 0);
 }
 
 /// 時間切れの長さを短くすると、それより遅い答えは時間切れの 503 になる。
 #[tokio::test]
 async fn a_slow_answer_times_out_with_unavailable() {
-    let app = App::start_with(pagetray_next::Config {
+    let app = App::start_with(pagetray_server::Config {
         timeout: Duration::from_millis(200),
         ..Default::default()
     })
@@ -201,12 +201,12 @@ fn chunked(bytes: Vec<u8>, parts: usize) -> Body {
     Body::new(Chunks(chunks))
 }
 
-/// 本文の上限は 16 MiB（ページも file も。今の server と同じ）。超えれば、守りの層が 413 `PayloadTooLarge`
+/// 本文の上限は 16 MiB（ページも file も。0.8.x の server と同じ）。超えれば、守りの層が 413 `PayloadTooLarge`
 /// （restJson1 の形）で断り、何も置かない。`Content-Length` の付いた要求も、大きさを言わずに流す要求も同じ。
 /// ちょうど 16 MiB は通る。
 #[tokio::test]
 async fn a_body_over_16_mib_is_too_large_for_pages_and_files() {
-    assert_eq!(pagetray_next::MAX_BODY, 16 * 1024 * 1024);
+    assert_eq!(pagetray_server::MAX_BODY, 16 * 1024 * 1024);
     let app = App::start().await;
     let page = |len: usize| vec![b'a'; len];
     let file = |len: usize| {
@@ -214,7 +214,7 @@ async fn a_body_over_16_mib_is_too_large_for_pages_and_files() {
         bytes.resize(len, 0);
         bytes
     };
-    let max = pagetray_next::MAX_BODY;
+    let max = pagetray_server::MAX_BODY;
     let page_uri = pages_uri("p", "k", "plan", "role=tpm");
     let file_uri = common::files_uri("p", "k", "role=tpm&name=big.png");
     for (uri, content_type, bytes) in [
