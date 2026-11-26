@@ -64,6 +64,55 @@ fn put_prints_the_url_and_the_store_numbers_the_pages() {
     std::fs::remove_file(file).unwrap();
 }
 
+/// 置いた答えの url は、一覧と同じく、頼んだ先（--url）で組む。置き場は Host を 127.0.0.1 として組むので、
+/// 頼んだ先の名が 127.0.0.1 でない時（localhost・同じ network の container の名）に、一覧と違う字にならない（review-29）。
+#[test]
+fn put_prints_the_url_in_the_form_of_the_url_it_was_sent_to() {
+    let s = Server::start();
+    let url = s.url.replace("127.0.0.1", "localhost");
+    let file = temp("put-localhost.html");
+    std::fs::write(&file, html("計画", "本文")).unwrap();
+    let file = file.to_str().unwrap();
+
+    let ran = run_with(&url, &put_args(file, "plan"), &[], None);
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert_eq!(ran.stdout, format!("{url}/p/AI-22/plan-1.html\n"));
+    let listed = run_with(&url, &["page", "list", "--project", "p"], &[], None);
+    assert!(
+        listed
+            .stdout
+            .contains(&format!("{url}/p/AI-22/plan-1.html")),
+        "{}",
+        listed.stdout
+    );
+
+    let note = temp("note-localhost.txt");
+    std::fs::write(&note, "メモ").unwrap();
+    let ran = run_with(
+        &url,
+        &[
+            "file",
+            "put",
+            note.to_str().unwrap(),
+            "--project",
+            "p",
+            "--key",
+            "AI-22",
+            "--name",
+            "note.txt",
+        ],
+        &[],
+        None,
+    );
+    assert_eq!(ran.code, 0, "{}", ran.stderr);
+    assert!(
+        ran.stdout
+            .starts_with(&format!("{url}/p/AI-22/files/note-1.txt")),
+        "{}",
+        ran.stdout
+    );
+}
+
 #[test]
 fn put_reads_stdin_and_takes_role_and_project_from_the_environment() {
     let s = Server::start();

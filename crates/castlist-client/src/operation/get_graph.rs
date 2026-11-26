@@ -383,9 +383,9 @@ mod get_graph_test {
         let _ = dbg!(result);
         let http_request = request_receiver.expect_request();
         let expected_query_params = &[
-            "label=tpm.key:t-23zs",
-            "from=2026-11-24T00:00:00Z",
-            "to=2026-11-25T00:00:00Z",
+            "label=tpm.key%3At-23zs",
+            "from=2026-11-24T00%3A00%3A00Z",
+            "to=2026-11-25T00%3A00%3A00Z",
         ];
         ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_query_string(
             &http_request,
