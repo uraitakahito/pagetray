@@ -1999,7 +1999,6 @@ dependencies = [
  "http-body-util",
  "pagetray-next",
  "pagetray_client",
- "serde",
  "serde_json",
  "tokio",
  "tower 0.5.3",
