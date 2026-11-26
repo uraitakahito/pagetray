@@ -1,9 +1,5 @@
 // 一覧の UI の試験の設定。同じ commit の pagetray-server を、空いている port と一時の DB で起こして向ける。
-//   PAGETRAY_E2E_SERVER   起こす binary（既定は ../target/debug/pagetray-server。先に cargo build --bin pagetray-server）。
-//                         作り直している新しい server（AI-36）なら ../target/debug/pagetray-next（cargo build --locked --bin pagetray-next）
-//   PAGETRAY_E2E_API      試験が API を叩く形（tests/wire.ts）。current（今の server）か next（新しい server）。既定は、起こす binary の名が
-//                         pagetray-next なら next、ほかは current。名を替えた binary や包みの script を向ける時は、これを付ける
-//   PAGETRAY_E2E_OUT      落ちた時の写しと report を置く folder の名の後ろに付ける字（2 つの server を続けて流す CI で分けるため）
+//   PAGETRAY_E2E_SERVER   起こす binary（既定は ../target/debug/pagetray-server。先に cargo build --locked --bin pagetray-server）
 //   PAGETRAY_E2E_PORT     待ち受ける port（既定 18801）。その次の port に、試験が偽の castlist を立てる（helpers.ts の startCastlist）。
 //                         一覧の UI の castlist への link の頭は、さらに次の port の localhost（helpers.ts の CASTLIST_LINK。開かない）
 //   PAGETRAY_E2E_CHANNEL  この機械に入っている browser を使う時の名（chrome など）。無ければ Playwright の Chromium
@@ -11,13 +7,10 @@
 //                         読むだけの試験（題に @smoke が付いた物）だけを流す。browser は、この機械の Chrome を使う
 import { defineConfig } from '@playwright/test';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 
 const port = Number(process.env.PAGETRAY_E2E_PORT ?? 18801);
 const server = process.env.PAGETRAY_E2E_SERVER ?? '../target/debug/pagetray-server';
-// 設定は、試験を流す worker の中でも読み直される。環境変数で worker に渡す（tests/wire.ts が読む）。
-process.env.PAGETRAY_E2E_API ??= basename(server) === 'pagetray-next' ? 'next' : 'current';
-const out = process.env.PAGETRAY_E2E_OUT ?? '';
 // DB は、この試験だけの folder に置く（サーバーが、DB の隣の logs/ に記録を残すため）。
 const home = join(tmpdir(), `pagetray-e2e-${port}`);
 const db = join(home, 'pages.db');
@@ -33,8 +26,8 @@ export default defineConfig({
   retries: 0,
   forbidOnly: !!process.env.CI,
   grep: store ? /@smoke/ : undefined,
-  outputDir: `test-results${out}`,
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never', outputFolder: `playwright-report${out}` }]] : 'list',
+  outputDir: 'test-results',
+  reporter: process.env.CI ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]] : 'list',
   use: {
     baseURL: store ?? `http://127.0.0.1:${port}`,
     channel: process.env.PAGETRAY_E2E_CHANNEL ?? (store ? 'chrome' : undefined),

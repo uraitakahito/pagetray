@@ -12,21 +12,21 @@ use axum::Router;
 use axum::body::Body;
 use axum::http::{HeaderMap, Request, StatusCode, header};
 use http_body_util::BodyExt;
-use pagetray_next::db::Db;
+use pagetray_server::db::Db;
 use serde_json::Value;
 use tower::ServiceExt;
 
 /// 試験の要求の Host。
 pub const HOST: &str = "127.0.0.1:8801";
 
-/// 1×1 の PNG（本物の形。今の server の試験と同じ物）。
+/// 1×1 の PNG（本物の形）。
 pub const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xcf\xc0\xf0\x1f\x00\x05\x00\x01\xff\x89\x99=\x1d\x00\x00\x00\x00IEND\xaeB`\x82";
 
 /// 一時の DB の path（試験ごとに別の、空の folder の中）。
 pub fn temp_db(tag: &str) -> PathBuf {
     static SEQ: AtomicU32 = AtomicU32::new(0);
     let dir = std::env::temp_dir().join(format!(
-        "pagetray-next-test-{tag}-{}-{}",
+        "pagetray-server-test-{tag}-{}-{}",
         std::process::id(),
         SEQ.fetch_add(1, Ordering::Relaxed)
     ));
@@ -40,7 +40,7 @@ pub fn remove_db(path: &Path) {
     let Some(dir) = path.parent() else { return };
     let name = dir.file_name().and_then(|n| n.to_str()).unwrap_or("");
     assert!(
-        name.starts_with("pagetray-next-test-"),
+        name.starts_with("pagetray-server-test-"),
         "temp_db の folder ではない: {}",
         dir.display()
     );
@@ -62,23 +62,23 @@ impl Drop for App {
 
 impl App {
     pub async fn start() -> Self {
-        Self::start_with(pagetray_next::Config::default()).await
+        Self::start_with(pagetray_server::Config::default()).await
     }
 
     /// 守りの層の設定（時間切れの長さ）を決めて起こす。
-    pub async fn start_with(config: pagetray_next::Config) -> Self {
+    pub async fn start_with(config: pagetray_server::Config) -> Self {
         let path = temp_db("app");
         let db = Arc::new(Db::open(&path).await.expect("Db::open"));
-        let app = pagetray_next::app_with(db.clone(), config);
+        let app = pagetray_server::app_with(db.clone(), config);
         Self { app, db, path }
     }
 
     /// 送り手を `url`（`PAGETRAY_CASTLIST_URL` の値）の castlist に聞いて起こす。
     pub async fn with_castlist(url: &str) -> Self {
-        let castlist = pagetray_next::castlist::Castlist::configure(Some(url), None)
+        let castlist = pagetray_server::castlist::Castlist::configure(Some(url), None)
             .expect("castlist の URL")
             .expect("castlist がある");
-        Self::start_with(pagetray_next::Config {
+        Self::start_with(pagetray_server::Config {
             castlist: Some(castlist),
             ..Default::default()
         })
@@ -89,7 +89,7 @@ impl App {
     pub async fn reopen(&mut self) {
         self.db.close().await;
         self.db = Arc::new(Db::open(&self.path).await.expect("Db::open"));
-        self.app = pagetray_next::app(self.db.clone());
+        self.app = pagetray_server::app(self.db.clone());
     }
 
     /// 送り手の行（id の順。付随する id を出した物・付随する id・castlist のアクターの id・名・種類・答えた時刻）。

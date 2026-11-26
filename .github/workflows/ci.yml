@@ -9,8 +9,6 @@ on:
 permissions:
   contents: read
 env:
-  # sqlx-cli の版。上げる時は docs/src/development.md の「SQL を変えた時」も合わせる。
-  SQLX_CLI_VERSION: 0.9.1
   # 秘密の走査の道具。版と、release の checksums.txt の値（linux_arm64）を一緒に上げる。
   GITLEAKS_VERSION: 8.30.1
   GITLEAKS_SHA256: e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
@@ -21,9 +19,6 @@ jobs:
   test:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
-    env:
-      # SQL の検査は commit した .sqlx/ で行う（DB は要らない）。
-      SQLX_OFFLINE: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
@@ -47,16 +42,6 @@ jobs:
           --skip operation::list_events::list_events_test::list_events_request_request
       # pagetray を呼ぶ crate（人が打つ CLI が使う）の中の、pagetray の定義の例から作った試験。
       - run: cargo test --locked -p pagetray_client
-      - name: .sqlx/ が SQL と合っているか
-        env:
-          SQLX_OFFLINE: "false"
-          DATABASE_URL: sqlite://${{ runner.temp }}/prepare.db
-        run: |
-          command -v cargo-sqlx >/dev/null && cargo sqlx --version | grep -qF "$SQLX_CLI_VERSION" \
-            || cargo install "sqlx-cli@$SQLX_CLI_VERSION" --no-default-features --features sqlite
-          cargo sqlx database create
-          cargo sqlx migrate run
-          cargo sqlx prepare --check
   model:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
@@ -98,36 +83,13 @@ jobs:
           sudo tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C /usr/local/bin gitleaks
       - name: image に、入ってよい物だけが入っているか（中身の一覧・設定・秘密の走査）
         run: ci/check-image.sh pagetray:ci
-      # 1.0.0 から、image は新しい server（Containerfile）。新しい API の形で置いて読み、今の版（v0.8.0）の写しを移す予行もする。
-      - name: 空の image の中で起き、新しい API で置いて読めて、止めて起こし直しても残り、今の版の写しを移せるか
-        run: ci/smoke-image.sh pagetray:ci next
-  image-next:
-    # Containerfile.next（1.0.0 から Containerfile と同じ中身。新しい server の pagetray-next を /pagetray-server の名で置く）を、
-    # job image と同じ決まりで見る。job image と重なるだけで、段 9 で Containerfile.next と一緒に消す。
-    # まだ、main を守る ruleset の必須の check ではない（docs/src/development.md の「main を守る決まり」）。
-    if: github.event_name != 'schedule'
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # 出どころの記録（provenance・SBOM）は付けない。付ける時は、中身を見てから。
-      - run: docker build --provenance=false --sbom=false -t pagetray-next:ci -f Containerfile.next .
-      - name: gitleaks を入れる（版と checksum を固定）
-        run: |
-          curl -fsSL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_arm64.tar.gz"
-          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
-          sudo tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C /usr/local/bin gitleaks
-      - name: image に、入ってよい物だけが入っているか（中身の一覧・設定・秘密の走査）
-        run: ci/check-image.sh pagetray-next:ci
-      - name: 空の image の中で起き、新しい API で置いて読めて、断る答えが restJson1 の形で、止めて起こし直しても残るか
-        run: ci/smoke-image.sh pagetray-next:ci next
+      - name: 空の image の中で起き、API で置いて読めて、断る答えが restJson1 の形で、止めて起こし直しても残るか
+        run: ci/smoke-image.sh pagetray:ci
   cli:
     if: github.event_name != 'schedule'
     # release に付ける CLI と同じ OS・CPU（macOS・arm64）で、同じ script で作って確かめる。
     # 出す binary の作り方と走査を、release の時でなく PR で通させるため。
     runs-on: macos-15
-    env:
-      SQLX_OFFLINE: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
@@ -147,7 +109,7 @@ jobs:
       - name: binary に、入ってよい物だけが入っているか（形・library・版・秘密の走査）
         run: ci/check-cli.sh target/release/pagetray
       - name: その binary を、同じ commit のサーバーに向けて打つ
-        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli-next
+        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray
       - name: release に付ける tar を作れるか（中身の一覧と持ち主も見る。作った tar は捨てる）
         run: ci/pack-cli.sh target/release/pagetray v0.0.0-ci "$RUNNER_TEMP/out"
   ui:
@@ -156,13 +118,11 @@ jobs:
     # まだ、main を守る ruleset の必須の check ではない（docs/src/development.md の「一覧の UI の試験」）。
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      SQLX_OFFLINE: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
-      - name: 試験が起こすサーバーを作る（今の server と、作り直している新しい server）
-        run: cargo build --locked --bin pagetray-server --bin pagetray-next
+      - name: 試験が起こすサーバーを作る
+        run: cargo build --locked --bin pagetray-server
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: e2e/package.json
@@ -180,41 +140,20 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('e2e/pnpm-lock.yaml') }}
       - name: Chromium と、それが要る library を入れる
-        # 上の build・依存・browser の段がみな通ったかを、新しい server の段が見る。
-        id: ready
         working-directory: e2e
         run: pnpm exec playwright install --with-deps --only-shell chromium
       - name: 一覧の UI の試験
-        id: old
+        id: ui
         working-directory: e2e
         run: pnpm test
-      - name: 一覧の UI の試験（新しい server。AI-36）
-        # 今の server の段が落ちても流す（作り直しの間は、両方の結果が要る）。ただし、用意の段が落ちた時は流さない
-        # （binary の無いまま 2 つ目の赤を出さない）。
-        id: next
-        if: (success() || failure()) && steps.ready.outcome == 'success'
-        working-directory: e2e
-        env:
-          PAGETRAY_E2E_SERVER: ../target/debug/pagetray-next
-          PAGETRAY_E2E_OUT: -next
-        run: pnpm test
-      # 落ちた段の report だけを上げる。
-      - if: failure() && steps.old.outcome == 'failure'
+      # 試験の段が落ちた時だけ、report を上げる。
+      - if: failure() && steps.ui.outcome == 'failure'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ui-report
           path: |
             e2e/playwright-report/
             e2e/test-results/
-          retention-days: 7
-          if-no-files-found: ignore
-      - if: failure() && steps.next.outcome == 'failure'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ui-report-next
-          path: |
-            e2e/playwright-report-next/
-            e2e/test-results-next/
           retention-days: 7
           if-no-files-found: ignore
   advisories:
@@ -225,7 +164,7 @@ jobs:
         with:
           # 弱点と、crate の license（MIT の pagetray と一緒に配れる物か）。
           command: check advisories licenses
-          # workspace の member をみな見る（付けないと、頭の crate（今の server）の依存しか見ない。新しい server は crates/server）。
+          # workspace の member をみな見る（既定の member の外の、生成した crate も見る）。
           # この action の既定は --all-features だが、arguments を書くと置き換わる。見るのは、image と CI で build する
           # 既定の features の依存だけ、と決めた（crates/castlist-client の既定から外した TLS の crate など、build しない物は見ない）。
           arguments: --workspace

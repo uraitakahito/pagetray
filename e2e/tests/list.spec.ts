@@ -10,9 +10,9 @@ const NEW_DARK = 'rgb(92, 193, 143)'; // --new: #5cc18f
 test('一覧の列: 置いたページが新しい順に出る。時刻はこの機械の時刻。console に誤りが無い', async ({ page, request }) => {
   const errors = collectErrors(page);
   const at = (second: number) => `2026-11-01T00:00:0${second}Z`;
-  await place(request, { project: 'rows', key: 'K-1', kind: 'plan', role: 'tpm', n: '1', created_at: at(1) }, '<title>計画 その一</title><p>りんご</p>');
-  await place(request, { project: 'rows', key: 'K-1', kind: 'result', role: 'software-engineer', n: '1', created_at: at(2) }, '<p>題の無いページ</p>');
-  await place(request, { project: 'rows', key: 'K-2', kind: 'brief', role: 'tpm', n: '1', created_at: at(3) }, '<title>依頼 その三</title><p>ぶどう</p>');
+  await place(request, { project: 'rows', key: 'K-1', kind: 'plan', role: 'tpm', n: '1', createdAt: at(1) }, '<title>計画 その一</title><p>りんご</p>');
+  await place(request, { project: 'rows', key: 'K-1', kind: 'result', role: 'software-engineer', n: '1', createdAt: at(2) }, '<p>題の無いページ</p>');
+  await place(request, { project: 'rows', key: 'K-2', kind: 'brief', role: 'tpm', n: '1', createdAt: at(3) }, '<title>依頼 その三</title><p>ぶどう</p>');
 
   await openLive(page, '/?project=rows');
   await expect(rows(page)).toHaveCount(3);
@@ -59,8 +59,8 @@ test('絞り込みの列: 候補を押すと合う行だけになり、もう一
 
 test('操作の帯: 題と本文の字で探せる。並びを替えられる', async ({ page, request }) => {
   const at = (second: number) => `2026-11-02T00:00:0${second}Z`;
-  await place(request, { project: 'find', key: 'F-1', kind: 'plan', role: 'tpm', n: '1', created_at: at(1) }, '<title>古い方</title><p>みかん</p>');
-  await place(request, { project: 'find', key: 'F-1', kind: 'result', role: 'tpm', n: '1', created_at: at(2) }, '<title>新しい方</title><p>ぶどう</p>');
+  await place(request, { project: 'find', key: 'F-1', kind: 'plan', role: 'tpm', n: '1', createdAt: at(1) }, '<title>古い方</title><p>みかん</p>');
+  await place(request, { project: 'find', key: 'F-1', kind: 'result', role: 'tpm', n: '1', createdAt: at(2) }, '<title>新しい方</title><p>ぶどう</p>');
 
   await page.goto('/?project=find');
   await toolbar(page).getByRole('searchbox', { name: '題と本文を探す' }).fill('みかん');
@@ -83,8 +83,8 @@ test('操作の帯: 題と本文の字で探せる。並びを替えられる', 
 test('一覧の列: 200 枚を越えると「続きを出す」で残りが出る', async ({ page, request }) => {
   const base = Date.parse('2026-11-03T00:00:00Z');
   for (let n = 1; n <= 201; n += 1) {
-    const created_at = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
-    await place(request, { project: 'more', key: 'M-1', kind: 'result', role: 'tpm', n: String(n), created_at }, `<title>${n} 枚目</title>`);
+    const createdAt = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
+    await place(request, { project: 'more', key: 'M-1', kind: 'result', role: 'tpm', n: String(n), createdAt }, `<title>${n} 枚目</title>`);
   }
   await page.goto('/?project=more');
   await expect(rows(page)).toHaveCount(200);
@@ -97,8 +97,8 @@ test('一覧の列: 200 枚を越えると「続きを出す」で残りが出�
 test('一覧の列: 続きを出して古い方を見ている時は差し替えず、新着の印を押すと頭の一覧に戻る', async ({ page, request }) => {
   const base = Date.parse('2026-11-04T00:00:00Z');
   for (let n = 1; n <= 201; n += 1) {
-    const created_at = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
-    await place(request, { project: 'paged', key: 'P-1', kind: 'result', role: 'tpm', n: String(n), created_at }, `<title>${n} 枚目</title>`);
+    const createdAt = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
+    await place(request, { project: 'paged', key: 'P-1', kind: 'result', role: 'tpm', n: String(n), createdAt }, `<title>${n} 枚目</title>`);
   }
   await page.goto('/?project=paged');
   const more = await list(page).getByRole('link', { name: '続きを出す' }).getAttribute('href');
@@ -185,8 +185,8 @@ for (const [name, width] of [['広い幅', 1280], ['狭い幅', 800]] as const) 
     const project = `scroll-${width}`;
     const base = Date.parse('2026-11-05T00:00:00Z');
     for (let n = 1; n <= 40; n += 1) {
-      const created_at = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
-      await place(request, { project, key: 'S-1', kind: 'result', role: 'tpm', n: String(n), created_at }, `<title>${n} 枚目</title>`);
+      const createdAt = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
+      await place(request, { project, key: 'S-1', kind: 'result', role: 'tpm', n: String(n), createdAt }, `<title>${n} 枚目</title>`);
     }
     await page.setViewportSize({ width, height: 600 });
     await openLive(page, `/?project=${project}`);
@@ -300,7 +300,7 @@ test('一覧の列: 送り手の castlist の名が行の下に出て、castlist
   try {
     sent = await place(
       request,
-      { project: 'senders', key: 'S-1', kind: 'plan', role: 'software-engineer', actor_issuer: 'tpm', actor_ref: 'claude.session:e2e' },
+      { project: 'senders', key: 'S-1', kind: 'plan', role: 'software-engineer', actorIssuer: 'tpm', actorRef: 'claude.session:e2e' },
       '<title>送り手あり</title>',
     );
     await place(request, { project: 'senders', key: 'S-1', kind: 'note', role: 'tpm' }, '<title>送り手なし</title>');

@@ -7,8 +7,7 @@ name: release
 #   - push: check と check-cli が通った時だけ動く。渡された file（確かめたその image と tar）を、作り直さずに置く
 # とする。確かめが 1 つでも落ちれば、push は動かず、何も外に出ない。image も CLI も手で出さない（docs/src/release.md の「release を出す」）。
 #
-# 1.0.0 から、どの tag も image を新しい server（AI-36 の作り直し）の Containerfile で作り、新しい API の形で動くかと、
-# 今の版（v0.8.0）の写しを移す予行を見る。release に付ける CLI は、新しい server に向けた物（crates/cli-next。binary pagetray）。
+# image は server（crates/server）の Containerfile で作り、API の形で動くかを見る。release に付ける CLI は crates/cli（binary pagetray）。
 # tag に「-rc.」の付く物（v<版>-rc.<n>）は、GitHub の pre-release にする。
 on:
   push:
@@ -59,8 +58,8 @@ jobs:
           set -o pipefail
           mkdir -p "$RUNNER_TEMP/out"
           ci/check-image.sh pagetray:release | tee "$RUNNER_TEMP/out/image-report.md"
-      - name: 空の image の中で起き、新しい API で置いて読めて、止めて起こし直しても残り、今の版の写しを移せるか
-        run: ci/smoke-image.sh pagetray:release next
+      - name: 空の image の中で起き、API で置いて読めて、断る答えが restJson1 の形で、止めて起こし直しても残るか
+        run: ci/smoke-image.sh pagetray:release
       - name: 確かめた image を file にする
         id: save
         run: |
@@ -75,8 +74,6 @@ jobs:
   check-cli:
     # 出す CLI は macOS の arm64 用。CI の job `cli` と同じ script で作って確かめる（PR で動いた物が、そのまま動く）。
     runs-on: macos-15
-    env:
-      SQLX_OFFLINE: "true"
     outputs:
       sha256: ${{ steps.pack.outputs.sha256 }}
     steps:
@@ -102,7 +99,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/out"
           ci/check-cli.sh target/release/pagetray | tee "$RUNNER_TEMP/out/cli-report.md"
       - name: その binary を、同じ commit のサーバーに向けて打つ
-        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray-cli-next
+        run: PAGETRAY_TEST_BIN="$PWD/target/release/pagetray" cargo test --locked -p pagetray
       - name: 確かめた binary を tar にする（中身の一覧と持ち主も見る）
         id: pack
         run: |

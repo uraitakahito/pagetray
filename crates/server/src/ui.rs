@@ -1,13 +1,13 @@
-//! 画面（一覧の UI。`/`・`/{project}/`・`/{project}/{key}/`）。今の server の src/ui.rs を、新しい DB の所で組み直した物。
+//! 画面（一覧の UI。`/`・`/{project}/`・`/{project}/{key}/`）。
 //!
-//! - サーバーが HTML を組んで返す（askama。template は repo の templates/index.html を今の server と共に使う。askama.toml）。
+//! - サーバーが HTML を組んで返す（askama。template は repo の templates/index.html。askama.toml）。
 //!   字はみな HTML として逃がし、URL の引数に入れる値は %XX にする（[`encode`]）。
-//! - 絞り込み・並べ替え・検索は link と form で動き、条件は URL に出る。引数の名と値は今の server と同じ（snake_case の
+//! - 絞り込み・並べ替え・検索は link と form で動き、条件は URL に出る。引数の名と値は 0.8.x の server と同じ（snake_case の
 //!   `sort=created_at` など。API の引数とは別）。違うのは続きの印 `at` で、前の頁の最後の行の時刻と id（API の `nextToken`
 //!   と同じ形）。同じ時刻の行が頁の境に並んでも抜けない。読めない印は書かないのと同じ。
 //! - 待ちの数と絞り込みの候補は、絞りに関わらず置き場の全部（[`crate::facets`]）。
 //! - Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出す（project が api なら出さない）。
-//!   上げる枠の script は、新しい API の道（`POST /api/projects/{p}/keys/{k}/files?name=…`）に、file の Content-Type で送る。
+//!   上げる枠の script は、API の道（`POST /api/projects/{p}/keys/{k}/files?name=…`）に、file の Content-Type で送る。
 //! - 答えには CSP（[`CSP`]）を付け、inline の style と script は template の物（hash）だけを許す。
 use std::sync::{Arc, LazyLock};
 
@@ -44,7 +44,7 @@ const VERDICTS: [(&str, &str); 4] = [
     ("not-assessed", "見られなかった"),
 ];
 
-/// template（今の server と共に使う物）。inline の style と script の hash を、ここから取る。
+/// template（repo の templates/index.html）。inline の style と script の hash を、ここから取る。
 const TEMPLATE: &str = include_str!("../../../templates/index.html");
 
 /// 画面の答えに付ける Content-Security-Policy。inline の style と script は template の物（[`inline_hash`]）だけ。

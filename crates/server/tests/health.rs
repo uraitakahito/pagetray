@@ -17,7 +17,7 @@ async fn health_says_ok_with_the_version() {
     );
 }
 
-/// 今の server の版の道と header は無い（版は service の版と、定義の smithy diff で守る）。
+/// 0.8.x の server の版の道と header は無い（版は service の版と、定義の smithy diff で守る）。
 #[tokio::test]
 async fn the_old_version_route_and_header_are_gone() {
     let app = App::start().await;

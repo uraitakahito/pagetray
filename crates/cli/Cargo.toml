@@ -1,0 +1,38 @@
+# 人が打つ CLI（binary pagetray）。pagetray の server（crates/server・binary pagetray-server）を呼ぶ。
+# 生成した操作は、定義（model/）から作った client（crates/pagetray-client/）で呼ぶ。手の道（ページの本文・file の中身・
+# 新着の知らせ・直に呼ぶ api）は、同じ HTTP の client（aws-smithy-http-client の hyper の作り）で直に呼ぶ（docs/src/cli.md の「呼び方」）。
+# release に付ける CLI はこれ。
+[package]
+name = "pagetray"
+description = "ページの置き場（pagetray）を端末から操作する CLI"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# 人が打つ名は pagetray（server の binary は pagetray-server。image の中では /pagetray-server）。
+[[bin]]
+name = "pagetray"
+path = "src/main.rs"
+
+[dependencies]
+pagetray_client = { path = "../pagetray-client" }
+# TLS の無い HTTP/1.1（build_http）だけを使うので、features は default-client だけ（crates/server と同じ）。
+aws-smithy-http-client = { version = "1.5.3", default-features = false, features = ["default-client"] }
+aws-smithy-runtime-api = { version = "1.22.0", features = ["client", "http-1x"] }
+aws-smithy-types = { version = "1.9.4", features = ["http-body-1-x"] }
+clap = { version = "4.6", features = ["derive", "env"] }
+clap_complete = "4.6"
+http-body-util = "0.1"
+serde_json = "1"
+# signal は backup の書きかけを、止める合図で消すため。macros は select!。
+tokio = { version = "1.54", features = ["rt", "time", "signal", "macros"] }
+
+[dev-dependencies]
+# 試験は、同じ commit の server を起こして、build した pagetray を打つ（$PAGETRAY_TEST_BIN があれば、その file）。
+pagetray-server = { path = "../server" }
+axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio"] }
+tokio = { version = "1.54", features = ["rt-multi-thread", "net"] }
+# 試験の材料は、同じ Router に直に要求を通して置く。
+tower = { version = "0.5", features = ["util"] }

@@ -1,5 +1,5 @@
-//! 受け入れの試験の道具: 本物の binary（pagetray-next）を空いた port で起こし、生の HTTP/1.1 で叩く。
-//! 今の server の tests/server.rs の Server と、castlist の新しい server の tests/common/server.rs を移した物。
+//! 受け入れの試験の道具: 本物の binary（pagetray-server）を空いた port で起こし、生の HTTP/1.1 で叩く。
+//! v0.8.0 の tag の tests/server.rs の Server と、castlist の server の tests/common/server.rs を移した物。
 
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use super::{remove_db, temp_db};
 
-/// 起こした pagetray-next。落とす時に止める。
+/// 起こした pagetray-server。落とす時に止める。
 pub struct Server {
     child: Child,
     pub port: u16,
@@ -49,7 +49,7 @@ impl Answer {
 
 /// 起こす binary。
 pub fn binary() -> &'static str {
-    env!("CARGO_BIN_EXE_pagetray-next")
+    env!("CARGO_BIN_EXE_pagetray-server")
 }
 
 /// castlist の設定を外して、binary を起こす命令を組む（DB と待ち受ける所だけを渡す）。
@@ -100,7 +100,7 @@ impl Server {
                 .stdout(Stdio::from(stdout))
                 .stderr(Stdio::null())
                 .spawn()
-                .expect("pagetray-next を起こす");
+                .expect("pagetray-server を起こす");
             let started = Instant::now();
             let listening = loop {
                 let text = std::fs::read_to_string(&out).unwrap_or_default();

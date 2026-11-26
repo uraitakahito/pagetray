@@ -1,4 +1,4 @@
-//! 操作に共通の誤りの作り方（castlist の新しい server の crates/server/src/errors.rs と同じ形）。
+//! 操作に共通の誤りの作り方（castlist の server の crates/server/src/errors.rs と同じ形）。
 use axum::http::{HeaderName, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::{

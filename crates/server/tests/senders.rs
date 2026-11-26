@@ -12,7 +12,7 @@ use common::castlist::{
 };
 use common::{App, PNG, error_type, html, pages_uri, put_page, scalar};
 use http_body_util::BodyExt;
-use pagetray_next::castlist::{Castlist, DEFAULT_LINK};
+use pagetray_server::castlist::{Castlist, DEFAULT_LINK};
 use serde_json::{Value, json};
 use tower::ServiceExt;
 

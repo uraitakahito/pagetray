@@ -509,7 +509,6 @@ dependencies = [
  "percent-encoding",
  "pin-project-lite",
  "serde_core",
- "serde_json",
  "serde_path_to_error",
  "serde_urlencoded",
  "sync_wrapper",
@@ -1962,34 +1961,6 @@ checksum = "1a80800c0488c3a21695ea981a54918fbb37abf04f4d0720c453632255e2ff0e"
 name = "pagetray"
 version = "1.0.0"
 dependencies = [
- "askama",
- "axum",
- "http-body-util",
- "pagetray-api",
- "serde",
- "serde_json",
- "sha2",
- "sqlx",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "tower 0.5.3",
- "tower-http 0.7.1",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "pagetray-api"
-version = "1.0.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "pagetray-cli-next"
-version = "1.0.0"
-dependencies = [
  "aws-smithy-http-client",
  "aws-smithy-runtime-api",
  "aws-smithy-types",
@@ -1997,7 +1968,7 @@ dependencies = [
  "clap",
  "clap_complete",
  "http-body-util",
- "pagetray-next",
+ "pagetray-server",
  "pagetray_client",
  "serde_json",
  "tokio",
@@ -2005,7 +1976,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pagetray-next"
+name = "pagetray-server"
 version = "1.0.0"
 dependencies = [
  "askama",
@@ -2017,7 +1988,6 @@ dependencies = [
  "futures-util",
  "http-body 1.1.0",
  "http-body-util",
- "pagetray",
  "pagetray_sdk",
  "serde",
  "serde_json",

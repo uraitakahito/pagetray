@@ -1,8 +1,5 @@
 //! 不正終了の原因を後から調べるための記録。DB の file がある folder の下の `logs/` に置く（本番では `/data/logs/`）。
 //!
-//! 今の server の src/runlog.rs の写し（AI-36）。段 9 で今の crate を消すまで、2 つを同じ中身に保つ。違うのは、hook の試験が見る
-//! panic の場所の字（この crate の file は workspace の root から `crates/server/src/` の下）だけ。
-//!
 //! - `server.log`・`server.log.1`〜`.3`: 時刻つきの行。1 つ [`LOG_FILE_MAX`]、合わせて [`LOG_FILES`] つまで。
 //! - `runs.log`: 終わり方の印（起動・合図・停止・panic・誤り）。[`RUNS_MAX`] まで。
 //! - `alive`: 生きている印の時刻。[`ALIVE_EVERY`] ごとに上書きする。

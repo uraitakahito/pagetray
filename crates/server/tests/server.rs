@@ -1,14 +1,13 @@
-//! 受け入れの試験: 本物の binary（pagetray-next）を空いた port で起こし、HTTP で叩く（今の server の tests/server.rs と、
-//! castlist の新しい server の tests/server.rs を移した物）。守りの層の誤りの形・HEAD・本文の上限・backup・止め方・
-//! 起きた行・今の server の DB を断る所は、hyper を通した本物の答えでも見る。
+//! 受け入れの試験: 本物の binary（pagetray-server）を空いた port で起こし、HTTP で叩く（castlist の server の
+//! tests/server.rs と同じ形）。守りの層の誤りの形・HEAD・本文の上限・backup・止め方・起きた行は、hyper を通した本物の答えでも見る
+//! （0.8.x までの server の DB を断る所は tests/refuse_old.rs）。
 
 mod common;
 
 use std::io::{Read, Write};
-use std::path::Path;
 use std::time::Duration;
 
-use common::server::{Server, command};
+use common::server::Server;
 use common::{remove_db, temp_db};
 
 #[test]
@@ -70,7 +69,7 @@ fn 上限を_1_byte_超える本文は_payload_too_large_で断る() {
     // 本文まで送ると書く側が切られる）。
     let answer = server.send_text(&format!(
         "POST /api/projects/p/keys/k/kinds/plan/pages?role=tpm HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: text/html\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-        pagetray_next::MAX_BODY + 1
+        pagetray_server::MAX_BODY + 1
     ));
     assert_eq!(answer.status, 413, "{}", answer.head);
     assert_eq!(
@@ -124,7 +123,7 @@ fn 止める合図で自分から終わる() {
     assert_eq!(status.code(), Some(0), "{status:?}");
 }
 
-/// 合図の前に受け始めた問い合わせは、合図の後に答え終わってから閉じる（今の server は待たずに捨てていた）。
+/// 合図の前に受け始めた問い合わせは、合図の後に答え終わってから閉じる（0.8.x の server は待たずに捨てていた）。
 #[test]
 fn 合図の前に受け始めた置く要求は_合図の後に答え終わってから閉じる() {
     let mut server = Server::start();
@@ -253,80 +252,5 @@ fn castlist_を設定すると_起きた行に聞く先と_link_の頭が出る(
         "{line}"
     );
     assert_eq!(server.stop(), Some(0));
-    remove_db(&db);
-}
-
-/// DB の folder の中の名（DB の file のほか）。
-fn siblings(db: &Path) -> Vec<String> {
-    let mut names: Vec<String> = std::fs::read_dir(db.parent().unwrap())
-        .unwrap()
-        .flatten()
-        .map(|e| e.file_name().to_string_lossy().into_owned())
-        .filter(|n| n != "pages.db")
-        .collect();
-    names.sort();
-    names
-}
-
-/// 今の server の DB（repo の migrations/ の 0001〜0006 を当て、ページを 1 枚置いた物）は、訳を stderr に出して 1 で終わり、
-/// DB を替えず、隣に記録の置き場（logs/）も -wal も作らない（今の volume に何も書かない）。
-#[tokio::test]
-async fn 今の_server_の_db_では起きず_何も書かない() {
-    let db = temp_db("current");
-    let old = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(1)
-        .connect_with(
-            sqlx::sqlite::SqliteConnectOptions::new()
-                .filename(&db)
-                .create_if_missing(true),
-        )
-        .await
-        .unwrap();
-    sqlx::migrate::Migrator::new(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../migrations"))
-        .await
-        .unwrap()
-        .run(&old)
-        .await
-        .unwrap();
-    sqlx::query(
-        "insert into pages(project, key, kind, n, title, role, workspace, created_at, body)
-         values('p', 'k', 'plan', 1, '', 'tpm', '', '2026-11-24T00:00:00Z', x'00')",
-    )
-    .execute(&old)
-    .await
-    .unwrap();
-    old.close().await;
-    let before = std::fs::read(&db).unwrap();
-    assert_eq!(siblings(&db), Vec::<String>::new());
-
-    // 守りが崩れて起きてしまうと待ち受けたまま終わらないので、待つのは 10 秒まで（過ぎたら切って落とす）。
-    let mut child = command(&db, "127.0.0.1:0")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .expect("pagetray-next を起こす");
-    let started = std::time::Instant::now();
-    let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
-            break status;
-        }
-        if started.elapsed() > Duration::from_secs(10) {
-            let _ = child.kill();
-            let _ = child.wait();
-            panic!("今の server の DB なのに、10 秒たっても終わらない（起きてしまった）");
-        }
-        std::thread::sleep(Duration::from_millis(50));
-    };
-    let mut stderr = String::new();
-    child
-        .stderr
-        .take()
-        .unwrap()
-        .read_to_string(&mut stderr)
-        .unwrap();
-    assert_eq!(status.code(), Some(1), "{stderr}");
-    assert!(stderr.contains("今の server の DB"), "{stderr}");
-    assert_eq!(std::fs::read(&db).unwrap(), before, "DB を替えた");
-    assert_eq!(siblings(&db), Vec::<String>::new(), "{stderr}");
     remove_db(&db);
 }

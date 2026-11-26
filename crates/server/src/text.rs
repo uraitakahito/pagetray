@@ -1,6 +1,5 @@
 //! HTML から、題と、全文検索の索引に入れる字を取り出す。
 //! 索引用なので、正しい HTML の解釈までは要らない。tag を除き、script と style の中身を捨てる。
-//! 今の server の `src/text.rs` と同じ中身（AI-36 の作り直しの間は 2 つを同じに保つ。今の crate を消す時に、こちらだけ残す）。
 
 /// `<title>` の中身。無ければ空。
 pub fn title(html: &str) -> String {

@@ -185,7 +185,7 @@ for pair in $crates; do
   fi
   # 呼ぶ側の crate は、既定で https の client（rustls と aws-lc）を引く。pagetray が castlist を呼ぶのも、人が打つ CLI が
   # pagetray を呼ぶのも、同じ機械の中の http:// だけなので、既定の features から外す（TLS の crate を build せず、
-  # license の見張りにも入れない）。HTTP の client は、使う側（crates/server・crates/cli-next）が設定で渡す。
+  # license の見張りにも入れない）。HTTP の client は、使う側（crates/server・crates/cli）が設定で渡す。
   if [ "$plugin" = rust-client-codegen ] || [ "$plugin" = pagetray-client ]; then
     manifest="$made/Cargo.toml"
     grep -qx 'default = \["rt-tokio", "rustls", "default-https-client"\]' "$manifest" \

@@ -1,5 +1,5 @@
 //! AddReviewMarks（`POST …/pages/{n}/review`）と、判定で探す（`GET /api/pages?verdict`）振る舞い（処理より先に書く）。
-//! 今の server の tests/review.rs の印の試験を、新しい道と欄の名で見る。
+//! v0.8.0 の tag の tests/review.rs の印の試験を、1.0.0 の道と欄の名で見る。
 mod common;
 
 use axum::http::{Request, StatusCode, header};
@@ -106,7 +106,7 @@ async fn a_review_page_keeps_its_verdict_and_what_it_reviewed() {
     assert!(listed["pages"][0].get("verdict").is_none(), "{listed}");
 }
 
-/// 本文の無い要求は、何も替えずに記録を返す（今の server と同じ）。
+/// 本文の無い要求は、何も替えずに記録を返す（0.8.x の server と同じ）。
 #[tokio::test]
 async fn a_request_without_a_body_changes_nothing() {
     let app = setup().await;

@@ -1,5 +1,5 @@
 //! SetReplyState（`PUT …/pages/{n}/reply`）と、返事の状態で探す（`GET /api/pages?reply&on`）振る舞い（処理より先に書く）。
-//! 今の server の tests/api.rs と tests/review.rs の返事の試験を、新しい道と欄の名で見る。
+//! v0.8.0 の tag の tests/api.rs と tests/review.rs の返事の試験を、1.0.0 の道と欄の名で見る。
 mod common;
 
 use std::time::Duration;

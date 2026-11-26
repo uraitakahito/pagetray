@@ -1,9 +1,9 @@
-//! 手の道（Smithy の定義の外）のうち、DB の写しと記録の物。今の server の `GET /api/backup`・`GET /api/logs` と同じ振る舞い
-//! （castlist の新しい server の crates/server/src/hand.rs と同じ作り）。
+//! 手の道（Smithy の定義の外）のうち、DB の写しと記録の物。0.8.x の server の `GET /api/backup`・`GET /api/logs` と同じ振る舞い
+//! （castlist の server の crates/server/src/hand.rs と同じ作り）。
 //! - `GET /api/backup`: 動かしたまま、DB の揃ったバックアップを 1 つの SQLite の file で返す
 //!   （`curl -fsS -o pages.db http://127.0.0.1:8801/api/backup`）。
 //! - `GET /api/logs`: 残した記録（終わり方の印と、時刻つきの行）を、古い順の字で返す。記録の置き場が無ければ 404 `NotFound`
-//!   （今の server と同じく 404）。
+//!   （0.8.x の server と同じく 404）。
 //!
 //! 誤りは、生成した層と同じ restJson1 の形（`Unavailable`・`InternalError`・`NotFound`。[`crate::errors::reply`]）。
 use std::sync::Arc;

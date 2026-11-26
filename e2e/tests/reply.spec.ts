@@ -76,8 +76,8 @@ test('返事の印: 一覧の列を下へ送っていても、見ている行は
   const base = Date.parse('2026-11-05T00:00:00Z');
   const paths: string[] = [];
   for (let n = 1; n <= 40; n += 1) {
-    const created_at = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
-    paths.push(await place(request, { project: 'reply-scroll', key: 'S-1', kind: 'confirm', role: 'tpm', n: String(n), created_at }, `<title>${n} 枚目</title>`));
+    const createdAt = new Date(base + n * 1000).toISOString().replace('.000Z', 'Z');
+    paths.push(await place(request, { project: 'reply-scroll', key: 'S-1', kind: 'confirm', role: 'tpm', n: String(n), createdAt }, `<title>${n} 枚目</title>`));
   }
   await page.setViewportSize({ width: 1200, height: 500 });
   await openLive(page, '/?project=reply-scroll');

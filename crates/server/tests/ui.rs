@@ -1,4 +1,4 @@
-//! 画面（一覧の UI。`/`・`/{project}/`・`/{project}/{key}/`）。今の server の tests/ui.rs と同じ振る舞いを、新しい server で見る。
+//! 画面（一覧の UI。`/`・`/{project}/`・`/{project}/{key}/`）。v0.8.0 の tag の tests/ui.rs と同じ振る舞いを見る。
 //! 違うのは、置く・書く API の道と、残す時刻の字（24 字）と、続きの印 `at`（前の頁の最後の行の時刻と id。同じ時刻の行が
 //! 境に並んでも抜けない）。画面の CSP・送り手の出し方・URL に入る字の逃がし方も、ここで見る。
 
@@ -7,7 +7,7 @@ mod common;
 use axum::http::{StatusCode, header};
 use common::castlist::{ACTOR_A, ACTOR_B, Fake, NAME_A, NAME_B, Reply};
 use common::{App, PNG, html};
-use pagetray_next::castlist::Castlist;
+use pagetray_server::castlist::Castlist;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
@@ -261,7 +261,7 @@ async fn the_four_regions_carry_their_ids_and_names() {
 
 /// Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠が出る。
 /// file の枠は、script が無くても、図の見本・名・大きさ・上げた人・時刻・ページから参照する path を出す。
-/// 上げる枠の script は、新しい API の道（`POST /api/projects/{p}/keys/{k}/files?name=…`）に送る。
+/// 上げる枠の script は、API の道（`POST /api/projects/{p}/keys/{k}/files?name=…`）に送る。
 #[tokio::test]
 async fn the_key_view_shows_its_files_and_the_upload_box() {
     let s = seeded().await;
@@ -668,9 +668,9 @@ fn with_castlist(s: &App, api: &str, link: Option<&str>) -> App {
     let castlist = Castlist::configure(Some(api), link)
         .expect("castlist の URL")
         .expect("castlist がある");
-    let app = pagetray_next::app_with(
+    let app = pagetray_server::app_with(
         s.db.clone(),
-        pagetray_next::Config {
+        pagetray_server::Config {
             castlist: Some(castlist),
             ..Default::default()
         },

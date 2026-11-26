@@ -1,8 +1,8 @@
 //! 新着の知らせ（SSE。`GET /api/events`。手の道）。ページか file を置くたび・返事の状態か印を書くたび（替わらなかった時も）に、
-//! その記録を 1 件送る。消した時は送らない（今の server の src/events.rs と同じ）。
+//! その記録を 1 件送る。消した時は送らない（0.8.x の server と同じ）。
 //!
 //! - 中身は、API の答えと同じ camelCase の記録（ページは `ai.pagetray#Page`、file は `ai.pagetray#File`。`url` は入らない）。
-//!   今の server は snake_case の記録だった（画面の script が読むのは `path`・`project`・`key` だけで、名は同じ）。
+//!   0.8.x の server は snake_case の記録だった（画面の script が読むのは `path`・`project`・`key` だけで、名は同じ）。
 //! - event の名: ページは名の無い event（前からの受け手は、これだけを読む）、file は `file`、返事は `reply`、印は `review`。
 //! - 聞いている者が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（[`CAPACITY`] 件を覚える。
 //!   画面は、一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
@@ -21,7 +21,7 @@ use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::{Stream, StreamExt};
 use tokio_util::sync::CancellationToken;
 
-/// 聞き手ごとに覚えておく知らせの数（今の server と同じ）。
+/// 聞き手ごとに覚えておく知らせの数。
 pub const CAPACITY: usize = 64;
 
 /// 知らせの種類と、書いた後の記録。

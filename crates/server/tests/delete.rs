@@ -1,5 +1,5 @@
 //! DeletePages（`DELETE /api/pages?project&key&kind&n`）の振る舞い（処理より先に書く）。
-//! 今の server の tests/api.rs・tests/review.rs・tests/senders.rs の消す試験を、新しい答えの形で見る。
+//! v0.8.0 の tag の tests/api.rs・tests/review.rs・tests/senders.rs の消す試験を、1.0.0 の答えの形で見る。
 mod common;
 
 use axum::http::{StatusCode, header};

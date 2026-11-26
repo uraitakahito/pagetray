@@ -1,5 +1,5 @@
-//! ListPages（`GET /api/pages`）の振る舞い（処理より先に書く）。今の server の「探す」の決まりを、新しい引数の名で見る。
-//! 頁は `createdAt` と行の順で続ける（今の server の、同じ時刻の行が頁の境で抜けるか重なる不具合を直した形）。
+//! ListPages（`GET /api/pages`）の振る舞い（処理より先に書く）。0.8.x の server の「探す」の決まりを、1.0.0 の引数の名で見る。
+//! 頁は `createdAt` と行の順で続ける（0.8.x の server の、同じ時刻の行が頁の境で抜けるか重なる不具合を直した形）。
 mod common;
 
 use axum::http::StatusCode;
@@ -243,7 +243,7 @@ async fn search_finds_japanese_text_and_titles_but_not_markup() {
     );
 }
 
-/// 直した不具合: 同じ時刻の行が頁の境に並んでも、抜けず重ならない（今の server は created_at の字だけで続けていた）。
+/// 直した不具合: 同じ時刻の行が頁の境に並んでも、抜けず重ならない（0.8.x の server は created_at の字だけで続けていた）。
 #[tokio::test]
 async fn pages_with_the_same_time_are_neither_dropped_nor_repeated() {
     let app = App::start().await;
@@ -356,7 +356,7 @@ async fn a_token_from_another_query_or_a_broken_one_is_refused() {
     }
 }
 
-/// 1 頁の数は既定 100。1〜1000 の外は、定義が 400 で断る（今の server は丸めていた）。
+/// 1 頁の数は既定 100。1〜1000 の外は、定義が 400 で断る（0.8.x の server は丸めていた）。
 #[tokio::test]
 async fn max_results_defaults_to_100_and_must_be_1_to_1000() {
     let app = App::start().await;
@@ -506,7 +506,7 @@ async fn a_db_error_is_an_internal_error() {
 async fn a_list_waits_for_a_read_connection_and_then_is_unavailable() {
     let app = App::start().await;
     let mut held = Vec::new();
-    for _ in 0..pagetray_next::db::READS {
+    for _ in 0..pagetray_server::db::READS {
         held.push(app.db.read().acquire().await.expect("読む接続"));
     }
     let (status, headers, json) = app.json("/api/pages").await;
@@ -518,16 +518,16 @@ async fn a_list_waits_for_a_read_connection_and_then_is_unavailable() {
 
 // --- 索引 ---
 
-/// 探す SQL（`pagetray_next::search::plans()`。条件を 1 つずつと、重ねた物）が、pages を索引なしに端から読まない。
+/// 探す SQL（`pagetray_server::search::plans()`。条件を 1 つずつと、重ねた物）が、pages を索引なしに端から読まない。
 /// 絞る列に索引のある条件（project・key・送り手・返事待ち・nextToken）は、pages を索引で引く（SEARCH。返事待ちは、
 /// 返事待ちだけの部分の索引で引いた id から）。
 /// ほかの条件と、条件の無い一覧は、時刻の索引（pages_created）の順に読み、1 頁で止まる。条件の無い一覧と nextToken は、
 /// 行を並べ替える一時の表を作らない（絞った物は、引いた行を並べ替えてよい。1 枚の見た物を書いた順に繋ぐ小さな並べ替えは別）。
-/// 短い語の検索（instr）は、今の server と同じく索引の表を端から見る（決め: 短い語は trigram の索引で引けない）。
+/// 短い語の検索（instr）は、0.8.x の server と同じく索引の表を端から見る（決め: 短い語は trigram の索引で引けない）。
 #[tokio::test]
 async fn the_list_sql_reads_pages_by_an_index() {
     let app = App::start().await;
-    let plans = pagetray_next::search::plans();
+    let plans = pagetray_server::search::plans();
     let names: Vec<&str> = plans.iter().map(|(name, _)| *name).collect();
     let searched = [
         "project",

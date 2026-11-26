@@ -1,4 +1,4 @@
-//! 守りの層。生成した道と手の道（ページと file の本文）の前に、外から順に掛ける（[`crate::app_with`]。castlist の新しい server と同じ作り）:
+//! 守りの層。生成した道と手の道（ページと file の本文）の前に、外から順に掛ける（[`crate::app_with`]。castlist の server と同じ作り）:
 //!
 //! 1. [`stamp`]: どの答えにも型の推し量りを止める header などを付ける（断った答えにも付く）。
 //! 2. 問い合わせごとの記録の 1 行（tower-http の TraceLayer。断った物も残る）。
@@ -29,7 +29,7 @@ pub struct RequestHost(pub String);
 #[derive(Clone, Copy, Debug)]
 pub struct FromUi;
 
-/// host（pagetray を動かす機械）の中からの要求だけを受ける（今の server の guard と同じ）。
+/// host（pagetray を動かす機械）の中からの要求だけを受ける。
 /// - `Host` が 127.0.0.1・localhost でなければ断る（外の site が名前を付け替えて届ける要求を防ぐ）。
 /// - `GET`・`HEAD` のほかの要求に `Origin` が付いていれば断る（browser の中のページからは書かせない。roster と `curl` は付けない）。
 ///   例外は 1 つだけ: 一覧の UI の form が file を上げる要求（[`from_ui`]）。印 [`FromUi`] を付けて通す。
@@ -89,7 +89,7 @@ pub async fn guard(mut request: Request, next: Next) -> Response {
     }
 }
 
-/// 一覧の UI の form が file を上げる要求か（今の server の `from_ui` と同じ決まりを、CreateFile の道で）:
+/// 一覧の UI の form が file を上げる要求か（0.8.x の server の `from_ui` と同じ決まりを、CreateFile の道で）:
 /// `POST /api/projects/{project}/keys/{key}/files` で、`Origin` が `http://<Host（port も）>` とそのまま同じで、
 /// `Sec-Fetch-Site` が無いか `same-origin`。本文の枠の中のページ（`Origin: null`）や、ほかの site・ほかの道からは当たらない。
 fn from_ui(request: &Request) -> bool {

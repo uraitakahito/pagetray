@@ -3,7 +3,7 @@
 //! - 聞くのは `ResolveActors`（`POST /api/resolve`）の 1 つ。castlist の定義から作った client（crates/castlist-client/）で呼ぶ。
 //! - HTTP の client は、TLS の無い HTTP/1.1（`aws-smithy-http-client` の hyper の作りの `build_http`）。castlist は同じ機械の中の
 //!   `http://` だけなので、TLS の crate を build しない。接続は使い回さない（1 度ごとにつなぐ。古い接続で落ちて送り直す、が起きない）。
-//! - 待つのは 1 度に [`TIMEOUT`]（つなぐ・送る・答えを読み終えるまでの全部）。送り直さない（今の pagetray と同じ）。
+//! - 待つのは 1 度に [`TIMEOUT`]（つなぐ・送る・答えを読み終えるまでの全部）。送り直さない。
 //! - castlist は `Host` が 127.0.0.1・localhost でない要求と、`Origin` の付いた書く要求を断る。だから、つなぐ先がどこでも
 //!   `Host: 127.0.0.1` で送り、`Origin` は付けない。
 use std::time::Duration;

@@ -1,9 +1,9 @@
 //! ページを探す（ListPages）と file を探す（ListFiles）の DB の所。読む接続の 1 つの取引の中で、1 頁を読む。
 //!
-//! - 条件は今の server（src/db.rs の list）と同じ。違うのは頁の続け方で、`created_at` と行の id の組で続ける（keyset）。
+//! - 条件は 0.8.x の server と同じ。違うのは頁の続け方で、`created_at` と行の id の組で続ける（keyset）。
 //!   同じ時刻の行が頁の境に並んでも、抜けず重ならない。辿る間に置いたページ（前の頁より新しい）は、新しい順の続きに出ない。
 //! - SQL は書いた条件の欠片だけを繋ぎ、値は bind するだけ（[`plans`]・[`file_plans`] の試験が、索引で引くことを見る）。
-//! - file の条件も今の server と同じ（q は名 `<語>.<拡張子>` に、小文字にした q を含む物）。頁の続け方はページと同じ。
+//! - file の条件も 0.8.x の server と同じ（q は名 `<語>.<拡張子>` に、小文字にした q を含む物）。頁の続け方はページと同じ。
 use sqlx::{QueryBuilder, Sqlite};
 
 use crate::db::{Db, FILE_ROW, FileRow, PAGE_ROW, PageRow, Party, Reply};

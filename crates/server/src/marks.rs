@@ -1,5 +1,5 @@
 //! ページ 1 枚に書く操作: 返事の状態（SetReplyState。`PUT …/pages/{n}/reply`）と、レビューの印（AddReviewMarks。
-//! `POST …/pages/{n}/review`）。答えは、書いた後のページの記録。無いページと消したページは 404（410 でない。今の server と同じ）。
+//! `POST …/pages/{n}/review`）。答えは、書いた後のページの記録。無いページと消したページは 404（410 でない。0.8.x の server と同じ）。
 //! だれが書いてよいかは、呼ぶ側（roster）が持つ。ここでは人を見分けない。browser の中のページからは書けない（守りの層）。
 use std::sync::Arc;
 
@@ -92,7 +92,7 @@ pub async fn set_reply_state(
 }
 
 /// 見た物として受ける字か: この置き場のページの path（`/<project>/<key>/<kind>-<n>.html`）か、
-/// `https://` で始まり、空白と制御の字を含まない、[`MAX_TARGET`] 字までの URL（今の crates/api の is_target と同じ）。
+/// `https://` で始まり、空白と制御の字を含まない、[`MAX_TARGET`] 字までの URL。
 pub(crate) fn is_target(target: &str) -> bool {
     parse_page_path(target).is_some()
         || (target.chars().count() <= MAX_TARGET

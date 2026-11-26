@@ -1,115 +1,13 @@
-//! DB の決まりの試験: 移行（今の migrations と同じ作り）・足すだけの送り手・外のキー・接続の設定・開かない DB。
+//! DB の決まりの試験: 足すだけの送り手・外のキー・接続の設定・開かない DB（0.8.x までの server の DB は tests/refuse_old.rs）。
 //! 書く接続と読む接続を直に使う。
 mod common;
 
 use std::path::Path;
 
 use common::{App, remove_db, temp_db};
-use pagetray_next::db::{Db, OpenError};
+use pagetray_server::db::{Db, OpenError};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{Connection, SqlitePool};
-
-/// 今の server の migrations（repo の頭の migrations/。0001〜0006）。
-fn current_migrations() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../migrations")
-}
-
-/// 移行の後の作りを、比べられる字の並びにする（表・列・外のキー・索引・strict・check・trigger と索引の SQL・全文検索の表）。
-async fn schema(pool: &SqlitePool) -> Vec<String> {
-    let mut out: Vec<String> = sqlx::query_scalar(
-        "select type || ' ' || name || ' on ' || tbl_name from sqlite_schema
-         where name not like 'sqlite_%' and name != '_sqlx_migrations' order by type, name",
-    )
-    .fetch_all(pool)
-    .await
-    .unwrap();
-    let tables: Vec<(String, String)> = sqlx::query_as(
-        "select name, sql from sqlite_schema where type = 'table' and name not like 'sqlite_%'
-         and name != '_sqlx_migrations' order by name",
-    )
-    .fetch_all(pool)
-    .await
-    .unwrap();
-    let per_table = [
-        "select 'column ' || cid || ' ' || name || ' ' || type || ' notnull=' || \"notnull\" || ' default=' || coalesce(dflt_value, '-') || ' pk=' || pk || ' hidden=' || hidden from pragma_table_xinfo(?1) order by cid",
-        "select 'fk ' || id || ' ' || seq || ' ' || \"table\" || ' ' || \"from\" || '->' || coalesce(\"to\", '-') || ' update=' || on_update || ' delete=' || on_delete || ' match=' || \"match\" from pragma_foreign_key_list(?1) order by id, seq",
-        "select 'index ' || l.name || ' unique=' || l.\"unique\" || ' origin=' || l.origin || ' partial=' || l.partial || ' (' || (select group_concat(name, ',') from pragma_index_info(l.name)) || ')' from pragma_index_list(?1) l order by l.name",
-        "select 'list strict=' || \"strict\" || ' type=' || type || ' ncol=' || ncol from pragma_table_list where name = ?1",
-    ];
-    for (table, sql) in tables {
-        out.push(format!("== {table}"));
-        for query in per_table {
-            let rows: Vec<String> = sqlx::query_scalar(query)
-                .bind(&table)
-                .fetch_all(pool)
-                .await
-                .unwrap_or_else(|e| panic!("{table}: {e}"));
-            out.extend(rows);
-        }
-        out.extend(checks(&sql).into_iter().map(|c| format!("check {c}")));
-        if sql.to_lowercase().starts_with("create virtual table") {
-            out.push(normalize(&sql));
-        }
-    }
-    let sqls: Vec<(String, String)> = sqlx::query_as(
-        "select name, sql from sqlite_schema where type in ('trigger', 'index') and sql is not null order by name",
-    )
-    .fetch_all(pool)
-    .await
-    .unwrap();
-    out.extend(
-        sqls.into_iter()
-            .map(|(n, s)| format!("{n}: {}", normalize(&s))),
-    );
-    out
-}
-
-/// 空白を 1 つにまとめ、小文字にする。
-fn normalize(sql: &str) -> String {
-    sql.split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .to_lowercase()
-        .replace("( ", "(")
-        .replace(" )", ")")
-}
-
-/// 表の SQL の中の `check (…)` の中身（入れ子の括弧も）。註（`--` の行の残り）は除く。
-fn checks(sql: &str) -> Vec<String> {
-    let sql: String = sql
-        .lines()
-        .map(|l| l.split("--").next().unwrap_or(""))
-        .collect::<Vec<_>>()
-        .join(" ");
-    let lower = sql.to_lowercase();
-    let mut out = Vec::new();
-    let mut from = 0;
-    while let Some(i) = lower[from..].find("check") {
-        let start = from + i + "check".len();
-        let Some(open) = lower[start..].find('(').map(|j| start + j) else {
-            break;
-        };
-        let mut depth = 0;
-        let mut end = open;
-        for (k, c) in lower[open..].char_indices() {
-            match c {
-                '(' => depth += 1,
-                ')' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        end = open + k;
-                        break;
-                    }
-                }
-                _ => {}
-            }
-        }
-        out.push(normalize(&lower[open + 1..end]));
-        from = end;
-    }
-    out.sort();
-    out
-}
 
 async fn fresh_pool(path: &Path) -> SqlitePool {
     SqlitePoolOptions::new()
@@ -121,38 +19,6 @@ async fn fresh_pool(path: &Path) -> SqlitePool {
         )
         .await
         .unwrap()
-}
-
-/// 新しい migrations の 1 つが、今の server の 0001〜0006 を当てた後と同じ作りを作る。
-#[tokio::test]
-async fn the_one_migration_makes_the_same_schema_as_the_current_six() {
-    let old_path = temp_db("old-schema");
-    let old = fresh_pool(&old_path).await;
-    let migrator = sqlx::migrate::Migrator::new(current_migrations())
-        .await
-        .unwrap();
-    assert_eq!(migrator.iter().count(), 6, "今の migrations は 6 つ");
-    migrator.run(&old).await.unwrap();
-    let app = App::start().await;
-    let want = schema(&old).await;
-    let got = schema(app.db.read()).await;
-    old.close().await;
-    remove_db(&old_path);
-    assert!(
-        want.iter().any(|l| l.starts_with("check ")),
-        "check を読めていない: {want:?}"
-    );
-    assert!(
-        want.iter()
-            .any(|l| l.contains("pages_waiting:") && l.contains("where")),
-        "{want:?}"
-    );
-    assert_eq!(got, want);
-    let versions: Vec<i64> = sqlx::query_scalar("select version from _sqlx_migrations")
-        .fetch_all(app.db.read())
-        .await
-        .unwrap();
-    assert_eq!(versions, vec![1]);
 }
 
 #[tokio::test]
@@ -217,7 +83,7 @@ async fn foreign_keys_refuse_missing_parents_and_targets_go_with_their_page() {
 async fn every_connection_has_foreign_keys_wal_busy_timeout_and_recursive_triggers() {
     let app = App::start().await;
     let mut held = Vec::new();
-    for _ in 0..pagetray_next::db::READS {
+    for _ in 0..pagetray_server::db::READS {
         held.push(app.db.read().acquire().await.expect("読む接続"));
     }
     held.push(app.db.write().acquire().await.expect("書く接続"));
@@ -299,46 +165,6 @@ async fn opening_again_keeps_the_rows_and_does_not_migrate_twice() {
         .unwrap();
     assert_eq!((pages, migrations), (1, 1));
     db.close().await;
-}
-
-/// 今の server の DB（0001〜0006 を当てた物）は、何も書かずに断る。
-#[tokio::test]
-async fn the_current_servers_db_is_refused_without_writing() {
-    let path = temp_db("current");
-    let old = fresh_pool(&path).await;
-    sqlx::migrate::Migrator::new(current_migrations())
-        .await
-        .unwrap()
-        .run(&old)
-        .await
-        .unwrap();
-    sqlx::query(
-        "insert into pages(project, key, kind, n, title, role, workspace, created_at, body)
-         values('p', 'k', 'plan', 1, '', 'tpm', '', '2026-11-24T00:00:00Z', x'00')",
-    )
-    .execute(&old)
-    .await
-    .unwrap();
-    old.close().await;
-    let before = std::fs::read(&path).unwrap();
-    let refused = Db::open(&path)
-        .await
-        .err()
-        .expect("今の server の DB を開いた");
-    assert!(
-        matches!(&refused, OpenError::Current(v) if v == &vec![1, 2, 3, 4, 5, 6]),
-        "{refused}"
-    );
-    assert!(
-        refused.to_string().contains("今の server の DB"),
-        "{refused}"
-    );
-    // 中身も journal の形も替えていない（WAL にしていない）。
-    assert_eq!(std::fs::read(&path).unwrap(), before);
-    let mut wal = path.clone().into_os_string();
-    wal.push("-wal");
-    assert!(!Path::new(&wal).exists(), "-wal ができた");
-    remove_db(&path);
 }
 
 /// 移行の表の無い SQLite の file（空の DB）と、無い file は開く（作る）。

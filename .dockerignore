@@ -2,15 +2,12 @@
 # 履歴（.git）・CI の設定・試験・覚え書き・手元にだけある file を、build の段にも入れないため。
 # 足す時は、ci/image-contents.txt（出す image に入ってよい物）も見直す。
 *
-!src
+# 画面の template（crates/server が askama.toml と include_str! で読む）。
 !templates
-!migrations
-!.sqlx
 !.cargo
 !Cargo.toml
 !Cargo.lock
-!build.rs
-# workspace の member（1.0.0 から、Containerfile はこの中の新しい server（crates/server）を作る。CLI は image に入らないが、
+# workspace の member（Containerfile はこの中の server（crates/server）を作る。CLI は image に入らないが、
 # Cargo.toml が名指すので build に要る）。
 !crates
 !rust-toolchain.toml

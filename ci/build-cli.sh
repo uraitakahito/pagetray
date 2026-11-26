@@ -10,6 +10,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 export RUSTFLAGS="--remap-path-prefix=$HOME=/h --remap-path-prefix=$PWD=/src"
-# 1.0.0 から、出す CLI は新しい server に向けた物（package pagetray-cli-next・binary pagetray）。
-cargo build --release --locked -p pagetray-cli-next
+# 出す CLI は crates/cli（package pagetray・binary pagetray）。
+cargo build --release --locked -p pagetray
 echo "作った: target/release/pagetray"

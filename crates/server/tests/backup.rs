@@ -1,5 +1,5 @@
-//! 手の道 `GET /api/backup`（DB の揃ったバックアップ）と `GET /api/logs`（残した記録）。今の server の同じ道と同じ振る舞い
-//! （今の server の tests/api.rs の backup の試験と tests/logs.rs を移した物）。
+//! 手の道 `GET /api/backup`（DB の揃ったバックアップ）と `GET /api/logs`（残した記録）。0.8.x の server の同じ道と同じ振る舞い
+//! （v0.8.0 の tag の tests/api.rs の backup の試験と tests/logs.rs を移した物）。
 mod common;
 
 use std::path::Path;
@@ -9,7 +9,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use common::{App, PNG, error_type, get, html, refused, temp_db};
 use http_body_util::BodyExt;
-use pagetray_next::runlog::RunLog;
+use pagetray_server::runlog::RunLog;
 use sqlx::SqlitePool;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use tower::ServiceExt;
@@ -129,7 +129,7 @@ async fn backup_of_an_empty_store_is_a_sqlite_file_too() {
 /// 時間切れは答えの頭までを数え、本文を送る間は数えない（大きな DB の file を送る途中で切らない）。
 #[tokio::test]
 async fn backup_body_is_not_cut_by_the_request_timeout() {
-    let app = App::start_with(pagetray_next::Config {
+    let app = App::start_with(pagetray_server::Config {
         timeout: Duration::from_millis(500),
         ..Default::default()
     })
@@ -160,9 +160,9 @@ async fn backup_cut_by_the_timeout_leaves_no_file_beside_the_db() {
     for _ in 0..4 {
         app.place("p", "k", "plan", SE, &big).await;
     }
-    let short = pagetray_next::app_with(
+    let short = pagetray_server::app_with(
         app.db.clone(),
-        pagetray_next::Config {
+        pagetray_server::Config {
             timeout: Duration::from_millis(1),
             ..Default::default()
         },
@@ -201,7 +201,7 @@ async fn logs_are_the_marks_and_the_lines_as_text() {
     let dir = temp_db("logs").with_file_name("logs");
     let log = RunLog::at(dir.clone());
     log.start("9.9.9");
-    let app = App::start_with(pagetray_next::Config {
+    let app = App::start_with(pagetray_server::Config {
         runlog: Some(log),
         ..Default::default()
     })
@@ -227,7 +227,7 @@ async fn logs_are_the_marks_and_the_lines_as_text() {
     common::remove_db(&dir.with_file_name("pages.db"));
 }
 
-/// 記録の置き場を付けない道筋（Router を直に呼ぶ試験）では、`GET /api/logs` は 404 `NotFound`（今の server と同じく 404）。
+/// 記録の置き場を付けない道筋（Router を直に呼ぶ試験）では、`GET /api/logs` は 404 `NotFound`（0.8.x の server と同じく 404）。
 #[tokio::test]
 async fn logs_without_a_place_for_them_are_not_found() {
     let app = App::start().await;

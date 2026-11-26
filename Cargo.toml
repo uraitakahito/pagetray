@@ -1,27 +1,15 @@
-# サーバー（この folder）と、crates/ の下の crate を 1 つの workspace にする。版・license などは下の [workspace.package] の 1 か所。
-[package]
-name = "pagetray"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-publish.workspace = true
-
-# 今の server（0.8.x）の binary。人が打つ CLI（crates/cli-next）が `pagetray` の名を使うので、こちらは pagetray-server。
-[[bin]]
-name = "pagetray-server"
-path = "src/main.rs"
-
-# 1.0.0 から、release の image（Containerfile）に入るのは新しい server（crates/server。Smithy の定義 model/ から作った骨
-# crates/pagetray-sdk/ を使う。AI-36）で、release に付ける CLI は新しい server に向けた物（crates/cli-next。binary pagetray。
-# 定義から作った client crates/pagetray-client/ で呼ぶ）。今の server（この crate）は、移す試験の元を作るのに使い、段 9 で消す。
+# ページの置き場（pagetray）。crate はみな crates/ の下にあり、版・license などは下の [workspace.package] の 1 か所。
+# server は crates/server（binary pagetray-server。release の image（Containerfile）に入る。Smithy の定義 model/ から作った骨
+# crates/pagetray-sdk/ を使う）。人が打つ CLI は crates/cli（binary pagetray。release に付ける。定義から作った client
+# crates/pagetray-client/ で呼ぶ）。
 [workspace]
-members = [".", "crates/api", "crates/cli-next", "crates/server", "crates/pagetray-sdk", "crates/castlist-client", "crates/pagetray-client"]
+members = ["crates/cli", "crates/server", "crates/pagetray-sdk", "crates/castlist-client", "crates/pagetray-client"]
+resolver = "3"
 # 生成した crate（crates/pagetray-sdk/・crates/castlist-client/・crates/pagetray-client/）は手で直さないので、既定の cargo の命令
 # （clippy・test）からは外す。その中の、定義の例から作った試験（protocol の試験）は、CI が `cargo test --locked -p pagetray_sdk`・
 # `-p castlist_client`・`-p pagetray_client` で流す。
 # fmt は生成器が整えた物を、CI の `cargo fmt --all --check` が見る（ci/gen.sh は rust-toolchain.toml の rustfmt で整える）。
-default-members = [".", "crates/api", "crates/cli-next", "crates/server"]
+default-members = ["crates/cli", "crates/server"]
 
 # 版はここだけに書く（release の workflow が、この file の初めの `version = "…"` の行を tag と突き合わせる）。
 [workspace.package]
@@ -30,28 +18,6 @@ edition = "2024"
 rust-version = "1.100"
 license = "MIT"
 publish = false
-
-[dependencies]
-pagetray-api = { path = "crates/api" }
-askama = "0.16.1"
-axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-# file の中身の SHA-256。sqlx が使う版と同じ物（lock に前からある）。
-sha2 = { version = "0.11.1", default-features = false }
-sqlx = { version = "0.9.1", default-features = false, features = ["sqlite", "runtime-tokio", "macros", "migrate"] }
-tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "net", "signal", "fs", "time"] }
-tokio-stream = { version = "0.1", default-features = false, features = ["sync"] }
-tokio-util = { version = "0.7", features = ["io"] }
-# 問い合わせごとの記録（method・path・status・かかった時間）。
-tower-http = { version = "0.7", default-features = false, features = ["trace"] }
-# 時刻つきの記録。書き先は stdout と、大きさで回す file（src/runlog.rs）。
-tracing = { version = "0.1", default-features = false, features = ["std"] }
-tracing-subscriber = { version = "0.3", default-features = false, features = ["std", "fmt", "registry"] }
-
-[dev-dependencies]
-http-body-util = "0.1"
-tower = { version = "0.5", features = ["util"] }
 
 [profile.release]
 opt-level = "s"
