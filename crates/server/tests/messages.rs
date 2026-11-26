@@ -1,5 +1,5 @@
 //! メッセージの記録（処理より先に書く）: 置く・書き足す PutMessage（`PUT /api/projects/{project}/messages/{id}`）と、
-//! 探す ListMessages（`GET /api/messages`）と、新着の知らせ（`event: message`）と、メッセージの一覧の画面（`/messages`）。
+//! 探す ListMessages（`GET /api/messages`）と、新着の知らせ（`event: message-record`）と、メッセージの一覧の画面（`/messages`）。
 //! pagetray は、roster が配ったメッセージの記録を写して見せるだけ（配らない・状態を自分で決めない）。
 //! 決まりは docs/src/api.md の「メッセージの記録」。
 mod common;
@@ -943,7 +943,7 @@ async fn next(body: &mut Body) -> (Option<String>, Value) {
     }
 }
 
-/// 置く・書き足すたびに（替わらなかった時も）、`event: message` で、一覧の 1 件と同じ形の記録を流す。断った物は流さない。
+/// 置く・書き足すたびに（替わらなかった時も）、`event: message-record` で、一覧の 1 件と同じ形の記録を流す。断った物は流さない。
 #[tokio::test]
 async fn every_put_is_pushed_as_a_message_event() {
     let app = App::start().await;
@@ -961,7 +961,7 @@ async fn every_put_is_pushed_as_a_message_event() {
     .await;
     assert_eq!(status, StatusCode::CREATED, "{made}");
     let (name, json) = next(&mut body).await;
-    assert_eq!(name.as_deref(), Some("message"));
+    assert_eq!(name.as_deref(), Some("message-record"));
     assert_eq!(json, made);
     assert_eq!(json, list(&app, "").await["messages"][0]);
     assert!(json.get("status").is_none(), "{json}");
@@ -981,7 +981,7 @@ async fn every_put_is_pushed_as_a_message_event() {
         )
         .await;
         let (name, json) = next(&mut body).await;
-        assert_eq!(name.as_deref(), Some("message"));
+        assert_eq!(name.as_deref(), Some("message-record"));
         assert_eq!(json, again);
         assert_eq!(json["deliveredAt"], "2026-11-24T00:00:05Z");
     }
@@ -1372,7 +1372,7 @@ fn inline_hash(page: &str, tag: &str) -> String {
 }
 
 /// メッセージの一覧の答えにも CSP が付き、inline の style と script は、この画面の物（hash）だけ。
-/// 新着の知らせ（`message`）を聞いて読み直す script が入っている。
+/// 新着の知らせ（`message-record`）を聞いて読み直す script が入っている。
 #[tokio::test]
 async fn the_message_list_carries_its_own_csp() {
     let app = App::start().await;
@@ -1390,5 +1390,8 @@ async fn the_message_list_carries_its_own_csp() {
     );
     assert_eq!(headers[header::X_CONTENT_TYPE_OPTIONS], "nosniff");
     assert!(page.contains(r#"new EventSource("/api/events")"#), "{page}");
-    assert!(page.contains(r#"addEventListener("message""#), "{page}");
+    assert!(
+        page.contains(r#"addEventListener("message-record""#),
+        "{page}"
+    );
 }

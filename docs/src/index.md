@@ -44,7 +44,7 @@ flowchart LR
 | `GET /api/messages` | メッセージの記録を探す（`ListMessages`）。`project`・`key`・`to`・`from`・`state`・`heading`・`q`・`sort` で絞る。`{"messages":[…]}` |
 | `GET /`・`/<project>/`・`/<project>/<key>/` | 一覧の UI（絞った一覧） |
 | `GET /messages` | メッセージの一覧（メッセージの記録を見る画面） |
-| `GET /api/events` | 置かれるたび・書かれるたびに 1 件を push（SSE。file は `event: file`、返事は `event: reply`、印は `event: review`、メッセージの記録は `event: message`） |
+| `GET /api/events` | 置かれるたび・書かれるたびに 1 件を push（SSE。file は `event: file`、返事は `event: reply`、印は `event: review`、メッセージの記録は `event: message-record`） |
 | `GET /api/backup` | DB の写し |
 | `GET /api/logs` | 残した記録 |
 | `GET /healthz` | 生きているかと、サーバーの版（`{"status":"ok","version":"<version>"}`） |

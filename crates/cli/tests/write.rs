@@ -462,10 +462,23 @@ fn watch_prints_a_line_for_each_page_placed_and_skips_other_events() {
     assert!(json["createdAt"].is_string(), "{json}");
     let path = json["path"].as_str().unwrap().to_owned();
     assert_eq!(json["url"], format!("{}{path}", s.url));
-    // 流れ残りを捨ててから、返事の状態と file を書く（知らせは流れるが、ページの新着ではない）。次に置いたページだけが出る。
+    // 流れ残りを捨ててから、返事の状態と file とメッセージの記録を書く（知らせは流れるが、ページの新着ではない）。
+    // 次に置いたページだけが出る。
     while line_rx.recv_timeout(Duration::from_millis(300)).is_ok() {}
     s.reply(&path, "waiting");
     s.place_file("p", "AI-22", "name=note.txt&role=tpm", "text/plain", b"x");
+    s.put_message(
+        "p",
+        "m-1",
+        &serde_json::json!({
+            "heading": "request",
+            "from": "t-1.swe.1",
+            "to": "tpm",
+            "text": "本文",
+            "sentAt": "2026-11-24T00:00:00Z",
+            "state": "waiting",
+        }),
+    );
     s.place("p", "AI-22", "result", "role=tpm", &html("結果", "y"));
     let next = line_rx.recv_timeout(Duration::from_secs(10)).unwrap();
     child.kill().unwrap();

@@ -196,13 +196,7 @@ details pre{padding-left:1rem}
     if (opened) pull();
     opened = true;
   };
-  // browser は、名の無い event（ページを置いた知らせ）も、この受け手に渡す。ページの記録（path がある）は読み飛ばす。
-  events.addEventListener("message", (e) => {
-    try {
-      if (JSON.parse(e.data).path) return;
-    } catch {}
-    pull();
-  });
+  events.addEventListener("message-record", () => pull());
 })();
 </script>
 </body>

@@ -5,8 +5,8 @@
 //!   `ai.pagetray#Message`。`url` は入らない）。
 //!   0.8.x の server は snake_case の記録だった（画面の script が読むのは `path`・`project`・`key` だけで、名は同じ）。
 //! - event の名: ページは名の無い event（前からの受け手は、これだけを読む）、file は `file`、返事は `reply`、印は `review`、
-//!   メッセージの記録は `message`。browser の EventSource は、名の無い event も `event: message` も同じ `message` の受け手
-//!   （`onmessage`）に渡すので、画面の script は、欄で見分ける（`path` があるのはページの記録だけ）。
+//!   メッセージの記録は `message-record`（`message` にはしない。EventSource の既定の event の型と同じ名で、名の無い event と
+//!   同じ受け手に届くため）。
 //! - 聞いている者が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（[`CAPACITY`] 件を覚える。
 //!   画面は、一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
 //! - 止める合図を受けたら（[`Events::new`] の印）、どの流れも閉じる。閉じないと、止める時に走っている物を終えるのを待つ所
@@ -37,7 +37,7 @@ pub enum Note {
     Review(Page),
     /// file を置いた。`event: file`。
     File(File),
-    /// メッセージの記録を置いた・書き足した（替わらなかった時も）。`event: message`。
+    /// メッセージの記録を置いた・書き足した（替わらなかった時も）。`event: message-record`。
     Message(model::Message),
 }
 
@@ -74,7 +74,7 @@ impl Events {
             Note::Review(page) => (Some("review"), page.path.clone(), page_json(page)),
             Note::File(file) => (Some("file"), file.path.clone(), file_json(file)),
             Note::Message(message) => (
-                Some("message"),
+                Some("message-record"),
                 format!("{}/{}", message.project, message.id),
                 message_json(message),
             ),

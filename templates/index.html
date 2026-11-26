@@ -298,10 +298,8 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
   };
   events.onmessage = (e) => {
     try {
-      const record = JSON.parse(e.data);
-      // browser は、メッセージの記録の知らせ（event: message）も、この受け手に渡す。ページの記録（path がある）だけを読む。
-      if (!record.path && record.sentAt) return;
-      if (record.path) heard.add(record.path);
+      const path = JSON.parse(e.data).path;
+      if (path) heard.add(path);
     } catch {}
     pull();
   };

@@ -128,6 +128,18 @@ impl Server {
         let (status, json) = self.send("PUT", &uri, Some("application/json"), body.into_bytes());
         assert_eq!(status, 200, "{json}");
     }
+
+    /// メッセージの記録を、API を直に呼んで置く・書き足す（CLI に、その命令は無い）。
+    pub fn put_message(&self, project: &str, id: &str, body: &serde_json::Value) {
+        let uri = format!("/api/projects/{project}/messages/{id}");
+        let (status, json) = self.send(
+            "PUT",
+            &uri,
+            Some("application/json"),
+            body.to_string().into_bytes(),
+        );
+        assert!(status == 201 || status == 200, "{status}: {json}");
+    }
 }
 
 impl Drop for Server {

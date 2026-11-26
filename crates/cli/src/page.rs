@@ -757,6 +757,13 @@ mod tests {
         assert_eq!(events.push(b":1}\n\n"), ["{\"a\":1}"]);
         assert!(events.push(b"event: reply\ndata: {}\n\n").is_empty());
         assert!(events.push(b"event: file\r\ndata: {}\r\n\r\n").is_empty());
+        // メッセージの記録の知らせ（1.1.0 から）も、ページの新着ではない。次の名の無い知らせは出る。
+        assert!(
+            events
+                .push(b"event: message-record\ndata: {\"id\":\"m-1\"}\n\n")
+                .is_empty()
+        );
+        assert_eq!(events.push(b"data: {\"b\":2}\n\n"), ["{\"b\":2}"]);
         // 注釈の行（keep-alive）は読み飛ばす。
         assert!(events.push(b":\n\n").is_empty());
         assert_eq!(events.push(b"data:x\ndata: y\n\n"), ["x\ny"]);

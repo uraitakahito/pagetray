@@ -272,7 +272,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 
 ### 記録
 
-`PutMessage` の答えと、`ListMessages` の行と、新着の知らせ（`message`）の data は、同じメッセージの記録（`ai.pagetray#Message`）。
+`PutMessage` の答えと、`ListMessages` の行と、新着の知らせ（`message-record`）の data は、同じメッセージの記録（`ai.pagetray#Message`）。
 
 - いつもある欄: `project`・`id`・`heading`・`from`・`to`・`text`・`sentAt`・`state`・`createdAt`（置き場が初めて受けた時刻）・`updatedAt`（最後に書き足された時刻）。
 - 値のある時だけ: `key`・`deliveredAt`・`via`・`deliveries`・`replyTo`・`sender`（`ai.pagetray#Sender`。ページの送り手と同じ形）。
@@ -300,11 +300,11 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 | file を置いた（`CreateFile`） | `file` | file の記録（`ListFiles` の行と同じ） |
 | 返事の状態を書いた（`SetReplyState`。替わらなかった時も） | `reply` | 書いた後のページの記録（答えと同じ） |
 | レビューの印を書いた（`AddReviewMarks`。替わらなかった時も） | `review` | 書いた後のページの記録（答えと同じ） |
-| メッセージの記録を置いた・書き足した（`PutMessage`。替わらなかった時も） | `message` | 書いた後のメッセージの記録（答えと同じ。`ListMessages` の行と同じ） |
+| メッセージの記録を置いた・書き足した（`PutMessage`。替わらなかった時も） | `message-record` | 書いた後のメッセージの記録（答えと同じ。`ListMessages` の行と同じ） |
 
 - 断った書き込み（400・404・409 など）と、消した時（`DeletePages`・`DeleteFiles`）は送らない。答えの記録に直せてから送る（直せずに 500 を返す書き込みは知らせない）。
 - 記録の形は API の答えと同じ camelCase（`createdAt`・`askedAt`・`waitsOn`・`sender.resolvedAt` など。時刻は答えと同じ字）。
-- **`message` の名と、名の無い event**: 流れの上では、ページを置いた知らせに `event:` の行は無く、メッセージの記録の知らせには `event: message` の行がある（行を読む受け手は、ここで見分ける）。browser の `EventSource` は、名の無い event を `message` の型で渡すので、`onmessage`・`addEventListener("message", …)` には両方が届く。`EventSource` で聞く受け手は、欄で見分ける（`path` があるのはページの記録、`sentAt` があるのはメッセージの記録）。一覧の UI の script も、そう見分ける。
+- メッセージの記録の event の名は `message-record`（`message` は、`EventSource` の既定の event の型と同じ名なので使わない）。
 - broadcast の channel（容量 64）。聞き手が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（画面は一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
 - 守りの層は、ほかの道と同じ（`Host` を見る。時間切れは答えの頭までなので、流し続ける本文には掛からない）。
 
@@ -319,7 +319,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 - 送り手は、castlist の名に castlist のアクターの画面への link（`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`。castlist を設定していて、答えのある送り手だけ）と、その下に小さく付随する id。答えの無い送り手は「未確認」。絞り込みの「送り手」は、答えのある送り手を、ページの多い順に 100 まで。
 - 字はみな HTML として逃がし、URL の引数に入れる値は、英数字と `-` `.` `_` `~` のほかを %XX にする（`actorRef` は castlist と同じ広い形で、空白・`?`・`&`・`#`・`/` も通る）。
 - Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出す（project が `api` なら出さない）。本文の枠の iframe は `sandbox="allow-scripts"`。
-- メッセージの一覧（`/messages`。template は `templates/messages.html`）: ページの一覧の操作の帯の link「メッセージ」で開き、link「ページ」で戻る。引数は `project`・`key`・`to`・`from`・`state`・`at`（空は書かないのと同じ。知らない `state` は無視。読めない引数は 400）。送った時刻の新しい順に、1 度に 200 件（続きの印 `at` は、`ListMessages` の `nextToken` と同じ形）。1 行に、送った時刻・Key・見出し・「送り手 → 受け手」・状態（上の「状態」の画面の字）・届いた時刻・渡した時・渡し直しの数（渡した回数が 2 以上の時に、回数 − 1 を「渡し直し n 度」）・本文。本文は、200 字か 5 行を超えると、頭の 120 字だけを見せ、開くと全部（`<details>`）。本文は HTML として出さない（字として逃がす）。「まだ届いていない n 件」（tab の題にも）と絞り込みの候補（状態・受け手・送り手・Key・project）は、絞りに関わらず置き場の全部。新着の知らせ（`message`）を受けると、ページの一覧と同じやり方で、一覧の列と絞り込みの列を読み直す。
+- メッセージの一覧（`/messages`。template は `templates/messages.html`）: ページの一覧の操作の帯の link「メッセージ」で開き、link「ページ」で戻る。引数は `project`・`key`・`to`・`from`・`state`・`at`（空は書かないのと同じ。知らない `state` は無視。読めない引数は 400）。送った時刻の新しい順に、1 度に 200 件（続きの印 `at` は、`ListMessages` の `nextToken` と同じ形）。1 行に、送った時刻・Key・見出し・「送り手 → 受け手」・状態（上の「状態」の画面の字）・届いた時刻・渡した時・渡し直しの数（渡した回数が 2 以上の時に、回数 − 1 を「渡し直し n 度」）・本文。本文は、200 字か 5 行を超えると、頭の 120 字だけを見せ、開くと全部（`<details>`）。本文は HTML として出さない（字として逃がす）。「まだ届いていない n 件」（tab の題にも）と絞り込みの候補（状態・受け手・送り手・Key・project）は、絞りに関わらず置き場の全部。新着の知らせ（`message-record`）を受けると、ページの一覧と同じやり方で、一覧の列と絞り込みの列を読み直す。
 - 答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と script は template の物の hash だけを許す（hash は、画面ごとに、その template から作る）。図は置き場の file と、上げる前の見本（`blob:`）と favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠の送り先は置き場だけ。
 
 ## 起こし方
