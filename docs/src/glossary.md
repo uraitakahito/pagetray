@@ -17,7 +17,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | CLI | `pagetray` | 置き場を端末から操作する命令 | — |
 | ページ（page） | `pages` | 置き場に置く HTML 1 枚。置き直すと、別の番号の別のページになる | Artifact |
 | 本文（body） | `body` | ページの HTML そのもの | — |
-| ページの記録（page record） | `PageRecord` | ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・workspace・時刻・大きさ・path。返事の状態を書いたページには、その時刻も。送り手を記録したページには、送り手も） | メタデータ |
+| ページの記録（page record） | `ai.pagetray#Page` | ページ 1 枚の、本文を除いた欄（project・Key・種類・番号・題・役割・workspace・時刻・大きさ・path。返事の状態を書いたページには、その時刻も。送り手を記録したページには、送り手も） | メタデータ |
 | 返事の状態（reply state） | `asked_at`・`answered_at` | 返事が要るページに、呼ぶ側が書く状態。返事待ち（`waiting`。求めて、まだ答えていない）か、答えた（`answered`）。書いていないページは、返事を求めていない | — |
 | 待ちの相手（waiting party） | `waits_on`・`on` | 返事の状態が、誰の返事を待つか。Product Manager（`pm`。DB では空）・レビューの席（`review`）・TPM 担当（`tpm`）。「返事待ち」「答えた」と言う時は、Product Manager の物 | — |
 | レビューの判定（verdict） | `verdict` | レビューのページに、呼ぶ側が書く判定。よい（`approve`）・気になる所あり（`concerns`）・直すべき（`reject`）・見られなかった（`not-assessed`） | — |
@@ -37,7 +37,7 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | file | `files` | ページから参照する file（画像・PDF・字の file）1 つ。置き直すと、別の番号の別の file になる | — |
 | 消した番号（removed number） | `removed`・`files_removed` | 消したページと file の番号。本文は持たない。同じ番号を 2 度使わないためと、消した URL に `410` を返すために残す | — |
 | 全文の索引（full-text index） | `pages_fts` | ページの題と本文の字を、3 字ずつに切って引けるようにした索引（SQLite の FTS5）。探す欄の語は、ここで引く | — |
-| 移行（migration） | `migrations/` | DB の表を作る・変える SQL。サーバーが起きる時に、まだ当てていない物を番号の順に当てる。当てた物は変えない | — |
+| 移行（migration） | `crates/server/migrations/` | DB の表を作る・変える SQL。サーバーが起きる時に、まだ当てていない物を番号の順に当てる。当てた物は変えない | — |
 | 写し（backup） | `pagetray backup` | DB をそのまま写した、SQLite の file 1 つ | バックアップ |
 
 ## API
@@ -45,9 +45,9 @@ pagetray の文書・画面・code で使う語を、1 か所に並べる。語�
 | 語 | code の名 | 意味 | 使わない言い方 |
 |---|---|---|---|
 | API | `/api/…` | 置き場が、呼ぶ側に向けて開けている HTTP の受け先の全体 | 口 |
-| エンドポイント（endpoint） | — | API の受け先の 1 つ 1 つ（`POST /api/pages` など） | 口 |
+| エンドポイント（endpoint） | — | API の受け先の 1 つ 1 つ（`GET /api/pages` など） | 口 |
 | API の仕様（API specification） | `docs/src/api.md` | 呼ぶ側が頼ってよい形を書いた章 | 口の約束 |
-| API の版（API version） | `API_VERSION` | API の形を、前からある呼ぶ側が困るように変えた時だけ上げる数。どの答えにも header `Pagetray-Api` で付く | 口の版 |
+| API の版（API version） | — | 0.8.x までの API の形の版の数。どの答えにも header `Pagetray-Api` で付いていた。1.0.0 からの API には無く、形の替わりは、定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）が守る | 口の版 |
 | 呼ぶ側（caller） | — | API を呼ぶ物（CLI・`roster page` など） | クライアント |
 
 ## 一覧の UI

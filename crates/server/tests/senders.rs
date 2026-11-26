@@ -1,6 +1,6 @@
 //! 送り手の記録（処理より先に書く）。置く時に、付随する id（`actorIssuer`・`actorRef`）で castlist に送り手を聞き
 //! （生成した castlist の client。TLS の無い HTTP/1.1・1 秒・送り直さない）、その答えを残す。
-//! castlist は、試験の中で待ち受ける偽物（common/castlist.rs）。決まりは docs/src/next.md の「送り手」。
+//! castlist は、試験の中で待ち受ける偽物（common/castlist.rs）。決まりは docs/src/api.md の「送り手」。
 mod common;
 
 use std::time::{Duration, Instant};

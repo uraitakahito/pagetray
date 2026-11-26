@@ -1,4 +1,4 @@
-//! CreatePage の振る舞い（処理より先に書く）。0.8.x の server の「置く」の決まり（docs/src/next.md の「ページを置く」）を、
+//! CreatePage の振る舞い（処理より先に書く）。0.8.x の server の「置く」の決まり（docs/src/api.md の「ページを置く」）を、
 //! 1.0.0 の道と欄の名で見る。送り手（actorIssuer・actorRef）は tests/senders.rs。
 mod common;
 

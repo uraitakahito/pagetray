@@ -7,7 +7,7 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 | image | `ghcr.io/uraitakahito/pagetray:v<version>`（[release](https://github.com/uraitakahito/pagetray/releases) に digest がある。arm64） |
 | container | `pagetray`（`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
 | URL | `http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
-| DB | 名前つきの volume `pagetray-data-v1`（中の `/data/pages.db`。1.0.0 から。0.8.x までの volume `pagetray-data` からは移す: [release を出す](release.md) の「切り替え」）。Mac の folder は mount しない |
+| DB | 名前つきの volume `pagetray-data-v1`（中の `/data/pages.db`。1.0.0 から。0.8.x の DB は、切り替えの時に移した: [release を出す](release.md) の「切り替え（済み）」）。Mac の folder は mount しない |
 | 記録 | 同じ volume の `/data/logs/`（0.7.0 から。合わせて 4 MiB と 64 KiB まで）。下の「落ちた後に調べる」 |
 | 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://127.0.0.1:8802`）は下の「送り手を castlist に聞く」 |
 
@@ -49,15 +49,15 @@ container run -d --name pagetray \
 > [!WARNING]
 > `-p` には必ず `127.0.0.1:` を書く。`-p 8801:8080` と書くと LAN に開く。
 
-- 8801 が使われていたら別の port にする。roster の担当が使う URL は、環境変数 `TPM_PAGES_URL` で合わせる。
-- 0.8.x（volume `pagetray-data`）で動かしていた時は、`container volume create` の前に [release を出す](release.md) の「切り替え」をする（新しい volume を作り、写しを migrate で移してから、上の `container run` で起こす）。
+- 8801 が使われていたら別の port にする。roster の担当が使う URL は、環境変数 `ROSTER_PAGES_URL` で合わせる。
+- 0.8.x の volume `pagetray-data` では起こさない（1.0.0 から後の server は、0.8.x の DB を何も書かずに断って止まる）。0.8.x の DB を移す `migrate` は v1.0.0 の image にだけある（[release を出す](release.md) の「切り替え（済み）」）。
 - 起きる時に、まだ当てていない移行の SQL（`crates/server/migrations/`）を DB に当てる。
 
 ## 確かめる
 
 1. `container list` で `pagetray` が `running`。
 2. `lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と `127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。
-3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `{"status":"ok","version":"<version>"}` を返す（`version` が起こした版。1.0.0 から。0.8.x までは字の `ok` と `GET /api/version`）。
+3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `{"status":"ok","version":"<version>"}` を返す（`version` が起こした版）。
 4. `container logs pagetray` の頭の 2 行が、前回の終わり方（`previous: …`。下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8802`）。
 5. `container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
 6. 一覧の UI を、読むだけの試験で見る（試験のある 0.3.2 から）。本物の browser（この Mac の Chrome）で開き、一覧が出て API の答えと合うこと・新着の知らせにつながること・絞れること・選んだページが本文の枠に出ること・console に誤りが無いことを見る。置き場には何も書かない。pagetray の checkout のある folder で、起こした版の試験を取り出して流す（Node と pnpm が要る。[開発](development.md) の「一覧の UI の試験」）。checkout が無ければ、browser で `http://127.0.0.1:8801/` を開き、一覧が出るのを見る。
@@ -68,6 +68,8 @@ container run -d --name pagetray \
    (cd pagetray-smoke/e2e && pnpm install --frozen-lockfile && PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test)
    git -C pagetray worktree remove "$PWD/pagetray-smoke"
    ```
+
+   v1.0.0 の試験だけは、`PAGETRAY_E2E_URL` の前に `PAGETRAY_E2E_API=next` も付ける（v1.0.0 の試験の既定は前の API の形で、付けないと前の道を叩いて落ちる。次の版から要らない）。
 
 ## 一覧の UI から file を上げる
 
@@ -152,11 +154,11 @@ container run --rm -v pagetray-data-v1:/data docker.io/library/rust:1.100.0-alpi
 
 - 止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるため）。止めるのは `container stop pagetray`。DB は volume に残る。
 - Mac を起こし直すと止まったままになる。`container system start` の後に `container start pagetray` を打ち、「確かめる」をする。
-- volume（`pagetray-data-v1`）は消さない。0.8.x までの volume `pagetray-data` も、戻す時のために切り替えの後も残す（消す日は Product Manager が決める。AI-36 の段 9）。
+- volume（`pagetray-data-v1`）は消さない。切り替えの前の volume `pagetray-data`（0.8.x の DB）も、戻す時のために残す（消す日は Product Manager が決める）。
 
 ## 版を上げる
 
-1. [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/CHANGELOG.md) で、API の版が変わるか・移行の SQL が足されるかを見る（移行が足された版は、当てた後に前の版へ戻せない。0.5.0 がそう: 0.4.2 までの版は、0.5.0 が起きた後の DB では起きない）。0.8.x から 1.0.0 へは、API と移行がみな替わり volume も替わるので、この手順でなく [release を出す](release.md) の「切り替え」をする（戻す時は、v0.8.0 の image と今の volume `pagetray-data` で起こす）。
+1. [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/CHANGELOG.md) で、API の形が替わるか・移行の SQL が足されるかを見る（移行が足された版は、当てた後に前の版へ戻せない。1.0.0 から後の server は、自分より新しい版が移行を足した DB では起きない）。
 2. 新しい版の image を pull し、digest を release の値と見比べる。
 3. 「DB の写しを取る」をする。
 4. `container stop pagetray`・`container delete pagetray` の後、新しい版で「起こす」の `container run` を打ち、「確かめる」をする（volume はそのまま付く）。

@@ -1,6 +1,6 @@
 # 変えたこと
 
-版ごとに、API の版（[docs/src/api.md](docs/src/api.md)）が変わったかを書く。
+版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
 ## 1.0.0
 

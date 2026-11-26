@@ -982,7 +982,7 @@ async fn paths_under_api_never_reach_the_file_route() {
     assert_eq!(body, b"{}");
 }
 
-/// browser から来た書く要求（`Origin` 付き）の、通す・断るの組み合わせ（docs/src/next.md の「守りの層」）。
+/// browser から来た書く要求（`Origin` 付き）の、通す・断るの組み合わせ（docs/src/api.md の「守りの層」）。
 /// 通すのは、一覧の UI の form が file を上げる 1 つの形（CreateFile の道・同じ Host と port の http の Origin・
 /// Sec-Fetch-Site が無いか same-origin）だけ。
 #[tokio::test]
