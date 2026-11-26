@@ -31,6 +31,16 @@ const STATES: [(&str, &str); 5] = [
     ("carried", "ほかの道具で運んだ"),
 ];
 
+/// 渡した時の名（呼ぶ側が `via` に書く字）と、画面に出す字。ここに無い名は、書かれた字のまま出す。
+const VIAS: [(&str, &str); 6] = [
+    ("gate", "検査が止めた後"),
+    ("wake", "起こした"),
+    ("prompt", "人の入力の時"),
+    ("max-deliveries", "渡し直しの上限を超えた"),
+    ("ttl", "期限で消えた"),
+    ("closed", "席を閉じた"),
+];
+
 /// 本文をそのまま出す長さ（字の数と行の数）。超えれば、頭だけ見せて、開くと全部。
 const TEXT_CHARS: usize = 200;
 const TEXT_LINES: usize = 5;
@@ -108,7 +118,7 @@ struct Row {
     state_label: &'static str,
     /// 届いた時刻（残した字と、script が動かない時に出す字）。
     delivered: Option<(String, String)>,
-    /// どの時に渡したかの名。書いていなければ空。
+    /// どの時に渡したかの、画面に出す字（[`via_label`]）。書いていなければ空。
     via: String,
     /// 渡し直した数（渡した回数 − 1）。渡した回数が 2 以上の時だけ出す。
     again: i64,
@@ -152,6 +162,13 @@ pub(super) async fn index(
 /// 状態の名（DB の字を 'static にする）と、画面に出す字。知らない字なら None。
 fn state_view(state: &str) -> Option<(&'static str, &'static str)> {
     STATES.into_iter().find(|(name, _)| *name == state)
+}
+
+/// 渡した時の名の、画面に出す字。決めていない名は、書かれた字のまま（隠さない）。
+fn via_label(via: &str) -> &str {
+    VIAS.into_iter()
+        .find(|(name, _)| *name == via)
+        .map_or(via, |(_, label)| label)
 }
 
 /// 条件を揃え、DB を読み、画面を組む。
@@ -311,7 +328,12 @@ fn row(r: MessageRow) -> Row {
         to_name: r.to_name,
         text: r.text,
         sent_at: r.sent_at,
-        via: r.via.unwrap_or_default(),
+        via: r
+            .via
+            .as_deref()
+            .map(via_label)
+            .unwrap_or_default()
+            .to_owned(),
         updated_at: r.updated_at,
     }
 }

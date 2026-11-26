@@ -1310,6 +1310,51 @@ async fn a_row_shows_the_record_with_the_state_in_words() {
     assert!(!row(&page, "q/m-5").contains("<span></span>"));
 }
 
+/// 渡した時（`via`）は、名を画面の字にして出す。決めていない名は、書かれた字のまま。API の答えの `via` は替えない。
+#[tokio::test]
+async fn the_via_is_shown_in_words_and_an_unknown_one_as_written() {
+    let app = App::start().await;
+    let cases = [
+        ("delivered", "gate", "検査が止めた後"),
+        ("delivered", "wake", "起こした"),
+        ("delivered", "prompt", "人の入力の時"),
+        ("undeliverable", "max-deliveries", "渡し直しの上限を超えた"),
+        ("expired", "ttl", "期限で消えた"),
+        ("expired", "closed", "席を閉じた"),
+        ("delivered", "output", "output"),
+        ("delivered", "session-start", "session-start"),
+    ];
+    for (state, via, _) in cases {
+        place(
+            &app,
+            "p",
+            via,
+            with(waiting(), json!({ "state": state, "via": via })),
+        )
+        .await;
+    }
+    let page = text(&app, "/messages").await;
+    for (_, via, label) in cases {
+        let line = row(&page, &format!("p/{via}"));
+        assert!(
+            line.contains(&format!("<span>渡した時: {label}</span>")),
+            "{via}: {line}"
+        );
+    }
+    // 替わるのは画面の字だけ。API は、書かれた名のまま返す。
+    let json = list(&app, "project=p").await;
+    let mut stored: Vec<&str> = json["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["via"].as_str().unwrap())
+        .collect();
+    stored.sort_unstable();
+    let mut written: Vec<&str> = cases.iter().map(|(_, via, _)| *via).collect();
+    written.sort_unstable();
+    assert_eq!(stored, written);
+}
+
 /// 本文は必ず逃がす（HTML として出さない）。from・to・絞り込みの値も。
 #[tokio::test]
 async fn the_text_is_escaped_on_the_screen() {

@@ -34,7 +34,7 @@ test('行: 送った時刻・Key・見出し・送り手と受け手・状態の
     'm-1',
     message({ key: 'A-1', heading: 'answer', from: 'pm.1', to: 't-1.swe.1', text: 'りんごにする', deliveredAt: '2026-11-01T00:00:07Z', via: 'session-start', deliveries: 3 }),
   );
-  await putMessage(request, 'msg-rows', 'm-2', message({ sentAt: '2026-11-02T00:00:00Z', state: 'expired', text: 'みかん' }));
+  await putMessage(request, 'msg-rows', 'm-2', message({ sentAt: '2026-11-02T00:00:00Z', state: 'expired', via: 'ttl', text: 'みかん' }));
   await putMessage(request, 'msg-rows', 'm-3', message({ sentAt: '2026-11-03T00:00:00Z', state: 'carried', to: 'pm.1', text: 'ぶどう' }));
 
   await openLive(page, '/messages?project=msg-rows');
@@ -48,6 +48,8 @@ test('行: 送った時刻・Key・見出し・送り手と受け手・状態の
   await expect(row.locator('.route')).toHaveText('pm.1 → t-1.swe.1');
   await expect(row.locator('.who')).toContainText('届いた 11-01 09:00');
   await expect(row.locator('.who')).toContainText('渡した時: session-start');
+  // 決めてある名（ttl など）は、画面の字にして出す。決めていない名（上の session-start）は、書かれた字のまま。
+  await expect(messageRow(page, 'msg-rows', 'm-2').locator('.who')).toHaveText('渡した時: 期限で消えた');
   await expect(row.locator('.who')).toContainText('渡し直し 2 度');
   await expect(row.locator('pre')).toHaveText('りんごにする');
 
