@@ -2,8 +2,8 @@
 //! e2e の試験と、手で動かして見るのにも使う。
 //!
 //! - `PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。
-//! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時と、0.8.x までの server の DB の時は、
-//!   記録の置き場も DB も作らずに、stderr に訳を書いて 1 で終わる（古い volume に何も書かない）。
+//! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時は、記録の置き場も DB も作らずに、
+//!   stderr に訳を書いて 1 で終わる。
 //! - 記録の置き場は DB の隣の `logs/`（[`pagetray_server::runlog`]）。起きたら初めに、前の回の終わり方の行（`previous: …`）を出す。
 //! - 止める合図（SIGTERM・SIGINT）で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる
 //!   （待つのは [`SHUTDOWN_WAIT`] まで）。
@@ -14,7 +14,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use pagetray_server::castlist::Castlist;
-use pagetray_server::db::{Db, OpenError};
+use pagetray_server::db::Db;
 use pagetray_server::runlog::{self, RunLog};
 use pagetray_server::{Config, REQUEST_TIMEOUT, app_with};
 use tokio::signal::unix::{SignalKind, signal};
@@ -25,12 +25,6 @@ async fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if !args.is_empty() {
         eprintln!("{USAGE}");
-        if args[0] == "migrate" {
-            // 0.8.x の DB を移す命令は、v1.0.0 の image にだけある。
-            eprintln!(
-                "migrate は v1.0.0 の image（ghcr.io/uraitakahito/pagetray:v1.0.0）にある（docs の release.md の「切り替え」）"
-            );
-        }
         return ExitCode::from(2);
     }
     let path = PathBuf::from(env_or("PAGETRAY_DB", "/data/pages.db"));
@@ -42,11 +36,6 @@ async fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    // 0.8.x までの server の DB（古い volume）なら、記録の置き場も作らずに止める（その volume に何も書かない）。
-    if let Err(e @ OpenError::Current(_)) = pagetray_server::db::refuse_current(&path).await {
-        eprintln!("pagetray: {e}");
-        return ExitCode::FAILURE;
-    }
     // 記録の置き場は DB の隣の logs/。DB を開く前に用意する（開けなかった訳も残すため）。
     let log = RunLog::beside(&path);
     runlog::init(&log);

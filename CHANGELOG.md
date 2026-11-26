@@ -2,6 +2,17 @@
 
 版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
+## 1.0.2
+
+API の版: 無い（1.0.0 と同じ）
+
+切り替えの前の volume（`pagetray-data`）を消したので、0.8.x のためだけにあった守りと戻し方を消した版（AI-36）。API・DB の移行の SQL・image の中身・環境変数・port は 1.0.1 と同じで、1.0.0・1.0.1 の volume（`pagetray-data-v1`）でそのまま起きる。
+
+- server: 0.8.x の DB を断る所と、引数 `migrate` に v1.0.0 の image を指す訳を消した（`migrate` も、ほかの引数と同じく使い方を出して 2 で終わる）。
+- 後の版（移行を足した版）が書いた DB は、移行を当てずに断る（訳は前と同じ「この server より新しい版の DB」）。断る時も、記録（`logs/`）と WAL の file（`-wal`・`-shm`）は書く。
+- CLI（`pagetray`）: header `Pagetray-Api` で 0.8.x の置き場を見分ける所を消した。定義より古い置き場（生成した層の 404 `UnknownOperationException`）の code 4 は残す。
+- docs: [release を出す](https://uraitakahito.github.io/pagetray/release.html)・[動かす](https://uraitakahito.github.io/pagetray/run.html)・[CLI](https://uraitakahito.github.io/pagetray/cli.html) から、0.8.x へ戻す道と、戻した後にまた切り替える道を消した。
+
 ## 1.0.1
 
 API の版: 無い（1.0.0 と同じ。定義 `model/` の pagetray の形は替えていない）
@@ -25,7 +36,7 @@ AI-36 の作り直しの新しい server（`crates/server`）を、ふつうの 
 - **CLI（`pagetray`）が新しい物になった**: 1.0.0-rc.1 まで `pagetray-cli-next` の名で並べていた CLI（`crates/cli-next`）の binary を `pagetray` にし、今の CLI（`crates/cli`。今の API に向けた物）を消した。命令の形・旗・環境変数は今の CLI と同じで、替わるのは `--json` の欄の名（camelCase）・一覧の続き（`--before`・`--after` でなく `--next-token`）・`status` の出す物・終わりの code 4 の訳など（[CLI](https://uraitakahito.github.io/pagetray/cli.html) の「0.8.x の CLI と替わった所」）。0.8.x の置き場に向けると、答えを使わずに code 4 で止まる。0.8.x の置き場には、0.8.x の release の CLI を使う。
 - image と release: `Containerfile` が新しい server を作る（binary は今と同じ `/pagetray-server`。環境変数・port も同じ）。CI の job `image` と release の確かめは、新しい API の形の smoke（`ci/smoke-image.sh <image> next`）を流す。release の workflow の rc の分け（`-rc.` の tag だけ `Containerfile.next`）は無くした（`-rc.` の tag を pre-release にする所は残す）。CI の job `cli` と release の `check-cli` は、新しい CLI を作り、同じ commit の新しい server に向けて打つ。`Containerfile.next` と今の server の code は段 9 で消す。
 - smoke の予行（1.0.0-rc.1 の後に足した）: image の smoke の終わりに、今の版（v0.8.0。digest で固める）に今の API でページ・file を置き、ページと file を 1 つずつ足して消し、返事の状態とレビューの印を付けて写しを取る。この image の migrate で新しい volume に移し、照らしの行がみな ok で、新しい API で同じ物が読め、消した URL が 410 で、次に置くページが消した番号を使わないかを見る。予行の途中の container は消さずに止め、落ちた時に log を出す。
-- docs: [動かす](https://uraitakahito.github.io/pagetray/run.html) の起こす行と確かめを、切り替えの後の形（volume `pagetray-data-v1`・`/healthz` の JSON の版）にした。[release を出す](https://uraitakahito.github.io/pagetray/release.html) の rc の節を切り替えの手順にし、今の server（0.8.x）を直して出す道を消した（1.0.0 の後は出さない。戻す時は v0.8.0 の image と今の volume で起こす）。[CLI](https://uraitakahito.github.io/pagetray/cli.html) の章を新しい CLI の形にした（[新しい API の形](https://uraitakahito.github.io/pagetray/next.html) の「CLI」の節の中身を移した）。
+- docs: [動かす](https://uraitakahito.github.io/pagetray/run.html) の起こす行と確かめを、切り替えの後の形（volume `pagetray-data-v1`・`/healthz` の JSON の版）にした。[release を出す](https://uraitakahito.github.io/pagetray/release.html) の rc の節を切り替えの手順にし、今の server（0.8.x）を直して出す道を消した（1.0.0 の後は出さない。戻す時は v0.8.0 の image と今の volume で起こす）。[CLI](https://uraitakahito.github.io/pagetray/cli.html) の章を新しい CLI の形にした（新しい API の形のページ（1.0.1 で [API の仕様](https://uraitakahito.github.io/pagetray/api.html) に入れた）の「CLI」の節の中身を移した）。
 
 ## 1.0.0-rc.1
 
@@ -33,10 +44,10 @@ API の版: 無くなった（今の API の版 1 との互換は無い。新し
 
 AI-36 の作り直しの初めの候補（pre-release）。この版の image は、新しい server（`crates/server`。Smithy の定義 `model/` から作った骨の上に処理を入れた物）を `Containerfile.next` で作った物で、今の server（0.8.0）とは別の物。動いている置き場（`pagetray`）は替えない。roster の `.pagetray-version` は上げない（上げると、今の API を話す roster の試験が落ち、運用の image を作り直すと新しい server が今の volume で起きずに止まる。上げるのは切り替えの時、新しい volume と一緒に）。切り替え（AI-36 の段 8）までは、試しと予行にだけ使う。release に付ける CLI は今の CLI（`pagetray`。今の API に向けた物）で、新しい API に向けた CLI（`crates/cli-next`）は付けない。
 
-- **API がみな替わった**（今の server との互換は無い。Product Manager の決め: AI-36）: protocol は restJson1、欄の名は camelCase、ページの番号 `n` は字、誤りは定義に書いた型（`X-Amzn-Errortype` と `{"message":…}`）、ページ送りは `nextToken`・`maxResults`、時刻は UTC だけ（24 字で残す）。header `Pagetray-Api` と `GET /api/version` は無く、版は `GET /healthz` の `version`。知らない送り手は 422 でなく、`fieldList` に `/actorRef` のある 400。送り手は castlist の新しい API（`v1.0.0-rc.1` の定義）で引く。形は [新しい API の形](https://uraitakahito.github.io/pagetray/next.html)（`docs/src/next.md`）。
+- **API がみな替わった**（今の server との互換は無い。Product Manager の決め: AI-36）: protocol は restJson1、欄の名は camelCase、ページの番号 `n` は字、誤りは定義に書いた型（`X-Amzn-Errortype` と `{"message":…}`）、ページ送りは `nextToken`・`maxResults`、時刻は UTC だけ（24 字で残す）。header `Pagetray-Api` と `GET /api/version` は無く、版は `GET /healthz` の `version`。知らない送り手は 422 でなく、`fieldList` に `/actorRef` のある 400。送り手は castlist の新しい API（`v1.0.0-rc.1` の定義）で引く。形は [API の仕様](https://uraitakahito.github.io/pagetray/api.html)（1.0.1 で API の仕様に入れた）。
 - **ページと file の URL は今のまま**（本文 `/{project}/{key}/{kind}-{n}.html`・file `/{project}/{key}/files/{語}-{n}.{拡張子}`）。消したページと file は 410 のまま。
 - **DB の移行の SQL が替わった**: 新しい server は、新しい migrations（`crates/server/migrations/`）で新しい DB を作る。**今の volume（`pagetray-data`）では起こさない**（新しい server は今の server の DB を開かずに止める）。今のデータは、今の server の `GET /api/backup` の写しから `migrate --from … --to …` で新しい volume に移す（id・番号・消した番号・送り手・印・本文を守り、時刻を 24 字に揃え、行の数と digest・本文の SHA-256・時点・外のキーを照らす）。手順は [release を出す](https://uraitakahito.github.io/pagetray/release.html) の「rc を動かす時と切り替え」。
-- **呼ぶ側に効く振る舞いの替わり**（くわしくは [新しい API の形](https://uraitakahito.github.io/pagetray/next.html)）:
+- **呼ぶ側に効く振る舞いの替わり**（くわしくは [API の仕様](https://uraitakahito.github.io/pagetray/api.html)。1.0.1 で API の仕様に入れた）:
   - 守りの層の時間切れ: 答えの頭まで 5 秒を過ぎれば 503 `Unavailable`（今の server には無かった）。backup も、写しを作るのに 5 秒を過ぎれば 503（「守りの層」「操作」）。
   - 一覧の引数は定義の形で見て 400（今の `limit` の丸めは無く、`maxResults` が 1〜1000 の外は 400。「探す」「直す今の振る舞い」）。
   - 一覧の頁は `createdAt` と id の組で続け、同じ時刻の行が頁の境で抜けず重ならない。画面の「続きを出す」も同じ（直した不具合。「直す今の振る舞い」）。

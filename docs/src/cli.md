@@ -2,8 +2,6 @@
 
 `pagetray` は、置き場を端末から操作する命令。置き場の API（[API の仕様](api.md)）を HTTP で呼ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も無い。
 
-`pagetray` は、1.0.0 からの置き場とだけ話す。0.8.x までの置き場に向けると、答えを使わずに code 4 で止まる（下の「終わりの code」）。0.8.x の置き場には、0.8.x の release に付いた CLI を使う。
-
 ## 入れる
 
 release に、macOS（arm64）用の binary が付いている。`gh` で取り、checksum を確かめてから置く。
@@ -113,7 +111,7 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 ### 直に呼ぶ（`api`）
 
 - 本文の種類は `--content-type`（既定 `application/json`。返事と印は JSON の本文のため）。ページは `text/html`、file は file の種類を書く。header にできない値（改行など）は code 2。
-- 断られれば、本文を出して code 1（`置き場が 400 ValidationException を返した` など）。知らない道（404 `UnknownOperationException`）も、打ち間違いが多いので code 4 にせず、ほかの断りと同じく code 1。
+- 断られれば、本文を出して code 1（`置き場が 400 ValidationException を返した` など）。知らない道（404 `UnknownOperationException`）も、打ち間違いが多いので code 4 にせず、ほかの断りと同じく code 1（code 4 にするのは、生成した操作と、CLI が自分で組む手の道だけ。下の「終わりの code」）。
 - 送り手は、命令からは書かない。`api` で `actorIssuer`・`actorRef` を書くと、castlist に登録の無い送り手なら 400 `ValidationException`（`fieldList` に `/actorRef`）で code 1。
 
 ## 設定
@@ -145,12 +143,12 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 | `1` | 置き場が断った（`4xx`・`5xx`。無いページ `404`・消したページ `410` を含む）。file に書けない時・`PAGETRAY_NO_DELETE` で止めた時・`file put` が置く前に止めた時（`--reviewed` が無い・秘密の形がある）も |
 | `2` | 使い方の誤り（`file put` の、置けない種類・大きすぎる・中身が拡張子と合わない file を含む） |
 | `3` | 置き場が応えない（つながらない・10 秒で答えない・答えが読めない・`backup` の本文が 10 秒届かない・`page watch` の流れが途中で切れた） |
-| `4` | 置き場の API が、この CLI の話す形でない: 答えに header `Pagetray-Api` がある（0.8.x までの置き場。答えを使わずに止まる）か、CLI が自分で組む道に、生成した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知らない、定義より古い置き場。`api` の道では code 1） |
+| `4` | 置き場の API が、この CLI の話す形でない: 生成した操作か、CLI が自分で組む手の道に、生成した層が 404 `UnknownOperationException` を返した（この CLI の呼ぶ操作を知らない、定義より古い置き場）。`api` の命令の道では code 1（上の「直に呼ぶ」） |
 | `130`・`143` | `backup` を止める合図（SIGINT・SIGTERM）で止めた（書きかけの写しは消した） |
 
 誤りの訳は stderr に 1 行で出る。stdout には、頼んだ物だけが出る。
 
-- API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（[API の仕様](api.md) の「共通の決まり」）。それでも code 4 を残すのは、0.8.x の置き場に向けた時に、読めない答えを code 3 とせず「違う API の置き場」と分けて出すため。生成した client は、答えに無い `@required` の欄を既定の値で埋めるので、0.8.x の置き場の答えを読ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見る（生成した client には interceptor で、手の道は答えの頭で）。`Pagetray-Api` の見分けは、古い volume を Product Manager が消した後に消す。
+- API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（[API の仕様](api.md) の「共通の決まり」）。壊す形の替わりは無いので、置き場の版が CLI より古くて困るのは、CLI の呼ぶ操作が置き場に無い時だけ。それを code 1 の断りとせず、code 4 の「置き場を上げる」と分けて出す。
 
 ## `roster page` との関わり
 

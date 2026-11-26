@@ -46,25 +46,6 @@ fn a_store_that_is_down_exits_3() {
 }
 
 #[test]
-fn a_store_of_the_current_api_exits_4_without_using_the_answer() {
-    // 0.8.x の server は、どの答えにも Pagetray-Api を付ける。答えの形が違うので、読まずに止まる。
-    let (url, _) = canned(
-        "HTTP/1.1 200 OK\r\nPagetray-Api: 1\r\nContent-Type: application/json\r\nContent-Length: 12\r\nConnection: close\r\n\r\n{\"pages\":[]}",
-    );
-    for args in [
-        &["page", "list"][..],
-        &["status"],
-        &["page", "view", "p/AI-22/plan-1"],
-    ] {
-        let ran = run_with(&url, args, &[], None);
-        assert_eq!(ran.code, 4, "{args:?}: {}", ran.stderr);
-        assert!(ran.stderr.contains("0.8.x までの API"), "{}", ran.stderr);
-        assert!(ran.stderr.contains("pagetray"), "{}", ran.stderr);
-        assert_eq!(ran.stdout, "");
-    }
-}
-
-#[test]
 fn a_store_that_does_not_know_the_operation_exits_4() {
     // 生成した層は、知らない道に 404 UnknownOperationException を返す（定義より古い server）。
     let (url, _) = canned(

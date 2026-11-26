@@ -16,7 +16,7 @@
         "container rm pagetray",
         "container volume delete pagetray-data",
         "container volume rm pagetray-data",
-        // volume を付ける命令（動く pagetray-data-v1 も、戻す時のために残す pagetray-data も。写しから戻す・移すもこれに当たる）。
+        // volume を付ける命令（写しから戻すもこれに当たる）。上の volume を消す命令と同じく、字の一部で当たるので、動く pagetray-data-v1 を守る。
         "-v pagetray-data",
       ],
     },

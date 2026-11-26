@@ -50,7 +50,6 @@ container run -d --name pagetray \
 > `-p` には必ず `127.0.0.1:` を書く。`-p 8801:8080` と書くと LAN に開く。
 
 - 8801 が使われていたら別の port にする。roster の担当が使う URL は、環境変数 `ROSTER_PAGES_URL` で合わせる。
-- 0.8.x の volume `pagetray-data` では起こさない（1.0.0 から後の server は、0.8.x の DB を何も書かずに断って止まる）。0.8.x の DB を移す `migrate` は v1.0.0 の image にだけある（[release を出す](release.md) の「切り替え（済み）」）。
 - 起きる時に、まだ当てていない移行の SQL（`crates/server/migrations/`）を DB に当てる。
 
 ## 確かめる
@@ -69,7 +68,7 @@ container run -d --name pagetray \
    git -C pagetray worktree remove "$PWD/pagetray-smoke"
    ```
 
-   v1.0.0 の試験だけは、`PAGETRAY_E2E_URL` の前に `PAGETRAY_E2E_API=next` も付ける（v1.0.0 の試験の既定は前の API の形で、付けないと前の道を叩いて落ちる。次の版から要らない）。
+   置き場を v1.0.0 で動かしている間は（v1.0.0 の試験を取り出して打つ時は）、`PAGETRAY_E2E_URL` の前に `PAGETRAY_E2E_API=next` も付ける（v1.0.0 の試験の既定は前の API の形で、付けないと前の道を叩いて落ちる）。1.0.1 から後の試験では要らない。
 
 ## 一覧の UI から file を上げる
 
@@ -154,7 +153,7 @@ container run --rm -v pagetray-data-v1:/data docker.io/library/rust:1.100.0-alpi
 
 - 止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるため）。止めるのは `container stop pagetray`。DB は volume に残る。
 - Mac を起こし直すと止まったままになる。`container system start` の後に `container start pagetray` を打ち、「確かめる」をする。
-- volume（`pagetray-data-v1`）は消さない。切り替えの前の volume `pagetray-data`（0.8.x の DB）も、戻す時のために残す（消す日は Product Manager が決める）。
+- volume（`pagetray-data-v1`）は消さない。
 
 ## 版を上げる
 

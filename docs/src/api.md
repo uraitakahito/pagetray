@@ -246,14 +246,14 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 
 起こす binary は `pagetray-server`（`crates/server/src/main.rs`）。image（`Containerfile`）に `/pagetray-server` の名で入る（[release を出す](release.md)）。
 
-- 引数は付けない。引数を付けると、使い方を出して 2 で終わる（`migrate` には、v1.0.0 の image にあることも添える。下の「データ」）。
+- 引数は付けない。引数を付けると、使い方を出して 2 で終わる。
 - 環境変数: `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）・`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`（上の「送り手」）。
-- 起きずに 1 で終わる物: castlist の設定の形が違う時と、ほかの版の server の DB の時（下の「データ」）。どちらも stderr に訳を書き、DB も記録の置き場も作らない（その volume に何も書かない）。
+- 起きずに 1 で終わる物: castlist の設定の形が違う時（stderr に訳を書き、DB も記録の置き場も作らない）と、DB を開けない時（後の版の DB を含む。下の「データ」。記録の置き場に訳を残す）。
 - 記録の置き場は DB の隣の `logs/`（大きさで回す記録の file・終わり方の印・生きている印。[動かす](run.md) の「落ちた後に調べる」）。起きて初めに前の回の終わり方の行（`previous: …`）、待ち受けたら起きた行（`pagetray <版> listen=… db=…`。castlist を設定すれば後ろに ` castlist=… castlist_link=…`）。
 - 問い合わせごとの 1 行（method・uri・status・latency）は記録の file にだけ書き、stdout には出さない（下の「守りの層」）。
 - SIGTERM と SIGINT で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる（印は `signal` と `stopped`）。知らせの流れは聞き手が切るまで続くので、閉じないと止まらない。走っている物を待つのは 3 秒（`SHUTDOWN_WAIT`。問い合わせの時間切れ 5 秒と、container を止める命令が SIGKILL を送るまでの待ちより短い）まで。過ぎたら記録に `stop wait exceeded wait=3s` を書き、DB を閉じて 0 で終わる（印は `stopped`。固まって切られた時と見分けられる）。ただし backup の写しを作っている間に合図が来ると、DB を閉じるのは写しを作り終えるまで待つ（その分は上限に入らない）。
 - 記録の書き手は `crates/server/src/runlog.rs`。
-- 試験: 本物の binary を空いた port で起こす物は `crates/server/tests/server.rs`（守りの層・backup・止め方・起きた行）と `crates/server/tests/runlog.rs`（前の回の終わり方・問い合わせの行・logs・上限で回る）と `crates/server/tests/refuse_old.rs`（ほかの版の DB を断る）。道具は `crates/server/tests/common/server.rs`。backup と logs の中身は `crates/server/tests/backup.rs`（Router を直に呼ぶ）。
+- 試験: 本物の binary を空いた port で起こす物は `crates/server/tests/server.rs`（守りの層・backup・止め方・起きた行）と `crates/server/tests/runlog.rs`（前の回の終わり方・問い合わせの行・logs・上限で回る）。道具は `crates/server/tests/common/server.rs`。backup と logs の中身は `crates/server/tests/backup.rs`（Router を直に呼ぶ）。
 - e2e の試験（`e2e/`）が、この binary を起こして一覧の UI を本物の browser で見る（[開発](development.md) の「一覧の UI の試験」）。
 
 ## ページの本文
@@ -291,7 +291,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 - DB は SQLite で、表は `crates/server/migrations/` の SQL で作る（[DB の作り](db.md)）。
 - 接続は castlist と同じ: 書く接続は 1 本（`WRITE_WAIT` 2 秒まで待つ）、読む接続は読むだけの 4 本（`READ_WAIT` 3 秒）。どの接続も WAL・`foreign_keys`・`recursive_triggers`・`busy_timeout` 5 秒・一時の物は memory。開く時に移行を当て、`foreign_key_check` に崩れがあれば開かない。
 - 0.8.x の DB は、v1.0.0 の image の `migrate` で新しい volume へ移した（AI-36 の切り替え。手順と照らしは [release を出す](release.md) の「切り替え（済み）」）。
-- server（`Db::open` と binary）は、0.8.x までの server の移行を当てた DB（`_sqlx_migrations` に、`crates/server/migrations/` に無い版か、中身の写しの違う版がある物）を、読むだけで見て、何も書かずに断る（訳は「0.8.x までの server の DB。…移すには v1.0.0 の image の migrate で新しい volume へ」。隣に `-wal` と `-shm` の両方が無ければ本体の file だけを読み（`immutable`）、隣に何も作らない）。合わない版がみなこの server の最も新しい版より後なら、後の版（移行を足した版）が書いた DB として、別の訳（「この server より新しい版の DB。…書いた版の image で起こす」）で断る。binary は記録の置き場も作らずに 1 で終わる。試験は `crates/server/tests/refuse_old.rs`（出した migrations の中身が 1 byte も替わっていないことも見る）。
+- `_sqlx_migrations` に、`crates/server/migrations/` に無い版か、中身の写しの違う版がある DB は、開かない（sqlx の移行が、当てる前に突き合わせて断る）。移行は 1 つも当てないが、記録の置き場（`logs/`）と WAL の file（`-wal`・`-shm`）は書く。無い版がこの server の最も新しい版より後なら、後の版（移行を足した版）が書いた DB として、「この server より新しい版の DB。…書いた版の image で起こす」の訳で断る。ほかは「DB の移行に落ちた: …」。binary は 1 で終わる。試験は `crates/server/tests/migrations.rs`（出した migrations の中身が 1 byte も替わっていないことも見る）。
 
 ## 定義の取り方
 
