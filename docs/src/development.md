@@ -7,9 +7,10 @@
 | `crates/server/src/lib.rs`・`guard.rs` | 道筋（生成した骨と手の道を 1 つの Router に並べる）と、この Mac の中からの要求だけを受ける守りの層 |
 | `crates/server/src/db.rs` | 接続・移行・SQL。ほかの版の server の DB を断る所も |
 | `crates/server/src/pages.rs`・`files.rs`・`list.rs`・`search.rs`・`marks.rs`・`remove.rs` | ページと file を置く・探す・印を書く・消す（生成した操作の handler）と、ページの本文・file の中身を返す道 |
+| `crates/server/src/messages.rs` | メッセージの記録を置く・書き足す・探す（生成した操作の handler） |
 | `crates/server/src/castlist.rs` | 置かれる時に、送り手を castlist に聞く（castlist の定義から作った client で。1 秒まで待つ）。聞く先と、画面の link の頭の設定を読む |
 | `crates/server/src/hand.rs` | 手の道の DB の写し（`GET /api/backup`）と記録（`GET /api/logs`） |
-| `crates/server/src/ui.rs`・`facets.rs`・`templates/index.html` | 一覧の UI（askama の template。build の時に検査される） |
+| `crates/server/src/ui.rs`・`ui/messages.rs`・`facets.rs`・`templates/index.html`・`templates/messages.html` | 一覧の UI と、メッセージの一覧（askama の template。build の時に検査される） |
 | `crates/server/src/events.rs` | 新着の push（SSE） |
 | `crates/server/src/text.rs` | HTML から題と検索用の字を取り出す |
 | `crates/server/migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる）。できる表は [DB の作り](db.md) |
@@ -58,7 +59,7 @@ API は Smithy の定義から作る。server は定義から作った骨（`cra
 
 ## 一覧の UI の試験
 
-一覧の UI は、HTML の字を `crates/server/tests/ui.rs` が見て、browser でしか見えない物（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るのはこの folder の中だけで、image にも CLI にも入らない。
+一覧の UI は、HTML の字を `crates/server/tests/ui.rs`（メッセージの一覧は `crates/server/tests/messages.rs`）が見て、browser でしか見えない物（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るのはこの folder の中だけで、image にも CLI にも入らない。
 
 ```sh
 cargo build --locked --bin pagetray-server
@@ -75,8 +76,9 @@ PAGETRAY_E2E_CHANNEL=chrome pnpm test      # この機械の Chrome を使う（
 - **試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の `place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠と、Key の画面の file の枠・上げる枠）は `helpers.ts` の関数で選ぶ。file は `placeFile` で置き、上げる枠の試験は `input[type=file]` に `setInputFiles` で file を渡す。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を使う。新着を見る試験（一覧の列の差し替えと新着の印）は、`openLive` で開いてから置く（知らせにつながる前に置いたページの知らせは届かない）。新着の印は一覧の列を下へ送っている時に出るので、`scrollList` で送ってから置く。大きな file は試験の中で作り、repo に置かない。
 - **返事の状態を見る試験**（`e2e/tests/reply.spec.ts`）: 返事待ちの数は、絞り込みに関わらず置き場の全部を数え、tab の題にも出る。試験は同じ置き場に順に流れるので、返事待ちにしたページは、試験の終わりまでに答えたにする（残すと、後の試験の tab の題が変わる）。絞り込みの列の見出し「返事」は、状態を書いたページが 1 枚でもあると出るので、この file は、見出しの並びを見る `list.spec.ts` より後に流れる名にしてある。
 - **レビューの印を見る試験**（`e2e/tests/review.spec.ts`）: 返事の状態を見る試験と同じく、レビュー待ち・上げたにしたページは、試験の終わりまでに答えたにする。絞り込みの列の見出し「判定」は、判定を書いたページが 1 枚でもあると出るので、この file も `list.spec.ts` より後に流れる名にしてある。
+- **メッセージの一覧を見る試験**（`e2e/tests/messages.spec.ts`）: メッセージの記録は `helpers.ts` の `putMessage` で置き、行は `messageRow`・`messageRows`、まだ届いていない数は `undelivered` で選ぶ。まだ届いていない数は、絞り込みに関わらず置き場の全部を数え、tab の題にも出るので、まだ届いていない（`waiting`）にした記録は、試験の終わりまでに届いた（`delivered`）にする。操作の帯に釦を足す時は、狭い幅（800px）の試験も見る（釦が増えて操作の帯が 2 段になると、一覧の列が動く。差し替えの script は、操作の帯の替わりも入れて、見ている行を同じ所に置く）。
 - **送り手を見る試験**（`e2e/tests/list.spec.ts` の終わり）: 試験の置き場は、次の port の偽の castlist に送り手を聞き、一覧の UI の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）は、聞く先と別の値（`helpers.ts` の `CASTLIST_LINK`。開かない）にする（`playwright.config.ts`）。偽の castlist は `helpers.ts` の `startCastlist` で、送り手を書いて置く間だけ立てる。送り手のある行が 1 つでもあると、絞り込みの列に見出し「送り手」が出るので、見出しの並びを見る試験より後に置く。
-- **template を変えた時**: `templates/index.html` を変えたら、この試験も流す。試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・`files`・`upload`、`#fresh`・`#waiting`・`#review-waiting`・`#escalated`、`li[data-path]`・`.reply`・`.verdict`・`.links`、絞り込みの列の見出しの字など）を変える時は、同じ PR で `helpers.ts` も直す。
+- **template を変えた時**: `templates/index.html`・`templates/messages.html` を変えたら、この試験も流す。試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・`files`・`upload`、`#fresh`・`#waiting`・`#review-waiting`・`#escalated`、`li[data-path]`・`.reply`・`.verdict`・`.links`、絞り込みの列の見出しの字など）を変える時は、同じ PR で `helpers.ts` も直す。
 - **Node の依存**: 依存は `@playwright/test` の 1 つで、版は `package.json` にそのまま書く（`^` を付けない）。`pnpm-lock.yaml` を commit し、CI は `--frozen-lockfile` で入れる。`pnpm-workspace.yaml` の `minimumReleaseAge` が、公開から 2 日たっていない版を入れさせない。弱点は、workflow の `advisories` が `pnpm audit` で、PR ごとと週に 1 度見る。版は手で上げる（Playwright を上げると browser も替わるので、試験が通るのを見る）。`package.json` の版を書き替え、`pnpm install` → 試験 → PR。
 
 ## この本を直す

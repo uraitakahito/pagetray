@@ -2342,3 +2342,618 @@ mod delete_files_test {
         ));
     }
 }
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`PutMessageInput`](crate::input::PutMessageInput) using modelled bindings.
+    pub struct PutMessageInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::PutMessageInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for PutMessageInputFuture {
+    type Output = Result<
+        crate::input::PutMessageInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::PutMessageInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = PutMessageInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_put_message::de_put_message_http_request(request).await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        PutMessageInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::PutMessageOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_put_message::ser_put_message_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::PutMessageError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_put_message::ser_put_message_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod put_message_test {
+
+    /// 道に project と id、本文（JSON）にメッセージの中身と状態
+    /// Test ID: PagetrayPutMessageRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_put_message_request_request() {
+        #[allow(unused_mut)]
+                    let mut http_request = ::http_1x::Request::builder()
+                        .uri("/api/projects/ai/messages/m-1")
+                        .method("PUT")
+        .header("Content-Type", "application/json")
+        .body(::aws_smithy_http_server::body::boxed(::http_body_util::Full::new(
+                            ::bytes::Bytes::copy_from_slice(
+                                &::aws_smithy_protocol_test::decode_body_data("{\"key\":\"AI-25\",\"heading\":\"request\",\"from\":\"t-1.swe.1\",\"to\":\"tpm\",\"text\":\"本文\",\"sentAt\":\"2026-11-24T00:00:00Z\",\"state\":\"delivered\",\"deliveredAt\":\"2026-11-24T00:00:01Z\",\"via\":\"prompt\",\"deliveries\":2,\"replyTo\":\"m-0\"}".as_bytes(), ::aws_smithy_protocol_test::MediaType::from("application/json"))
+                            )
+                        ))).unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service = crate::service::Pagetray::builder::<
+            ::aws_smithy_http_server::body::BoxBody,
+            _,
+            _,
+            _,
+        >(config)
+        .put_message(
+            // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+            // since `send()` only borrows it.
+            #[allow(unused_assignments)]
+            move |input: crate::input::PutMessageInput| {
+                let sender = sender.clone();
+                async move {
+                    let result = {
+                        let expected = crate::input::PutMessageInput {
+                            project: "ai".to_owned(),
+                            id: "m-1".to_owned(),
+                            key: ::std::option::Option::Some("AI-25".to_owned()),
+                            heading: "request".to_owned(),
+                            from: "t-1.swe.1".to_owned(),
+                            to: "tpm".to_owned(),
+                            text: "本文".to_owned(),
+                            sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                1795478400, 0_f64,
+                            ),
+                            state: "delivered".to_owned(),
+                            delivered_at: ::std::option::Option::Some(
+                                ::aws_smithy_types::DateTime::from_fractional_secs(
+                                    1795478401, 0_f64,
+                                ),
+                            ),
+                            via: ::std::option::Option::Some("prompt".to_owned()),
+                            deliveries: ::std::option::Option::Some(2),
+                            reply_to: ::std::option::Option::Some("m-0".to_owned()),
+                            actor_issuer: ::std::option::Option::None,
+                            actor_ref: ::std::option::Option::None,
+                        };
+                        ::pretty_assertions::assert_eq!(input, expected);
+                        let output = crate::output::PutMessageOutput {
+                            project: "".to_owned(),
+                            id: "".to_owned(),
+                            heading: "".to_owned(),
+                            from: "".to_owned(),
+                            to: "".to_owned(),
+                            text: "".to_owned(),
+                            sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64),
+                            state: "".to_owned(),
+                            created_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                0, 0_f64,
+                            ),
+                            updated_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                0, 0_f64,
+                            ),
+                            status: 0,
+                            key: ::std::option::Option::None,
+                            delivered_at: ::std::option::Option::None,
+                            via: ::std::option::Option::None,
+                            deliveries: ::std::option::Option::None,
+                            reply_to: ::std::option::Option::None,
+                            sender: ::std::option::Option::None,
+                        };
+                        Ok(output)
+                    };
+                    sender.send(()).await.expect("receiver dropped early");
+                    result
+                }
+            },
+        )
+        .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 送り手の付随する id は引数。本文は要る欄だけでもよい
+    /// Test ID: PagetrayPutMessageSenderRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_put_message_sender_request_request() {
+        #[allow(unused_mut)]
+                    let mut http_request = ::http_1x::Request::builder()
+                        .uri("/api/projects/ai/messages/m-1")
+                        .method("PUT")
+        .header("Content-Type", "application/json")
+        .body(::aws_smithy_http_server::body::boxed(::http_body_util::Full::new(
+                            ::bytes::Bytes::copy_from_slice(
+                                &::aws_smithy_protocol_test::decode_body_data("{\"heading\":\"request\",\"from\":\"t-1.swe.1\",\"to\":\"tpm\",\"text\":\"本文\",\"sentAt\":\"2026-11-24T00:00:00Z\",\"state\":\"waiting\"}".as_bytes(), ::aws_smithy_protocol_test::MediaType::from("application/json"))
+                            )
+                        ))).unwrap();
+        *http_request.uri_mut() =
+            "/api/projects/ai/messages/m-1?actorIssuer=tpm&actorRef=claude.session%3As-1"
+                .parse()
+                .unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service = crate::service::Pagetray::builder::<
+            ::aws_smithy_http_server::body::BoxBody,
+            _,
+            _,
+            _,
+        >(config)
+        .put_message(
+            // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+            // since `send()` only borrows it.
+            #[allow(unused_assignments)]
+            move |input: crate::input::PutMessageInput| {
+                let sender = sender.clone();
+                async move {
+                    let result = {
+                        let expected = crate::input::PutMessageInput {
+                            project: "ai".to_owned(),
+                            id: "m-1".to_owned(),
+                            actor_issuer: ::std::option::Option::Some("tpm".to_owned()),
+                            actor_ref: ::std::option::Option::Some("claude.session:s-1".to_owned()),
+                            heading: "request".to_owned(),
+                            from: "t-1.swe.1".to_owned(),
+                            to: "tpm".to_owned(),
+                            text: "本文".to_owned(),
+                            sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                1795478400, 0_f64,
+                            ),
+                            state: "waiting".to_owned(),
+                            key: ::std::option::Option::None,
+                            delivered_at: ::std::option::Option::None,
+                            via: ::std::option::Option::None,
+                            deliveries: ::std::option::Option::None,
+                            reply_to: ::std::option::Option::None,
+                        };
+                        ::pretty_assertions::assert_eq!(input, expected);
+                        let output = crate::output::PutMessageOutput {
+                            project: "".to_owned(),
+                            id: "".to_owned(),
+                            heading: "".to_owned(),
+                            from: "".to_owned(),
+                            to: "".to_owned(),
+                            text: "".to_owned(),
+                            sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(0, 0_f64),
+                            state: "".to_owned(),
+                            created_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                0, 0_f64,
+                            ),
+                            updated_at: ::aws_smithy_types::DateTime::from_fractional_secs(
+                                0, 0_f64,
+                            ),
+                            status: 0,
+                            key: ::std::option::Option::None,
+                            delivered_at: ::std::option::Option::None,
+                            via: ::std::option::Option::None,
+                            deliveries: ::std::option::Option::None,
+                            reply_to: ::std::option::Option::None,
+                            sender: ::std::option::Option::None,
+                        };
+                        Ok(output)
+                    };
+                    sender.send(()).await.expect("receiver dropped early");
+                    result
+                }
+            },
+        )
+        .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 初めての id なら 201 で、その記録（任意の欄は、ある時だけ）
+    /// Test ID: PagetrayPutMessageCreated
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_put_message_created_response() {
+        let output = crate::output::PutMessageOutput {
+            status: 201,
+            project: "ai".to_owned(),
+            id: "m-1".to_owned(),
+            heading: "request".to_owned(),
+            from: "t-1.swe.1".to_owned(),
+            to: "tpm".to_owned(),
+            text: "本文".to_owned(),
+            sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+            state: "waiting".to_owned(),
+            created_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478401, 0_f64),
+            updated_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478401, 0_f64),
+            key: ::std::option::Option::None,
+            delivered_at: ::std::option::Option::None,
+            via: ::std::option::Option::None,
+            deliveries: ::std::option::Option::None,
+            reply_to: ::std::option::Option::None,
+            sender: ::std::option::Option::None,
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(201).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"project\":\"ai\",\"id\":\"m-1\",\"heading\":\"request\",\"from\":\"t-1.swe.1\",\"to\":\"tpm\",\"text\":\"本文\",\"sentAt\":\"2026-11-24T00:00:00Z\",\"state\":\"waiting\",\"createdAt\":\"2026-11-24T00:00:01Z\",\"updatedAt\":\"2026-11-24T00:00:01Z\"}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+
+    /// もうある id なら 200 で、書き足した後の記録
+    /// Test ID: PagetrayPutMessageAppended
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_put_message_appended_response() {
+        let output = crate::output::PutMessageOutput {
+            status: 200,
+            project: "ai".to_owned(),
+            id: "m-1".to_owned(),
+            key: ::std::option::Option::Some("AI-25".to_owned()),
+            heading: "request".to_owned(),
+            from: "t-1.swe.1".to_owned(),
+            to: "tpm".to_owned(),
+            text: "本文".to_owned(),
+            sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+            state: "delivered".to_owned(),
+            delivered_at: ::std::option::Option::Some(
+                ::aws_smithy_types::DateTime::from_fractional_secs(1795478402, 0_f64),
+            ),
+            via: ::std::option::Option::Some("prompt".to_owned()),
+            deliveries: ::std::option::Option::Some(2),
+            reply_to: ::std::option::Option::Some("m-0".to_owned()),
+            created_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478401, 0_f64),
+            updated_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478402, 0_f64),
+            sender: ::std::option::Option::Some(crate::model::Sender {
+                issuer: "tpm".to_owned(),
+                r#ref: "claude.session:s-1".to_owned(),
+                actor: ::std::option::Option::None,
+                resolved_at: ::std::option::Option::None,
+            }),
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"project\":\"ai\",\"id\":\"m-1\",\"key\":\"AI-25\",\"heading\":\"request\",\"from\":\"t-1.swe.1\",\"to\":\"tpm\",\"text\":\"本文\",\"sentAt\":\"2026-11-24T00:00:00Z\",\"state\":\"delivered\",\"deliveredAt\":\"2026-11-24T00:00:02Z\",\"via\":\"prompt\",\"deliveries\":2,\"replyTo\":\"m-0\",\"createdAt\":\"2026-11-24T00:00:01Z\",\"updatedAt\":\"2026-11-24T00:00:02Z\",\"sender\":{\"issuer\":\"tpm\",\"ref\":\"claude.session:s-1\"}}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+}
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`ListMessagesInput`](crate::input::ListMessagesInput) using modelled bindings.
+    pub struct ListMessagesInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::ListMessagesInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for ListMessagesInputFuture {
+    type Output = Result<
+        crate::input::ListMessagesInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::ListMessagesInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = ListMessagesInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_list_messages::de_list_messages_http_request(request).await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        ListMessagesInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::ListMessagesOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_list_messages::ser_list_messages_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::ListMessagesError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_list_messages::ser_list_messages_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod list_messages_test {
+
+    /// どの条件も引数
+    /// Test ID: PagetrayListMessagesRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_list_messages_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/messages")
+            .method("GET")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Empty::new(),
+            ))
+            .unwrap();
+        *http_request.uri_mut() = "/api/messages?project=ai&key=AI-25&to=tpm&from=t-1.swe.1&state=waiting&heading=request&q=%E6%9C%AC%E6%96%87&sort=sentAt&maxResults=10&nextToken=abc".parse().unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .list_messages(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::ListMessagesInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::ListMessagesInput {
+                                project: ::std::option::Option::Some("ai".to_owned()),
+                                key: ::std::option::Option::Some("AI-25".to_owned()),
+                                to: ::std::option::Option::Some("tpm".to_owned()),
+                                from: ::std::option::Option::Some("t-1.swe.1".to_owned()),
+                                state: ::std::option::Option::Some("waiting".to_owned()),
+                                heading: ::std::option::Option::Some("request".to_owned()),
+                                q: ::std::option::Option::Some("本文".to_owned()),
+                                sort: ::std::option::Option::Some("sentAt".to_owned()),
+                                max_results: ::std::option::Option::Some(10),
+                                next_token: ::std::option::Option::Some("abc".to_owned()),
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::ListMessagesOutput {
+                                messages: vec![],
+                                next_token: ::std::option::Option::None,
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// メッセージの記録。任意の欄は、ある時だけ。次の頁があれば nextToken
+    /// Test ID: PagetrayListMessagesResponse
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_list_messages_response_response() {
+        let output = crate::output::ListMessagesOutput {
+            messages: vec![crate::model::Message {
+                project: "ai".to_owned(),
+                id: "m-1".to_owned(),
+                key: ::std::option::Option::Some("AI-25".to_owned()),
+                heading: "request".to_owned(),
+                from: "t-1.swe.1".to_owned(),
+                to: "tpm".to_owned(),
+                text: "本文".to_owned(),
+                sent_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478400, 0_f64),
+                state: "delivered".to_owned(),
+                delivered_at: ::std::option::Option::Some(
+                    ::aws_smithy_types::DateTime::from_fractional_secs(1795478402, 0_f64),
+                ),
+                via: ::std::option::Option::Some("prompt".to_owned()),
+                deliveries: ::std::option::Option::Some(2),
+                reply_to: ::std::option::Option::Some("m-0".to_owned()),
+                created_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478401, 0_f64),
+                updated_at: ::aws_smithy_types::DateTime::from_fractional_secs(1795478402, 0_f64),
+                sender: ::std::option::Option::None,
+            }],
+            next_token: ::std::option::Option::Some("abc".to_owned()),
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"messages\":[{\"project\":\"ai\",\"id\":\"m-1\",\"key\":\"AI-25\",\"heading\":\"request\",\"from\":\"t-1.swe.1\",\"to\":\"tpm\",\"text\":\"本文\",\"sentAt\":\"2026-11-24T00:00:00Z\",\"state\":\"delivered\",\"deliveredAt\":\"2026-11-24T00:00:02Z\",\"via\":\"prompt\",\"deliveries\":2,\"replyTo\":\"m-0\",\"createdAt\":\"2026-11-24T00:00:01Z\",\"updatedAt\":\"2026-11-24T00:00:02Z\"}],\"nextToken\":\"abc\"}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+}

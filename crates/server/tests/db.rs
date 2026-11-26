@@ -55,6 +55,8 @@ async fn foreign_keys_refuse_missing_parents_and_targets_go_with_their_page() {
         "insert into files(project, key, name, ext, n, type, size, sha256, role, workspace, created_at, body, sender_id)
          values('p', 'k', 'a', 'png', 1, 'image/png', 1, 'x', 'tpm', '', '2026-11-24T00:00:00.000Z', x'00', 99)",
         "insert into page_targets(page_id, target) values(99, '/p/k/plan-1.html')",
+        "insert into messages(project, message_id, heading, from_name, to_name, text, sent_at, state, created_at, updated_at, sender_id)
+         values('p', 'm-1', 'request', 'a', 'b', 'x', '2026-11-24T00:00:00.000Z', 'waiting', '2026-11-24T00:00:00.000Z', '2026-11-24T00:00:00.000Z', 99)",
     ] {
         let refused = sqlx::query(sql)
             .execute(app.db.write())
@@ -163,7 +165,8 @@ async fn opening_again_keeps_the_rows_and_does_not_migrate_twice() {
         .fetch_one(db.read())
         .await
         .unwrap();
-    assert_eq!((pages, migrations), (1, 1));
+    // 移行は 2 つ（0001 と、メッセージの記録の表の 0002）。開き直しても増えない。
+    assert_eq!((pages, migrations), (1, 2));
     db.close().await;
 }
 

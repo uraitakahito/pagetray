@@ -89,6 +89,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
 <body{% if let Some(path) = viewer %} data-viewer="{{ path }}"{% endif %}>
 <header id="toolbar" aria-label="操作の帯">
 <h1><a href="/">ページの置き場</a></h1>
+<a class="btn" href="/messages">メッセージ</a>
 <form action="/" method="get">
 {% for (name, value) in hidden %}<input type="hidden" name="{{ name }}" value="{{ value }}">
 {% endfor %}<input type="search" name="q" value="{{ q }}" placeholder="題と本文を探す" aria-label="題と本文を探す">
@@ -205,12 +206,14 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
   };
   // 一覧の列を下へ送っていた時は、差し替える前に見えていた頭の行を、差し替えた後も同じ所に置く
   // （絞り込みの列の高さが変わる、狭い幅の時も）。頭にいた時は、そのまま（新しい行が頭に見える）。
-  const swap = (next, nextFilters) => {
+  // 操作の帯の釦を替える band も、この中で呼ぶ（狭い幅では、釦が増えて帯が 2 段になると、下の行がみな動くため）。
+  const swap = (next, nextFilters, band) => {
     const el = scroller();
     const top = viewTop(el);
     const anchor = atTop() ? null : rowsOf(list).find((li) => li.getBoundingClientRect().bottom > top);
     const from = anchor?.getBoundingClientRect().top;
     const focused = document.activeElement?.closest?.("#list li[data-path]")?.dataset.path;
+    band();
     if (filters.innerHTML !== nextFilters.innerHTML) filters.innerHTML = nextFilters.innerHTML;
     if (next) {
       list.innerHTML = next.innerHTML;
@@ -239,30 +242,29 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
         const next = doc.getElementById("list");
         const nextFilters = doc.getElementById("filters");
         if (!next || !nextFilters) continue;
-        // 待ちの数（操作の帯の釦と tab の題）は、サーバーが組んだ物に合わせる。
-        for (const counter of counters) {
-          const next = doc.getElementById(counter.id);
-          if (next) {
-            counter.hidden = next.hidden;
-            counter.textContent = next.textContent;
+        // 待ちの数（操作の帯の釦と tab の題）は、サーバーが組んだ物に合わせる。新着の印（text）があれば、一緒に出す。
+        const band = (text) => () => {
+          for (const counter of counters) {
+            const next = doc.getElementById(counter.id);
+            if (next) {
+              counter.hidden = next.hidden;
+              counter.textContent = next.textContent;
+            }
           }
-        }
+          if (text) show(text);
+        };
         title = doc.title || title;
         const arrived = new Set(rowsOf(next).map((li) => li.dataset.path));
         const added = asked.filter((path) => arrived.has(path)).length;
         count += added;
         document.title = count ? `(${count}) ${title}` : title;
         if (paged) {
-          swap(null, nextFilters);
-          if (count) show(`● 新着 ${count} 件（読み直す）`);
+          swap(null, nextFilters, band(count ? `● 新着 ${count} 件（読み直す）` : ""));
           continue;
         }
-        const wasTop = atTop();
-        swap(shape(list) !== shape(next) ? next : null, nextFilters);
-        if (added && !wasTop) {
-          above += added;
-          show(`● 新着 ${above} 件（上へ）`);
-        }
+        const down = added && !atTop();
+        if (down) above += added;
+        swap(shape(list) !== shape(next) ? next : null, nextFilters, band(down ? `● 新着 ${above} 件（上へ）` : ""));
       } catch {}
     } while (again);
     pulling = false;
@@ -282,6 +284,8 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
     e.preventDefault();
     toTop();
     seenTop();
+    // 狭い幅では、印が消えて操作の帯が 1 段に戻ると、一覧の列が上へ動く。もう 1 度、頭へ送る。
+    toTop();
   });
   box.addEventListener("scroll", seenTop, { passive: true });
   window.addEventListener("scroll", seenTop, { passive: true });
@@ -294,8 +298,10 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
   };
   events.onmessage = (e) => {
     try {
-      const path = JSON.parse(e.data).path;
-      if (path) heard.add(path);
+      const record = JSON.parse(e.data);
+      // browser は、メッセージの記録の知らせ（event: message）も、この受け手に渡す。ページの記録（path がある）だけを読む。
+      if (!record.path && record.sentAt) return;
+      if (record.path) heard.add(record.path);
     } catch {}
     pull();
   };

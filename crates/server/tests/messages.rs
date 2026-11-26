@@ -697,6 +697,50 @@ async fn bad_list_arguments_are_refused() {
     assert!(json["nextToken"].is_string(), "{json}");
 }
 
+/// 探す SQL（`pagetray_server::search::message_plans()`。条件を 1 つずつと、重ねた物）が、messages を索引なしに端から読まない。
+/// 条件の無い一覧と nextToken は、送った時刻の索引（messages_sent）の順に読み、行を並べ替える一時の表を作らない。
+/// project の条件は、一意の索引（project と id）で引いてよい（引いた行は並べ替える）。
+#[tokio::test]
+async fn the_list_sql_reads_messages_by_an_index() {
+    let app = App::start().await;
+    let plans = pagetray_server::search::message_plans();
+    let names: Vec<&str> = plans.iter().map(|(name, _)| *name).collect();
+    let ordered = ["plain", "oldest", "after", "after_oldest"];
+    for name in ordered.iter().chain(&[
+        "project", "key", "to", "from", "state", "heading", "q", "all",
+    ]) {
+        assert!(names.contains(name), "{name} が plans に無い: {names:?}");
+    }
+    for (name, sql) in &plans {
+        let plan: Vec<(i64, i64, i64, String)> =
+            sqlx::query_as(sqlx::AssertSqlSafe(format!("explain query plan {sql}")))
+                .fetch_all(app.db.read())
+                .await
+                .unwrap_or_else(|e| panic!("{name}: {e}\n{sql}"));
+        let details: Vec<&str> = plan.iter().map(|row| row.3.as_str()).collect();
+        let bare: Vec<&&str> = details
+            .iter()
+            .filter(|d| {
+                d.strip_prefix("SCAN ")
+                    .is_some_and(|rest| !rest.contains("USING"))
+            })
+            .collect();
+        assert!(bare.is_empty(), "{name} が端から読む: {details:?}\n{sql}");
+        if ordered.contains(name) {
+            assert!(
+                details
+                    .iter()
+                    .any(|d| d.contains("USING INDEX messages_sent")),
+                "{name} が送った時刻の索引で読まない: {details:?}\n{sql}"
+            );
+            assert!(
+                !details.contains(&"USE TEMP B-TREE FOR ORDER BY"),
+                "{name} が並べ替えの表を作る: {details:?}\n{sql}"
+            );
+        }
+    }
+}
+
 // --- 送り手 ---
 
 /// 付随する id を書いて置けば、送り手を castlist に聞き、答えと一緒に残す。書き足す時は、初めの送り手を保つ。

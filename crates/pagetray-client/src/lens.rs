@@ -9,6 +9,16 @@ pub(crate) fn reflens_list_files_output_output_next_token(
     ::std::option::Option::Some(input)
 }
 
+pub(crate) fn reflens_list_messages_output_output_next_token(
+    input: &crate::operation::list_messages::ListMessagesOutput,
+) -> ::std::option::Option<&::std::string::String> {
+    let input = match &input.next_token {
+        ::std::option::Option::None => return ::std::option::Option::None,
+        ::std::option::Option::Some(t) => t,
+    };
+    ::std::option::Option::Some(input)
+}
+
 pub(crate) fn reflens_list_pages_output_output_next_token(
     input: &crate::operation::list_pages::ListPagesOutput,
 ) -> ::std::option::Option<&::std::string::String> {
@@ -23,6 +33,13 @@ pub(crate) fn lens_list_files_output_output_files(
     input: crate::operation::list_files::ListFilesOutput,
 ) -> ::std::option::Option<::std::vec::Vec<crate::types::File>> {
     let input = input.files;
+    ::std::option::Option::Some(input)
+}
+
+pub(crate) fn lens_list_messages_output_output_messages(
+    input: crate::operation::list_messages::ListMessagesOutput,
+) -> ::std::option::Option<::std::vec::Vec<crate::types::Message>> {
+    let input = input.messages;
     ::std::option::Option::Some(input)
 }
 

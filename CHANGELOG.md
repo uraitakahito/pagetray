@@ -2,6 +2,22 @@
 
 版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
+## 1.1.0
+
+API の版: 無い（1.0.0 に、操作を 2 つ足した。前からある操作・型・欄は替えていない。定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）は、壊す変わり無しで通る）
+
+メッセージの記録を足した版（t-h83j）。ほかの道具（roster。AI の担当どうしのメッセージを配る）が、「誰が誰に何を送り、いつ届いたか」の記録を置き場に写し、Product Manager が、ページと同じ置き場でメッセージも見られる。置き場は見せるだけで、メッセージを配らず、状態を自分で決めず、期限を持たない。
+
+- **API に操作を 2 つ足した**（形は [API の仕様](https://uraitakahito.github.io/pagetray/api.html) の「メッセージの記録」）:
+  - `PutMessage`（`PUT /api/projects/{project}/messages/{id}`）: 置く・書き足す。初めての id は 201、もうある id は 200。書き足すと、`state` は新しい値に、`via`・`deliveries` は書けば新しい値になり、`deliveredAt` は初めの時刻を保つ。`key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` と送り手は、初めに置いた値を保つ。送り手（`actorIssuer`・`actorRef`）の扱いは、ページを置く時と同じ。
+  - `ListMessages`（`GET /api/messages`）: `project`・`key`・`to`・`from`・`state`・`heading`・`q` で絞り、送った時刻の新しい順（`sort`）に、`maxResults`・`nextToken` で頁を送る。
+- **新着の知らせに event を 1 つ足した**: メッセージの記録を置く・書き足すたびに、`event: message` で、`ListMessages` の行と同じ記録を流す。前からの event（名の無い event・`file`・`reply`・`review`）は替えていない。ただし browser の `EventSource` は、名の無い event も `message` の型で渡すので、`onmessage` で聞く受け手には、メッセージの記録も届く（欄で見分ける: `path` があるのはページの記録）。一覧の UI の script は、そう見分けるように直した。
+- **DB に移行を 1 つ足した**（`0002_messages.sql`。表 `messages`）: 1.0.x の volume（`pagetray-data-v1`）でそのまま起き、起きる時に表を足す。**足した後の volume は、1.0.x の image では起きない**（1.0.x の server は、知らない移行を当ててある DB を「この server より新しい版の DB」と断る）。上げる前に写しを取り、戻す時は、その写しから戻す（[動かす](https://uraitakahito.github.io/pagetray/run.html)）。
+- **画面にメッセージの一覧を足した**（`/messages`）: ページの一覧の操作の帯に link「メッセージ」が 1 つ増え、押すとメッセージの一覧が開く。1 行に、送った時刻・Key・見出し・「送り手 → 受け手」・状態（まだ届いていない・届いた・渡せない・期限切れ・cmux で運んだ）・届いた時刻・渡した時・渡し直しの数・本文（長い時は頭だけで、開くと全部）。絞り込みは状態・受け手・送り手・Key・project。「まだ届いていない n 件」を操作の帯と tab の題に出す。本文は HTML として出さない。
+- 一覧の UI の script の直し: 狭い幅（900px 以下）で、新着の印や待ちの数の釦が出て操作の帯が 2 段になる時に、下へ送って見ていた行が動いていたのを直した（操作の帯の替わりも、一覧の列の差し替えと一緒に入れて、見ている行を同じ所に置く。新着の印を押した後も、一覧の列の頭へ送り直す）。link「メッセージ」を足して操作の帯が広くなり、幅 800px の e2e の試験で出た。
+- CLI（`pagetray`）: 命令は足していない（版の字だけが 1.1.0 になる）。image の中身・環境変数・port は 1.0.2 と同じ。
+- 定義（`model/model/pagetray.smithy`）の頭の注が、無い file（`docs/src/next.md`）を指していたのを、`docs/src/api.md` に直した。
+
 ## 1.0.2
 
 API の版: 無い（1.0.0 と同じ）

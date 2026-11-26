@@ -554,6 +554,199 @@ impl DeleteFilesInput {
         crate::input::delete_files_input::Builder::default()
     }
 }
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct PutMessageInput {
+    /// 状態の folder の名（ページの project と同じ）。`api`・`.`・`..` は置けない（server が 400）。
+    pub project: ::std::string::String,
+    /// メッセージの id（呼ぶ側が付ける。project の中で 1 つ）。`.`・`..` は置けない（server が 400）。
+    pub id: ::std::string::String,
+    /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+    pub actor_issuer: ::std::option::Option<::std::string::String>,
+    /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+    pub actor_ref: ::std::option::Option<::std::string::String>,
+    /// Key（課題の名）。`.`・`..` は置けない（server が 400）。
+    pub key: ::std::option::Option<::std::string::String>,
+    /// メッセージの見出しの名。
+    pub heading: ::std::string::String,
+    /// 送り手の名。
+    pub from: ::std::string::String,
+    /// 受け手の名。
+    pub to: ::std::string::String,
+    /// 本文。字のまま持つ（HTML として解釈しない）。
+    pub text: ::std::string::String,
+    /// 送った時刻（UTC・ミリ秒まで）。
+    pub sent_at: ::aws_smithy_types::DateTime,
+    /// 状態。
+    pub state: ::std::string::String,
+    /// 届いた時刻（UTC・ミリ秒まで）。まだ無い時だけ入る。
+    pub delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// どの時に渡したかの名。
+    pub via: ::std::option::Option<::std::string::String>,
+    /// 渡した回数。
+    pub deliveries: ::std::option::Option<i32>,
+    /// 返事の先のメッセージの id。
+    pub reply_to: ::std::option::Option<::std::string::String>,
+}
+impl PutMessageInput {
+    /// 状態の folder の名（ページの project と同じ）。`api`・`.`・`..` は置けない（server が 400）。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// メッセージの id（呼ぶ側が付ける。project の中で 1 つ）。`.`・`..` は置けない（server が 400）。
+    pub fn id(&self) -> &str {
+        use std::ops::Deref;
+        self.id.deref()
+    }
+    /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+    pub fn actor_issuer(&self) -> ::std::option::Option<&str> {
+        self.actor_issuer.as_deref()
+    }
+    /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+    pub fn actor_ref(&self) -> ::std::option::Option<&str> {
+        self.actor_ref.as_deref()
+    }
+    /// Key（課題の名）。`.`・`..` は置けない（server が 400）。
+    pub fn key(&self) -> ::std::option::Option<&str> {
+        self.key.as_deref()
+    }
+    /// メッセージの見出しの名。
+    pub fn heading(&self) -> &str {
+        use std::ops::Deref;
+        self.heading.deref()
+    }
+    /// 送り手の名。
+    pub fn from(&self) -> &str {
+        use std::ops::Deref;
+        self.from.deref()
+    }
+    /// 受け手の名。
+    pub fn to(&self) -> &str {
+        use std::ops::Deref;
+        self.to.deref()
+    }
+    /// 本文。字のまま持つ（HTML として解釈しない）。
+    pub fn text(&self) -> &str {
+        use std::ops::Deref;
+        self.text.deref()
+    }
+    /// 送った時刻（UTC・ミリ秒まで）。
+    pub fn sent_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.sent_at
+    }
+    /// 状態。
+    pub fn state(&self) -> &str {
+        use std::ops::Deref;
+        self.state.deref()
+    }
+    /// 届いた時刻（UTC・ミリ秒まで）。まだ無い時だけ入る。
+    pub fn delivered_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.delivered_at.as_ref()
+    }
+    /// どの時に渡したかの名。
+    pub fn via(&self) -> ::std::option::Option<&str> {
+        self.via.as_deref()
+    }
+    /// 渡した回数。
+    pub fn deliveries(&self) -> ::std::option::Option<i32> {
+        self.deliveries
+    }
+    /// 返事の先のメッセージの id。
+    pub fn reply_to(&self) -> ::std::option::Option<&str> {
+        self.reply_to.as_deref()
+    }
+}
+impl crate::constrained::Constrained for crate::input::PutMessageInput {
+    type Unconstrained = crate::input::put_message_input_internal::Builder;
+}
+impl PutMessageInput {
+    /// Creates a new builder-style object to manufacture [`PutMessageInput`](crate::input::PutMessageInput).
+    pub fn builder() -> crate::input::put_message_input::Builder {
+        crate::input::put_message_input::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ListMessagesInput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::option::Option<::std::string::String>,
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub key: ::std::option::Option<::std::string::String>,
+    /// 受け手の名（同じ値の物）。
+    pub to: ::std::option::Option<::std::string::String>,
+    /// 送り手の名（同じ値の物）。
+    pub from: ::std::option::Option<::std::string::String>,
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    pub state: ::std::option::Option<::std::string::String>,
+    /// メッセージの見出しの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
+    pub heading: ::std::option::Option<::std::string::String>,
+    /// 本文と `from`・`to` に含まれる字。
+    pub q: ::std::option::Option<::std::string::String>,
+    /// `-sentAt`（新しい順。既定）か `sentAt`（古い順）。同じ時刻は置いた順（新しい順なら後に置いた物が先）。
+    pub sort: ::std::option::Option<::std::string::String>,
+    /// 1 頁の数（既定 100）。
+    pub max_results: ::std::option::Option<i32>,
+    /// 前の答えの `nextToken`。
+    pub next_token: ::std::option::Option<::std::string::String>,
+}
+impl ListMessagesInput {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> ::std::option::Option<&str> {
+        self.project.as_deref()
+    }
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn key(&self) -> ::std::option::Option<&str> {
+        self.key.as_deref()
+    }
+    /// 受け手の名（同じ値の物）。
+    pub fn to(&self) -> ::std::option::Option<&str> {
+        self.to.as_deref()
+    }
+    /// 送り手の名（同じ値の物）。
+    pub fn from(&self) -> ::std::option::Option<&str> {
+        self.from.as_deref()
+    }
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    pub fn state(&self) -> ::std::option::Option<&str> {
+        self.state.as_deref()
+    }
+    /// メッセージの見出しの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
+    pub fn heading(&self) -> ::std::option::Option<&str> {
+        self.heading.as_deref()
+    }
+    /// 本文と `from`・`to` に含まれる字。
+    pub fn q(&self) -> ::std::option::Option<&str> {
+        self.q.as_deref()
+    }
+    /// `-sentAt`（新しい順。既定）か `sentAt`（古い順）。同じ時刻は置いた順（新しい順なら後に置いた物が先）。
+    pub fn sort(&self) -> ::std::option::Option<&str> {
+        self.sort.as_deref()
+    }
+    /// 1 頁の数（既定 100）。
+    pub fn max_results(&self) -> ::std::option::Option<i32> {
+        self.max_results
+    }
+    /// 前の答えの `nextToken`。
+    pub fn next_token(&self) -> ::std::option::Option<&str> {
+        self.next_token.as_deref()
+    }
+}
+impl crate::constrained::Constrained for crate::input::ListMessagesInput {
+    type Unconstrained = crate::input::list_messages_input_internal::Builder;
+}
+impl ListMessagesInput {
+    /// Creates a new builder-style object to manufacture [`ListMessagesInput`](crate::input::ListMessagesInput).
+    pub fn builder() -> crate::input::list_messages_input::Builder {
+        crate::input::list_messages_input::Builder::default()
+    }
+}
 /// See [`GetHealthInput`](crate::input::GetHealthInput).
 pub(crate) mod get_health_input_internal {
 
@@ -3774,6 +3967,1155 @@ pub mod delete_files_input {
                 name: self.name,
                 n: self.n,
             })
+        }
+    }
+}
+/// See [`PutMessageInput`](crate::input::PutMessageInput).
+pub(crate) mod put_message_input_internal {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[non_exhaustive]
+    #[allow(clippy::enum_variant_names)]
+    pub(crate) enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `PutMessageInput`.
+        MissingProject,
+        /// Constraint violation occurred building member `project` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Project(crate::model::segment_internal::ConstraintViolation),
+        /// `id` was not provided but it is required when building `PutMessageInput`.
+        MissingId,
+        /// Constraint violation occurred building member `id` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Id(crate::model::message_id_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `actor_issuer` when building `PutMessageInput`.
+        #[doc(hidden)]
+        ActorIssuer(crate::model::issuer_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `actor_ref` when building `PutMessageInput`.
+        #[doc(hidden)]
+        ActorRef(crate::model::actor_ref_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `key` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Key(crate::model::segment_internal::ConstraintViolation),
+        /// `heading` was not provided but it is required when building `PutMessageInput`.
+        MissingHeading,
+        /// Constraint violation occurred building member `heading` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Heading(crate::model::message_heading_internal::ConstraintViolation),
+        /// `from` was not provided but it is required when building `PutMessageInput`.
+        MissingFrom,
+        /// Constraint violation occurred building member `from` when building `PutMessageInput`.
+        #[doc(hidden)]
+        From(crate::model::message_party_internal::ConstraintViolation),
+        /// `to` was not provided but it is required when building `PutMessageInput`.
+        MissingTo,
+        /// Constraint violation occurred building member `to` when building `PutMessageInput`.
+        #[doc(hidden)]
+        To(crate::model::message_party_internal::ConstraintViolation),
+        /// `text` was not provided but it is required when building `PutMessageInput`.
+        MissingText,
+        /// Constraint violation occurred building member `text` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Text(crate::model::message_text_internal::ConstraintViolation),
+        /// `sent_at` was not provided but it is required when building `PutMessageInput`.
+        MissingSentAt,
+        /// `state` was not provided but it is required when building `PutMessageInput`.
+        MissingState,
+        /// Constraint violation occurred building member `state` when building `PutMessageInput`.
+        #[doc(hidden)]
+        State(crate::model::message_state_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `via` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Via(crate::model::message_via_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `deliveries` when building `PutMessageInput`.
+        #[doc(hidden)]
+        Deliveries(crate::model::message_deliveries_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `reply_to` when building `PutMessageInput`.
+        #[doc(hidden)]
+        ReplyTo(crate::model::message_id_internal::ConstraintViolation),
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(f, "`project` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::Project(_) => write!(f, "constraint violation occurred building member `project` when building `PutMessageInput`"),
+                ConstraintViolation::MissingId => write!(f, "`id` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::Id(_) => write!(f, "constraint violation occurred building member `id` when building `PutMessageInput`"),
+                ConstraintViolation::ActorIssuer(_) => write!(f, "constraint violation occurred building member `actor_issuer` when building `PutMessageInput`"),
+                ConstraintViolation::ActorRef(_) => write!(f, "constraint violation occurred building member `actor_ref` when building `PutMessageInput`"),
+                ConstraintViolation::Key(_) => write!(f, "constraint violation occurred building member `key` when building `PutMessageInput`"),
+                ConstraintViolation::MissingHeading => write!(f, "`heading` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::Heading(_) => write!(f, "constraint violation occurred building member `heading` when building `PutMessageInput`"),
+                ConstraintViolation::MissingFrom => write!(f, "`from` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::From(_) => write!(f, "constraint violation occurred building member `from` when building `PutMessageInput`"),
+                ConstraintViolation::MissingTo => write!(f, "`to` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::To(_) => write!(f, "constraint violation occurred building member `to` when building `PutMessageInput`"),
+                ConstraintViolation::MissingText => write!(f, "`text` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::Text(_) => write!(f, "constraint violation occurred building member `text` when building `PutMessageInput`"),
+                ConstraintViolation::MissingSentAt => write!(f, "`sent_at` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::MissingState => write!(f, "`state` was not provided but it is required when building `PutMessageInput`"),
+                ConstraintViolation::State(_) => write!(f, "constraint violation occurred building member `state` when building `PutMessageInput`"),
+                ConstraintViolation::Via(_) => write!(f, "constraint violation occurred building member `via` when building `PutMessageInput`"),
+                ConstraintViolation::Deliveries(_) => write!(f, "constraint violation occurred building member `deliveries` when building `PutMessageInput`"),
+                ConstraintViolation::ReplyTo(_) => write!(f, "constraint violation occurred building member `reply_to` when building `PutMessageInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+            ConstraintViolation::MissingProject => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/project' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/project",
+                                            },
+            ConstraintViolation::Project(inner) => inner.as_validation_exception_field(path + "/project"),
+            ConstraintViolation::MissingId => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/id' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/id",
+                                            },
+            ConstraintViolation::Id(inner) => inner.as_validation_exception_field(path + "/id"),
+            ConstraintViolation::ActorIssuer(inner) => inner.as_validation_exception_field(path + "/actorIssuer"),
+            ConstraintViolation::ActorRef(inner) => inner.as_validation_exception_field(path + "/actorRef"),
+            ConstraintViolation::Key(inner) => inner.as_validation_exception_field(path + "/key"),
+            ConstraintViolation::MissingHeading => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/heading' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/heading",
+                                            },
+            ConstraintViolation::Heading(inner) => inner.as_validation_exception_field(path + "/heading"),
+            ConstraintViolation::MissingFrom => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/from' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/from",
+                                            },
+            ConstraintViolation::From(inner) => inner.as_validation_exception_field(path + "/from"),
+            ConstraintViolation::MissingTo => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/to' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/to",
+                                            },
+            ConstraintViolation::To(inner) => inner.as_validation_exception_field(path + "/to"),
+            ConstraintViolation::MissingText => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/text' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/text",
+                                            },
+            ConstraintViolation::Text(inner) => inner.as_validation_exception_field(path + "/text"),
+            ConstraintViolation::MissingSentAt => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/sentAt' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/sentAt",
+                                            },
+            ConstraintViolation::MissingState => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/state' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/state",
+                                            },
+            ConstraintViolation::State(inner) => inner.as_validation_exception_field(path + "/state"),
+            ConstraintViolation::Via(inner) => inner.as_validation_exception_field(path + "/via"),
+            ConstraintViolation::Deliveries(inner) => inner.as_validation_exception_field(path + "/deliveries"),
+            ConstraintViolation::ReplyTo(inner) => inner.as_validation_exception_field(path + "/replyTo"),
+        }
+        }
+    }
+    impl ::std::convert::From<ConstraintViolation>
+        for ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection
+    {
+        fn from(constraint_violation: ConstraintViolation) -> Self {
+            let first_validation_exception_field =
+                constraint_violation.as_validation_exception_field("".to_owned());
+            let validation_exception = crate::error::ValidationException {
+                message: format!(
+                    "1 validation error detected. {}",
+                    &first_validation_exception_field.message
+                ),
+                field_list: Some(vec![first_validation_exception_field]),
+            };
+            Self::ConstraintViolation(
+                                crate::protocol_serde::shape_validation_exception::ser_validation_exception_error(&validation_exception)
+                                    .expect("validation exceptions should never fail to serialize; please file a bug report under https://github.com/smithy-lang/smithy-rs/issues")
+                            )
+        }
+    }
+    impl ::std::convert::From<Builder>
+        for crate::constrained::MaybeConstrained<crate::input::PutMessageInput>
+    {
+        fn from(builder: Builder) -> Self {
+            Self::Unconstrained(builder)
+        }
+    }
+    impl ::std::convert::TryFrom<Builder> for crate::input::PutMessageInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`PutMessageInput`](crate::input::PutMessageInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {
+        pub(crate) project:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) id:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageId>>,
+        pub(crate) actor_issuer:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Issuer>>,
+        pub(crate) actor_ref:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::ActorRef>>,
+        pub(crate) key:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) heading: ::std::option::Option<
+            crate::constrained::MaybeConstrained<crate::model::MessageHeading>,
+        >,
+        pub(crate) from:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageParty>>,
+        pub(crate) to:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageParty>>,
+        pub(crate) text:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageText>>,
+        pub(crate) sent_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) state:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageState>>,
+        pub(crate) delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) via:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageVia>>,
+        pub(crate) deliveries: ::std::option::Option<
+            crate::constrained::MaybeConstrained<crate::model::MessageDeliveries>,
+        >,
+        pub(crate) reply_to:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageId>>,
+    }
+    impl Builder {
+        /// 状態の folder の名（ページの project と同じ）。`api`・`.`・`..` は置けない（server が 400）。
+        pub(crate) fn set_project(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::Segment>,
+            >,
+        ) -> Self {
+            self.project = Some(input.into());
+            self
+        }
+        /// メッセージの id（呼ぶ側が付ける。project の中で 1 つ）。`.`・`..` は置けない（server が 400）。
+        pub(crate) fn set_id(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::MessageId>,
+            >,
+        ) -> Self {
+            self.id = Some(input.into());
+            self
+        }
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+        pub(crate) fn set_actor_issuer(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Issuer>>,
+            >,
+        ) -> Self {
+            self.actor_issuer = input.map(|v| v.into());
+            self
+        }
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+        pub(crate) fn set_actor_ref(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::ActorRef>>,
+            >,
+        ) -> Self {
+            self.actor_ref = input.map(|v| v.into());
+            self
+        }
+        /// Key（課題の名）。`.`・`..` は置けない（server が 400）。
+        pub(crate) fn set_key(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+            >,
+        ) -> Self {
+            self.key = input.map(|v| v.into());
+            self
+        }
+        /// メッセージの見出しの名。
+        pub(crate) fn set_heading(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::MessageHeading>,
+            >,
+        ) -> Self {
+            self.heading = Some(input.into());
+            self
+        }
+        /// 送り手の名。
+        pub(crate) fn set_from(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::MessageParty>,
+            >,
+        ) -> Self {
+            self.from = Some(input.into());
+            self
+        }
+        /// 受け手の名。
+        pub(crate) fn set_to(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::MessageParty>,
+            >,
+        ) -> Self {
+            self.to = Some(input.into());
+            self
+        }
+        /// 本文。字のまま持つ（HTML として解釈しない）。
+        pub(crate) fn set_text(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::MessageText>,
+            >,
+        ) -> Self {
+            self.text = Some(input.into());
+            self
+        }
+        /// 送った時刻（UTC・ミリ秒まで）。
+        pub(crate) fn set_sent_at(
+            mut self,
+            input: impl ::std::convert::Into<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.sent_at = Some(input.into());
+            self
+        }
+        /// 状態。
+        pub(crate) fn set_state(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::MessageState>,
+            >,
+        ) -> Self {
+            self.state = Some(input.into());
+            self
+        }
+        /// 届いた時刻（UTC・ミリ秒まで）。まだ無い時だけ入る。
+        pub(crate) fn set_delivered_at(
+            mut self,
+            input: Option<impl ::std::convert::Into<::aws_smithy_types::DateTime>>,
+        ) -> Self {
+            self.delivered_at = input.map(|v| v.into());
+            self
+        }
+        /// どの時に渡したかの名。
+        pub(crate) fn set_via(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageVia>,
+                >,
+            >,
+        ) -> Self {
+            self.via = input.map(|v| v.into());
+            self
+        }
+        /// 渡した回数。
+        pub(crate) fn set_deliveries(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageDeliveries>,
+                >,
+            >,
+        ) -> Self {
+            self.deliveries = input.map(|v| v.into());
+            self
+        }
+        /// 返事の先のメッセージの id。
+        pub(crate) fn set_reply_to(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::MessageId>>,
+            >,
+        ) -> Self {
+            self.reply_to = input.map(|v| v.into());
+            self
+        }
+        /// Consumes the builder and constructs a [`PutMessageInput`](crate::input::PutMessageInput).
+        ///
+        /// The builder fails to construct a [`PutMessageInput`](crate::input::PutMessageInput) if a [`ConstraintViolation`] occurs.
+        ///
+        /// If the builder fails, it will return the _first_ encountered [`ConstraintViolation`].
+        pub fn build(self) -> Result<crate::input::PutMessageInput, ConstraintViolation> {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(
+            self,
+        ) -> Result<crate::input::PutMessageInput, ConstraintViolation> {
+            Ok(crate::input::PutMessageInput {
+                project: self
+                    .project
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Project))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into())
+                    .ok_or(ConstraintViolation::MissingProject)?,
+                id: self
+                    .id
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Id))
+                    .transpose()?
+                    .map(|v: crate::model::MessageId| v.into())
+                    .ok_or(ConstraintViolation::MissingId)?,
+                actor_issuer: self
+                    .actor_issuer
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::ActorIssuer))
+                    .transpose()?
+                    .map(|v: crate::model::Issuer| v.into()),
+                actor_ref: self
+                    .actor_ref
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::ActorRef))
+                    .transpose()?
+                    .map(|v: crate::model::ActorRef| v.into()),
+                key: self
+                    .key
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Key))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into()),
+                heading: self
+                    .heading
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Heading))
+                    .transpose()?
+                    .map(|v: crate::model::MessageHeading| v.into())
+                    .ok_or(ConstraintViolation::MissingHeading)?,
+                from: self
+                    .from
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::From))
+                    .transpose()?
+                    .map(|v: crate::model::MessageParty| v.into())
+                    .ok_or(ConstraintViolation::MissingFrom)?,
+                to: self
+                    .to
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::To))
+                    .transpose()?
+                    .map(|v: crate::model::MessageParty| v.into())
+                    .ok_or(ConstraintViolation::MissingTo)?,
+                text: self
+                    .text
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Text))
+                    .transpose()?
+                    .map(|v: crate::model::MessageText| v.into())
+                    .ok_or(ConstraintViolation::MissingText)?,
+                sent_at: self.sent_at.ok_or(ConstraintViolation::MissingSentAt)?,
+                state: self
+                    .state
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::State))
+                    .transpose()?
+                    .map(|v: crate::model::MessageState| v.into())
+                    .ok_or(ConstraintViolation::MissingState)?,
+                delivered_at: self.delivered_at,
+                via: self
+                    .via
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Via))
+                    .transpose()?
+                    .map(|v: crate::model::MessageVia| v.into()),
+                deliveries: self
+                    .deliveries
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Deliveries))
+                    .transpose()?
+                    .map(|v: crate::model::MessageDeliveries| v.into()),
+                reply_to: self
+                    .reply_to
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::ReplyTo))
+                    .transpose()?
+                    .map(|v: crate::model::MessageId| v.into()),
+            })
+        }
+    }
+}
+/// See [`PutMessageInput`](crate::input::PutMessageInput).
+pub mod put_message_input {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `PutMessageInput`.
+        MissingProject,
+        /// `id` was not provided but it is required when building `PutMessageInput`.
+        MissingId,
+        /// `heading` was not provided but it is required when building `PutMessageInput`.
+        MissingHeading,
+        /// `from` was not provided but it is required when building `PutMessageInput`.
+        MissingFrom,
+        /// `to` was not provided but it is required when building `PutMessageInput`.
+        MissingTo,
+        /// `text` was not provided but it is required when building `PutMessageInput`.
+        MissingText,
+        /// `sent_at` was not provided but it is required when building `PutMessageInput`.
+        MissingSentAt,
+        /// `state` was not provided but it is required when building `PutMessageInput`.
+        MissingState,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(
+                    f,
+                    "`project` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingId => write!(
+                    f,
+                    "`id` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingHeading => write!(
+                    f,
+                    "`heading` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingFrom => write!(
+                    f,
+                    "`from` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingTo => write!(
+                    f,
+                    "`to` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingText => write!(
+                    f,
+                    "`text` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingSentAt => write!(
+                    f,
+                    "`sent_at` was not provided but it is required when building `PutMessageInput`"
+                ),
+                ConstraintViolation::MissingState => write!(
+                    f,
+                    "`state` was not provided but it is required when building `PutMessageInput`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::input::PutMessageInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`PutMessageInput`](crate::input::PutMessageInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) id: ::std::option::Option<::std::string::String>,
+        pub(crate) actor_issuer: ::std::option::Option<::std::string::String>,
+        pub(crate) actor_ref: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) heading: ::std::option::Option<::std::string::String>,
+        pub(crate) from: ::std::option::Option<::std::string::String>,
+        pub(crate) to: ::std::option::Option<::std::string::String>,
+        pub(crate) text: ::std::option::Option<::std::string::String>,
+        pub(crate) sent_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) state: ::std::option::Option<::std::string::String>,
+        pub(crate) delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) via: ::std::option::Option<::std::string::String>,
+        pub(crate) deliveries: ::std::option::Option<i32>,
+        pub(crate) reply_to: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// 状態の folder の名（ページの project と同じ）。`api`・`.`・`..` は置けない（server が 400）。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// メッセージの id（呼ぶ側が付ける。project の中で 1 つ）。`.`・`..` は置けない（server が 400）。
+        pub fn id(mut self, input: ::std::string::String) -> Self {
+            self.id = Some(input);
+            self
+        }
+        /// 付随する id を出した物（`actorRef` と組。片方だけは 400）。
+        pub fn actor_issuer(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.actor_issuer = input;
+            self
+        }
+        /// 付随する id（`種類:値`。`actorIssuer` と組。片方だけは 400）。
+        pub fn actor_ref(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.actor_ref = input;
+            self
+        }
+        /// Key（課題の名）。`.`・`..` は置けない（server が 400）。
+        pub fn key(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.key = input;
+            self
+        }
+        /// メッセージの見出しの名。
+        pub fn heading(mut self, input: ::std::string::String) -> Self {
+            self.heading = Some(input);
+            self
+        }
+        /// 送り手の名。
+        pub fn from(mut self, input: ::std::string::String) -> Self {
+            self.from = Some(input);
+            self
+        }
+        /// 受け手の名。
+        pub fn to(mut self, input: ::std::string::String) -> Self {
+            self.to = Some(input);
+            self
+        }
+        /// 本文。字のまま持つ（HTML として解釈しない）。
+        pub fn text(mut self, input: ::std::string::String) -> Self {
+            self.text = Some(input);
+            self
+        }
+        /// 送った時刻（UTC・ミリ秒まで）。
+        pub fn sent_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.sent_at = Some(input);
+            self
+        }
+        /// 状態。
+        pub fn state(mut self, input: ::std::string::String) -> Self {
+            self.state = Some(input);
+            self
+        }
+        /// 届いた時刻（UTC・ミリ秒まで）。まだ無い時だけ入る。
+        pub fn delivered_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.delivered_at = input;
+            self
+        }
+        /// どの時に渡したかの名。
+        pub fn via(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.via = input;
+            self
+        }
+        /// 渡した回数。
+        pub fn deliveries(mut self, input: ::std::option::Option<i32>) -> Self {
+            self.deliveries = input;
+            self
+        }
+        /// 返事の先のメッセージの id。
+        pub fn reply_to(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.reply_to = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`PutMessageInput`](crate::input::PutMessageInput).
+        ///
+        /// The builder fails to construct a [`PutMessageInput`](crate::input::PutMessageInput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::input::PutMessageInput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::input::PutMessageInput, ConstraintViolation> {
+            Ok(crate::input::PutMessageInput {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                id: self.id.ok_or(ConstraintViolation::MissingId)?,
+                actor_issuer: self.actor_issuer,
+                actor_ref: self.actor_ref,
+                key: self.key,
+                heading: self.heading.ok_or(ConstraintViolation::MissingHeading)?,
+                from: self.from.ok_or(ConstraintViolation::MissingFrom)?,
+                to: self.to.ok_or(ConstraintViolation::MissingTo)?,
+                text: self.text.ok_or(ConstraintViolation::MissingText)?,
+                sent_at: self.sent_at.ok_or(ConstraintViolation::MissingSentAt)?,
+                state: self.state.ok_or(ConstraintViolation::MissingState)?,
+                delivered_at: self.delivered_at,
+                via: self.via,
+                deliveries: self.deliveries,
+                reply_to: self.reply_to,
+            })
+        }
+    }
+}
+/// See [`ListMessagesInput`](crate::input::ListMessagesInput).
+pub(crate) mod list_messages_input_internal {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[non_exhaustive]
+    #[allow(clippy::enum_variant_names)]
+    pub(crate) enum ConstraintViolation {
+        /// Constraint violation occurred building member `project` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        Project(crate::model::segment_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `key` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        Key(crate::model::segment_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `to` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        To(crate::model::message_party_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `from` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        From(crate::model::message_party_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `state` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        State(crate::model::message_state_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `heading` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        Heading(crate::model::message_heading_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `sort` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        Sort(crate::model::message_sort_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `max_results` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        MaxResults(crate::model::max_results_internal::ConstraintViolation),
+        /// Constraint violation occurred building member `next_token` when building `ListMessagesInput`.
+        #[doc(hidden)]
+        NextToken(crate::model::next_token_internal::ConstraintViolation),
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::Project(_) => write!(f, "constraint violation occurred building member `project` when building `ListMessagesInput`"),
+                ConstraintViolation::Key(_) => write!(f, "constraint violation occurred building member `key` when building `ListMessagesInput`"),
+                ConstraintViolation::To(_) => write!(f, "constraint violation occurred building member `to` when building `ListMessagesInput`"),
+                ConstraintViolation::From(_) => write!(f, "constraint violation occurred building member `from` when building `ListMessagesInput`"),
+                ConstraintViolation::State(_) => write!(f, "constraint violation occurred building member `state` when building `ListMessagesInput`"),
+                ConstraintViolation::Heading(_) => write!(f, "constraint violation occurred building member `heading` when building `ListMessagesInput`"),
+                ConstraintViolation::Sort(_) => write!(f, "constraint violation occurred building member `sort` when building `ListMessagesInput`"),
+                ConstraintViolation::MaxResults(_) => write!(f, "constraint violation occurred building member `max_results` when building `ListMessagesInput`"),
+                ConstraintViolation::NextToken(_) => write!(f, "constraint violation occurred building member `next_token` when building `ListMessagesInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                ConstraintViolation::Project(inner) => {
+                    inner.as_validation_exception_field(path + "/project")
+                }
+                ConstraintViolation::Key(inner) => {
+                    inner.as_validation_exception_field(path + "/key")
+                }
+                ConstraintViolation::To(inner) => inner.as_validation_exception_field(path + "/to"),
+                ConstraintViolation::From(inner) => {
+                    inner.as_validation_exception_field(path + "/from")
+                }
+                ConstraintViolation::State(inner) => {
+                    inner.as_validation_exception_field(path + "/state")
+                }
+                ConstraintViolation::Heading(inner) => {
+                    inner.as_validation_exception_field(path + "/heading")
+                }
+                ConstraintViolation::Sort(inner) => {
+                    inner.as_validation_exception_field(path + "/sort")
+                }
+                ConstraintViolation::MaxResults(inner) => {
+                    inner.as_validation_exception_field(path + "/maxResults")
+                }
+                ConstraintViolation::NextToken(inner) => {
+                    inner.as_validation_exception_field(path + "/nextToken")
+                }
+            }
+        }
+    }
+    impl ::std::convert::From<ConstraintViolation>
+        for ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection
+    {
+        fn from(constraint_violation: ConstraintViolation) -> Self {
+            let first_validation_exception_field =
+                constraint_violation.as_validation_exception_field("".to_owned());
+            let validation_exception = crate::error::ValidationException {
+                message: format!(
+                    "1 validation error detected. {}",
+                    &first_validation_exception_field.message
+                ),
+                field_list: Some(vec![first_validation_exception_field]),
+            };
+            Self::ConstraintViolation(
+                                crate::protocol_serde::shape_validation_exception::ser_validation_exception_error(&validation_exception)
+                                    .expect("validation exceptions should never fail to serialize; please file a bug report under https://github.com/smithy-lang/smithy-rs/issues")
+                            )
+        }
+    }
+    impl ::std::convert::From<Builder>
+        for crate::constrained::MaybeConstrained<crate::input::ListMessagesInput>
+    {
+        fn from(builder: Builder) -> Self {
+            Self::Unconstrained(builder)
+        }
+    }
+    impl ::std::convert::TryFrom<Builder> for crate::input::ListMessagesInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListMessagesInput`](crate::input::ListMessagesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {
+        pub(crate) project:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) key:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+        pub(crate) to:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageParty>>,
+        pub(crate) from:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageParty>>,
+        pub(crate) state:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageState>>,
+        pub(crate) heading: ::std::option::Option<
+            crate::constrained::MaybeConstrained<crate::model::MessageHeading>,
+        >,
+        pub(crate) q: ::std::option::Option<::std::string::String>,
+        pub(crate) sort:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MessageSort>>,
+        pub(crate) max_results:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::MaxResults>>,
+        pub(crate) next_token:
+            ::std::option::Option<crate::constrained::MaybeConstrained<crate::model::NextToken>>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub(crate) fn set_project(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+            >,
+        ) -> Self {
+            self.project = input.map(|v| v.into());
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub(crate) fn set_key(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::Segment>>,
+            >,
+        ) -> Self {
+            self.key = input.map(|v| v.into());
+            self
+        }
+        /// 受け手の名（同じ値の物）。
+        pub(crate) fn set_to(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageParty>,
+                >,
+            >,
+        ) -> Self {
+            self.to = input.map(|v| v.into());
+            self
+        }
+        /// 送り手の名（同じ値の物）。
+        pub(crate) fn set_from(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageParty>,
+                >,
+            >,
+        ) -> Self {
+            self.from = input.map(|v| v.into());
+            self
+        }
+        /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+        pub(crate) fn set_state(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageState>,
+                >,
+            >,
+        ) -> Self {
+            self.state = input.map(|v| v.into());
+            self
+        }
+        /// メッセージの見出しの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
+        pub(crate) fn set_heading(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageHeading>,
+                >,
+            >,
+        ) -> Self {
+            self.heading = input.map(|v| v.into());
+            self
+        }
+        /// 本文と `from`・`to` に含まれる字。
+        pub(crate) fn set_q(
+            mut self,
+            input: Option<impl ::std::convert::Into<::std::string::String>>,
+        ) -> Self {
+            self.q = input.map(|v| v.into());
+            self
+        }
+        /// `-sentAt`（新しい順。既定）か `sentAt`（古い順）。同じ時刻は置いた順（新しい順なら後に置いた物が先）。
+        pub(crate) fn set_sort(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MessageSort>,
+                >,
+            >,
+        ) -> Self {
+            self.sort = input.map(|v| v.into());
+            self
+        }
+        /// 1 頁の数（既定 100）。
+        pub(crate) fn set_max_results(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<
+                    crate::constrained::MaybeConstrained<crate::model::MaxResults>,
+                >,
+            >,
+        ) -> Self {
+            self.max_results = input.map(|v| v.into());
+            self
+        }
+        /// 前の答えの `nextToken`。
+        pub(crate) fn set_next_token(
+            mut self,
+            input: Option<
+                impl ::std::convert::Into<crate::constrained::MaybeConstrained<crate::model::NextToken>>,
+            >,
+        ) -> Self {
+            self.next_token = input.map(|v| v.into());
+            self
+        }
+        /// Consumes the builder and constructs a [`ListMessagesInput`](crate::input::ListMessagesInput).
+        ///
+        /// The builder fails to construct a [`ListMessagesInput`](crate::input::ListMessagesInput) if a [`ConstraintViolation`] occurs.
+        ///
+        /// If the builder fails, it will return the _first_ encountered [`ConstraintViolation`].
+        pub fn build(self) -> Result<crate::input::ListMessagesInput, ConstraintViolation> {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(
+            self,
+        ) -> Result<crate::input::ListMessagesInput, ConstraintViolation> {
+            Ok(crate::input::ListMessagesInput {
+                project: self
+                    .project
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Project))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into()),
+                key: self
+                    .key
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Key))
+                    .transpose()?
+                    .map(|v: crate::model::Segment| v.into()),
+                to: self
+                    .to
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::To))
+                    .transpose()?
+                    .map(|v: crate::model::MessageParty| v.into()),
+                from: self
+                    .from
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::From))
+                    .transpose()?
+                    .map(|v: crate::model::MessageParty| v.into()),
+                state: self
+                    .state
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::State))
+                    .transpose()?
+                    .map(|v: crate::model::MessageState| v.into()),
+                heading: self
+                    .heading
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Heading))
+                    .transpose()?
+                    .map(|v: crate::model::MessageHeading| v.into()),
+                q: self.q,
+                sort: self
+                    .sort
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Sort))
+                    .transpose()?
+                    .map(|v: crate::model::MessageSort| v.into()),
+                max_results: self
+                    .max_results
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::MaxResults))
+                    .transpose()?
+                    .map(|v: crate::model::MaxResults| v.into()),
+                next_token: self
+                    .next_token
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::NextToken))
+                    .transpose()?
+                    .map(|v: crate::model::NextToken| v.into()),
+            })
+        }
+    }
+}
+/// See [`ListMessagesInput`](crate::input::ListMessagesInput).
+pub mod list_messages_input {
+
+    impl ::std::convert::From<Builder> for crate::input::ListMessagesInput {
+        fn from(builder: Builder) -> Self {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListMessagesInput`](crate::input::ListMessagesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) to: ::std::option::Option<::std::string::String>,
+        pub(crate) from: ::std::option::Option<::std::string::String>,
+        pub(crate) state: ::std::option::Option<::std::string::String>,
+        pub(crate) heading: ::std::option::Option<::std::string::String>,
+        pub(crate) q: ::std::option::Option<::std::string::String>,
+        pub(crate) sort: ::std::option::Option<::std::string::String>,
+        pub(crate) max_results: ::std::option::Option<i32>,
+        pub(crate) next_token: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.project = input;
+            self
+        }
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn key(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.key = input;
+            self
+        }
+        /// 受け手の名（同じ値の物）。
+        pub fn to(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.to = input;
+            self
+        }
+        /// 送り手の名（同じ値の物）。
+        pub fn from(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.from = input;
+            self
+        }
+        /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+        pub fn state(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.state = input;
+            self
+        }
+        /// メッセージの見出しの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
+        pub fn heading(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.heading = input;
+            self
+        }
+        /// 本文と `from`・`to` に含まれる字。
+        pub fn q(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.q = input;
+            self
+        }
+        /// `-sentAt`（新しい順。既定）か `sentAt`（古い順）。同じ時刻は置いた順（新しい順なら後に置いた物が先）。
+        pub fn sort(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.sort = input;
+            self
+        }
+        /// 1 頁の数（既定 100）。
+        pub fn max_results(mut self, input: ::std::option::Option<i32>) -> Self {
+            self.max_results = input;
+            self
+        }
+        /// 前の答えの `nextToken`。
+        pub fn next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.next_token = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`ListMessagesInput`](crate::input::ListMessagesInput).
+        pub fn build(self) -> crate::input::ListMessagesInput {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(self) -> crate::input::ListMessagesInput {
+            crate::input::ListMessagesInput {
+                project: self.project,
+                key: self.key,
+                to: self.to,
+                from: self.from,
+                state: self.state,
+                heading: self.heading,
+                q: self.q,
+                sort: self.sort,
+                max_results: self.max_results,
+                next_token: self.next_token,
+            }
         }
     }
 }

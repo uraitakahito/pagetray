@@ -1,5 +1,6 @@
 //! 画面（[`crate::ui`]）が読む、一覧のほかの物: 絞り込みの候補と件数・待ちの数（どれも置き場の全部。絞りに関わらない）と、
 //! 見られたページごとの、それを見たレビュー。SQL は 0.8.x の server と同じ。読む接続で読む。
+//! メッセージの一覧の、絞り込みの候補と件数（[`MessageFacets`]）も、ここで読む。
 use sqlx::FromRow;
 
 use crate::db::Db;
@@ -79,6 +80,30 @@ const REPLIES: &str = "select
 const VERDICTS: &str = "select verdict as value, count(*) as count, '' as note
  from pages where verdict is not null group by verdict order by 2 desc, 1";
 
+/// メッセージの一覧の、絞り込みの候補と件数（どれも置き場の全部。絞りに関わらない）。
+#[derive(Debug)]
+pub struct MessageFacets {
+    /// 状態ごとの数（値は定義の `MessageState` の字）。
+    pub states: Vec<Count>,
+    /// 受け手・送り手は、多い順に 100 まで。
+    pub to: Vec<Count>,
+    pub from: Vec<Count>,
+    /// Key は、新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない）。
+    pub keys: Vec<Count>,
+    pub projects: Vec<Count>,
+}
+
+const MESSAGE_STATES: &str = "select state as value, count(*) as count, '' as note
+ from messages group by state";
+const MESSAGE_TO: &str = "select to_name as value, count(*) as count, '' as note
+ from messages group by to_name order by 2 desc, 1 limit 100";
+const MESSAGE_FROM: &str = "select from_name as value, count(*) as count, '' as note
+ from messages group by from_name order by 2 desc, 1 limit 100";
+const MESSAGE_KEYS: &str = "select key as value, count(*) as count, '' as note
+ from messages where key is not null group by key order by max(sent_at) desc limit 100";
+const MESSAGE_PROJECTS: &str = "select project as value, count(*) as count, '' as note
+ from messages group by project order by 2 desc, 1";
+
 impl Db {
     /// 絞り込みの候補と待ちの数（読む接続の 1 つの取引で、同じ時点の物を読む）。
     pub async fn facets(&self) -> Result<Facets, sqlx::Error> {
@@ -105,6 +130,25 @@ impl Db {
             review_waiting: replies.review_waiting,
             escalated: replies.escalated,
             verdicts,
+        })
+    }
+
+    /// メッセージの一覧の、絞り込みの候補と件数（読む接続の 1 つの取引で、同じ時点の物を読む）。
+    pub async fn message_facets(&self) -> Result<MessageFacets, sqlx::Error> {
+        let mut tx = self.read().begin().await?;
+        let counts = |sql: &'static str| sqlx::query_as::<_, Count>(sql);
+        let states = counts(MESSAGE_STATES).fetch_all(&mut *tx).await?;
+        let to = counts(MESSAGE_TO).fetch_all(&mut *tx).await?;
+        let from = counts(MESSAGE_FROM).fetch_all(&mut *tx).await?;
+        let keys = counts(MESSAGE_KEYS).fetch_all(&mut *tx).await?;
+        let projects = counts(MESSAGE_PROJECTS).fetch_all(&mut *tx).await?;
+        tx.commit().await?;
+        Ok(MessageFacets {
+            states,
+            to,
+            from,
+            keys,
+            projects,
         })
     }
 

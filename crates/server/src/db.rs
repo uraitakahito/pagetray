@@ -5,6 +5,7 @@
 //! - 接続の決まりは、castlist の server（crates/server/src/db.rs）と同じ。
 //! - 返事・印・消すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする（間に別の書く物が入らない）。
 //! - file はページと同じ作り（番号は project・key・語・拡張子ごと。消した番号は files_removed）。
+//! - メッセージの記録は、project と id で 1 行。置く・書き足すは、書く接続の 1 つの取引で、見る・書く・答えの記録を読むをする。
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -185,6 +186,61 @@ pub struct FileTarget<'a> {
 
 /// 消した file（project・Key・語・拡張子・番号）。
 pub type RemovedFile = (String, String, String, String, i64);
+
+/// 置く・書き足すメッセージの記録の中身（形は定義と handler が見てある。時刻は [`stamp`] の字）。
+pub struct NewMessage<'a> {
+    pub project: &'a str,
+    /// メッセージの id（呼ぶ側が付ける）。
+    pub id: &'a str,
+    pub key: Option<&'a str>,
+    pub heading: &'a str,
+    pub from: &'a str,
+    pub to: &'a str,
+    pub text: &'a str,
+    pub sent_at: &'a str,
+    pub state: &'a str,
+    pub delivered_at: Option<&'a str>,
+    pub via: Option<&'a str>,
+    pub deliveries: Option<i64>,
+    pub reply_to: Option<&'a str>,
+    /// 送り手。初めて置く時だけ、senders に 1 行足して記録から指す（同じ取引）。書き足す時は使わない。
+    pub sender: Option<&'a NewSender>,
+}
+
+/// メッセージの記録の行（送り手の列は senders を left join した物）。
+#[derive(Clone, Debug, FromRow)]
+pub struct MessageRow {
+    /// 行の番号（頁の続きの印に使う）。
+    pub id: i64,
+    pub project: String,
+    /// メッセージの id（呼ぶ側が付けた物）。
+    pub message_id: String,
+    pub key: Option<String>,
+    pub heading: String,
+    pub from_name: String,
+    pub to_name: String,
+    pub text: String,
+    pub sent_at: String,
+    pub state: String,
+    pub delivered_at: Option<String>,
+    pub via: Option<String>,
+    pub deliveries: Option<i64>,
+    pub reply_to: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+    pub actor_issuer: Option<String>,
+    pub actor_ref: Option<String>,
+    pub actor_id: Option<String>,
+    pub actor_name: Option<String>,
+    pub actor_kind: Option<String>,
+    pub resolved_at: Option<String>,
+}
+
+/// [`MessageRow`] を読む select（`messages m` と `senders s`。後ろに where を繋ぐ）。
+pub const MESSAGE_ROW: &str = "select m.id, m.project, m.message_id, m.key, m.heading, m.from_name, m.to_name, m.text,
+        m.sent_at, m.state, m.delivered_at, m.via, m.deliveries, m.reply_to, m.created_at, m.updated_at,
+        s.actor_issuer, s.actor_ref, s.actor_id, s.actor_name, s.actor_kind, s.resolved_at
+ from messages m left join senders s on s.id = m.sender_id";
 
 /// 返事の状態。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -823,6 +879,80 @@ impl Db {
         .await?;
         tx.commit().await?;
         Ok(removed)
+    }
+
+    /// メッセージの記録を 1 件置く・書き足す（1 つの transaction）。置いた（true）か書き足した（false）かと、書いた後の記録を返す。
+    /// - 初めての project と id なら置く（送り手があれば、senders に 1 行足して指す）。
+    /// - もうあれば書き足す: 状態は新しい値に、渡した時と渡した回数は書けば新しい値に（書かなければ前のまま）、届いた時刻は
+    ///   まだ無い時だけ入れる（初めの時刻を保つ）。ほかの欄と送り手は、初めに置いた値を保つ（送り手の行も足さない）。
+    pub async fn put_message(
+        &self,
+        message: &NewMessage<'_>,
+    ) -> Result<(bool, MessageRow), WriteError> {
+        let mut tx = self.write.begin().await?;
+        let now = now();
+        let existing: Option<i64> =
+            sqlx::query_scalar("select id from messages where project = ?1 and message_id = ?2")
+                .bind(message.project)
+                .bind(message.id)
+                .fetch_optional(&mut *tx)
+                .await?;
+        let id = match existing {
+            Some(id) => {
+                sqlx::query(
+                    "update messages
+                     set state = ?2, via = coalesce(?3, via), deliveries = coalesce(?4, deliveries),
+                         delivered_at = coalesce(delivered_at, ?5), updated_at = ?6
+                     where id = ?1",
+                )
+                .bind(id)
+                .bind(message.state)
+                .bind(message.via)
+                .bind(message.deliveries)
+                .bind(message.delivered_at)
+                .bind(&now)
+                .execute(&mut *tx)
+                .await?;
+                id
+            }
+            None => {
+                let sender_id = match message.sender {
+                    Some(sender) => Some(add_sender(&mut tx, sender).await?),
+                    None => None,
+                };
+                sqlx::query_scalar(
+                    "insert into messages(project, message_id, key, heading, from_name, to_name, text, sent_at, state,
+                                          delivered_at, via, deliveries, reply_to, created_at, updated_at, sender_id)
+                     values(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?14, ?15)
+                     returning id",
+                )
+                .bind(message.project)
+                .bind(message.id)
+                .bind(message.key)
+                .bind(message.heading)
+                .bind(message.from)
+                .bind(message.to)
+                .bind(message.text)
+                .bind(message.sent_at)
+                .bind(message.state)
+                .bind(message.delivered_at)
+                .bind(message.via)
+                .bind(message.deliveries)
+                .bind(message.reply_to)
+                .bind(&now)
+                .bind(sender_id)
+                .fetch_one(&mut *tx)
+                .await?
+            }
+        };
+        let row = sqlx::query_as(sqlx::AssertSqlSafe(format!(
+            "{MESSAGE_ROW} where m.id = ?1"
+        )))
+        .bind(id)
+        .fetch_one(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok((existing.is_none(), row))
     }
 
     /// file の Content-Type と中身。無ければ None。

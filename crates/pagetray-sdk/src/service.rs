@@ -10,7 +10,9 @@ pub struct PagetrayBuilder<Body, L, HttpPl, ModelPl> {
     delete_pages: Option<::aws_smithy_http_server::routing::Route<Body>>,
     get_health: Option<::aws_smithy_http_server::routing::Route<Body>>,
     list_files: Option<::aws_smithy_http_server::routing::Route<Body>>,
+    list_messages: Option<::aws_smithy_http_server::routing::Route<Body>>,
     list_pages: Option<::aws_smithy_http_server::routing::Route<Body>>,
+    put_message: Option<::aws_smithy_http_server::routing::Route<Body>>,
     set_reply_state: Option<::aws_smithy_http_server::routing::Route<Body>>,
     layer: L,
     http_plugin: HttpPl,
@@ -1236,6 +1238,180 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         self
     }
 
+    /// Sets the [`ListMessages`](crate::operation_shape::ListMessages) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::ListMessagesInput) -> Result<output::ListMessagesOutput, error::ListMessagesError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let app = Pagetray::builder(config)
+    ///     .list_messages(handler)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn list_messages<HandlerType, HandlerExtractors, UpgradeExtractors>(self, handler: HandlerType) -> Self
+                    where
+                        HandlerType: ::aws_smithy_http_server::operation::Handler<crate::operation_shape::ListMessages, HandlerExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListMessages,
+                            ::aws_smithy_http_server::operation::IntoService<crate::operation_shape::ListMessages, HandlerType>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListMessages,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListMessages,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::ListMessages,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::ListMessages::from_handler(handler);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#ListMessages",
+                        "ai.pagetray",
+                        "ListMessages",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#ListMessages",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.list_messages_custom(svc)
+    }
+
+    /// Sets the [`ListMessages`](crate::operation_shape::ListMessages) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::ListMessagesInput) -> Result<output::ListMessagesOutput, error::ListMessagesError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let svc = ::tower::util::service_fn(handler);
+    /// let app = Pagetray::builder(config)
+    ///     .list_messages_service(svc)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn list_messages_service<S, ServiceExtractors, UpgradeExtractors>(self, service: S) -> Self
+                    where
+                        S: ::aws_smithy_http_server::operation::OperationService<crate::operation_shape::ListMessages, ServiceExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListMessages,
+                            ::aws_smithy_http_server::operation::Normalize<crate::operation_shape::ListMessages, S>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListMessages,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::ListMessages,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::ListMessages,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::ListMessages::from_service(service);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#ListMessages",
+                        "ai.pagetray",
+                        "ListMessages",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#ListMessages",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.list_messages_custom(svc)
+    }
+
+    /// Sets the [`ListMessages`](crate::operation_shape::ListMessages) to a custom [`Service`](tower::Service).
+    /// not constrained by the Smithy contract.
+    fn list_messages_custom<S>(mut self, svc: S) -> Self
+    where
+        S: ::tower::Service<
+                ::http_1x::Request<Body>,
+                Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>,
+                Error = ::std::convert::Infallible,
+            > + Clone
+            + Send
+            + 'static,
+        S::Future: Send + 'static,
+    {
+        self.list_messages = Some(::aws_smithy_http_server::routing::Route::new(svc));
+        self
+    }
+
     /// Sets the [`ListPages`](crate::operation_shape::ListPages) operation.
     ///
     /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
@@ -1407,6 +1583,180 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         S::Future: Send + 'static,
     {
         self.list_pages = Some(::aws_smithy_http_server::routing::Route::new(svc));
+        self
+    }
+
+    /// Sets the [`PutMessage`](crate::operation_shape::PutMessage) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::PutMessageInput) -> Result<output::PutMessageOutput, error::PutMessageError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let app = Pagetray::builder(config)
+    ///     .put_message(handler)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn put_message<HandlerType, HandlerExtractors, UpgradeExtractors>(self, handler: HandlerType) -> Self
+                    where
+                        HandlerType: ::aws_smithy_http_server::operation::Handler<crate::operation_shape::PutMessage, HandlerExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::PutMessage,
+                            ::aws_smithy_http_server::operation::IntoService<crate::operation_shape::PutMessage, HandlerType>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::PutMessage,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::PutMessage,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::PutMessage,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::PutMessage::from_handler(handler);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#PutMessage",
+                        "ai.pagetray",
+                        "PutMessage",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#PutMessage",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.put_message_custom(svc)
+    }
+
+    /// Sets the [`PutMessage`](crate::operation_shape::PutMessage) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::PutMessageInput) -> Result<output::PutMessageOutput, error::PutMessageError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let svc = ::tower::util::service_fn(handler);
+    /// let app = Pagetray::builder(config)
+    ///     .put_message_service(svc)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn put_message_service<S, ServiceExtractors, UpgradeExtractors>(self, service: S) -> Self
+                    where
+                        S: ::aws_smithy_http_server::operation::OperationService<crate::operation_shape::PutMessage, ServiceExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::PutMessage,
+                            ::aws_smithy_http_server::operation::Normalize<crate::operation_shape::PutMessage, S>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::PutMessage,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::PutMessage,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::PutMessage,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::PutMessage::from_service(service);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#PutMessage",
+                        "ai.pagetray",
+                        "PutMessage",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#PutMessage",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.put_message_custom(svc)
+    }
+
+    /// Sets the [`PutMessage`](crate::operation_shape::PutMessage) to a custom [`Service`](tower::Service).
+    /// not constrained by the Smithy contract.
+    fn put_message_custom<S>(mut self, svc: S) -> Self
+    where
+        S: ::tower::Service<
+                ::http_1x::Request<Body>,
+                Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>,
+                Error = ::std::convert::Infallible,
+            > + Clone
+            + Send
+            + 'static,
+        S::Future: Send + 'static,
+    {
+        self.put_message = Some(::aws_smithy_http_server::routing::Route::new(svc));
         self
     }
 
@@ -1639,9 +1989,17 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                 missing_operation_names
                     .insert(crate::operation_shape::ListFiles::ID, ".list_files()");
             }
+            if self.list_messages.is_none() {
+                missing_operation_names
+                    .insert(crate::operation_shape::ListMessages::ID, ".list_messages()");
+            }
             if self.list_pages.is_none() {
                 missing_operation_names
                     .insert(crate::operation_shape::ListPages::ID, ".list_pages()");
+            }
+            if self.put_message.is_none() {
+                missing_operation_names
+                    .insert(crate::operation_shape::PutMessage::ID, ".put_message()");
             }
             if self.set_reply_state.is_none() {
                 missing_operation_names.insert(
@@ -1669,6 +2027,11 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
             crate::model::PageSort::compile_regex();
             crate::model::FileName::compile_regex();
             crate::model::FileStem::compile_regex();
+            crate::model::MessageId::compile_regex();
+            crate::model::MessageHeading::compile_regex();
+            crate::model::MessageState::compile_regex();
+            crate::model::MessageVia::compile_regex();
+            crate::model::MessageSort::compile_regex();
             crate::model::ActorKind::compile_regex();
 
             ::aws_smithy_http_server::protocol::rest::router::RestRouter::from_iter([
@@ -1701,8 +2064,16 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                     self.list_files.expect(unexpected_error_msg),
                 ),
                 (
+                    request_specs::list_messages(),
+                    self.list_messages.expect(unexpected_error_msg),
+                ),
+                (
                     request_specs::list_pages(),
                     self.list_pages.expect(unexpected_error_msg),
+                ),
+                (
+                    request_specs::put_message(),
+                    self.put_message.expect(unexpected_error_msg),
                 ),
                 (
                     request_specs::set_reply_state(),
@@ -1797,8 +2168,26 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                 }),
             ),
             (
+                request_specs::list_messages(),
+                self.list_messages.unwrap_or_else(|| {
+                    let svc = ::aws_smithy_http_server::operation::MissingFailure::<
+                        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+                    >::default();
+                    ::aws_smithy_http_server::routing::Route::new(svc)
+                }),
+            ),
+            (
                 request_specs::list_pages(),
                 self.list_pages.unwrap_or_else(|| {
+                    let svc = ::aws_smithy_http_server::operation::MissingFailure::<
+                        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+                    >::default();
+                    ::aws_smithy_http_server::routing::Route::new(svc)
+                }),
+            ),
+            (
+                request_specs::put_message(),
+                self.put_message.unwrap_or_else(|| {
                     let svc = ::aws_smithy_http_server::operation::MissingFailure::<
                         ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
                     >::default();
@@ -1980,6 +2369,21 @@ mod request_specs {
                     ),
                 )
     }
+    pub(super) fn list_messages() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
+        ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
+                    ::http_1x::Method::GET,
+                    ::aws_smithy_http_server::routing::request_spec::UriSpec::new(
+                        ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
+                            ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("messages")),
+]),
+                            ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
+])
+                        )
+                    ),
+                )
+    }
     pub(super) fn list_pages() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
         ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
                     ::http_1x::Method::GET,
@@ -1988,6 +2392,24 @@ mod request_specs {
                             ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
     ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
     ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("pages")),
+]),
+                            ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
+])
+                        )
+                    ),
+                )
+    }
+    pub(super) fn put_message() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
+        ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
+                    ::http_1x::Method::PUT,
+                    ::aws_smithy_http_server::routing::request_spec::UriSpec::new(
+                        ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
+                            ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("projects")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Label,
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("messages")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Label,
 ]),
                             ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
 ])
@@ -2057,7 +2479,9 @@ impl Pagetray<()> {
             delete_pages: None,
             get_health: None,
             list_files: None,
+            list_messages: None,
             list_pages: None,
+            put_message: None,
             set_reply_state: None,
             layer: config.layers,
             http_plugin: config.http_plugins,
@@ -2093,7 +2517,9 @@ impl Pagetray<()> {
             delete_pages: None,
             get_health: None,
             list_files: None,
+            list_messages: None,
             list_pages: None,
+            put_message: None,
             set_reply_state: None,
             layer: ::tower::layer::util::Identity::new(),
             http_plugin,
@@ -2224,7 +2650,9 @@ pub enum Operation {
     DeletePages,
     GetHealth,
     ListFiles,
+    ListMessages,
     ListPages,
+    PutMessage,
     SetReplyState,
 }
 
@@ -2267,10 +2695,20 @@ impl Operation {
                 "ai.pagetray",
                 "ListFiles",
             ),
+            Operation::ListMessages => ::aws_smithy_http_server::shape_id::ShapeId::new(
+                "ai.pagetray#ListMessages",
+                "ai.pagetray",
+                "ListMessages",
+            ),
             Operation::ListPages => ::aws_smithy_http_server::shape_id::ShapeId::new(
                 "ai.pagetray#ListPages",
                 "ai.pagetray",
                 "ListPages",
+            ),
+            Operation::PutMessage => ::aws_smithy_http_server::shape_id::ShapeId::new(
+                "ai.pagetray#PutMessage",
+                "ai.pagetray",
+                "PutMessage",
             ),
             Operation::SetReplyState => ::aws_smithy_http_server::shape_id::ShapeId::new(
                 "ai.pagetray#SetReplyState",
@@ -2315,10 +2753,20 @@ impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_sh
 {
     const VALUE: Operation = Operation::ListFiles;
 }
+impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::ListMessages>
+    for Pagetray<L>
+{
+    const VALUE: Operation = Operation::ListMessages;
+}
 impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::ListPages>
     for Pagetray<L>
 {
     const VALUE: Operation = Operation::ListPages;
+}
+impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::PutMessage>
+    for Pagetray<L>
+{
+    const VALUE: Operation = Operation::PutMessage;
 }
 impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::SetReplyState>
     for Pagetray<L>
@@ -2576,6 +3024,15 @@ macro_rules! scope {
                             scope! { @ $ name, $ contains (ListFiles $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
                         };
 
+                        // ListMessages match found, pop from both `member` and `not_member`
+                        (@ $ name: ident, $ contains: ident (ListMessages $($ member: ident)*) ($($ temp: ident)*) (ListMessages $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
+                        };
+                        // ListMessages match not found, pop from `not_member` into `temp` stack
+                        (@ $ name: ident, $ contains: ident (ListMessages $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains (ListMessages $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
+                        };
+
                         // ListPages match found, pop from both `member` and `not_member`
                         (@ $ name: ident, $ contains: ident (ListPages $($ member: ident)*) ($($ temp: ident)*) (ListPages $($ not_member: ident)*)) => {
                             scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
@@ -2583,6 +3040,15 @@ macro_rules! scope {
                         // ListPages match not found, pop from `not_member` into `temp` stack
                         (@ $ name: ident, $ contains: ident (ListPages $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
                             scope! { @ $ name, $ contains (ListPages $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
+                        };
+
+                        // PutMessage match found, pop from both `member` and `not_member`
+                        (@ $ name: ident, $ contains: ident (PutMessage $($ member: ident)*) ($($ temp: ident)*) (PutMessage $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
+                        };
+                        // PutMessage match not found, pop from `not_member` into `temp` stack
+                        (@ $ name: ident, $ contains: ident (PutMessage $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains (PutMessage $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
                         };
 
                         // SetReplyState match found, pop from both `member` and `not_member`
@@ -2608,7 +3074,7 @@ macro_rules! scope {
                                 excludes: []
                             }
                         }
-                        scope! { @ $ name, False ($($ include)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListPages SetReplyState) }
+                        scope! { @ $ name, False ($($ include)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListMessages ListPages PutMessage SetReplyState) }
                     };
                     (
                         $(#[$ attrs:meta])*
@@ -2625,6 +3091,6 @@ macro_rules! scope {
                                 excludes: [$($ exclude),*]
                             }
                         }
-                        scope! { @ $ name, True ($($ exclude)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListPages SetReplyState) }
+                        scope! { @ $ name, True ($($ exclude)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListMessages ListPages PutMessage SetReplyState) }
                     };
                 }

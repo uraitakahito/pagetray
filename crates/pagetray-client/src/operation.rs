@@ -21,8 +21,14 @@ pub mod get_health;
 /// Types for the `ListFiles` operation.
 pub mod list_files;
 
+/// Types for the `ListMessages` operation.
+pub mod list_messages;
+
 /// Types for the `ListPages` operation.
 pub mod list_pages;
+
+/// Types for the `PutMessage` operation.
+pub mod put_message;
 
 /// Types for the `SetReplyState` operation.
 pub mod set_reply_state;

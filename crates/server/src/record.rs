@@ -1,12 +1,16 @@
 //! DB のページの行（[`crate::db::PageRow`]）を、答えのページの記録にする（ListPages の行と、SetReplyState・AddReviewMarks の答えで同じ形）。
 //! 返事・判定・見た物・送り手の欄は、ある時だけ（Product Manager の待ちに `waitsOn` は無い）。
 //! file の行（[`crate::db::FileRow`]）も同じく、ListFiles の行と CreateFile の答えで同じ形にする（[`FileRecord`]）。
+//! メッセージの記録の行（[`crate::db::MessageRow`]）は、そのまま定義の `Message` にする（ListMessages の行・PutMessage の答え・
+//! 新着の知らせで同じ形。[`message`]・[`put_message_output`]）。
 use aws_smithy_types::DateTime;
-use pagetray_sdk::model::{ActorSummary, File, Page, Sender};
-use pagetray_sdk::output::{AddReviewMarksOutput, CreateFileOutput, SetReplyStateOutput};
+use pagetray_sdk::model::{ActorSummary, File, Message, Page, Sender};
+use pagetray_sdk::output::{
+    AddReviewMarksOutput, CreateFileOutput, PutMessageOutput, SetReplyStateOutput,
+};
 
 use crate::datetime;
-use crate::db::{FileRow, PageRow};
+use crate::db::{FileRow, MessageRow, PageRow};
 use crate::files::file_path;
 use crate::pages::page_path;
 
@@ -209,5 +213,57 @@ impl From<FileRecord> for File {
             path: r.path,
             sender: r.sender,
         }
+    }
+}
+
+/// DB のメッセージの記録の行を、答えの記録にする。直せなければ（DB の時刻が読めない）、その訳の字。
+pub fn message(r: MessageRow) -> Result<Message, String> {
+    let time = |t: Option<&str>| t.map(datetime).transpose();
+    Ok(Message {
+        sent_at: datetime(&r.sent_at)?,
+        delivered_at: time(r.delivered_at.as_deref())?,
+        created_at: datetime(&r.created_at)?,
+        updated_at: datetime(&r.updated_at)?,
+        sender: sender(
+            r.actor_issuer,
+            r.actor_ref,
+            (r.actor_id, r.actor_name, r.actor_kind),
+            r.resolved_at.as_deref(),
+        )?,
+        project: r.project,
+        id: r.message_id,
+        key: r.key,
+        heading: r.heading,
+        from: r.from_name,
+        to: r.to_name,
+        text: r.text,
+        state: r.state,
+        via: r.via,
+        // 1 以上の数（定義が見てある）。i32 に入らない数は置けない。
+        deliveries: r.deliveries.and_then(|n| i32::try_from(n).ok()),
+        reply_to: r.reply_to,
+    })
+}
+
+/// 置いた・書き足した答え（`status` は 201 か 200）。
+pub fn put_message_output(m: Message, status: i32) -> PutMessageOutput {
+    PutMessageOutput {
+        project: m.project,
+        id: m.id,
+        key: m.key,
+        heading: m.heading,
+        from: m.from,
+        to: m.to,
+        text: m.text,
+        sent_at: m.sent_at,
+        state: m.state,
+        delivered_at: m.delivered_at,
+        via: m.via,
+        deliveries: m.deliveries,
+        reply_to: m.reply_to,
+        created_at: m.created_at,
+        updated_at: m.updated_at,
+        sender: m.sender,
+        status,
     }
 }

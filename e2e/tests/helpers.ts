@@ -47,6 +47,26 @@ export async function placeFile(
   return response.json();
 }
 
+export type Message = {
+  key?: string;
+  heading: string;
+  from: string;
+  to: string;
+  text: string;
+  sentAt: string;
+  state: 'waiting' | 'delivered' | 'undeliverable' | 'expired' | 'carried';
+  deliveredAt?: string;
+  via?: string;
+  deliveries?: number;
+  replyTo?: string;
+};
+
+/** API で、メッセージの記録を 1 件置く・書き足す（browser の外から送るので Origin は付かない）。 */
+export async function putMessage(request: APIRequestContext, project: string, id: string, message: Message): Promise<void> {
+  const response = await request.put(`/api/projects/${project}/messages/${id}`, { data: message });
+  expect(response.ok(), await response.text()).toBeTruthy();
+}
+
 /** ページの path（`place` が返した物）を、project・Key・種類・番号に分ける。 */
 const pageOf = (path: string) => {
   const [, project, key, kind, n] = /^\/([^/]+)\/([^/]+)\/(.+)-(\d+)\.html$/.exec(path)!;
@@ -154,6 +174,11 @@ export const escalated = (page: Page) => page.locator('#escalated');
 export const verdictMark = (page: Page, path: string) => list(page).locator(`li[data-path="${path}"] .top .verdict`);
 /** 行の下の link の並び（`targets` は見た物・見る物、`reviews` はそのページを見たレビュー）。 */
 export const links = (page: Page, path: string, which: 'targets' | 'reviews') => list(page).locator(`li[data-path="${path}"] .links.${which}`);
+
+// メッセージの一覧（/messages）: 行（`li[data-id]`。値は `<project>/<id>`）と、操作の帯のまだ届いていない数。
+export const messageRows = (page: Page) => list(page).locator('li[data-id]');
+export const messageRow = (page: Page, project: string, id: string) => list(page).locator(`li[data-id="${project}/${id}"]`);
+export const undelivered = (page: Page) => page.locator('#undelivered');
 
 /**
  * 一覧の列を、頭から y px 下へ送る。幅が広い時は真ん中の列（.middle）が、狭い時は画面全体が送られる。

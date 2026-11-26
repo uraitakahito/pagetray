@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-26T11:38:52+09:00\n"
+"POT-Creation-Date: 2026-11-27T00:51:12+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -301,6 +301,32 @@ msgid "file の中身。無ければ `404`、消した file は `410`"
 msgstr "The file contents. `404` if missing, `410` if the file was deleted"
 
 #: src/index.md
+msgid "`PUT /api/projects/<project>/messages/<id>`"
+msgstr "`PUT /api/projects/<project>/messages/<id>`"
+
+#: src/index.md
+msgid ""
+"メッセージの記録を置く・書き足す（`PutMessage`）。本文は JSON。初めての id "
+"は `201`、もうある id は書き足して `200`。置き場は見せるだけ（配らない・状態"
+"を決めない）"
+msgstr ""
+"Puts or appends to a message record (`PutMessage`). The body is JSON. A new "
+"id is `201`; an existing id is appended to and is `200`. The store only "
+"shows the records (it does not deliver messages or decide states)"
+
+#: src/index.md
+msgid "`GET /api/messages`"
+msgstr "`GET /api/messages`"
+
+#: src/index.md
+msgid ""
+"メッセージの記録を探す（`ListMessages`）。`project`・`key`・`to`・`from`・"
+"`state`・`heading`・`q`・`sort` で絞る。`{\"messages\":[…]}`"
+msgstr ""
+"Searches message records (`ListMessages`). Filter with `project`, `key`, "
+"`to`, `from`, `state`, `heading`, `q`, and `sort`. `{\"messages\":[…]}`"
+
+#: src/index.md
 msgid "`GET /`・`/<project>/`・`/<project>/<key>/`"
 msgstr "`GET /`, `/<project>/`, `/<project>/<key>/`"
 
@@ -309,16 +335,25 @@ msgid "一覧の UI（絞った一覧）"
 msgstr "List UI (filtered list)"
 
 #: src/index.md
+msgid "`GET /messages`"
+msgstr "`GET /messages`"
+
+#: src/index.md
+msgid "メッセージの一覧（メッセージの記録を見る画面）"
+msgstr "The message list (the screen that shows message records)"
+
+#: src/index.md
 msgid "`GET /api/events`"
 msgstr "`GET /api/events`"
 
 #: src/index.md
 msgid ""
 "置かれるたび・書かれるたびに 1 件を push（SSE。file は `event: file`、返事は "
-"`event: reply`、印は `event: review`）"
+"`event: reply`、印は `event: review`、メッセージの記録は `event: message`）"
 msgstr ""
 "Pushes one record each time something is placed or written (SSE; files use "
-"`event: file`, replies `event: reply`, and marks `event: review`)"
+"`event: file`, replies `event: reply`, marks `event: review`, and message "
+"records `event: message`)"
 
 #: src/index.md
 msgid "`GET /api/backup`"
@@ -488,7 +523,7 @@ msgstr ""
 "The 0.8.x database was moved at the switch-over: see \"Switch-over (done)\" "
 "in [Releasing](release.md)). No Mac folder is mounted"
 
-#: src/run.md
+#: src/run.md src/api.md
 msgid "記録"
 msgstr "Logs"
 
@@ -2221,14 +2256,14 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"守るのは、データ（ページと file の行・番号・消した番号）と、そこから決まる振"
-"る舞い（番号は 2 度使わない・消したページは 410・本文は置いたままの byte で返"
-"す など）と、ページと file の URL の形。"
+"守るのは、データ（ページと file の行・番号・消した番号・メッセージの記録）"
+"と、そこから決まる振る舞い（番号は 2 度使わない・消したページは 410・本文は置"
+"いたままの byte で返す など）と、ページと file の URL の形。"
 msgstr ""
-"What is kept is the data (the rows of pages and files, their numbers, and "
-"the removed numbers), the behavior that follows from it (a number is never "
-"used twice, a removed page is 410, a body comes back byte for byte as it was "
-"put, and so on), and the shape of the page and file URLs."
+"What is kept is the data (the rows of pages and files, their numbers, the "
+"removed numbers, and the message records), the behavior that follows from it "
+"(a number is never used twice, a removed page is 410, a body comes back byte "
+"for byte as it was put, and so on), and the shape of the page and file URLs."
 
 #: src/api.md
 msgid "共通の決まり"
@@ -2285,10 +2320,10 @@ msgstr "Names of fields and parameters"
 #: src/api.md
 msgid ""
 "camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`actorIssuer`・"
-"`actorRef`・`maxResults`・`nextToken`）"
+"`actorRef`・`sentAt`・`deliveredAt`・`replyTo`・`maxResults`・`nextToken`）"
 msgstr ""
 "camelCase (`createdAt`, `askedAt`, `answeredAt`, `waitsOn`, `actorIssuer`, "
-"`actorRef`, `maxResults`, `nextToken`)"
+"`actorRef`, `sentAt`, `deliveredAt`, `replyTo`, `maxResults`, `nextToken`)"
 
 #: src/api.md
 msgid "時刻"
@@ -2369,10 +2404,11 @@ msgstr "Status codes"
 #: src/api.md
 msgid ""
 "決まっている物は `@http` の `code`（置けば 201）。答えで替わる物だけ "
-"`@httpResponseCode`"
+"`@httpResponseCode`（`PutMessage` の 201・200）"
 msgstr ""
 "A fixed one is the `code` of `@http` (201 on a put). Only a code that "
-"depends on the outcome uses `@httpResponseCode`"
+"depends on the outcome uses `@httpResponseCode` (the 201 and 200 of "
+"`PutMessage`)"
 
 #: src/api.md
 msgid "決まった字の欄"
@@ -2380,14 +2416,14 @@ msgstr "Fields with fixed values"
 
 #: src/api.md
 msgid ""
-"`waitsOn`・`verdict`・`reply` などは、enum でなく `@pattern` の字で書く"
-"（castlist と同じ訳: codegen-server 0.1.40 の作る protocol の試験が、要る "
-"enum を空の字から作って落ちる）"
+"`waitsOn`・`verdict`・`reply`・メッセージの記録の `state` などは、enum でな"
+"く `@pattern` の字で書く（castlist と同じ訳: codegen-server 0.1.40 の作る "
+"protocol の試験が、要る enum を空の字から作って落ちる）"
 msgstr ""
-"`waitsOn`, `verdict`, `reply` and the like are written as `@pattern` "
-"strings, not enums (for the same reason as castlist: the protocol tests that "
-"codegen-server 0.1.40 generates build a required enum from an empty string "
-"and fail)"
+"`waitsOn`, `verdict`, `reply`, the `state` of a message record and the like "
+"are written as `@pattern` strings, not enums (for the same reason as "
+"castlist: the protocol tests that codegen-server 0.1.40 generates build a "
+"required enum from an empty string and fail)"
 
 #: src/api.md
 msgid "知らない欄と引数"
@@ -2526,17 +2562,41 @@ msgid "`DELETE /api/files?project&key&name&n`"
 msgstr "`DELETE /api/files?project&key&name&n`"
 
 #: src/api.md
+msgid "`PutMessage`"
+msgstr "`PutMessage`"
+
+#: src/api.md
+msgid ""
+"`PUT /api/projects/{project}/messages/{id}`（本文は JSON。引数 "
+"`actorIssuer`・`actorRef`）"
+msgstr ""
+"`PUT /api/projects/{project}/messages/{id}` (the body is JSON; parameters "
+"`actorIssuer`, `actorRef`)"
+
+#: src/api.md
+msgid "`ListMessages`"
+msgstr "`ListMessages`"
+
+#: src/api.md
+msgid ""
+"`GET /api/messages`（引数 `project`・`key`・`to`・`from`・`state`・"
+"`heading`・`q`・`sort`・`maxResults`・`nextToken`）"
+msgstr ""
+"`GET /api/messages` (parameters `project`, `key`, `to`, `from`, `state`, "
+"`heading`, `q`, `sort`, `maxResults`, `nextToken`)"
+
+#: src/api.md
 msgid ""
 "手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・"
 "file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`・新着の知らせ "
 "`GET /api/events`（SSE）・`GET /api/backup`・`GET /api/logs`・画面（`/`・`/"
-"{project}/`・`/{project}/{key}/`）。"
+"{project}/`・`/{project}/{key}/`・`/messages`）。"
 msgstr ""
 "Hand-written routes (outside Smithy): page bodies `GET /{project}/{key}/"
 "{kind}-{n}.html`, file contents `GET /{project}/{key}/files/{word}-{n}."
 "{extension}`, new-arrival notices `GET /api/events` (SSE), `GET /api/"
 "backup`, `GET /api/logs`, and the UI (`/`, `/{project}/`, `/{project}/{key}/"
-"`)."
+"`, `/messages`)."
 
 #: src/api.md
 msgid ""
@@ -3863,6 +3923,460 @@ msgstr ""
 "removal."
 
 #: src/api.md
+msgid "メッセージの記録（PutMessage・ListMessages）"
+msgstr "Message records (PutMessage, ListMessages)"
+
+#: src/api.md
+msgid ""
+"ほかの道具（roster。AI の担当どうしのメッセージを配る）が、「誰が誰に何を送"
+"り、いつ届いたか」の記録を置き場に写す（1.1.0 から）。置き場は**見せるだけ"
+"**: メッセージを配らず、時刻を比べて状態を決めず、期限を持たない。状態は、呼"
+"ぶ側が書いた字を、そのまま残して返す。消す操作は無い。"
+msgstr ""
+"Another tool (roster, which delivers messages between AI roles) copies into "
+"the store the record of \"who sent what to whom, and when it arrived\" "
+"(since 1.1.0). The store **only shows** the records: it does not deliver "
+"messages, does not compare times to decide a state, and has no expiry. The "
+"state is the string the caller wrote, kept and returned as it is. There is "
+"no operation to delete a record."
+
+#: src/api.md
+msgid "置く・書き足す（PutMessage）"
+msgstr "Putting and appending (PutMessage)"
+
+#: src/api.md
+msgid ""
+"`PUT /api/projects/{project}/messages/{id}`。同じ project と id に、何度打っ"
+"てもよい。初めての id なら作って 201、もうある id なら書き足して 200。答え"
+"は、書いた後の記録（下の「記録」）。"
+msgstr ""
+"`PUT /api/projects/{project}/messages/{id}`. It may be sent any number of "
+"times for the same project and id. A new id is created and answered with "
+"201; an existing id is appended to and answered with 200. The response is "
+"the record after the write (\"The record\" below)."
+
+#: src/api.md
+msgid "`project`（道）"
+msgstr "`project` (path)"
+
+#: src/api.md
+msgid "ページと同じ（`.`・`..`・`api` は 400）"
+msgstr "Same as for pages (`.`, `..`, and `api` are 400)"
+
+#: src/api.md
+msgid "`id`（道）"
+msgstr "`id` (path)"
+
+#: src/api.md
+msgid ""
+"英数字と `.` `_` `-` で 1〜128 字。呼ぶ側が付ける（project の中で 1 つ）。"
+"`.`・`..` は 400（server）"
+msgstr ""
+"Alphanumerics and `.` `_` `-`, 1 to 128 characters. The caller assigns it "
+"(unique within the project). `.` and `..` are 400 (server)"
+
+#: src/api.md
+msgid "`actorIssuer`・`actorRef`（引数）"
+msgstr "`actorIssuer`, `actorRef` (parameters)"
+
+#: src/api.md
+msgid ""
+"ページを置く時と同じ（上の「送り手」）。両方書くか、両方書かない（片方だけは "
+"400）"
+msgstr ""
+"Same as when putting a page (\"Sender\" above). Write both or neither (only "
+"one is 400)"
+
+#: src/api.md src/db.md src/glossary.md
+msgid "`key`"
+msgstr "`key`"
+
+#: src/api.md
+msgid "任意。ページの Key と同じ形（`.`・`..` は 400）"
+msgstr "Optional. The same shape as the Key of a page (`.` and `..` are 400)"
+
+#: src/api.md src/db.md
+msgid "`heading`"
+msgstr "`heading`"
+
+#: src/api.md
+msgid ""
+"要る。メッセージの見出しの名。英小文字で始まり、英小文字・数字・`-` で 1〜32 "
+"字（名の一覧は server が持たない）"
+msgstr ""
+"Required. The name of the message heading. Starts with a lowercase letter, "
+"then lowercase letters, digits, and `-`, 1 to 32 characters (the server "
+"holds no list of names)"
+
+#: src/api.md
+msgid "`from`・`to`"
+msgstr "`from`, `to`"
+
+#: src/api.md
+msgid "要る。送り手・受け手の名。1〜200 字"
+msgstr ""
+"Required. The names of the sender and the recipient. 1 to 200 characters"
+
+#: src/api.md src/db.md
+msgid "`text`"
+msgstr "`text`"
+
+#: src/api.md
+msgid "要る。本文。1〜8000 字。字のまま持つ（HTML として解釈しない）"
+msgstr ""
+"Required. The body text. 1 to 8000 characters. Kept as plain text (not "
+"interpreted as HTML)"
+
+#: src/api.md
+msgid "`sentAt`"
+msgstr "`sentAt`"
+
+#: src/api.md
+msgid "要る。送った時刻。UTC の RFC 3339 で、ミリ秒まで（細かい時刻は 400）"
+msgstr ""
+"Required. The time it was sent. RFC 3339 in UTC, down to milliseconds (a "
+"finer time is 400)"
+
+#: src/api.md src/db.md src/glossary.md
+msgid "`state`"
+msgstr "`state`"
+
+#: src/api.md
+msgid "要る。下の「状態」のどれか"
+msgstr "Required. One of the states in \"States\" below"
+
+#: src/api.md
+msgid "`deliveredAt`"
+msgstr "`deliveredAt`"
+
+#: src/api.md
+msgid "任意。届いた時刻（`sentAt` と同じ形）"
+msgstr "Optional. The time it arrived (the same shape as `sentAt`)"
+
+#: src/api.md src/db.md
+msgid "`via`"
+msgstr "`via`"
+
+#: src/api.md
+msgid "任意。どの時に渡したかの名（`heading` と同じ形）"
+msgstr ""
+"Optional. The name of the moment at which it was handed over (the same shape "
+"as `heading`)"
+
+#: src/api.md src/db.md
+msgid "`deliveries`"
+msgstr "`deliveries`"
+
+#: src/api.md
+msgid "任意。渡した回数。1 以上"
+msgstr "Optional. The number of times it was handed over. 1 or more"
+
+#: src/api.md
+msgid "`replyTo`"
+msgstr "`replyTo`"
+
+#: src/api.md
+msgid ""
+"任意。返事の先のメッセージの id（`id` と同じ形。その記録が在るかは見ない）"
+msgstr ""
+"Optional. The id of the message this one replies to (the same shape as `id`; "
+"whether that record exists is not checked)"
+
+#: src/api.md
+msgid ""
+"字の長さは、byte でなく字（Unicode の符号位置）で数える。長さと形の違いは、生"
+"成した層が 400 `ValidationException`（`fieldList` に欄の path）。読めない時刻"
+"（時差の付いた物・数）と JSON でない本文は 400 `SerializationException`。"
+msgstr ""
+"Lengths are counted in characters (Unicode code points), not bytes. A wrong "
+"length or shape gets 400 `ValidationException` from the generated layer "
+"(with the field path in `fieldList`). An unreadable time (one with an "
+"offset, or a number) and a body that is not JSON get 400 "
+"`SerializationException`."
+
+#: src/api.md
+msgid ""
+"検査の順: 引数と本文の形（400）→ `.`・`..`・`api`・時刻の細かさ・付随する id "
+"の組（400）→ castlist（400・503）→ DB（503・500）。前で断れば、後は見ない"
+"（castlist に聞かない・何も替えない）。"
+msgstr ""
+"Order of checks: the shapes of the parameters and the body (400) → `.`, "
+"`..`, `api`, the precision of the times, and the attached id pair (400) → "
+"castlist (400, 503) → DB (503, 500). A refusal at an earlier step skips the "
+"later ones (castlist is not asked and nothing changes)."
+
+#: src/api.md
+msgid ""
+"混んでいて書く接続を 2 秒待っても取れなければ 503 `Unavailable`。409 は無い"
+"（同じ id は書き足す）。"
+msgstr ""
+"If the store is busy and the write connection cannot be taken within 2 "
+"seconds, the response is 503 `Unavailable`. There is no 409 (the same id is "
+"appended to)."
+
+#: src/api.md
+msgid ""
+"だれが置いてよいかは、呼ぶ側が持つ。browser の中のページからは書けない（守り"
+"の層が `Origin` の付いた要求を 403）。"
+msgstr ""
+"Who may put a record is decided by the caller. A page inside a browser "
+"cannot write (the guard layer answers 403 to requests with an `Origin`)."
+
+#: src/api.md
+msgid "状態"
+msgstr "States"
+
+#: src/api.md src/db.md src/glossary.md
+msgid "意味"
+msgstr "Meaning"
+
+#: src/api.md
+msgid "画面の字"
+msgstr "Text on the screen"
+
+#: src/api.md
+msgid "`waiting`"
+msgstr "`waiting`"
+
+#: src/api.md
+msgid "まだ届いていない"
+msgstr "Not delivered yet"
+
+#: src/api.md
+msgid "`delivered`"
+msgstr "`delivered`"
+
+#: src/api.md
+msgid "届いた"
+msgstr "Delivered"
+
+#: src/api.md
+msgid "`undeliverable`"
+msgstr "`undeliverable`"
+
+#: src/api.md
+msgid "渡せない"
+msgstr "Cannot be delivered"
+
+#: src/api.md
+msgid "`expired`"
+msgstr "`expired`"
+
+#: src/api.md
+msgid "期限切れ"
+msgstr "Expired"
+
+#: src/api.md
+msgid "`carried`"
+msgstr "`carried`"
+
+#: src/api.md
+msgid "ほかの道具（cmux）で運んだ"
+msgstr "Carried by another tool (cmux)"
+
+#: src/api.md
+msgid "cmux で運んだ"
+msgstr "Carried by cmux"
+
+#: src/api.md
+msgid ""
+"状態の移り（`delivered` の後に `waiting` を書く など）は見ない。呼ぶ側が書い"
+"た、最後の値が残る。"
+msgstr ""
+"Transitions between states (writing `waiting` after `delivered`, and so on) "
+"are not checked. The last value the caller wrote stays."
+
+#: src/api.md
+msgid "書き足しの決まり"
+msgstr "Rules for appending"
+
+#: src/api.md
+msgid "欄"
+msgstr "Field"
+
+#: src/api.md
+msgid "もうある id に打った時"
+msgstr "When sent for an existing id"
+
+#: src/api.md
+msgid "新しい値にする"
+msgstr "Takes the new value"
+
+#: src/api.md
+msgid "`via`・`deliveries`"
+msgstr "`via`, `deliveries`"
+
+#: src/api.md
+msgid "書けば新しい値にする。書かなければ前のまま（消す道は無い）"
+msgstr ""
+"Take the new value when written. When not written, they stay as they were "
+"(there is no way to clear them)"
+
+#: src/api.md
+msgid ""
+"まだ無い時だけ入れる。もうあれば、違う時刻が来ても初めの時刻を保つ（返事の状"
+"態の `askedAt`・`answeredAt` と同じ考え）"
+msgstr ""
+"Set only while it is still empty. Once set, the first time is kept even when "
+"a different time arrives (the same idea as `askedAt` and `answeredAt` of the "
+"reply state)"
+
+#: src/api.md
+msgid "`key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo`"
+msgstr "`key`, `heading`, `from`, `to`, `text`, `sentAt`, `replyTo`"
+
+#: src/api.md
+msgid ""
+"初めに置いた値を保つ。違う値が来ても変えず、誤りにもしない（形は、書き足す時"
+"も見る）。初めに書かなかった `key`・`replyTo` を、後から入れることもしない"
+msgstr ""
+"Keep the values first put. A different value changes nothing and is not an "
+"error (the shapes are still checked when appending). A `key` or `replyTo` "
+"that was not written at first is not filled in later either"
+
+#: src/api.md
+msgid "`sender`"
+msgstr "`sender`"
+
+#: src/api.md
+msgid ""
+"初めに置いた時の送り手を保つ。初めに付随する id を書かなかった記録に、後から"
+"送り手を入れない"
+msgstr ""
+"Keeps the sender from the first put. A record first put without an attached "
+"id does not get a sender later"
+
+#: src/api.md
+msgid "`createdAt`・`updatedAt`"
+msgstr "`createdAt`, `updatedAt`"
+
+#: src/api.md
+msgid ""
+"`createdAt` は初めて受けた時刻のまま。`updatedAt` は、書き足すたびに今にする"
+"（値が替わらなくても）"
+msgstr ""
+"`createdAt` stays the time the record was first received. `updatedAt` "
+"becomes the current time on every append (even when no value changes)"
+
+#: src/api.md
+msgid ""
+"送り手は、書き足す時も castlist に聞く（付随する id を書いた時。登録の無い送"
+"り手は 400、聞けなければ 503 で、何も替えない）。送り手の行（`senders`）を足"
+"すのは、初めて置く時だけ。"
+msgstr ""
+"castlist is asked about the sender on an append too (when an attached id is "
+"written; an unregistered sender is 400 and an unreachable castlist is 503, "
+"and nothing changes). A sender row (`senders`) is added only on the first "
+"put."
+
+#: src/api.md
+msgid "見る・書く・答えの記録を読むは、書く接続の 1 つの取引。"
+msgstr ""
+"Checking, writing, and reading the answer record happen in one transaction "
+"on the write connection."
+
+#: src/api.md
+msgid ""
+"`PutMessage` の答えと、`ListMessages` の行と、新着の知らせ（`message`）の "
+"data は、同じメッセージの記録（`ai.pagetray#Message`）。"
+msgstr ""
+"The response of `PutMessage`, a row of `ListMessages`, and the data of the "
+"new-arrival notice (`message`) are the same message record "
+"(`ai.pagetray#Message`)."
+
+#: src/api.md
+msgid ""
+"いつもある欄: `project`・`id`・`heading`・`from`・`to`・`text`・`sentAt`・"
+"`state`・`createdAt`（置き場が初めて受けた時刻）・`updatedAt`（最後に書き足さ"
+"れた時刻）。"
+msgstr ""
+"Fields that are always present: `project`, `id`, `heading`, `from`, `to`, "
+"`text`, `sentAt`, `state`, `createdAt` (the time the store first received "
+"it), `updatedAt` (the time of the last append)."
+
+#: src/api.md
+msgid ""
+"値のある時だけ: `key`・`deliveredAt`・`via`・`deliveries`・`replyTo`・"
+"`sender`（`ai.pagetray#Sender`。ページの送り手と同じ形）。"
+msgstr ""
+"Only when they have a value: `key`, `deliveredAt`, `via`, `deliveries`, "
+"`replyTo`, `sender` (`ai.pagetray#Sender`; the same shape as the sender of a "
+"page)."
+
+#: src/api.md
+msgid ""
+"本文（`text`）は、置いたままの字。`url`・`path` は無い（メッセージの記録に、"
+"開く URL は無い）。"
+msgstr ""
+"The body text (`text`) is the text as it was put. There is no `url` or "
+"`path` (a message record has no URL to open)."
+
+#: src/api.md
+msgid "探す（ListMessages）"
+msgstr "Searching (ListMessages)"
+
+#: src/api.md
+msgid "`project`・`key`・`to`・`from`・`state`・`heading`"
+msgstr "`project`, `key`, `to`, `from`, `state`, `heading`"
+
+#: src/api.md
+msgid "同じ値の物。形は置く時と同じ（違えば 400）"
+msgstr ""
+"Records with the same value. The shapes are the same as when putting "
+"(otherwise 400)"
+
+#: src/api.md
+msgid ""
+"前後の空白を落とし、空なら絞らない。本文か `from` か `to` に `q` を含む物"
+"（`instr`。大小を分ける。全文の索引は使わない）"
+msgstr ""
+"Leading and trailing spaces are dropped; empty means no filter. Records "
+"whose body text, `from`, or `to` contains `q` (`instr`; case-sensitive; the "
+"full-text index is not used)"
+
+#: src/api.md
+msgid ""
+"`-sentAt`（送った時刻の新しい順。既定）か `sentAt`（古い順）。同じ時刻は置い"
+"た順（新しい順なら、後に置いた物が先）"
+msgstr ""
+"`-sentAt` (newest sent time first; default) or `sentAt` (oldest first). "
+"Equal times follow the order they were put (newest first puts the later one "
+"first)"
+
+#: src/api.md
+msgid ""
+"`ListPages` と同じ（keyset。印の頭は `messages` で、前の頁の最後の行の "
+"`sentAt` と行の id。ほかの検索の印・`sort` の違う印は 400）"
+msgstr ""
+"Same as `ListPages` (keyset; the token starts with `messages` and holds the "
+"`sentAt` and the row id of the last row of the previous page; a token of "
+"another search or of a different `sort` is 400)"
+
+#: src/api.md
+msgid ""
+"並びも頁の続きも、置き場が受けた時刻でなく、呼ぶ側が書いた `sentAt` で決め"
+"る。辿る間に、前の頁より新しい `sentAt` の記録が置かれても、新しい順の続きに"
+"は出ない。"
+msgstr ""
+"Both the order and the continuation use the `sentAt` the caller wrote, not "
+"the time the store received the record. A record put while walking, with a "
+"`sentAt` newer than the previous page, does not appear in the rest of a "
+"newest-first walk."
+
+#: src/api.md
+msgid ""
+"読む接続・誤りは `ListPages` と同じ。`explain query plan` の試験（`crates/"
+"server/tests/messages.rs`）が、messages を索引なしに端から読まないこと、条件"
+"の無い一覧と `nextToken` は送った時刻の索引（`messages_sent`）の順に読むこと"
+"を見る。"
+msgstr ""
+"Read connections and errors are the same as for `ListPages`. The `explain "
+"query plan` test (`crates/server/tests/messages.rs`) checks that messages "
+"are never read end to end without an index, and that a list without "
+"conditions and `nextToken` read in the order of the sent-time index "
+"(`messages_sent`)."
+
+#: src/api.md
 msgid "新着の知らせ（SSE）"
 msgstr "Push of new arrivals (SSE)"
 
@@ -3936,6 +4450,23 @@ msgstr "`review`"
 
 #: src/api.md
 msgid ""
+"メッセージの記録を置いた・書き足した（`PutMessage`。替わらなかった時も）"
+msgstr ""
+"A message record was put or appended to (`PutMessage`; also when nothing "
+"changed)"
+
+#: src/api.md
+msgid "`message`"
+msgstr "`message`"
+
+#: src/api.md
+msgid "書いた後のメッセージの記録（答えと同じ。`ListMessages` の行と同じ）"
+msgstr ""
+"The message record after the write (the same as the response, and the same "
+"as a row of `ListMessages`)"
+
+#: src/api.md
+msgid ""
 "断った書き込み（400・404・409 など）と、消した時（`DeletePages`・"
 "`DeleteFiles`）は送らない。答えの記録に直せてから送る（直せずに 500 を返す書"
 "き込みは知らせない）。"
@@ -3953,6 +4484,25 @@ msgstr ""
 "The records have the same camelCase shape as the API responses (`createdAt`, "
 "`askedAt`, `waitsOn`, `sender.resolvedAt`, and so on; times are the same "
 "text as in the responses)."
+
+#: src/api.md
+msgid ""
+"**`message` の名と、名の無い event**: 流れの上では、ページを置いた知らせに "
+"`event:` の行は無く、メッセージの記録の知らせには `event: message` の行がある"
+"（行を読む受け手は、ここで見分ける）。browser の `EventSource` は、名の無い "
+"event を `message` の型で渡すので、`onmessage`・"
+"`addEventListener(\"message\", …)` には両方が届く。`EventSource` で聞く受け手"
+"は、欄で見分ける（`path` があるのはページの記録、`sentAt` があるのはメッセー"
+"ジの記録）。一覧の UI の script も、そう見分ける。"
+msgstr ""
+"**The name `message` and the unnamed event**: on the wire, the notice of a "
+"put page has no `event:` line, and the notice of a message record has an "
+"`event: message` line (a receiver that reads the lines tells them apart "
+"here). A browser's `EventSource` delivers an unnamed event with the type "
+"`message`, so both reach `onmessage` and `addEventListener(\"message\", …)`. "
+"A receiver that listens with `EventSource` tells them apart by the fields (a "
+"page record has `path`; a message record has `sentAt`). The script of the "
+"list UI does the same."
 
 #: src/api.md
 msgid ""
@@ -3980,13 +4530,15 @@ msgstr "Screens"
 
 #: src/api.md
 msgid ""
-"一覧の UI（手の道。`/`・`/{project}/`・`/{project}/{key}/`。`crates/server/"
-"src/ui.rs`）。URL が開くことは仕様に入るが、HTML の作り・見た目・文は入らな"
+"一覧の UI（手の道。`/`・`/{project}/`・`/{project}/{key}/` と、メッセージの一"
+"覧 `/messages`。`crates/server/src/ui.rs`・`crates/server/src/ui/"
+"messages.rs`）。URL が開くことは仕様に入るが、HTML の作り・見た目・文は入らな"
 "い。"
 msgstr ""
-"The list UI (hand-written routes: `/`, `/{project}/`, `/{project}/{key}/`; "
-"`crates/server/src/ui.rs`). That the URLs open is part of the specification; "
-"the HTML structure, the look, and the wording are not."
+"The list UI (hand-written routes: `/`, `/{project}/`, `/{project}/{key}/`, "
+"and the message list `/messages`; `crates/server/src/ui.rs`, `crates/server/"
+"src/ui/messages.rs`). That the URLs open is part of the specification; the "
+"HTML structure, the look, and the wording are not."
 
 #: src/api.md
 msgid ""
@@ -4081,22 +4633,57 @@ msgstr ""
 
 #: src/api.md
 msgid ""
+"メッセージの一覧（`/messages`。template は `templates/messages.html`）: ペー"
+"ジの一覧の操作の帯の link「メッセージ」で開き、link「ページ」で戻る。引数は "
+"`project`・`key`・`to`・`from`・`state`・`at`（空は書かないのと同じ。知らな"
+"い `state` は無視。読めない引数は 400）。送った時刻の新しい順に、1 度に 200 "
+"件（続きの印 `at` は、`ListMessages` の `nextToken` と同じ形）。1 行に、送っ"
+"た時刻・Key・見出し・「送り手 → 受け手」・状態（上の「状態」の画面の字）・届"
+"いた時刻・渡した時・渡し直しの数（渡した回数が 2 以上の時に、回数 − 1 を「渡"
+"し直し n 度」）・本文。本文は、200 字か 5 行を超えると、頭の 120 字だけを見"
+"せ、開くと全部（`<details>`）。本文は HTML として出さない（字として逃がす）。"
+"「まだ届いていない n 件」（tab の題にも）と絞り込みの候補（状態・受け手・送り"
+"手・Key・project）は、絞りに関わらず置き場の全部。新着の知らせ（`message`）を"
+"受けると、ページの一覧と同じやり方で、一覧の列と絞り込みの列を読み直す。"
+msgstr ""
+"The message list (`/messages`; the template is `templates/messages.html`): "
+"it opens from the link \"Messages\" in the toolbar of the page list, and the "
+"link \"Pages\" goes back. The parameters are `project`, `key`, `to`, `from`, "
+"`state`, and `at` (empty is the same as not written; an unknown `state` is "
+"ignored; unreadable parameters are 400). It shows 200 records at a time, "
+"newest sent time first (the continuation token `at` has the same shape as "
+"the `nextToken` of `ListMessages`). A row shows the sent time, the Key, the "
+"heading, \"sender → recipient\", the state (the text on the screen in "
+"\"States\" above), the delivered time, the moment it was handed over, the "
+"number of re-deliveries (when the delivery count is 2 or more, the count − "
+"1), and the body text. A body text longer than 200 characters or 5 lines "
+"shows only its first 120 characters and opens to the whole (`<details>`). "
+"The body text is never output as HTML (it is escaped as text). The count of "
+"records not delivered yet (also in the tab title) and the filter choices "
+"(state, recipient, sender, Key, project) cover the whole store regardless of "
+"filters. On a new-arrival notice (`message`), the list column and the filter "
+"column are reloaded the same way as in the page list."
+
+#: src/api.md
+msgid ""
 "答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-"
 "Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-"
 "src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-"
 "ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と "
-"script は template の物の hash だけを許す（hash は template から作る）。図は"
-"置き場の file と、上げる前の見本（`blob:`）と favicon（`data:`）、本文の枠は"
-"置き場のページ、知らせと上げる枠の送り先は置き場だけ。"
+"script は template の物の hash だけを許す（hash は、画面ごとに、その "
+"template から作る）。図は置き場の file と、上げる前の見本（`blob:`）と "
+"favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠の送り先は置き"
+"場だけ。"
 msgstr ""
 "Response headers: on top of the guard layer's `nosniff` and `no-referrer`, "
 "`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-"
 "src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src "
 "'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`. Only "
 "the template's own inline style and script are allowed, by hash (the hashes "
-"are made from the template). Images are the store's files, the preview "
-"before uploading (`blob:`), and the favicon (`data:`); the viewer shows only "
-"the store's pages; the notices and the upload box talk only to the store."
+"are made per screen, from its template). Images are the store's files, the "
+"preview before uploading (`blob:`), and the favicon (`data:`); the viewer "
+"shows only the store's pages; the notices and the upload box talk only to "
+"the store."
 
 #: src/api.md
 msgid "起こし方"
@@ -5095,6 +5682,16 @@ msgstr ""
 "contents"
 
 #: src/development.md
+msgid "`crates/server/src/messages.rs`"
+msgstr "`crates/server/src/messages.rs`"
+
+#: src/development.md
+msgid "メッセージの記録を置く・書き足す・探す（生成した操作の handler）"
+msgstr ""
+"Putting, appending to, and searching message records (the handlers of the "
+"generated operations)"
+
+#: src/development.md
 msgid "`crates/server/src/castlist.rs`"
 msgstr "`crates/server/src/castlist.rs`"
 
@@ -5118,12 +5715,18 @@ msgstr ""
 "(`GET /api/logs`)"
 
 #: src/development.md
-msgid "`crates/server/src/ui.rs`・`facets.rs`・`templates/index.html`"
-msgstr "`crates/server/src/ui.rs`, `facets.rs`, `templates/index.html`"
+msgid ""
+"`crates/server/src/ui.rs`・`ui/messages.rs`・`facets.rs`・`templates/"
+"index.html`・`templates/messages.html`"
+msgstr ""
+"`crates/server/src/ui.rs`, `ui/messages.rs`, `facets.rs`, `templates/"
+"index.html`, `templates/messages.html`"
 
 #: src/development.md
-msgid "一覧の UI（askama の template。build の時に検査される）"
-msgstr "The list UI (an askama template; checked at build time)"
+msgid ""
+"一覧の UI と、メッセージの一覧（askama の template。build の時に検査される）"
+msgstr ""
+"The list UI and the message list (askama templates; checked at build time)"
 
 #: src/development.md
 msgid "`crates/server/src/events.rs`"
@@ -5545,19 +6148,21 @@ msgstr "List UI tests"
 
 #: src/development.md
 msgid ""
-"一覧の UI は、HTML の字を `crates/server/tests/ui.rs` が見て、browser でしか"
-"見えない物（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は "
-"[Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の "
-"`pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。"
-"Node が要るのはこの folder の中だけで、image にも CLI にも入らない。"
+"一覧の UI は、HTML の字を `crates/server/tests/ui.rs`（メッセージの一覧は "
+"`crates/server/tests/messages.rs`）が見て、browser でしか見えない物（script "
+"の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright]"
+"(https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-"
+"server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るの"
+"はこの folder の中だけで、image にも CLI にも入らない。"
 msgstr ""
-"For the list UI, `crates/server/tests/ui.rs` checks the text of the HTML, "
-"and the tests in `e2e/` check what can only be seen in a browser (what the "
-"script does, colors, and the layout at each width). `e2e/` holds [Playwright]"
-"(https://playwright.dev/) tests (TypeScript): they start the `pagetray-"
-"server` of the same commit with a temporary DB and open it in a real browser "
-"(Chromium). Node is needed only inside this folder, and it goes into neither "
-"the image nor the CLI."
+"For the list UI, `crates/server/tests/ui.rs` (for the message list, `crates/"
+"server/tests/messages.rs`) checks the text of the HTML, and the tests in "
+"`e2e/` check what can only be seen in a browser (what the script does, "
+"colors, and the layout at each width). `e2e/` holds [Playwright](https://"
+"playwright.dev/) tests (TypeScript): they start the `pagetray-server` of the "
+"same commit with a temporary DB and open it in a real browser (Chromium). "
+"Node is needed only inside this folder, and it goes into neither the image "
+"nor the CLI."
 
 #: src/development.md
 msgid "# 初めの 1 度だけ。試験用の Chromium を入れる\n"
@@ -5663,6 +6268,28 @@ msgstr ""
 
 #: src/development.md
 msgid ""
+"**メッセージの一覧を見る試験**（`e2e/tests/messages.spec.ts`）: メッセージの"
+"記録は `helpers.ts` の `putMessage` で置き、行は `messageRow`・"
+"`messageRows`、まだ届いていない数は `undelivered` で選ぶ。まだ届いていない数"
+"は、絞り込みに関わらず置き場の全部を数え、tab の題にも出るので、まだ届いてい"
+"ない（`waiting`）にした記録は、試験の終わりまでに届いた（`delivered`）にす"
+"る。操作の帯に釦を足す時は、狭い幅（800px）の試験も見る（釦が増えて操作の帯"
+"が 2 段になると、一覧の列が動く。差し替えの script は、操作の帯の替わりも入れ"
+"て、見ている行を同じ所に置く）。"
+msgstr ""
+"**Tests for the message list** (`e2e/tests/messages.spec.ts`): put message "
+"records with `putMessage` in `helpers.ts`, select rows with `messageRow` and "
+"`messageRows`, and the undelivered count with `undelivered`. The undelivered "
+"count covers the whole store regardless of filters and also shows in the tab "
+"title, so a record set to not delivered yet (`waiting`) is set to delivered "
+"(`delivered`) before the test ends. When you add a button to the toolbar, "
+"also look at the narrow-width (800px) tests (when an extra button makes the "
+"toolbar two lines high, the list column moves; the script that swaps the "
+"list includes the toolbar change and keeps the row being read in the same "
+"place)."
+
+#: src/development.md
+msgid ""
 "**送り手を見る試験**（`e2e/tests/list.spec.ts` の終わり）: 試験の置き場は、次"
 "の port の偽の castlist に送り手を聞き、一覧の UI の link の頭"
 "（`PAGETRAY_CASTLIST_LINK_URL`）は、聞く先と別の値（`helpers.ts` の "
@@ -5682,18 +6309,19 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"**template を変えた時**: `templates/index.html` を変えたら、この試験も流す。"
-"試験が選ぶ手がかり（区画の id の `toolbar`・`filters`・`list`・`viewer`・"
-"`files`・`upload`、`#fresh`・`#waiting`・`#review-waiting`・`#escalated`、"
-"`li[data-path]`・`.reply`・`.verdict`・`.links`、絞り込みの列の見出しの字な"
-"ど）を変える時は、同じ PR で `helpers.ts` も直す。"
+"**template を変えた時**: `templates/index.html`・`templates/messages.html` を"
+"変えたら、この試験も流す。試験が選ぶ手がかり（区画の id の `toolbar`・"
+"`filters`・`list`・`viewer`・`files`・`upload`、`#fresh`・`#waiting`・"
+"`#review-waiting`・`#escalated`、`li[data-path]`・`.reply`・`.verdict`・"
+"`.links`、絞り込みの列の見出しの字など）を変える時は、同じ PR で "
+"`helpers.ts` も直す。"
 msgstr ""
-"**When you change the template**: After changing `templates/index.html`, run "
-"these tests too. When you change something the tests select by (the region "
-"ids `toolbar`, `filters`, `list`, `viewer`, `files`, and `upload`, `#fresh`, "
-"`#waiting`, `#review-waiting`, and `#escalated`, `li[data-path]`, `.reply`, "
-"`.verdict`, and `.links`, the heading text of the filters, and so on), fix "
-"`helpers.ts` in the same PR."
+"**When you change the template**: After changing `templates/index.html` or "
+"`templates/messages.html`, run these tests too. When you change something "
+"the tests select by (the region ids `toolbar`, `filters`, `list`, `viewer`, "
+"`files`, and `upload`, `#fresh`, `#waiting`, `#review-waiting`, and "
+"`#escalated`, `li[data-path]`, `.reply`, `.verdict`, and `.links`, the "
+"heading text of the filters, and so on), fix `helpers.ts` in the same PR."
 
 #: src/development.md
 msgid ""
@@ -5956,16 +6584,17 @@ msgstr ""
 
 #: src/db.md
 msgid ""
-"置き場は、ページと file を SQLite の file 1 つに持つ（置き場所は [動かす]"
-"(run.md) の表の「DB」）。この章は、その中の表・列・一意と索引と、表どうしの結"
-"びを書く。読む人は、SQL を直す人と、[写し](run.md#db-の写しを取る) を "
-"`sqlite3` で開いて調べる人。"
+"置き場は、ページと file とメッセージの記録を SQLite の file 1 つに持つ（置き"
+"場所は [動かす](run.md) の表の「DB」）。この章は、その中の表・列・一意と索引"
+"と、表どうしの結びを書く。読む人は、SQL を直す人と、[写し](run.md#db-の写しを"
+"取る) を `sqlite3` で開いて調べる人。"
 msgstr ""
-"The store keeps pages and files in a single SQLite file (where it lives is "
-"in the \"DB\" row of the table in [Running](run.md)). This chapter describes "
-"its tables, columns, unique constraints and indexes, and how the tables "
-"relate. It is for people who change the SQL and for people who open a "
-"[backup](run.md#back-up-the-db) with `sqlite3` to look into it."
+"The store keeps pages, files, and message records in a single SQLite file "
+"(where it lives is in the \"DB\" row of the table in [Running](run.md)). "
+"This chapter describes its tables, columns, unique constraints and indexes, "
+"and how the tables relate. It is for people who change the SQL and for "
+"people who open a [backup](run.md#back-up-the-db) with `sqlite3` to look "
+"into it."
 
 #: src/db.md
 msgid ""
@@ -6018,6 +6647,7 @@ msgid ""
 "  senders |o--o{ pages : \"pages.sender_id = id\"\n"
 "  senders |o--o{ files : \"files.sender_id = id\"\n"
 "  pages ||--o{ page_targets : \"page_targets.page_id = id\"\n"
+"  senders |o--o{ messages : \"messages.sender_id = id\"\n"
 "```"
 msgstr ""
 "```mermaid\n"
@@ -6030,23 +6660,26 @@ msgstr ""
 "  senders |o--o{ pages : \"pages.sender_id = id\"\n"
 "  senders |o--o{ files : \"files.sender_id = id\"\n"
 "  pages ||--o{ page_targets : \"page_targets.page_id = id\"\n"
+"  senders |o--o{ messages : \"messages.sender_id = id\"\n"
 "```"
 
 #: src/db.md
 msgid ""
-"**外部キーは 3 つだけ**: `pages.sender_id` と `files.sender_id` が "
-"`senders.id` を指す（`on delete restrict on update restrict`。0.6.0 から）。"
+"**外部キーは 4 つだけ**: `pages.sender_id` と `files.sender_id` と "
+"`messages.sender_id` が `senders.id` を指す（`on delete restrict on update "
+"restrict`。ページと file は 0.6.0 から、メッセージの記録は 1.1.0 から）。"
 "`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update "
 "restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうし"
 "は、同じ値（project・Key など）で結ぶだけで、結びは `crates/server/src/"
 "db.rs` の SQL が守る。"
 msgstr ""
-"**There are only three foreign keys**: `pages.sender_id` and "
-"`files.sender_id` reference `senders.id` (`on delete restrict on update "
-"restrict`; since 0.6.0). `page_targets.page_id` references `pages.id` (`on "
-"delete cascade on update restrict`: deleting a page deletes its target rows "
-"too; since 0.8.0). Other tables relate only by sharing values (project, Key, "
-"and so on), and the SQL in `crates/server/src/db.rs` keeps them consistent."
+"**There are only four foreign keys**: `pages.sender_id`, `files.sender_id`, "
+"and `messages.sender_id` reference `senders.id` (`on delete restrict on "
+"update restrict`; pages and files since 0.6.0, message records since 1.1.0). "
+"`page_targets.page_id` references `pages.id` (`on delete cascade on update "
+"restrict`: deleting a page deletes its target rows too; since 0.8.0). Other "
+"tables relate only by sharing values (project, Key, and so on), and the SQL "
+"in `crates/server/src/db.rs` keeps them consistent."
 
 #: src/db.md
 msgid ""
@@ -6063,15 +6696,16 @@ msgstr ""
 
 #: src/db.md
 msgid ""
-"**送り手**: ページや file を置く時に、呼ぶ側が付随する id を書けば、"
-"`senders` に 1 行足し、ページや file の行から指す（同じ取引）。`senders` は足"
-"すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り"
-"手の行は残る。"
+"**送り手**: ページや file を置く時・メッセージの記録を初めて置く時に、呼ぶ側"
+"が付随する id を書けば、`senders` に 1 行足し、その行から指す（同じ取引）。"
+"`senders` は足すだけの表で、書き換えも消しも trigger が断る。ページや file を"
+"消しても、送り手の行は残る。"
 msgstr ""
-"**Senders**: when a page or a file is put and the caller writes an attached "
-"id, one row is added to `senders` and the page or file row points to it (in "
-"the same transaction). `senders` is an append-only table; triggers reject "
-"both updates and deletes. Deleting a page or a file leaves its sender row."
+"**Senders**: when a page or a file is put, or a message record is first put, "
+"and the caller writes an attached id, one row is added to `senders` and that "
+"row points to it (in the same transaction). `senders` is an append-only "
+"table; triggers reject both updates and deletes. Deleting a page or a file "
+"leaves its sender row."
 
 #: src/db.md
 msgid ""
@@ -6105,6 +6739,14 @@ msgstr ""
 "other."
 
 #: src/db.md
+msgid ""
+"**メッセージの記録**: ページとも file とも結ばない（project と Key の値が同じ"
+"だけ）。消す道は無い。"
+msgstr ""
+"**Message records**: They are linked to neither pages nor files (they only "
+"share the project and Key values). There is no way to delete them."
+
+#: src/db.md
 msgid "`pages` — ページ"
 msgstr "`pages` — pages"
 
@@ -6130,10 +6772,6 @@ msgstr "Type"
 #: src/db.md
 msgid "空"
 msgstr "Null"
-
-#: src/db.md src/glossary.md
-msgid "意味"
-msgstr "Meaning"
 
 #: src/db.md
 msgid "`id`"
@@ -6162,10 +6800,6 @@ msgstr "text"
 #: src/db.md
 msgid "project の名（URL の 1 段目）"
 msgstr "Project name (the first level of the URL)"
-
-#: src/db.md src/glossary.md
-msgid "`key`"
-msgstr "`key`"
 
 #: src/db.md
 msgid "Key（URL の 2 段目）"
@@ -6348,10 +6982,6 @@ msgstr ""
 #: src/db.md
 msgid "`pages.title` の写し"
 msgstr "Copy of `pages.title`"
-
-#: src/db.md
-msgid "`text`"
-msgstr "`text`"
 
 #: src/db.md
 msgid ""
@@ -6569,20 +7199,24 @@ msgstr "`senders` — senders"
 
 #: src/db.md
 msgid ""
-"ページか file を置いた時の送り手 1 つが 1 行（0.6.0 から）。置く時に、呼ぶ側"
-"が付随する id（`actor_issuer`・`actor_ref`）を書けば、置くたびに 1 行足す。置"
-"き場に castlist の URL（[動かす](run.md) の表の「設定」）があれば、その時に "
-"castlist に聞いた答え（アクターの id・名・種類）も残す。"
+"ページか file を置いた時・メッセージの記録を初めて置いた時の送り手 1 つが 1 "
+"行（0.6.0 から）。置く時に、呼ぶ側が付随する id（`actor_issuer`・"
+"`actor_ref`）を書けば、置くたびに 1 行足す。置き場に castlist の URL（[動か"
+"す](run.md) の表の「設定」）があれば、その時に castlist に聞いた答え（アク"
+"ターの id・名・種類）も残す。"
 msgstr ""
-"One row per sender of a put page or file (since 0.6.0). When the caller "
-"writes an attached id (`actor_issuer`, `actor_ref`) at put time, one row is "
-"added for each put. If the store has a castlist URL (\"Settings\" in the "
-"table in [Running](run.md)), the answer castlist gave at that time (the "
-"actor's id, name, and kind) is recorded too."
+"One row per sender of a put page or file, or of a first-put message record "
+"(since 0.6.0). When the caller writes an attached id (`actor_issuer`, "
+"`actor_ref`) at put time, one row is added for each put. If the store has a "
+"castlist URL (\"Settings\" in the table in [Running](run.md)), the answer "
+"castlist gave at that time (the actor's id, name, and kind) is recorded too."
 
 #: src/db.md
-msgid "行の番号。`pages.sender_id`・`files.sender_id` が指す"
-msgstr "Row number. Referenced by `pages.sender_id` and `files.sender_id`"
+msgid ""
+"行の番号。`pages.sender_id`・`files.sender_id`・`messages.sender_id` が指す"
+msgstr ""
+"Row number. Referenced by `pages.sender_id`, `files.sender_id`, and "
+"`messages.sender_id`"
 
 #: src/db.md
 msgid "`actor_issuer`"
@@ -6650,13 +7284,15 @@ msgstr "Index: `senders_actor` `(actor_id)`"
 
 #: src/db.md
 msgid ""
-"書く所: `Db::put_page`・`Db::put_file`（ページや file と同じ取引）。読む所: "
-"`Db::list`・`Db::list_files`・`Db::set_reply`（記録に添える）・`Db::facets`"
-"（絞り込みの候補）。"
+"書く所: `Db::put_page`・`Db::put_file`・`Db::put_message`（ページ・file・メッ"
+"セージの記録と同じ取引）。読む所: `Db::list`・`Db::list_files`・"
+"`Db::list_messages`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込み"
+"の候補）。"
 msgstr ""
-"Written by `Db::put_page` and `Db::put_file` (in the same transaction as the "
-"page or file). Read by `Db::list`, `Db::list_files`, `Db::set_reply` (added "
-"to the record), `Db::facets` (filter choices)."
+"Written by `Db::put_page`, `Db::put_file`, and `Db::put_message` (in the "
+"same transaction as the page, file, or message record). Read by `Db::list`, "
+"`Db::list_files`, `Db::list_messages`, `Db::set_reply` (added to the "
+"record), `Db::facets` (filter choices)."
 
 #: src/db.md
 msgid ""
@@ -6749,6 +7385,164 @@ msgstr ""
 "Deleting a reviewed page leaves the rows that hold its path as a target (the "
 "list UI's \"Reviewed:\" link then opens the deleted page's `410`). Only the "
 "TPM deletes pages and rarely, so this is left as is."
+
+#: src/db.md
+msgid "`messages` — メッセージの記録"
+msgstr "`messages` — message records"
+
+#: src/db.md
+msgid ""
+"ほかの道具（roster）が配ったメッセージ 1 通の記録が 1 行（1.1.0 から）。「誰"
+"が誰に何を送り、いつ届いたか」を、呼ぶ側が書いたとおりに持つ。置き場は見せる"
+"だけで、配らず、状態を自分で決めず、期限を持たない。同じ project と id にも"
+"う 1 度置くと、別の行にならず、同じ行に書き足す。"
+msgstr ""
+"One row per record of a message that another tool (roster) delivered (since "
+"1.1.0). It holds \"who sent what to whom, and when it arrived\" exactly as "
+"the caller wrote it. The store only shows the records: it does not deliver, "
+"does not decide states, and has no expiry. Putting again with the same "
+"project and id does not make another row; it appends to the same row."
+
+#: src/db.md
+msgid "行の番号（一覧の頁の続きに使う）"
+msgstr "Row number (used to continue the pages of a list)"
+
+#: src/db.md
+msgid "project の名（ページの project と同じ）"
+msgstr "Project name (the same as the project of pages)"
+
+#: src/db.md
+msgid "`message_id`"
+msgstr "`message_id`"
+
+#: src/db.md
+msgid "メッセージの id（呼ぶ側が付ける。API の `id`）"
+msgstr "The id of the message (assigned by the caller; `id` in the API)"
+
+#: src/db.md
+msgid "Key。書かずに置けば空"
+msgstr "Key. Null when put without one"
+
+#: src/db.md
+msgid "メッセージの見出しの名"
+msgstr "The name of the message heading"
+
+#: src/db.md
+msgid "`from_name`"
+msgstr "`from_name`"
+
+#: src/db.md
+msgid "送り手の名（API の `from`）"
+msgstr "The name of the sender (`from` in the API)"
+
+#: src/db.md
+msgid "`to_name`"
+msgstr "`to_name`"
+
+#: src/db.md
+msgid "受け手の名（API の `to`）"
+msgstr "The name of the recipient (`to` in the API)"
+
+#: src/db.md
+msgid "本文。字のまま（HTML として解釈しない）"
+msgstr "The body text, kept as plain text (not interpreted as HTML)"
+
+#: src/db.md
+msgid "`sent_at`"
+msgstr "`sent_at`"
+
+#: src/db.md
+msgid "送った時刻（呼ぶ側が書いた物）"
+msgstr "The time it was sent (as the caller wrote it)"
+
+#: src/db.md
+msgid "状態（`waiting`・`delivered`・`undeliverable`・`expired`・`carried`）"
+msgstr ""
+"The state (`waiting`, `delivered`, `undeliverable`, `expired`, `carried`)"
+
+#: src/db.md
+msgid "`delivered_at`"
+msgstr "`delivered_at`"
+
+#: src/db.md
+msgid ""
+"届いた時刻（呼ぶ側が書いた物。初めに書かれた時刻を保つ）。まだ無ければ空"
+msgstr ""
+"The time it arrived (as the caller wrote it; the first time written is "
+"kept). Null while there is none"
+
+#: src/db.md
+msgid "どの時に渡したかの名。書いていなければ空"
+msgstr ""
+"The name of the moment at which it was handed over. Null when not written"
+
+#: src/db.md
+msgid "渡した回数。書いていなければ空"
+msgstr "The number of times it was handed over. Null when not written"
+
+#: src/db.md
+msgid "`reply_to`"
+msgstr "`reply_to`"
+
+#: src/db.md
+msgid ""
+"返事の先のメッセージの id（外部キーは無い。先の記録が無くてもよい）。書かずに"
+"置けば空"
+msgstr ""
+"The id of the message this one replies to (no foreign key; that record need "
+"not exist). Null when put without one"
+
+#: src/db.md
+msgid "置き場が初めて受けた時刻"
+msgstr "The time the store first received it"
+
+#: src/db.md
+msgid "`updated_at`"
+msgstr "`updated_at`"
+
+#: src/db.md
+msgid "最後に書き足された時刻（置いただけなら `created_at` と同じ）"
+msgstr ""
+"The time of the last append (the same as `created_at` when it was only put)"
+
+#: src/db.md
+msgid "送り手（`senders.id`）。初めに置いた時に付随する id を書かなければ空"
+msgstr "Sender (`senders.id`). Null when the first put had no attached id"
+
+#: src/db.md
+msgid "一意: `(project, message_id)`"
+msgstr "Unique: `(project, message_id)`"
+
+#: src/db.md
+msgid "索引: `messages_sent` `(sent_at)`"
+msgstr "Index: `messages_sent` `(sent_at)`"
+
+#: src/db.md
+msgid ""
+"書く所: `Db::put_message`（置く・書き足す）。読む所: `Db::list_messages`・"
+"`Db::message_facets`（一覧の UI の絞り込みの候補と「まだ届いていない n "
+"件」）。消す所は無い。"
+msgstr ""
+"Written by `Db::put_message` (put and append). Read by `Db::list_messages` "
+"and `Db::message_facets` (the filter choices of the list UI and the count of "
+"records not delivered yet). Nothing deletes it."
+
+#: src/db.md
+msgid ""
+"**書き足しで替わる列**: `state`（新しい値）・`via`・`deliveries`（書けば新し"
+"い値。書かなければ前のまま）・`delivered_at`（空の時だけ入る）・"
+"`updated_at`。ほかの列と `sender_id` は、初めに置いた値のまま（[API の仕様]"
+"(api.md) の「メッセージの記録」）。"
+msgstr ""
+"**Columns an append changes**: `state` (the new value), `via` and "
+"`deliveries` (the new value when written; unchanged when not), "
+"`delivered_at` (set only while null), and `updated_at`. The other columns "
+"and `sender_id` stay as first put (\"Message records\" in the [API "
+"specification](api.md))."
+
+#: src/db.md
+msgid "`state` は、SQL の `check` で上の名だけを受ける。"
+msgstr "`state` accepts only the names above, through an SQL `check`."
 
 #: src/db.md
 msgid "ほかの表"
@@ -7149,6 +7943,39 @@ msgstr ""
 "not asked is \"unconfirmed\". Only added, never rewritten or deleted"
 
 #: src/glossary.md
+msgid "メッセージの記録（message record）"
+msgstr "message record"
+
+#: src/glossary.md
+msgid "`messages`・`ai.pagetray#Message`"
+msgstr "`messages`, `ai.pagetray#Message`"
+
+#: src/glossary.md
+msgid ""
+"ほかの道具（roster）が配ったメッセージ 1 通の「誰が誰に何を送り、いつ届いた"
+"か」を、呼ぶ側が置き場に写した物。置き場は見せるだけで、配らず、状態を自分で"
+"決めない。同じ project と id に置くと、書き足す"
+msgstr ""
+"A copy, written into the store by the caller, of \"who sent what to whom, "
+"and when it arrived\" for one message that another tool (roster) delivered. "
+"The store only shows it: it does not deliver and does not decide states. "
+"Putting with the same project and id appends"
+
+#: src/glossary.md
+msgid "メッセージの状態（message state）"
+msgstr "message state"
+
+#: src/glossary.md
+msgid ""
+"メッセージの記録に、呼ぶ側が書く状態。まだ届いていない（`waiting`）・届いた"
+"（`delivered`）・渡せない（`undeliverable`）・期限切れ（`expired`）・cmux で"
+"運んだ（`carried`）"
+msgstr ""
+"The state the caller writes on a message record. Not delivered yet "
+"(`waiting`), delivered (`delivered`), cannot be delivered (`undeliverable`), "
+"expired (`expired`), or carried by cmux (`carried`)"
+
+#: src/glossary.md
 msgid "`files`"
 msgstr "`files`"
 
@@ -7317,6 +8144,44 @@ msgstr "`templates/index.html`"
 #: src/glossary.md
 msgid "browser で開く、置き場の画面の全体"
 msgstr "The whole screen of the store, opened in a browser"
+
+#: src/glossary.md
+msgid "メッセージの一覧（message list）"
+msgstr "message list"
+
+#: src/glossary.md
+msgid "`templates/messages.html`"
+msgstr "`templates/messages.html`"
+
+#: src/glossary.md
+msgid ""
+"メッセージの記録を見る画面（`/messages`）。操作の帯の link で、ページの一覧と"
+"行き来する。区画は、操作の帯・絞り込みの列（状態・受け手・送り手・Key・"
+"project）・一覧の列"
+msgstr ""
+"The screen that shows message records (`/messages`). Links in the toolbar go "
+"back and forth between it and the page list. Its regions are the toolbar, "
+"the filter column (state, recipient, sender, Key, project), and the list "
+"column"
+
+#: src/glossary.md
+msgid "まだ届いていない数（undelivered count）"
+msgstr "undelivered count"
+
+#: src/glossary.md
+msgid "`#undelivered`"
+msgstr "`#undelivered`"
+
+#: src/glossary.md
+msgid ""
+"メッセージの一覧の操作の帯に出る「まだ届いていない N 件」。まだ届いていない"
+"メッセージの記録が 1 件でもあると出て、押すとそれだけに絞る。数は、絞り込みに"
+"関わらず置き場の全部。tab の題にも同じ数が出る"
+msgstr ""
+"The count of records not delivered yet, shown in the toolbar of the message "
+"list. It appears when at least one message record is not delivered yet, and "
+"pressing it narrows the list to those. The count covers the whole store "
+"regardless of filters. The tab title shows the same count"
 
 #: src/glossary.md
 msgid "操作の帯（toolbar）"

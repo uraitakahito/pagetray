@@ -1437,6 +1437,706 @@ mod test_file_stem {
     }
 }
 
+/// メッセージの id: 英数字と `.`・`_`・`-` で 128 字まで。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageId::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageId(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageId {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageId {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::message_id_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::message_id_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^[A-Za-z0-9._-]{1,128}$"#).expect(r#"The regular expression ^[A-Za-z0-9._-]{1,128}$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageId {
+    type Error = crate::model::message_id_internal::ConstraintViolation;
+
+    /// Constructs a `MessageId` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageId {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageId>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageId> for ::std::string::String {
+    fn from(value: MessageId) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_message_id {
+    #[test]
+    fn regex_compiles() {
+        crate::model::MessageId::compile_regex();
+    }
+}
+
+/// メッセージの見出しの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageHeading::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageHeading(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageHeading {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageHeading {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::message_heading_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::message_heading_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^[a-z][a-z0-9-]{0,31}$"#).expect(r#"The regular expression ^[a-z][a-z0-9-]{0,31}$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageHeading {
+    type Error = crate::model::message_heading_internal::ConstraintViolation;
+
+    /// Constructs a `MessageHeading` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageHeading {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageHeading>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageHeading {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageHeading> for ::std::string::String {
+    fn from(value: MessageHeading) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_message_heading {
+    #[test]
+    fn regex_compiles() {
+        crate::model::MessageHeading::compile_regex();
+    }
+}
+
+/// 送り手・受け手の名: 1〜200 字。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageParty::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageParty(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageParty {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageParty {
+    fn check_length(
+        string: &str,
+    ) -> ::std::result::Result<(), crate::model::message_party_internal::ConstraintViolation> {
+        let length = string.chars().count();
+
+        if (1..=200).contains(&length) {
+            Ok(())
+        } else {
+            Err(crate::model::message_party_internal::ConstraintViolation::Length(length))
+        }
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageParty {
+    type Error = crate::model::message_party_internal::ConstraintViolation;
+
+    /// Constructs a `MessageParty` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        Self::check_length(&value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageParty {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageParty>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageParty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageParty> for ::std::string::String {
+    fn from(value: MessageParty) -> Self {
+        value.into_inner()
+    }
+}
+
+/// メッセージの本文: 1〜8000 字。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageText::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageText(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageText {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageText {
+    fn check_length(
+        string: &str,
+    ) -> ::std::result::Result<(), crate::model::message_text_internal::ConstraintViolation> {
+        let length = string.chars().count();
+
+        if (1..=8000).contains(&length) {
+            Ok(())
+        } else {
+            Err(crate::model::message_text_internal::ConstraintViolation::Length(length))
+        }
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageText {
+    type Error = crate::model::message_text_internal::ConstraintViolation;
+
+    /// Constructs a `MessageText` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        Self::check_length(&value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageText {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageText>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageText {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageText> for ::std::string::String {
+    fn from(value: MessageText) -> Self {
+        value.into_inner()
+    }
+}
+
+/// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageState::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageState(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageState {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageState {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::message_state_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::message_state_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^(waiting|delivered|undeliverable|expired|carried)$"#).expect(r#"The regular expression ^(waiting|delivered|undeliverable|expired|carried)$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageState {
+    type Error = crate::model::message_state_internal::ConstraintViolation;
+
+    /// Constructs a `MessageState` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageState {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageState>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageState> for ::std::string::String {
+    fn from(value: MessageState) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_message_state {
+    #[test]
+    fn regex_compiles() {
+        crate::model::MessageState::compile_regex();
+    }
+}
+
+/// どの時に渡したかの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageVia::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageVia(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageVia {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageVia {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::message_via_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::message_via_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^[a-z][a-z0-9-]{0,31}$"#).expect(r#"The regular expression ^[a-z][a-z0-9-]{0,31}$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageVia {
+    type Error = crate::model::message_via_internal::ConstraintViolation;
+
+    /// Constructs a `MessageVia` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageVia {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageVia>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageVia {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageVia> for ::std::string::String {
+    fn from(value: MessageVia) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_message_via {
+    #[test]
+    fn regex_compiles() {
+        crate::model::MessageVia::compile_regex();
+    }
+}
+
+/// 渡した回数: 1 以上。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageDeliveries::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageDeliveries(pub(crate) i32);
+#[allow(dead_code)]
+impl MessageDeliveries {
+    /// Returns an immutable reference to the underlying [`i32`].
+    pub fn inner(&self) -> &i32 {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`i32`].
+    pub fn into_inner(self) -> i32 {
+        self.0
+    }
+}
+
+impl crate::constrained::Constrained for MessageDeliveries {
+    type Unconstrained = i32;
+}
+
+impl ::std::convert::From<i32>
+    for crate::constrained::MaybeConstrained<crate::model::MessageDeliveries>
+{
+    fn from(value: i32) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageDeliveries {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageDeliveries> for i32 {
+    fn from(value: MessageDeliveries) -> Self {
+        value.into_inner()
+    }
+}
+impl MessageDeliveries {
+    fn check_range(
+        value: i32,
+    ) -> ::std::result::Result<(), crate::model::message_deliveries_internal::ConstraintViolation>
+    {
+        if 1 <= value {
+            Ok(())
+        } else {
+            Err(crate::model::message_deliveries_internal::ConstraintViolation::Range(value))
+        }
+    }
+}
+impl ::std::convert::TryFrom<i32> for MessageDeliveries {
+    type Error = crate::model::message_deliveries_internal::ConstraintViolation;
+
+    /// Constructs a `MessageDeliveries` from an [`i32`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: i32) -> ::std::result::Result<Self, Self::Error> {
+        Self::check_range(value)?;
+
+        Ok(Self(value))
+    }
+}
+
+/// メッセージの一覧の並べ方: `-sentAt`（新しい順）か `sentAt`（古い順）。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`MessageSort::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct MessageSort(pub(crate) ::std::string::String);
+#[allow(dead_code)]
+impl MessageSort {
+    /// Extracts a string slice containing the entire underlying `String`.
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Returns an immutable reference to the underlying [`::std::string::String`].
+    pub fn inner(&self) -> &::std::string::String {
+        &self.0
+    }
+
+    /// Consumes the value, returning the underlying [`::std::string::String`].
+    pub fn into_inner(self) -> ::std::string::String {
+        self.0
+    }
+}
+impl MessageSort {
+    fn check_pattern(
+        string: ::std::string::String,
+    ) -> ::std::result::Result<
+        ::std::string::String,
+        crate::model::message_sort_internal::ConstraintViolation,
+    > {
+        let regex = Self::compile_regex();
+
+        if regex.is_match(&string) {
+            Ok(string)
+        } else {
+            Err(crate::model::message_sort_internal::ConstraintViolation::Pattern(string))
+        }
+    }
+
+    /// Attempts to compile the regex for this constrained type's `@pattern`.
+    /// This can fail if the specified regex is not supported by the `::regex` crate.
+    pub fn compile_regex() -> &'static ::regex::Regex {
+        static REGEX: std::sync::LazyLock<::regex::Regex> = std::sync::LazyLock::new(|| {
+            ::regex::Regex::new(r#"^-?sentAt$"#).expect(r#"The regular expression ^-?sentAt$ is not supported by the `regex` crate; feel free to file an issue under https://github.com/smithy-lang/smithy-rs/issues for support"#)
+        });
+
+        &REGEX
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for MessageSort {
+    type Error = crate::model::message_sort_internal::ConstraintViolation;
+
+    /// Constructs a `MessageSort` from an [`::std::string::String`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(value: ::std::string::String) -> ::std::result::Result<Self, Self::Error> {
+        let value = Self::check_pattern(value)?;
+
+        Ok(Self(value))
+    }
+}
+impl crate::constrained::Constrained for MessageSort {
+    type Unconstrained = ::std::string::String;
+}
+
+impl ::std::convert::From<::std::string::String>
+    for crate::constrained::MaybeConstrained<crate::model::MessageSort>
+{
+    fn from(value: ::std::string::String) -> Self {
+        Self::Unconstrained(value)
+    }
+}
+
+impl ::std::fmt::Display for MessageSort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl ::std::convert::From<MessageSort> for ::std::string::String {
+    fn from(value: MessageSort) -> Self {
+        value.into_inner()
+    }
+}
+
+#[cfg(test)]
+mod test_message_sort {
+    #[test]
+    fn regex_compiles() {
+        crate::model::MessageSort::compile_regex();
+    }
+}
+
 /// アクターを指す時の短い形。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
@@ -1761,6 +2461,124 @@ impl File {
     /// Creates a new builder-style object to manufacture [`File`](crate::model::File).
     pub fn builder() -> crate::model::file::Builder {
         crate::model::file::Builder::default()
+    }
+}
+
+/// 一覧のメッセージの記録。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct Message {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub project: ::std::string::String,
+    /// メッセージの id: 英数字と `.`・`_`・`-` で 128 字まで。
+    pub id: ::std::string::String,
+    /// Key（課題の名）。書いて置いた時だけ。
+    pub key: ::std::option::Option<::std::string::String>,
+    /// メッセージの見出しの名。
+    pub heading: ::std::string::String,
+    /// 送り手の名。
+    pub from: ::std::string::String,
+    /// 受け手の名。
+    pub to: ::std::string::String,
+    /// 本文（字のまま）。
+    pub text: ::std::string::String,
+    /// 送った時刻。
+    pub sent_at: ::aws_smithy_types::DateTime,
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    pub state: ::std::string::String,
+    /// 届いた時刻（初めに書かれた物）。まだ無ければ無い。
+    pub delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+    /// どの時に渡したかの名。書いていなければ無い。
+    pub via: ::std::option::Option<::std::string::String>,
+    /// 渡した回数。書いていなければ無い。
+    pub deliveries: ::std::option::Option<i32>,
+    /// 返事の先のメッセージの id。書いて置いた時だけ。
+    pub reply_to: ::std::option::Option<::std::string::String>,
+    /// pagetray が初めて受けた時刻。
+    pub created_at: ::aws_smithy_types::DateTime,
+    /// 最後に書き足された時刻（置いただけなら `createdAt` と同じ）。
+    pub updated_at: ::aws_smithy_types::DateTime,
+    /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+    pub sender: ::std::option::Option<crate::model::Sender>,
+}
+impl Message {
+    /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+    pub fn project(&self) -> &str {
+        use std::ops::Deref;
+        self.project.deref()
+    }
+    /// メッセージの id: 英数字と `.`・`_`・`-` で 128 字まで。
+    pub fn id(&self) -> &str {
+        use std::ops::Deref;
+        self.id.deref()
+    }
+    /// Key（課題の名）。書いて置いた時だけ。
+    pub fn key(&self) -> ::std::option::Option<&str> {
+        self.key.as_deref()
+    }
+    /// メッセージの見出しの名。
+    pub fn heading(&self) -> &str {
+        use std::ops::Deref;
+        self.heading.deref()
+    }
+    /// 送り手の名。
+    pub fn from(&self) -> &str {
+        use std::ops::Deref;
+        self.from.deref()
+    }
+    /// 受け手の名。
+    pub fn to(&self) -> &str {
+        use std::ops::Deref;
+        self.to.deref()
+    }
+    /// 本文（字のまま）。
+    pub fn text(&self) -> &str {
+        use std::ops::Deref;
+        self.text.deref()
+    }
+    /// 送った時刻。
+    pub fn sent_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.sent_at
+    }
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    pub fn state(&self) -> &str {
+        use std::ops::Deref;
+        self.state.deref()
+    }
+    /// 届いた時刻（初めに書かれた物）。まだ無ければ無い。
+    pub fn delivered_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.delivered_at.as_ref()
+    }
+    /// どの時に渡したかの名。書いていなければ無い。
+    pub fn via(&self) -> ::std::option::Option<&str> {
+        self.via.as_deref()
+    }
+    /// 渡した回数。書いていなければ無い。
+    pub fn deliveries(&self) -> ::std::option::Option<i32> {
+        self.deliveries
+    }
+    /// 返事の先のメッセージの id。書いて置いた時だけ。
+    pub fn reply_to(&self) -> ::std::option::Option<&str> {
+        self.reply_to.as_deref()
+    }
+    /// pagetray が初めて受けた時刻。
+    pub fn created_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.created_at
+    }
+    /// 最後に書き足された時刻（置いただけなら `createdAt` と同じ）。
+    pub fn updated_at(&self) -> &::aws_smithy_types::DateTime {
+        &self.updated_at
+    }
+    /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+    pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
+        self.sender.as_ref()
+    }
+}
+impl Message {
+    /// Creates a new builder-style object to manufacture [`Message`](crate::model::Message).
+    pub fn builder() -> crate::model::message::Builder {
+        crate::model::message::Builder::default()
     }
 }
 
@@ -2499,6 +3317,297 @@ pub(crate) mod file_stem_internal {
 
     impl ::std::error::Error for ConstraintViolation {}
 }
+pub(crate) mod message_id_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#MessageId` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^[A-Za-z0-9._-]{1,128}$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^[A-Za-z0-9._-]{1,128}$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_heading_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#MessageHeading` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^[a-z][a-z0-9-]{0,31}$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^[a-z][a-z0-9-]{0,31}$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_party_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@length` requirements.
+        Length(usize),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Length(length) => {
+                    format!("Value with length {} provided for 'ai.pagetray#MessageParty' failed to satisfy constraint: Member must have length between 1 and 200, inclusive", length)
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            Self::Length(length) => crate::model::ValidationExceptionField {
+                            message: format!("Value with length {} at '{}' failed to satisfy constraint: Member must have length between 1 and 200, inclusive", length, &path),
+                            path,
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_text_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@length` requirements.
+        Length(usize),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Length(length) => {
+                    format!("Value with length {} provided for 'ai.pagetray#MessageText' failed to satisfy constraint: Member must have length between 1 and 8000, inclusive", length)
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            Self::Length(length) => crate::model::ValidationExceptionField {
+                            message: format!("Value with length {} at '{}' failed to satisfy constraint: Member must have length between 1 and 8000, inclusive", length, &path),
+                            path,
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_state_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#MessageState` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^(waiting|delivered|undeliverable|expired|carried)$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^(waiting|delivered|undeliverable|expired|carried)$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_via_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#MessageVia` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^[a-z][a-z0-9-]{0,31}$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^[a-z][a-z0-9-]{0,31}$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_deliveries_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        Range(i32),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "Value for `ai.pagetray#MessageDeliveries`failed to satisfy constraint: Member must be greater than or equal to 1")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            Self::Range(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must be greater than or equal to 1", &path),
+                            path,
+                        },
+                        }
+        }
+    }
+}
+pub(crate) mod message_sort_internal {
+
+    #[derive(Debug, PartialEq)]
+    pub enum ConstraintViolation {
+        /// Error when a string doesn't satisfy its `@pattern`.
+        /// Contains the String that failed the pattern.
+        Pattern(String),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Pattern(_) => {
+                    format!(
+                        r#"Value provided for `ai.pagetray#MessageSort` failed to satisfy the constraint: Member must match the regular expression pattern: {}"#,
+                        r#"^-?sentAt$"#
+                    )
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                            #[allow(unused_variables)]
+    Self::Pattern(_) => crate::model::ValidationExceptionField {
+                            message: format!("Value at '{}' failed to satisfy constraint: Member must satisfy regular expression pattern: {}", &path, r#"^-?sentAt$"#),
+                            path
+                        },
+                        }
+        }
+    }
+}
 /// See [`ActorSummary`](crate::model::ActorSummary).
 pub mod actor_summary {
 
@@ -3093,6 +4202,227 @@ pub mod file {
                     .created_at
                     .ok_or(ConstraintViolation::MissingCreatedAt)?,
                 path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                sender: self.sender,
+            })
+        }
+    }
+}
+/// See [`Message`](crate::model::Message).
+pub mod message {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `project` was not provided but it is required when building `Message`.
+        MissingProject,
+        /// `id` was not provided but it is required when building `Message`.
+        MissingId,
+        /// `heading` was not provided but it is required when building `Message`.
+        MissingHeading,
+        /// `from` was not provided but it is required when building `Message`.
+        MissingFrom,
+        /// `to` was not provided but it is required when building `Message`.
+        MissingTo,
+        /// `text` was not provided but it is required when building `Message`.
+        MissingText,
+        /// `sent_at` was not provided but it is required when building `Message`.
+        MissingSentAt,
+        /// `state` was not provided but it is required when building `Message`.
+        MissingState,
+        /// `created_at` was not provided but it is required when building `Message`.
+        MissingCreatedAt,
+        /// `updated_at` was not provided but it is required when building `Message`.
+        MissingUpdatedAt,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingProject => write!(
+                    f,
+                    "`project` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingId => write!(
+                    f,
+                    "`id` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingHeading => write!(
+                    f,
+                    "`heading` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingFrom => write!(
+                    f,
+                    "`from` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingTo => write!(
+                    f,
+                    "`to` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingText => write!(
+                    f,
+                    "`text` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingSentAt => write!(
+                    f,
+                    "`sent_at` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingState => write!(
+                    f,
+                    "`state` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingCreatedAt => write!(
+                    f,
+                    "`created_at` was not provided but it is required when building `Message`"
+                ),
+                ConstraintViolation::MissingUpdatedAt => write!(
+                    f,
+                    "`updated_at` was not provided but it is required when building `Message`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::Message {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`Message`](crate::model::Message).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) project: ::std::option::Option<::std::string::String>,
+        pub(crate) id: ::std::option::Option<::std::string::String>,
+        pub(crate) key: ::std::option::Option<::std::string::String>,
+        pub(crate) heading: ::std::option::Option<::std::string::String>,
+        pub(crate) from: ::std::option::Option<::std::string::String>,
+        pub(crate) to: ::std::option::Option<::std::string::String>,
+        pub(crate) text: ::std::option::Option<::std::string::String>,
+        pub(crate) sent_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) state: ::std::option::Option<::std::string::String>,
+        pub(crate) delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) via: ::std::option::Option<::std::string::String>,
+        pub(crate) deliveries: ::std::option::Option<i32>,
+        pub(crate) reply_to: ::std::option::Option<::std::string::String>,
+        pub(crate) created_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) updated_at: ::std::option::Option<::aws_smithy_types::DateTime>,
+        pub(crate) sender: ::std::option::Option<crate::model::Sender>,
+    }
+    impl Builder {
+        /// URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
+        pub fn project(mut self, input: ::std::string::String) -> Self {
+            self.project = Some(input);
+            self
+        }
+        /// メッセージの id: 英数字と `.`・`_`・`-` で 128 字まで。
+        pub fn id(mut self, input: ::std::string::String) -> Self {
+            self.id = Some(input);
+            self
+        }
+        /// Key（課題の名）。書いて置いた時だけ。
+        pub fn key(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.key = input;
+            self
+        }
+        /// メッセージの見出しの名。
+        pub fn heading(mut self, input: ::std::string::String) -> Self {
+            self.heading = Some(input);
+            self
+        }
+        /// 送り手の名。
+        pub fn from(mut self, input: ::std::string::String) -> Self {
+            self.from = Some(input);
+            self
+        }
+        /// 受け手の名。
+        pub fn to(mut self, input: ::std::string::String) -> Self {
+            self.to = Some(input);
+            self
+        }
+        /// 本文（字のまま）。
+        pub fn text(mut self, input: ::std::string::String) -> Self {
+            self.text = Some(input);
+            self
+        }
+        /// 送った時刻。
+        pub fn sent_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.sent_at = Some(input);
+            self
+        }
+        /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+        pub fn state(mut self, input: ::std::string::String) -> Self {
+            self.state = Some(input);
+            self
+        }
+        /// 届いた時刻（初めに書かれた物）。まだ無ければ無い。
+        pub fn delivered_at(
+            mut self,
+            input: ::std::option::Option<::aws_smithy_types::DateTime>,
+        ) -> Self {
+            self.delivered_at = input;
+            self
+        }
+        /// どの時に渡したかの名。書いていなければ無い。
+        pub fn via(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.via = input;
+            self
+        }
+        /// 渡した回数。書いていなければ無い。
+        pub fn deliveries(mut self, input: ::std::option::Option<i32>) -> Self {
+            self.deliveries = input;
+            self
+        }
+        /// 返事の先のメッセージの id。書いて置いた時だけ。
+        pub fn reply_to(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.reply_to = input;
+            self
+        }
+        /// pagetray が初めて受けた時刻。
+        pub fn created_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.created_at = Some(input);
+            self
+        }
+        /// 最後に書き足された時刻（置いただけなら `createdAt` と同じ）。
+        pub fn updated_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+            self.updated_at = Some(input);
+            self
+        }
+        /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+        pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
+            self.sender = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`Message`](crate::model::Message).
+        ///
+        /// The builder fails to construct a [`Message`](crate::model::Message) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::Message, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::Message, ConstraintViolation> {
+            Ok(crate::model::Message {
+                project: self.project.ok_or(ConstraintViolation::MissingProject)?,
+                id: self.id.ok_or(ConstraintViolation::MissingId)?,
+                key: self.key,
+                heading: self.heading.ok_or(ConstraintViolation::MissingHeading)?,
+                from: self.from.ok_or(ConstraintViolation::MissingFrom)?,
+                to: self.to.ok_or(ConstraintViolation::MissingTo)?,
+                text: self.text.ok_or(ConstraintViolation::MissingText)?,
+                sent_at: self.sent_at.ok_or(ConstraintViolation::MissingSentAt)?,
+                state: self.state.ok_or(ConstraintViolation::MissingState)?,
+                delivered_at: self.delivered_at,
+                via: self.via,
+                deliveries: self.deliveries,
+                reply_to: self.reply_to,
+                created_at: self
+                    .created_at
+                    .ok_or(ConstraintViolation::MissingCreatedAt)?,
+                updated_at: self
+                    .updated_at
+                    .ok_or(ConstraintViolation::MissingUpdatedAt)?,
                 sender: self.sender,
             })
         }

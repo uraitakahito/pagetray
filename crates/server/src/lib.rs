@@ -5,7 +5,7 @@
 //! （[`events::stream`]）と画面（[`ui`]）と backup・logs（[`hand`]）は、同じ Router に並べる。
 //! 起こす binary（src/main.rs）は、記録の file（[`runlog`]）を DB の隣の `logs/` に残す。
 //! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）・
-//! file を置く・探す・消す（[`files`]）。
+//! file を置く・探す・消す（[`files`]）・メッセージの記録を置く・書き足す・探す（[`messages`]）。
 //! 形の決まりは docs/src/api.md。
 pub mod castlist;
 pub mod db;
@@ -18,6 +18,7 @@ mod guard;
 mod hand;
 mod list;
 mod marks;
+mod messages;
 mod pages;
 mod record;
 mod remove;
@@ -81,7 +82,7 @@ pub fn app(db: Arc<Db>) -> Router {
 
 /// 動かす Router。DB は、どの handler も同じ物を使う。
 pub fn app_with(db: Arc<Db>, config: Config) -> Router {
-    // 新着の知らせ。置く・返事・印の handler が送り、`GET /api/events` が流す。
+    // 新着の知らせ。置く・返事・印・メッセージの記録の handler が送り、`GET /api/events` が流す。
     let events = Events::new(config.closing.clone());
     let generated = Pagetray::builder(PagetrayConfig::builder().build())
         .get_health(get_health)
@@ -134,6 +135,16 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             let db = db.clone();
             move |input| files::delete_files(db.clone(), input)
         })
+        .put_message({
+            let db = db.clone();
+            let castlist = config.castlist.clone();
+            let events = events.clone();
+            move |input| messages::put_message(db.clone(), castlist.clone(), events.clone(), input)
+        })
+        .list_messages({
+            let db = db.clone();
+            move |input| messages::list_messages(db.clone(), input)
+        })
         .build()
         .expect("どの操作にも handler がある");
     let generated = Generated::new(generated);
@@ -146,7 +157,7 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .with_state(db.clone())
         // 新着の知らせ（SSE。名指した道が、生成した層の `/api/…` より先に当たる）。
         .route("/api/events", get(events::stream).with_state(events))
-        // 画面（`/`・`/{project}/`・`/{project}/{key}/`）。
+        // 画面（`/`・`/{project}/`・`/{project}/{key}/` と、メッセージの一覧 `/messages`）。
         .merge(ui::routes(db.clone(), config.castlist))
         // backup と logs。
         .merge(hand::routes(db, config.runlog))
