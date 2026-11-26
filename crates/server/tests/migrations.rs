@@ -13,13 +13,19 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
 /// 出した版（1.0.0 から）が当てた移行の file と、その SHA-256。1 byte も替えない（替えると checksum が変わり、動いている DB を
 /// sqlx の移行が「中身の違う移行」として断る）。直す時は新しい番号の file を足す。
-/// 値は `git show v1.0.0:crates/server/migrations/<file> | shasum -a 256`。
-const RELEASED: [(&str, &str); 1] = [(
-    "0001_init.sql",
-    "c70cb75ceb0c5da65701fcf6df1cf036dff939ad5c6a040d033ae3320fb7451e",
-)];
+/// 値は `git show <出した版の tag>:crates/server/migrations/<file> | shasum -a 256`（0001 は v1.0.0、0002 は v1.1.0）。
+const RELEASED: [(&str, &str); 2] = [
+    (
+        "0001_init.sql",
+        "c70cb75ceb0c5da65701fcf6df1cf036dff939ad5c6a040d033ae3320fb7451e",
+    ),
+    (
+        "0002_messages.sql",
+        "556248f65bd458e516642a6c8883f37d7aac9f34cc60bb2c1b71cf3826d34683",
+    ),
+];
 /// 足したが、まだ出していない移行の file。出したら [`RELEASED`] に移す。
-const UNRELEASED: [&str; 1] = ["0002_messages.sql"];
+const UNRELEASED: [&str; 0] = [];
 
 fn migrations_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations")
