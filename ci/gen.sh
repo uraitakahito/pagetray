@@ -29,11 +29,11 @@ sha_for() {
 }
 # castlist の定義（ai.common と ai.castlist）を固める所。ここだけに書く。上げる時は tag と 2 つの digest を一緒に替え、
 # ci/gen.sh を流して取った定義と 3 つの crate を作り直し、同じ commit に入れる。
-CASTLIST_TAG=v1.0.0-rc.1
+CASTLIST_TAG=v1.0.0
 castlist_sha_for() {
   case "$1" in
     common.smithy) echo 6425614b79d58d7149f17396cebc3eb30e0e6c511516957d82004eb329fb66d0 ;;
-    castlist.smithy) echo 1ecf61ca8243b8bdc1b84a149eb41b8ac0d0570349fccd36f4385482f0ffa53d ;;
+    castlist.smithy) echo 4024e240205b3ca9018432e87ce2e91abc3306784426a6569839579f3abe3b41 ;;
     *) return 1 ;;
   esac
 }

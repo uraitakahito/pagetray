@@ -398,7 +398,7 @@ mod get_actor_setting_at_test {
             .await;
         let _ = dbg!(result);
         let http_request = request_receiver.expect_request();
-        let expected_query_params = &["time=2026-11-24T00:00:01Z"];
+        let expected_query_params = &["time=2026-11-24T00%3A00%3A01Z"];
         ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_query_string(
             &http_request,
             expected_query_params,

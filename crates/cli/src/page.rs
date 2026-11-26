@@ -446,9 +446,8 @@ async fn put(store: &Store, args: PutArgs) -> Result<String, Failure> {
         .send()
         .await
         .map_err(|e| store.failure("置き場がページを受け取らなかった", e))?;
-    // 答えの url は、置き場が要求の Host（127.0.0.1 と --url の port）で組んだ物をそのまま使う。
-    let mut record = page_record!(&placed, store.base);
-    record.insert("url".into(), placed.url().into());
+    // 答えの url は、一覧と同じく、頼んだ先（--url）で組む（置き場の組む url は Host が 127.0.0.1 なので、--url が外の名だと違う）。
+    let record = page_record!(&placed, store.base);
     if args.json {
         Ok(output::pretty(&Value::Object(record)))
     } else {

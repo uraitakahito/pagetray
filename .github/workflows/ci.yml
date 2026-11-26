@@ -29,17 +29,8 @@ jobs:
       - run: cargo test --locked
       # 定義の例（@httpRequestTests・@httpResponseTests）から作った、生成した骨の中の試験（protocol の試験）。
       - run: cargo test --locked -p pagetray_sdk
-      # castlist を呼ぶ crate の中の、castlist の定義の例から作った試験。外す 5 つは、castlist の定義（v1.0.0-rc.1）の例が
-      # 引数の値の `:` を逃がさずに書いていて、`:` を %3A に逃がす呼ぶ側の試験と合わない物（castlist の server の試験は、
-      # 逃がしを戻してから比べるので通る）。castlist の定義を直した tag に上げる PR（ci/gen.sh の CASTLIST_TAG と digest を替える）で、
-      # 一緒にこの --skip を外す。
-      - run: >-
-          cargo test --locked -p castlist_client --
-          --skip operation::get_graph::get_graph_test::get_graph_request_request
-          --skip operation::list_actors::list_actors_test::list_actors_request_request
-          --skip operation::get_actor_setting_at::get_actor_setting_at_test::get_actor_setting_at_request_request
-          --skip operation::list_settings::list_settings_test::list_settings_request_request
-          --skip operation::list_events::list_events_test::list_events_request_request
+      # castlist を呼ぶ crate の中の、castlist の定義の例から作った試験。
+      - run: cargo test --locked -p castlist_client
       # pagetray を呼ぶ crate（人が打つ CLI が使う）の中の、pagetray の定義の例から作った試験。
       - run: cargo test --locked -p pagetray_client
   model:
