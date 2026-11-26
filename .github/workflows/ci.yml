@@ -67,11 +67,14 @@ jobs:
           fetch-depth: 0
       # 生成器が作った crate に流す rustfmt を、rust-toolchain.toml の版にする。
       - uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30 # v2.0.1
-      # Smithy の CLI（版と digest を ci/gen.sh が固める）を cache に置き、毎回は取りに行かない。
+      # Smithy の CLI の zip（版と digest を ci/gen.sh が固め、毎回 digest を見る）・公開から 2 日たったと見た依存の印・
+      # smithy build が Maven Central から取る物（~/.m2/repository）を cache に置き、毎回は取りに行かない（429 で落ちたため）。
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pagetray-smithy
-          key: smithy-cli-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ci/gen.sh') }}
+          path: |
+            ~/.cache/pagetray-smithy
+            ~/.m2/repository
+          key: smithy-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('ci/gen.sh', 'model/smithy-build.json') }}
       # castlist から取った定義（model/castlist/）が固めた digest と合い、定義（model/）から作った 3 つの crate
       # （crates/pagetray-sdk/・crates/castlist-client/・crates/pagetray-client/）が、入れてある物と同じか。
       # Smithy の CLI は版と digest を固めて取る（JRE を同梱しているので Java は要らない）。生成器は公開から 2 日たった物だけ。
