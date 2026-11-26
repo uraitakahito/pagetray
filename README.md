@@ -22,13 +22,14 @@ Apple Container（`container` CLI）で、release の image を動かす。`<ver
 container volume create pagetray-data-v1    # 初めての時だけ
 container run -d --name pagetray \
   -p 127.0.0.1:8801:8080 \
+  -p 127.0.0.1:8800:8080 \
   -v pagetray-data-v1:/data \
   -m 200M -c 1 \
   ghcr.io/uraitakahito/pagetray:v<version>
 curl -s http://127.0.0.1:8801/healthz    # {"status":"ok","version":"<version>"}
 ```
 
-`-p` には必ず `127.0.0.1:` を書く（書かないと LAN に開く）。0.8.x（volume `pagetray-data`）から 1.0.0 に上げる時は、新しい volume に移してから起こす（site の「[release を出す](https://uraitakahito.github.io/pagetray/release.html)」の「切り替え」）。digest の確かめ・前の置き場の port（8800）・確かめる・DB の写しを取る・写しから戻す・止める・版を上げるは、site の「[動かす](https://uraitakahito.github.io/pagetray/run.html)」にある。
+`-p` には必ず `127.0.0.1:` を書く（書かないと LAN に開く）。`8800` は前の置き場の port で、前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける。0.8.x の volume `pagetray-data` では起こさない（1.0.0 で、新しい volume `pagetray-data-v1` に移した。site の「[release を出す](https://uraitakahito.github.io/pagetray/release.html)」の「切り替え（済み）」）。digest の確かめ・送り手を castlist に聞く設定・確かめる・DB の写しを取る・写しから戻す・止める・版を上げるは、site の「[動かす](https://uraitakahito.github.io/pagetray/run.html)」にある。
 
 ## CLI
 

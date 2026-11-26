@@ -6,7 +6,7 @@
 //! 起こす binary（src/main.rs）は、記録の file（[`runlog`]）を DB の隣の `logs/` に残す。
 //! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）・
 //! file を置く・探す・消す（[`files`]）。
-//! 形の決まりは docs/src/next.md。
+//! 形の決まりは docs/src/api.md。
 pub mod castlist;
 pub mod db;
 mod errors;

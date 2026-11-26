@@ -2,8 +2,8 @@
 
 置き場は、ページと file を SQLite の file 1 つに持つ（置き場所は [動かす](run.md) の表の「DB」）。この章は、その中の表・列・一意と索引と、表どうしの結びを書く。読む人は、SQL を直す人と、[写し](run.md#db-の写しを取る) を `sqlite3` で開いて調べる人。
 
-- **表を作るのは `migrations/` の SQL**: サーバーが起きる時に、まだ当てていない物を当てる。当てた SQL は変えず、次の番号の file を足す（[開発](development.md) の「当てた移行の SQL は変えない」）。SQL の註には古い語が残ることがある（`0001_init.sql` と `0003_files.sql` の `key` の註の「鍵」は、今の語では Key）。
-- **この章と本物の DB は、試験が突き合わせる**: `tests/schema_doc.rs` が、移行を当てた DB の表・列・型・空を許すか・主キーと一意と索引を、この章と比べる。表や列を変えたら、同じ PR でこの章も直す。試験が読むので、表ごとの節の形（見出し・列の表・「主キー:」「一意:」「索引:」の行）は崩さない。
+- **表を作るのは `crates/server/migrations/` の SQL**: サーバーが起きる時に、まだ当てていない物を当てる。当てた SQL は変えず、次の番号の file を足す（[開発](development.md) の「当てた移行の SQL は変えない」）。
+- **この章と本物の DB は、試験が突き合わせる**: `crates/server/tests/schema_doc.rs` が、移行を当てた DB の表・列・型・空を許すか・主キーと一意と索引を、この章と比べる。表や列を変えたら、同じ PR でこの章も直す。試験が読むので、表ごとの節の形（見出し・列の表・「主キー:」「一意:」「索引:」の行）は崩さない。
 - どの表も `strict`（列の型に合わない値は入らない）。時刻はみな UTC の ISO の形の字（`2026-11-21T12:34:56.789Z`）。
 
 ## 表どうしの結び
@@ -19,7 +19,7 @@ erDiagram
   pages ||--o{ page_targets : "page_targets.page_id = id"
 ```
 
-**外部キーは 3 つだけ**: `pages.sender_id` と `files.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`。0.6.0 から）。`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `src/db.rs` の SQL が守る。
+**外部キーは 3 つだけ**: `pages.sender_id` と `files.sender_id` が `senders.id` を指す（`on delete restrict on update restrict`。0.6.0 から）。`page_targets.page_id` が `pages.id` を指す（`on delete cascade on update restrict`。ページを消すと、見た物の行も消える。0.8.0 から）。ほかの表どうしは、同じ値（project・Key など）で結ぶだけで、結びは `crates/server/src/db.rs` の SQL が守る。
 
 - **接続ごとの決まり**: `Db::open` が、読む接続にも書く接続にも `PRAGMA foreign_keys = ON` と `PRAGMA recursive_triggers = ON` を付ける（SQLite では、どちらも接続ごとに効く）。移行を当てた後に `PRAGMA foreign_key_check` を流し、合わない行が 1 つでもあれば、サーバーは起きない。
 - **送り手**: ページや file を置く時に、呼ぶ側が付随する id を書けば、`senders` に 1 行足し、ページや file の行から指す（同じ取引）。`senders` は足すだけの表で、書き換えも消しも trigger が断る。ページや file を消しても、送り手の行は残る。
@@ -56,7 +56,7 @@ erDiagram
 - 索引: `pages_waiting` `(asked_at)`
 - 索引: `pages_sender` `(sender_id)`
 - `pages_waiting` は、返事待ち（`asked_at` があり、`answered_at` が空）の行だけの索引。
-- 書く所: `Db::put`・`Db::set_reply`（返事の状態だけ）・`Db::set_review`（判定だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
+- 書く所: `Db::put_page`・`Db::set_reply`（返事の状態だけ）・`Db::add_marks`（判定だけ）。読む所: `Db::body`・`Db::list`・`Db::facets`。消す所: `Db::remove`。
 - **返事の状態**: `asked_at` も `answered_at` も空なら、返事を求めていないページ。`asked_at` があり `answered_at` が空なら返事待ち。`answered_at` があれば答えた。0.5.0 より前に置かれたページは、どちらも空。誰の返事かは `waits_on` で読み、「返事待ち」「答えた」の数と絞り込み（`on` の無い `reply`）は、`waits_on` が空（Product Manager）の行だけを見る。
 - `waits_on`・`verdict` は、SQL の `check` で上の名だけを受ける。
 
@@ -67,9 +67,9 @@ erDiagram
 | 列 | 型 | 空 | 意味 |
 |---|---|---|---|
 | `title` | — | 可 | `pages.title` の写し |
-| `text` | — | 可 | 本文から tag・script・style を除いた字（`src/text.rs`）。本文そのものは持たない |
+| `text` | — | 可 | 本文から tag・script・style を除いた字（`crates/server/src/text.rs`）。本文そのものは持たない |
 
-- 書く所: `Db::put`（`pages` と同じ取引）。読む所: `Db::list`（探す語が 3 字以上なら索引で引き、短い語があれば端から見る）。消す所: `Db::remove`。
+- 書く所: `Db::put_page`（`pages` と同じ取引）。読む所: `Db::list`（探す語が 3 字以上なら索引で引き、短い語があれば端から見る）。消す所: `Db::remove`。
 - FTS5 が、中身を持つ影の表（`pages_fts_data`・`pages_fts_idx`・`pages_fts_content`・`pages_fts_docsize`・`pages_fts_config`）を作る。手で触らない。
 
 ## `removed` — 消したページの番号
@@ -85,7 +85,7 @@ erDiagram
 | `removed_at` | text | 不可 | 消した時刻 |
 
 - 主キー: `(project, key, kind, n)`
-- 書く所: `Db::remove`。読む所: `Db::put`（番号を決める時・取り込みで名指された番号を断る時）・`Db::removed_at`（`410` を返す時）。
+- 書く所: `Db::remove`。読む所: `Db::put_page`（番号を決める時・取り込みで名指された番号を断る時）・`Db::removed_at`（`410` を返す時）。
 
 ## `files` — file
 
@@ -147,9 +147,9 @@ erDiagram
 
 - 主キー: `(id)`
 - 索引: `senders_actor` `(actor_id)`
-- 書く所: `Db::put`・`Db::put_file`（ページや file と同じ取引）。読む所: `Db::list`・`Db::list_files`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込みの候補）。
+- 書く所: `Db::put_page`・`Db::put_file`（ページや file と同じ取引）。読む所: `Db::list`・`Db::list_files`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込みの候補）。
 - **足すだけ**: trigger `senders_no_update`・`senders_no_delete` が、書き換えと消しを `append-only: senders` で断る。前からある表（`pages`・`files` など）には trigger を付けていない（返事の状態の書き換え・消すは前のまま）。
-- **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の `POST /api/pages`）。
+- **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の「送り手」）。
 - `actor_id` に外部キーは無い（アクターは castlist の DB にある）。
 
 ## `page_targets` — 見た物
@@ -163,10 +163,10 @@ erDiagram
 
 - 主キー: `(page_id, target)`
 - 索引: `page_targets_target` `(target)`
-- 書く所: `Db::set_review`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
+- 書く所: `Db::add_marks`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
 - 見られたページを消しても、その path を見た物に持つ行は残る（一覧の UI の「見た物:」の link は、消したページの `410` を開く）。消すのは TPM 担当だけで数も少ないので、そのままにしている。
 
 ## ほかの表
 
-- `_sqlx_migrations`: sqlx が持つ表。当てた移行の番号と、その SQL の SHA-384 を覚えていて、起きる時に `migrations/` の file と突き合わせる。手で触らない。
+- `_sqlx_migrations`: sqlx が持つ表。当てた移行の番号と、その SQL の SHA-384 を覚えていて、起きる時に `crates/server/migrations/` の file と突き合わせる。手で触らない。
 - `pages_fts_` で始まる表: 上の `pages_fts` の影の表。

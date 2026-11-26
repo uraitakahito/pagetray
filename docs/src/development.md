@@ -2,29 +2,25 @@
 
 | ファイル | 中身 |
 |---|---|
-| `src/main.rs` | 今の server（0.8.x）の、設定を読む・起こす・止める（binary の名は `pagetray-server`）。`src/` と `migrations/` は今の server の物で、1.0.0 からは image に入らず、移す試験の元を作るのに使う（段 9 で消す） |
-| `src/lib.rs` | 道筋と、この Mac の中からの要求だけを受ける守り |
-| `src/db.rs` | 接続・移行・SQL |
-| `src/api.rs` | ページと file を置く・探す・消す・DB の写し |
-| `src/castlist.rs` | 置かれる時に、送り手を castlist に聞く（HTTP/1.1 を TCP の上で直に話す。1 秒まで待つ）。聞く先と、画面の link の頭の設定を読む |
-| `src/pages.rs` | ページの本文を返す |
-| `src/files.rs` | file の中身を返す |
-| `src/ui.rs`・`templates/index.html` | 一覧の UI（askama の template。build の時に検査される） |
-| `src/events.rs` | 新着の push（SSE） |
-| `src/text.rs` | HTML から題と検索用の字を取り出す |
-| `crates/api/` | API の仕様のうち、今の server と CLI が共に使う物（API の版・header の名・引数の字の決まり・path の形・ページと file の記録の型・受ける file の種類） |
+| `crates/server/` | server（package と binary `pagetray-server`）。image（`Containerfile`）に `/pagetray-server` の名で入る |
+| `crates/server/src/main.rs` | 起こす binary。設定を読む・起こす・止める |
+| `crates/server/src/lib.rs`・`guard.rs` | 道筋（生成した骨と手の道を 1 つの Router に並べる）と、この Mac の中からの要求だけを受ける守りの層 |
+| `crates/server/src/db.rs` | 接続・移行・SQL。ほかの版の server の DB を断る所も |
+| `crates/server/src/pages.rs`・`files.rs`・`list.rs`・`search.rs`・`marks.rs`・`remove.rs` | ページと file を置く・探す・印を書く・消す（生成した操作の handler）と、ページの本文・file の中身を返す道 |
+| `crates/server/src/castlist.rs` | 置かれる時に、送り手を castlist に聞く（castlist の定義から作った client で。1 秒まで待つ）。聞く先と、画面の link の頭の設定を読む |
+| `crates/server/src/hand.rs` | 手の道の DB の写し（`GET /api/backup`）と記録（`GET /api/logs`） |
+| `crates/server/src/ui.rs`・`facets.rs`・`templates/index.html` | 一覧の UI（askama の template。build の時に検査される） |
+| `crates/server/src/events.rs` | 新着の push（SSE） |
+| `crates/server/src/text.rs` | HTML から題と検索用の字を取り出す |
+| `crates/server/migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる）。できる表は [DB の作り](db.md) |
+| `crates/cli/` | 人が打つ CLI（package と binary `pagetray`。[CLI](cli.md)）。`crates/pagetray-client/` で呼ぶ。release に付く。試験は、同じ commit の server を起こして打つ |
+| `model/`・`ci/gen.sh` | API の Smithy の定義と、そこから crate を作る script（下の「定義と生成」） |
+| `crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/` | 定義から作った server の骨と、castlist を呼ぶ crate と、pagetray を呼ぶ crate（CLI が使う）。手で直さない |
 | `e2e/` | 一覧の UI と、この本を、本物の browser で見る試験（Playwright・TypeScript）。image にも CLI にも入らない。流し方は下の「一覧の UI の試験」と「この本を直す」の「本の試験」 |
-| `migrations/` | 表を作る SQL（起きる時に、まだ当てていない物を当てる）。できる表は [DB の作り](db.md) |
-| `.sqlx/` | SQL の検査用の file（commit する） |
 | `Containerfile`・`.dockerignore` | image の作り方（静的な binary を、空の image に 1 つだけ置く）と、build の中に入れる物 |
-| `Containerfile.next` | 1.0.0 から `Containerfile` と同じ中身（新しい server の `pagetray-next` を `/pagetray-server` の名で置く）。CI の job `image-next` だけが使う。段 9 で消す |
 | `ci/` | 出す image と、release に付ける CLI に、入ってよい物だけが入っているか・動くかを見る script と、その決まり。この本を build する script（`ci/docs-build.sh`）もここ |
-| `docs/` | この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側との API の仕様と、API の版の決まり。直し方は下の「この本を直す」 |
+| `docs/` | この本（mdBook）。原文は `docs/src/` の日本語で、`docs/src/api.md` が、呼ぶ側との API の仕様。直し方は下の「この本を直す」 |
 | `.claude/roles/config.jsonc` | `roster` に向けた、環境 `pagetray` の宣言 |
-| `model/`・`ci/gen.sh` | 作り直し（AI-36）の間の、新しい API の Smithy の定義と、そこから crate を作る script（下の「定義と生成」） |
-| `crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/` | 定義から作った server の骨と、castlist を呼ぶ crate と、pagetray を呼ぶ crate（新しい CLI が使う）。手で直さない |
-| `crates/server/` | 新しい server（package `pagetray-next`）。1.0.0 から image（`Containerfile`）に入る |
-| `crates/cli-next/` | 人が打つ CLI（package `pagetray-cli-next`・binary `pagetray`。[CLI](cli.md)）。`crates/pagetray-client/` で呼ぶ。release に付く。試験は、同じ commit の新しい server を起こして打つ |
 
 Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` を読まない）。版は `rust-toolchain.toml` が決め、この repo の中で `cargo` を打つと、その版が入って使われる。
 
@@ -32,49 +28,40 @@ Rust は `rustup` で入れる（Homebrew の `rust` は `rust-toolchain.toml` �
 brew install rustup                              # keg-only。PATH に /opt/homebrew/opt/rustup/bin を足す
 cargo fmt --all --check
 cargo clippy --locked --all-targets -- -D warnings
-SQLX_OFFLINE=true cargo test --locked
+cargo test --locked
 PAGETRAY_DB=/tmp/pages.db PAGETRAY_LISTEN=127.0.0.1:18801 cargo run --bin pagetray-server   # 手元で起こす
 ```
 
-GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験は、試験ごとに一時の DB を作る。workflow の `image` は、`Containerfile` を arm64 の runner で build し、[image に入る物](release.md#image-に入る物) を確かめ（`ci/check-image.sh`）、空の image の中で起きて新しい API の形で置いて読めること・止める合図で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh <image> next`）。終わりに切り替えの予行もする: 今の版（v0.8.0 を digest で固める）に今の API でページと file を置き、1 つずつ足して消し、返事の状態とレビューの印を付けて `GET /api/backup` の写しを取り、image の `migrate` で新しい volume に移し（[release を出す](release.md) の「切り替え」の 2 と同じ形）、照らしの行がみな ok で、その volume で起こした image が置いた物を新しい API で読め、消した番号を使わないかを見る。release の workflow も、同じ 2 つを push の前に流す。workflow の `image-next` は、`Containerfile.next`（1.0.0 から同じ中身）を同じ 2 つの script で見る（重なるだけで、段 9 で消す）。workflow の `cli` は、release に付ける CLI を macOS（arm64）の runner で、出す時と同じ script（`ci/build-cli.sh`）で作り、binary の形・つながる library・版・秘密の走査を確かめ（`ci/check-cli.sh`）、その binary を同じ commit のサーバーに向けて打つ。
+GitHub Actions でも同じ順に流す（`.github/workflows/ci.yml`）。試験は、試験ごとに一時の DB を作る。workflow の `image` は、`Containerfile` を arm64 の runner で build し、[image に入る物](release.md#image-に入る物) を確かめ（`ci/check-image.sh`）、空の image の中で起きて API で置いて読めること・断る答えが restJson1 の形であること・止める合図で終わること・起こし直しても残ることを見る（`ci/smoke-image.sh <image>`）。終わりに、出した v1.0.0 の image（digest で固める）が書いた volume を、この image で開いて読めるかも見る。release の workflow も、同じ 2 つを push の前に流す。workflow の `cli` は、release に付ける CLI を macOS（arm64）の runner で、出す時と同じ script（`ci/build-cli.sh`）で作り、binary の形・つながる library・版・秘密の走査を確かめ（`ci/check-cli.sh`）、その binary を同じ commit のサーバーに向けて打つ。
 
-API の形（URL・引数の名・JSON の欄）を変える時は、先に [API の仕様](api.md#api-の版を上げる時上げない時) の「API の版を上げる時・上げない時」を見る。変えたら、`roster page`（roster の `cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。roster の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
+API の形（URL・引数の名・JSON の欄）を変える時は、定義（`model/model/pagetray.smithy`）を直す。壊す変わり（前からある呼ぶ側が困る変わり）は、CI の `ci/gen.sh --diff` が落とす（下の「定義と生成」と、[API の仕様](api.md) の「共通の決まり」の「版」）。変えたら、`roster page`（roster の `cli/src/commands/page.ts`）と、その偽の置き場（`cli/test/helpers.ts` の `FakeStore`）も合わせて直す。roster の CI が、この repo の決めた版に向けて、つなぎの試験を流す。
 
-- **SQL を変えた時**: SQL は `query!` が build の時に `.sqlx/` と突き合わせる。SQL か `migrations/` を変えたら、一時の DB を作って作り直し、commit する（忘れると CI の `cargo sqlx prepare --check` が落ちる）。`sqlx-cli` の版は workflow の `SQLX_CLI_VERSION` と合わせる。
-
-  ```sh
-  cargo install sqlx-cli@0.9.1 --no-default-features --features sqlite
-  export DATABASE_URL=sqlite://$PWD/target/dev.db
-  cargo sqlx database create && cargo sqlx migrate run
-  cargo sqlx prepare
-  ```
-
-- **当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えている。表を変える時は `migrations/` に次の番号の file を足し、`tests/migrations.rs` の一覧に 1 行足す（前からある行が変わると、試験が落ちる）。
-- **表を変えたら、章も直す**: 表・列・型・空を許すか・主キーと一意と索引を変えたら、同じ PR で [DB の作り](db.md) と、表を足したなら [用語集](glossary.md) も直す。`tests/schema_doc.rs` が、移行を当てた DB と章を突き合わせ、食い違えば落ちる。
-- **記録（`src/runlog.rs`）**: 終わり方の印と、大きさで回す記録の file（[動かす](run.md) の「落ちた後に調べる」）。ここだけは、tokio の糸を塞ぐ同期の書き方をする（`panic = "abort"` で、落ちる直前の行を残すため）。上限（`LOG_FILE_MAX`・`LOG_FILES`・`RUNS_MAX`）を変えたら、「落ちた後に調べる」の表も直す。binary を起こして終わり方を見る試験は `tests/server.rs`（試験ごとに空の folder を作り、その中に DB を置く。記録が DB の隣の `logs/` にできるため）、本物の image での確かめは `ci/smoke-image.sh`。log に出す行は、今までの行と同じく英語の `名=値` の形で書く。新しい server の写し（`crates/server/src/runlog.rs`）も同じ PR で直す（段 9 まで同じ中身に保つ。[新しい API の形](next.md) の「起こし方」）。
-- **版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ（サーバーと `crates/` の crate が同じ版になる。`Cargo.lock` も変わる）、`CHANGELOG.md` に、API の版が変わったかを書く。
+- **SQL**: SQL は動く時に組む形（`query`・`query_as`）だけを使うので、build の時の検査の file（`.sqlx/`）は要らない。
+- **当てた移行の SQL は変えない**: 動いている DB が、当てた SQL の中身を覚えている。表を変える時は `crates/server/migrations/` に次の番号の file を足し、`crates/server/tests/refuse_old.rs` の `UNRELEASED` に名を足す（出したら `RELEASED` に移し、SHA-256 を書く）。出した file が 1 byte でも替わるか、どちらにも名指さない file があると、試験が落ちる。
+- **表を変えたら、章も直す**: 表・列・型・空を許すか・主キーと一意と索引を変えたら、同じ PR で [DB の作り](db.md) と、表を足したなら [用語集](glossary.md) も直す。`crates/server/tests/schema_doc.rs` が、移行を当てた DB と章を突き合わせ、食い違えば落ちる。
+- **記録（`crates/server/src/runlog.rs`）**: 終わり方の印と、大きさで回す記録の file（[動かす](run.md) の「落ちた後に調べる」）。ここだけは、tokio の糸を塞ぐ同期の書き方をする（`panic = "abort"` で、落ちる直前の行を残すため）。上限（`LOG_FILE_MAX`・`LOG_FILES`・`RUNS_MAX`）を変えたら、「落ちた後に調べる」の表も直す。binary を起こして終わり方を見る試験は `crates/server/tests/runlog.rs` と `crates/server/tests/server.rs`（試験ごとに空の folder を作り、その中に DB を置く。記録が DB の隣の `logs/` にできるため）、本物の image での確かめは `ci/smoke-image.sh`。log に出す行は、今までの行と同じく英語の `名=値` の形で書く。
+- **版を上げる**: `Cargo.toml` の `[workspace.package]` の `version` を上げ（server と CLI が同じ版になる。`Cargo.lock` も変わる）、`CHANGELOG.md` に、API の形が替わったかを書く。
 - **crate を上げる**: `.cargo/config.toml` の `global-min-publish-age` が、公開から 2 日たっていない版を選ばせない（Cargo 1.100 から）。上げる時は `cargo update` → 試験 → PR。`cargo install` はこの決まりを見ないので、道具は版を書いて入れる。
-- **弱点と license の見張り**: workflow の `advisories` が `cargo deny --workspace check advisories licenses`（設定は `deny.toml`。workspace の member をみな見る）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の crate が入ると落ちる。許す一覧の外の license は、名指した crate 1 つだけに、訳と一緒に許す（今は新しい server が引く `minicbor` の BlueOak-1.0.0 だけ）。
+- **弱点と license の見張り**: workflow の `advisories` が `cargo deny --workspace check advisories licenses`（設定は `deny.toml`。workspace の member をみな見る）を、PR ごとと週に 1 度流す。`deny.toml` に無い license の crate が入ると落ちる。許す一覧の外の license は、名指した crate 1 つだけに、訳と一緒に許す（今は server が引く `minicbor` の BlueOak-1.0.0 だけ）。
 - **workflow の action**: commit の SHA で固定する（tag は後から中身が替わりうる）。
-- **main を守る決まり**: GitHub の ruleset「main: CI が通らないと merge できない」（Settings → Rules → Rulesets）が、`main` への変更に、CI の `test`・`image`・`advisories`・`docs`・`cli` の 5 つが通っていることを求める。PR は、5 つが通るまで merge できない。repo の admin は、この決まりを bypass できるので、`main` への直の push は通る（GitHub の必須の check には「PR だけに効かせる」選び方が無いので、直の push を通すには bypass になる）。admin は、わざと選べば（画面の bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge できてしまうので、使わない。workflow の job の名を変えたら、ruleset の check の名も合わせて直す（合わないと、PR がいつまでも merge できない）。作り直しの間に足した job `image-next`（`Containerfile.next`）と `ui` は、まだ必須の check ではない。
+- **main を守る決まり**: GitHub の ruleset「main: CI が通らないと merge できない」（Settings → Rules → Rulesets）が、`main` への変更に、CI の `test`・`image`・`advisories`・`docs`・`cli` の 5 つが通っていることを求める。PR は、5 つが通るまで merge できない。repo の admin は、この決まりを bypass できるので、`main` への直の push は通る（GitHub の必須の check には「PR だけに効かせる」選び方が無いので、直の push を通すには bypass になる）。admin は、わざと選べば（画面の bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge できてしまうので、使わない。workflow の job の名を変えたら、ruleset の check の名も合わせて直す（合わないと、PR がいつまでも merge できない）。job `ui` は、まだ必須の check ではない。
 
-## 定義と生成（作り直しの間）
+## 定義と生成
 
-API を Smithy の定義で書き直している間（AI-36）は、今の server（`src/`）の隣に、新しい server（`crates/server`）を並べて作る。1.0.0 から、release の image に入るのは新しい server だけ（`Containerfile` は `-p pagetray-next` だけを作る）で、今の server の code は段 9 で消す（[release を出す](release.md)）。形の決まりは [新しい API の形](next.md)。
+API は Smithy の定義から作る。server は定義から作った骨（`crates/pagetray-sdk/`）に処理を入れた物で、image（`Containerfile` は `-p pagetray-server` だけを作る）に入る（[release を出す](release.md)）。形の決まりは [API の仕様](api.md)。
 
 - 定義は `model/model/pagetray.smithy`。共通の形 `ai.common` と castlist の定義は、castlist の release の tag から取った `model/castlist/`（tag と digest は `ci/gen.sh` の 1 か所。手で直さない）。
-- 生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo test --locked -p pagetray_sdk`・`-p castlist_client`・`-p pagetray_client` で流す（`castlist_client` の外す試験は `.github/workflows/ci.yml` の訳を見る）。定義の例の引数の値は、呼ぶ側が逃がす字（`:` など）を `%3A` と逃がして書く（逃がさずに書くと、呼ぶ側の crate の試験が合わずに落ちる。server の骨の試験は、逃がしを戻してから比べるので、どちらでも通る）。
+- 生成した crate（`crates/pagetray-sdk/`・`crates/castlist-client/`・`crates/pagetray-client/`）は `ci/gen.sh` が作る。**手で直さない**。定義を替えたら `ci/gen.sh` を流し、作り直した物も同じ commit に入れる。workspace の member だが、既定の命令（`default-members`）の外。中の protocol の試験は `cargo test --locked -p pagetray_sdk`・`-p castlist_client`・`-p pagetray_client` で流す。定義の例の引数の値は、呼ぶ側が逃がす字（`:` など）を `%3A` と逃がして書く（逃がさずに書くと、呼ぶ側の crate の試験が合わずに落ちる。server の骨の試験は、逃がしを戻してから比べるので、どちらでも通る）。
 - 生成器の版は `model/smithy-build.json`（Maven の物）と `ci/gen.sh`（Smithy の CLI と digest）に書く。`smithy-build.json` に名指した Maven の物は、公開から 2 日たっていなければ `ci/gen.sh` が断る。
 - CI の job `model` が `ci/gen.sh --check`（取った定義が digest と合い、作り直した物が入れてある物と同じか）と `ci/gen.sh --diff`（定義の入った最新の release（rc を除く）から壊す形に変わっていないか）を流す。
-- 今の DB を新しい DB へ移す `pagetray-next migrate`（`crates/server/src/migrate.rs`。[新しい API の形](next.md) の「データ」）の試験は `crates/server/tests/migrate.rs`。移す元は、今の server（repo の頭の crate。`crates/server` の dev-dependency）の Router に今の API で書いて取った写しと、今の migrations をその版まで当てた写し。今の migrations に版を足したら、新しい migrations（`crates/server/tests/db.rs` が突き合わせる）と、移す表（`migrate.rs` の `TABLES`。後の版で足した列は `later`）と試験の途中の版も、同じ PR で直す（移す命令は、今の migrations を binary に埋め込んで移す元の版と突き合わせ、知らない版・表・列を断るので、直し忘れても黙って落とさず、移しが断られる）。
-- 新しい server の試験は `crates/server/tests/`。試験だけの commit を先に作り、落ちるのを見てから実装を足す。SQL は動く時に組む形（`query`・`query_as`）だけを使うので、`.sqlx/` は要らない。
+- server の試験は `crates/server/tests/`、CLI の試験は `crates/cli/tests/`。試験だけの commit を先に作り、落ちるのを見てから実装を足す。
 
 ## 一覧の UI の試験
 
-一覧の UI は、HTML の字を `tests/ui.rs` が見て、browser でしか見えない物（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るのはこの folder の中だけで、image にも CLI にも入らない。
+一覧の UI は、HTML の字を `crates/server/tests/ui.rs` が見て、browser でしか見えない物（script の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright](https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るのはこの folder の中だけで、image にも CLI にも入らない。
 
 ```sh
-cargo build --bin pagetray-server
+cargo build --locked --bin pagetray-server
 cd e2e
 pnpm install --frozen-lockfile
 pnpm exec playwright install chromium      # 初めの 1 度だけ。試験用の Chromium を入れる
@@ -82,9 +69,8 @@ pnpm test
 PAGETRAY_E2E_CHANNEL=chrome pnpm test      # この機械の Chrome を使う（Chromium を入れなくてよい）
 ```
 
-- **新しい server に流す**（AI-36 の作り直しの間）: `cargo build --bin pagetray-next` の後、`PAGETRAY_E2E_SERVER=../target/debug/pagetray-next pnpm test`。起こす binary の名が `pagetray-next` なら、試験は新しい API の道と引数の名で置く・書く（`e2e/tests/wire.ts`。名を替えた binary を向ける時は `PAGETRAY_E2E_API=next` を付ける）。画面と字は同じなので、同じ試験がどちらの server にも通る。落ちた時の写しと report を分けるなら `PAGETRAY_E2E_OUT=-next` を付ける（`test-results-next/`・`playwright-report-next/`）。
-
-- **CI**: workflow の `ui` が PR ごとに、今の server と新しい server（`pagetray-next`。今の server の段が落ちても流す）に続けて流す。落ちると、画面の絵と操作の記録が artifact（`ui-report`・`ui-report-next`）に残る。`ui` は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを見てから足す）。
+- **起こす binary**: 既定は `../target/debug/pagetray-server`。ほかの binary に向ける時は `PAGETRAY_E2E_SERVER=<path>` を付ける。
+- **CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、まだ入れていない（時々落ちないことを見てから足す）。
 - **読むだけの試験**: 題に `@smoke` が付いた試験（`e2e/tests/smoke.spec.ts`）は、何も置かず、何が置かれていても通る物だけを見る。`PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test` と打つと、サーバーを起こさず、動いている置き場に向けて、この試験だけが流れる（置く試験は、設定が流させない）。版を上げた後の確かめに使う（[動かす](run.md#確かめる) の「確かめる」）。
 - **試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の `place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠と、Key の画面の file の枠・上げる枠）は `helpers.ts` の関数で選ぶ。file は `placeFile` で置き、上げる枠の試験は `input[type=file]` に `setInputFiles` で file を渡す。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を使う。新着を見る試験（一覧の列の差し替えと新着の印）は、`openLive` で開いてから置く（知らせにつながる前に置いたページの知らせは届かない）。新着の印は一覧の列を下へ送っている時に出るので、`scrollList` で送ってから置く。大きな file は試験の中で作り、repo に置かない。
 - **返事の状態を見る試験**（`e2e/tests/reply.spec.ts`）: 返事待ちの数は、絞り込みに関わらず置き場の全部を数え、tab の題にも出る。試験は同じ置き場に順に流れるので、返事待ちにしたページは、試験の終わりまでに答えたにする（残すと、後の試験の tab の題が変わる）。絞り込みの列の見出し「返事」は、状態を書いたページが 1 枚でもあると出るので、この file は、見出しの並びを見る `list.spec.ts` より後に流れる名にしてある。
@@ -125,7 +111,7 @@ python3 -m http.server -d docs/book
 - **原文を直したら、同じ PR で英語も直す**: `ci/docs-po.sh` を流すと、足した段落が `docs/po/en.po` に空の訳で入り、変えた段落に `#, fuzzy` の印が付く。空の所と印の所を訳し、印の行を消す。`ci/docs-po.sh --check` が通れば済み（CI も同じ検査を流す。原文にあって訳に無い段落・`fuzzy` の残り・訳に残った日本語があると落ちる）。
 - **コードの塊**: 訳に出るのは、コードの中の註（`#` の行）と、引用符の中の字だけ。命令の中の置き換えの名は訳せないので、`<version>` のように英字で書く。行の後ろに付けた註は、取り出されないことがある（`ci/docs-build.sh` が、英語の本に日本語が残っていれば落ちる）。
 - **訳さない物も `msgstr` に書く**: 命令・URL だけの項は、原文をそのまま写す。link の先の file の名（`run.md` など）は変えない。見出しを指す `#…` は、英語の本では見出しの id が訳した題から作られるので、訳した見出しの id に書き替える（`release.md#image-に入る物` → `release.md#what-goes-into-the-image`）。
-- **語を足す・替える**: 先に [用語集](glossary.md) を直し、文書・註・code の名をそれに合わせる。用語集に書いた id が画面に在るか・「使わない言い方」が戻っていないかは、試験（`tests/terms.rs`）が見る。
+- **語を足す・替える**: 先に [用語集](glossary.md) を直し、文書・註・code の名をそれに合わせる。用語集に書いた id が画面に在るか・「使わない言い方」が戻っていないかは、試験（`crates/server/tests/terms.rs`）が見る。
 - **章を足す**: `docs/src/` に file を置き、`SUMMARY.md` に 1 行足す。CLI の章は `docs/src/cli.md`（「使う」の節の、動かす と API の仕様 の間）。
 - **repo の file を指す link**: 本の外の file（`CHANGELOG.md` など）は、GitHub の URL で書く。章どうしは、`run.md` のように file の名で書く。
 - **本の試験**: `e2e/docs-tests/` の試験（Playwright）が、作った本を本物の browser で開き、どの章も開いて console に誤りが無いこと・図が描けること・検索の枠が開いて日本語と英語の語が当たること・言葉の切り替えで同じ章へ移ることを見る。`ci/docs-build.sh` の後に、`e2e/` で `pnpm test:docs` を打つ（道具の入れ方は上の「一覧の UI の試験」と同じ）。CI では job `docs` が流す。章を足したら、`e2e/docs-tests/docs.spec.ts` の章の一覧にも足す（目次と合わないと落ちる）。

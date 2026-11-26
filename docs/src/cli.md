@@ -1,8 +1,8 @@
 # CLI
 
-`pagetray` は、置き場を端末から操作する命令。置き場の API（[新しい API の形](next.md)。1.0.0 から）を HTTP で呼ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も無い。
+`pagetray` は、置き場を端末から操作する命令。置き場の API（[API の仕様](api.md)）を HTTP で呼ぶ。相手は、この Mac の中（`127.0.0.1`）の置き場だけで、認証も設定の file も無い。
 
-1.0.0 の `pagetray` は、1.0.0 からの置き場とだけ話す。0.8.x までの置き場に向けると、答えを使わずに code 4 で止まる（下の「終わりの code」）。0.8.x の置き場には、0.8.x の release に付いた CLI を使う。
+`pagetray` は、1.0.0 からの置き場とだけ話す。0.8.x までの置き場に向けると、答えを使わずに code 4 で止まる（下の「終わりの code」）。0.8.x の置き場には、0.8.x の release に付いた CLI を使う。
 
 ## 入れる
 
@@ -17,14 +17,14 @@ pagetray status
 ```
 
 - browser で落とすと、macOS が開くのを止める（公証をしていない binary のため）。`gh` か `curl` で取る。
-- Rust があれば、source からも入る: `cargo install --git https://github.com/uraitakahito/pagetray --tag v<version> --locked pagetray-cli-next`（package の名。入る命令は `pagetray`）。
+- Rust があれば、source からも入る: `cargo install --git https://github.com/uraitakahito/pagetray --tag v<version> --locked pagetray`（package の名。入る命令も `pagetray`）。
 - 消す時は `rm ~/.local/bin/pagetray`。ほかに置く file は無い。
 
 ## 命令
 
 | 命令 | すること |
 |---|---|
-| `pagetray status` | 置き場が生きているかと、サーバーの版を出す（`GetHealth`） |
+| `pagetray status` | 置き場が生きているかと、サーバーの版と CLI の版を出す（`GetHealth`。`--json` は `url`・`server`・`cli`） |
 | `pagetray page list` | ページを絞って探す（`ListPages`。新しい順） |
 | `pagetray page view <page>` | ページの本文を出す（手の道）。`--web` で browser に、`-o <file>` で file に |
 | `pagetray page put <file>` | ページを置く（`CreatePage`。`-` は stdin）。置いたページの URL を出す |
@@ -63,15 +63,16 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 - `--project`（か環境変数 `PAGETRAY_PROJECT`）・`--key`・`--kind` が要る。project を今いる folder から勝手に決めることは無い（置き間違いを防ぐため）。
 - 番号は置き場が決める。同じ project・Key・種類に置き直すと次の番号になり、前の版は残る。
 - 置く人の役割は `--role`（か `PAGETRAY_ROLE`。既定は `human`）、居場所は `--workspace`。
+- 出す URL は、一覧と同じく、頼んだ先（`--url`）で組む（`file put` も同じ）。`--json` は、ページの記録にその `url` を足した物。
 
 ### 返事の状態を書く（`page reply`）
 
-- Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答えたにする（`--answered`）。どちらか 1 つが要る。一覧の UI は、この状態で印と件数を出す（[新しい API の形](next.md) の「返事」）。
+- Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答えたにする（`--answered`）。どちらか 1 つが要る。一覧の UI は、この状態で印と件数を出す（[API の仕様](api.md) の「返事」）。
 - 出すのは、状態と URL の 1 行（tab 区切り）。`--json` で、ページの記録。
 - `--on review|tpm` で、待ちの相手（レビューの席・TPM 担当）を名指す（書かなければ Product Manager）。答えたにする時は、その相手を待っているページだけが替わり、違えば何も替えずに code 1（置き場の訳のまま）。
 - 無いページ・消したページは code 1。
 - `roster` を使う project では、`roster ask pm`・`roster answer`・`roster ask review`・`roster report review`・`roster ask tpm --review` がこの状態を書く。手で直す時だけ使う。
-- 判定と見た物（[新しい API の形](next.md) の「レビューの印」）を書く命令は無い（書くのは roster の命令だけ）。
+- 判定と見た物（[API の仕様](api.md) の「レビューの印」）を書く命令は無い（書くのは roster の命令だけ）。
 
 ### 消す（`page delete`）
 
@@ -132,27 +133,9 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 ## 呼び方
 
 - 生成した操作（`GetHealth`・`ListPages` などの定義の道）は、定義から作った client（`crates/pagetray-client/`）で呼ぶ。
-- 手の道（ページの本文・file の中身・新着の知らせ・DB の写し・`api` の命令）は、生成した client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは `crates/cli-next/src/client.rs` の 1 か所で、依存も増えない。
-- HTTP の設定は、置き場が castlist を呼ぶ時（[新しい API の形](next.md) の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy を使わない・`Host: 127.0.0.1:<port>`（port は `--url` の物。無ければ付けない）で送り `Origin` は付けない（置き場は `Host` の port を外して 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする。置き場は答えの `url`・`Location` を `Host` で組むので、port を付けて開ける link にする）。
+- 手の道（ページの本文・file の中身・新着の知らせ・DB の写し・`api` の命令）は、生成した client に無いので、同じ HTTP の client（`aws-smithy-http-client` の hyper の作りの connector。`Connector::builder().build_http()`）で直に呼ぶ。ureq は使わない。訳: 生成した client が hyper と tokio を引くので、ureq を足すと HTTP の client が 2 つになり、TLS の無い HTTP/1.1・接続を使い回さない・proxy を使わない・`Host` の決まりを 2 か所で守ることになる。1 つにすれば、決まりは `crates/cli/src/client.rs` の 1 か所で、依存も増えない。
+- HTTP の設定は、置き場が castlist を呼ぶ時（[API の仕様](api.md) の「送り手」）と同じ: TLS の無い HTTP/1.1（features は `default-client` だけ）・接続を使い回さない（`pool_max_idle_per_host(0)`）・送り直さない（`RetryConfig::disabled()`）・環境変数の proxy を使わない・`Host: 127.0.0.1:<port>`（port は `--url` の物。無ければ付けない）で送り `Origin` は付けない（置き場は `Host` の port を外して 127.0.0.1・localhost でない要求を断る。CLI は browser でないので、つなぐ先の名がどうでも届くようにする。置き場は答えの `url`・`Location` を `Host` で組むので、port を付けて開ける link にする）。
 - 待つのは 1 度に 10 秒（つなぐ・送る・答えを読み終えるまで）。`page watch` だけは、答えの頭も本文も待ち続ける。`backup` は、答えの頭まで（置き場が写しを作る間。置き場は 5 秒で 503 を返す）を 10 秒と数え、本文は切れ目ごとに 10 秒（10 秒何も届かなければ、止まった置き場として code 3）で、全部で何秒かかってもよい。訳: 置き場の時間切れも答えの頭までで、送る間は数えない。DB の写しは大きく、読み終えるまでを 10 秒と数えると、大きな DB の写しが取れなくなる。待ち続けると、途中で止まった置き場を待って戻らないので、届かない間だけを数える。
-
-## 0.8.x の CLI と替わった所
-
-| 所 | 0.8.x の CLI | 1.0.0 の CLI |
-|---|---|---|
-| `--json` の記録 | snake_case（`created_at`・`asked_at`・`waits_on`）。番号 `n` は数 | API の答えと同じ camelCase（`createdAt`・`askedAt`・`answeredAt`・`waitsOn`・`sender.resolvedAt`）。`n` は字（`"7"`）。値の無い欄は出さない。一覧の記録には、頼んだ先（`--url`）で組んだ `url` を足す（置く答えの `url` は、置き場が組んだ物のまま） |
-| `--json=<欄>` の名 | snake_case | camelCase（知らない名は code 2） |
-| 一覧の続き | `--before`・`--after`（時刻） | `--next-token <印>`。`--before`・`--after` は無い（code 2） |
-| `-L`（件数） | 置き場が 1〜1000 に丸めた | 1〜1000 の外は、送る前に code 2 |
-| 消す前の一覧 | 1 度の答え（1000 件）まで | `nextToken` を辿って、合う物をみな見る |
-| 断られた訳 | `（404）: そのページは無い`（本文の `error`） | `（404 NotFound）: そのページは無い`（状態の数・header `X-Amzn-Errortype`・本文の `message`） |
-| `status` | サーバーの版と API の版（`/api/version`）。`--json` に `api`・`cli_api` | サーバーの版（`GET /healthz` の `version`）と CLI の版だけ。`--json` は `url`・`server`・`cli` |
-| 版の違い | 答えの header `Pagetray-Api` が違えば code 4 | 下の「終わりの code」 |
-| `page reply` | 405 を、0.5.0 より前の置き場と見分けた | 見分けない（定義より古い置き場は code 4） |
-| `page watch` | `data:` の行をみな読む。流れが途中で切れても code 0 | 上の「新着を待つ」 |
-| `api` | 本文の種類は `text/html` に決まっていた | `--content-type`（上の「直に呼ぶ」） |
-| `backup` | 答えを待ち続ける。答えを読めなければ code 1 | 上の「DB の写し」と下の「呼び方」 |
-| いくつかを名指して消す | 途中で断られると、それまでに消した物を出さずに止まる | 消した物を stderr に出してから止まる |
 
 ## 終わりの code
 
@@ -167,7 +150,7 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 
 誤りの訳は stderr に 1 行で出る。stdout には、頼んだ物だけが出る。
 
-- 新しい API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（[新しい API の形](next.md) の「共通の決まり」）。それでも code 4 を残すのは、0.8.x の置き場に向けた時に、読めない答えを code 3 とせず「違う API の置き場」と分けて出すため。生成した client は、答えに無い `@required` の欄を既定の値で埋めるので、0.8.x の置き場の答えを読ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見る（生成した client には interceptor で、手の道は答えの頭で）。0.8.x の置き場が無くなったら（段 9）、`Pagetray-Api` の見分けは消す。
+- API には版の header が無く、形の版は定義の release の tag との `smithy diff` が守る（[API の仕様](api.md) の「共通の決まり」）。それでも code 4 を残すのは、0.8.x の置き場に向けた時に、読めない答えを code 3 とせず「違う API の置き場」と分けて出すため。生成した client は、答えに無い `@required` の欄を既定の値で埋めるので、0.8.x の置き場の答えを読ませると、黙って崩れた記録を出してしまう。だから header を、答えを読む前に見る（生成した client には interceptor で、手の道は答えの頭で）。`Pagetray-Api` の見分けは、古い volume を Product Manager が消した後に消す。
 
 ## `roster page` との関わり
 
