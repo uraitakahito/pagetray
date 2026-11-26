@@ -416,18 +416,27 @@ pub async fn refuse_current(path: &Path) -> Result<(), OpenError> {
     if !tokio::fs::try_exists(path).await.unwrap_or(false) {
         return Ok(());
     }
-    // 隣に -wal が無ければ（止めた DB・写し）、本体の file だけに全てがあるので immutable で読み、隣に何も作らない
-    // （WAL の形の DB を読むだけの接続で開くと、-wal と -shm を作る。0.8.x の server の DB は WAL の形）。
-    // -wal があれば、checkpoint の前の物は本体の file だけでは読めない（immutable では「database disk image is
-    // malformed」になる）ので、読むだけの接続で WAL も読む（-wal と -shm は既に在るので、新しく作る物は無い）。
-    let mut wal = path.as_os_str().to_owned();
-    wal.push("-wal");
-    let wal_present = tokio::fs::try_exists(&wal).await.unwrap_or(false);
+    // 隣に -wal と -shm の両方が在る時（動いている・落ちた後の DB）だけ、読むだけの接続で WAL も読む（checkpoint の前の物は
+    // 本体の file だけでは読めず、immutable では「database disk image is malformed」になる。どちらも既に在るので、新しく作る物は無い）。
+    // ほか（止めた DB・写し・-wal だけを手で写した物）は immutable で本体の file だけを読み、隣に何も作らない
+    // （WAL の形の DB を読むだけの接続で開くと、無い -wal と -shm を作る。0.8.x の server の DB は WAL の形）。
+    // -wal だけの時に WAL の分は読めないが、断る訳に要る移行の表は、本体の file にある。
+    let sibling = |suffix: &str| {
+        let mut p = path.as_os_str().to_owned();
+        p.push(suffix);
+        p
+    };
+    let live = tokio::fs::try_exists(sibling("-wal"))
+        .await
+        .unwrap_or(false)
+        && tokio::fs::try_exists(sibling("-shm"))
+            .await
+            .unwrap_or(false);
     let mut conn = SqliteConnection::connect_with(
         &SqliteConnectOptions::new()
             .filename(path)
             .read_only(true)
-            .immutable(!wal_present),
+            .immutable(!live),
     )
     .await
     .map_err(OpenError::Db)?;

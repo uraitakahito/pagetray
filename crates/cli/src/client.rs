@@ -1,4 +1,4 @@
-//! 置き場（pagetray の server）に HTTP で頼む。
+//! 置き場（新しい server）に HTTP で頼む。
 //!
 //! - 生成した操作（`/healthz`・`/api/…` の定義の道）は、定義から作った client（`pagetray_client`）で呼ぶ。
 //! - 手の道（ページの本文・file の中身・新着の知らせ・`api` の命令）は、同じ HTTP の client（aws-smithy-http-client の
@@ -6,12 +6,15 @@
 //! - どちらも、TLS の無い HTTP/1.1・接続を使い回さない・送り直さない・環境変数の proxy を使わない・`Host: 127.0.0.1:<port>`
 //!   （置き場は Host が 127.0.0.1・localhost でない要求を断る。つなぐ先の名がどうでも届くように。port は `--url` の物で、
 //!   置き場が答えの `url`・`Location` を Host で組むので、開ける link になる）・`Origin` を付けない。
-//! - 生成した層が知らない道に返す 404 `UnknownOperationException`（定義より古い置き場）は code 4。
+//! - どの答えでも、0.8.x までの API の印（header `Pagetray-Api`）を見て、付いていれば答えを使わずに code 4 で止まる。
+//!   生成した層が知らない道に返す 404 `UnknownOperationException`（定義より古い置き場）も code 4。
 
 use aws_smithy_http_client::Connector;
 use aws_smithy_runtime_api::client::http::HttpConnector;
 use aws_smithy_runtime_api::client::interceptors::Intercept;
-use aws_smithy_runtime_api::client::interceptors::context::BeforeTransmitInterceptorContextMut;
+use aws_smithy_runtime_api::client::interceptors::context::{
+    BeforeDeserializationInterceptorContextRef, BeforeTransmitInterceptorContextMut,
+};
 use aws_smithy_runtime_api::client::orchestrator::HttpResponse;
 use aws_smithy_runtime_api::client::result::SdkError;
 use aws_smithy_runtime_api::client::runtime_components::RuntimeComponents;
@@ -32,13 +35,15 @@ pub const REFUSED: u8 = 1;
 pub const USAGE: u8 = 2;
 /// 終わりの code: 置き場が応えない。
 pub const DOWN: u8 = 3;
-/// 終わりの code: 置き場の API が、この CLI の話す形でない（定義より古い置き場）。
+/// 終わりの code: 置き場の API が、この CLI の話す形でない（今の API の置き場・定義より古い置き場）。
 pub const API: u8 = 4;
 
 /// ふだんの命令が、置き場の答えを待つ時間（つなぐ・送る・答えを読み終えるまでの全部）。
 pub const TIMEOUT: Duration = Duration::from_secs(10);
 /// 1 つの答えで読む上限（ページ 1 枚の上限 16 MiB より大きく取る）。
 const MAX_REPLY: usize = 64 * 1024 * 1024;
+/// 0.8.x までの API の印。0.8.x の server は、どの答えにも付ける（切り替えの前の volume を Product Manager が消すまで、戻した置き場に当たりうるので見る）。
+const CURRENT_API_HEADER: &str = "pagetray-api";
 /// 生成した層が、知らない道に返す誤りの種類。
 const UNKNOWN_OPERATION: &str = "UnknownOperationException";
 
@@ -126,6 +131,9 @@ impl Store {
     where
         E: ProvideErrorMetadata + std::error::Error + 'static,
     {
+        if let Some(failure) = current_api_in(&error, &self.base) {
+            return failure;
+        }
         match &error {
             SdkError::ServiceError(e) => {
                 let status = e.raw().status().as_u16();
@@ -207,6 +215,9 @@ impl Store {
             None => call.await,
         }
         .map_err(|e| self.down(&DisplayErrorContext(&e).to_string()))?;
+        if response.headers().get(CURRENT_API_HEADER).is_some() {
+            return Err(current_api(&self.base));
+        }
         let error_type = error_type(response.headers());
         if route == Route::Own && error_type.as_deref() == Some(UNKNOWN_OPERATION) {
             return Err(unknown_operation(&self.base));
@@ -297,11 +308,23 @@ impl Reply {
     }
 }
 
-/// 生成した client の要求に掛ける決まり（`Host` を 127.0.0.1 と `--url` の port にする）。
+/// 生成した client の要求と答えに掛ける決まり（`Host` を 127.0.0.1 と `--url` の port にする・今の API の答えを使わない）。
 #[derive(Debug)]
 struct Wire {
     host: String,
 }
+
+/// 今の API の答えだった印（[`Wire`] が答えを読む前に止めた訳）。
+#[derive(Debug)]
+struct CurrentApi;
+
+impl std::fmt::Display for CurrentApi {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("今の API の置き場の答え")
+    }
+}
+
+impl std::error::Error for CurrentApi {}
 
 impl Intercept for Wire {
     fn name(&self) -> &'static str {
@@ -320,6 +343,45 @@ impl Intercept for Wire {
             .insert("host", self.host.clone());
         Ok(())
     }
+
+    fn read_before_deserialization(
+        &self,
+        context: &BeforeDeserializationInterceptorContextRef<'_>,
+        _: &RuntimeComponents,
+        _: &mut ConfigBag,
+    ) -> Result<(), aws_smithy_runtime_api::box_error::BoxError> {
+        if context
+            .response()
+            .headers()
+            .get(CURRENT_API_HEADER)
+            .is_some()
+        {
+            return Err(Box::new(CurrentApi));
+        }
+        Ok(())
+    }
+}
+
+/// 誤りの訳を辿り、[`Wire`] が今の API の答えで止めたのなら、その訳。
+fn current_api_in(error: &(dyn std::error::Error + 'static), base: &str) -> Option<Failure> {
+    let mut next = Some(error);
+    while let Some(e) = next {
+        if e.is::<CurrentApi>() {
+            return Some(current_api(base));
+        }
+        next = e.source();
+    }
+    None
+}
+
+fn current_api(base: &str) -> Failure {
+    Failure::new(
+        API,
+        format!(
+            "置き場（{base}）は 0.8.x までの API の置き場（header Pagetray-Api が付いている）で、この CLI（pagetray {}）は 1.0.0 からの新しい API だけを話す。置き場を 1.0.0 に上げるか、置き場と同じ 0.8.x の版の CLI を使う",
+            env!("CARGO_PKG_VERSION")
+        ),
+    )
 }
 
 fn unknown_operation(base: &str) -> Failure {

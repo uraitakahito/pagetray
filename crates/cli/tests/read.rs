@@ -1,4 +1,4 @@
-//! 読む命令（status・page list・page view・file list・file view・browse・completion）を、同じ commit の server に向けて打つ。
+//! 読む命令（status・page list・page view・file list・file view・browse・completion）を、同じ commit の新しい server に向けて打つ。
 
 mod common;
 
@@ -41,6 +41,25 @@ fn a_store_that_is_down_exits_3() {
         let ran = run_with(&closed_url(), args, &[], None);
         assert_eq!(ran.code, 3, "{args:?}: {}", ran.stderr);
         assert!(ran.stderr.contains("応えない"), "{}", ran.stderr);
+        assert_eq!(ran.stdout, "");
+    }
+}
+
+#[test]
+fn a_store_of_the_current_api_exits_4_without_using_the_answer() {
+    // 0.8.x の server は、どの答えにも Pagetray-Api を付ける。答えの形が違うので、読まずに止まる。
+    let (url, _) = canned(
+        "HTTP/1.1 200 OK\r\nPagetray-Api: 1\r\nContent-Type: application/json\r\nContent-Length: 12\r\nConnection: close\r\n\r\n{\"pages\":[]}",
+    );
+    for args in [
+        &["page", "list"][..],
+        &["status"],
+        &["page", "view", "p/AI-22/plan-1"],
+    ] {
+        let ran = run_with(&url, args, &[], None);
+        assert_eq!(ran.code, 4, "{args:?}: {}", ran.stderr);
+        assert!(ran.stderr.contains("0.8.x までの API"), "{}", ran.stderr);
+        assert!(ran.stderr.contains("pagetray"), "{}", ran.stderr);
         assert_eq!(ran.stdout, "");
     }
 }
