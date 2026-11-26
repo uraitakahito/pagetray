@@ -1018,12 +1018,17 @@ operation DeleteFiles {
 
 /// メッセージの記録を 1 件置く・書き足す（同じ project と id に、何度打ってもよい）。pagetray は、ほかの道具（roster）が配った
 /// メッセージの記録を写して見せるだけで、配らず、状態を自分で決めず、期限を持たない。
-/// - 初めての id なら作る（201）。もうある id なら書き足す（200）: `state` は新しい値にし、`via`・`deliveries` は書けば新しい値に
-///   する（書かなければ前のまま）。`deliveredAt` は、まだ無い時だけ入れる（初めの時刻を保つ）。
-/// - `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` と送り手は、初めに置いた値を保つ（違う値が来ても変えず、
+/// - 初めての id なら作る（201。状態は来たまま）。もうある id なら書き足す（200）。書き足しは、届く順に依らない
+///   （「渡した」の記録が「送った」の記録より先に届いても、同じ記録になる）:
+///   - `state` は前へだけ進む。強さは `waiting`＝`carried` ＜ `expired`＝`undeliverable` ＜ `delivered` で、今より強い時だけ替える。
+///   - `deliveries` は大きい方を保つ。`via` は、`state` を替えた時か、今が空の時だけ入れる（どちらも、書かなければ前のまま）。
+///   - `deliveredAt` は、まだ無い時だけ入れる（初めの時刻を保つ）。
+/// - `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` は、初めに置いた値を保つ（違う値が来ても変えず、
 ///   誤りにもしない）。形は、書き足す時も見る。
-/// - 送り手は CreatePage と同じ: 付随する id（`actorIssuer`・`actorRef`）を書けば castlist に聞き（置く時も書き足す時も）、
-///   登録の無い送り手は 400、聞けなければ 503（どちらも何も替えない）。残すのは、初めに置いた時の送り手だけ。
+/// - 送り手として残すのは、「送った側」の書き込み（`state` が `waiting` か `carried`）の物だけ。その書き込みに付随する id
+///   （`actorIssuer`・`actorRef`）があれば、CreatePage と同じく castlist に聞き、登録の無い送り手は 400、聞けなければ 503
+///   （どちらも何も替えない）。記録の送り手がまだ空なら入れ、もう入っていれば替えない。ほかの `state` の書き込みは、
+///   付随する id が付いていても castlist に聞かず、送り手として残さない（組と形は見る。片方だけは 400）。
 /// - 時刻（`sentAt`・`deliveredAt`）は UTC・ミリ秒まで（細かい時刻は 400）。
 @idempotent
 @http(method: "PUT", uri: "/api/projects/{project}/messages/{id}")
@@ -1176,7 +1181,7 @@ operation PutMessage {
         @required
         sentAt: DateTime
 
-        /// 状態。
+        /// 状態。書き足す時は、今の状態より強い時だけ替わる。
         @required
         state: MessageState
 
@@ -1186,7 +1191,7 @@ operation PutMessage {
         /// どの時に渡したかの名。
         via: MessageVia
 
-        /// 渡した回数。
+        /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
         deliveries: MessageDeliveries
 
         /// 返事の先のメッセージの id。
@@ -1524,7 +1529,7 @@ structure MessageFields {
     /// どの時に渡したかの名。書いていなければ無い。
     via: MessageVia
 
-    /// 渡した回数。書いていなければ無い。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書いていなければ無い。
     deliveries: MessageDeliveries
 
     /// 返事の先のメッセージの id。書いて置いた時だけ。
@@ -1538,7 +1543,7 @@ structure MessageFields {
     @required
     updatedAt: DateTime
 
-    /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+    /// 送り手（castlist で確かめた物）。「送った側」の書き込み（`waiting`・`carried`）に、付随する id を書いた時だけ。
     sender: Sender
 }
 
@@ -1569,12 +1574,12 @@ string MessageParty
 @length(min: 1, max: 8000)
 string MessageText
 
-/// 渡した回数: 1 以上。
+/// 受け手に本文を出した回数（呼ぶ側が数えて書く）: 1 以上。
 @range(min: 1)
 integer MessageDeliveries
 
 /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・
-/// `carried`（ほかの道具（cmux）で運んだ）。
+/// `carried`（ほかの道具で運んだ）。
 @pattern("^(waiting|delivered|undeliverable|expired|carried)$")
 string MessageState
 

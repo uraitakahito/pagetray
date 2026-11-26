@@ -238,7 +238,8 @@ async fn every_field_reads_back() {
     }
 }
 
-/// 書き足すと、`state`・`via`・`deliveries` は新しい値になる（書かなかった `via`・`deliveries` は前のまま）。
+/// 書き足すと、`state` は前へだけ進む（今より強い時だけ替わる）。`deliveries` は大きい方を保ち、`via` は、状態を替えた時か
+/// 今が空の時だけ入る（書かなかった `via`・`deliveries` は前のまま）。
 /// `deliveredAt` は、まだ無い時だけ入る（初めの時刻を保つ。返事の状態の `askedAt`・`answeredAt` と同じ考え）。
 #[tokio::test]
 async fn appending_updates_the_state_and_keeps_the_first_delivery_time() {
@@ -268,7 +269,7 @@ async fn appending_updates_the_state_and_keeps_the_first_delivery_time() {
     assert_eq!(first["via"], "prompt");
     assert_eq!(first["deliveries"], 1);
 
-    // 違う届いた時刻が来ても、初めの時刻を保つ。via と deliveries は新しい値。
+    // 違う届いた時刻が来ても、初めの時刻を保つ。状態が替わらないので via は前のまま。deliveries は大きい方。
     let second = append(
         &app,
         "p",
@@ -285,21 +286,139 @@ async fn appending_updates_the_state_and_keeps_the_first_delivery_time() {
     )
     .await;
     assert_eq!(second["deliveredAt"], "2026-11-24T00:00:05Z");
-    assert_eq!(second["via"], "stop");
+    assert_eq!(second["via"], "prompt");
     assert_eq!(second["deliveries"], 2);
 
-    // 任意の欄を書かずに状態だけを書き足しても、前の値は消えない。
-    let third = append(
+    // 弱い状態（届いた後の期限切れ・まだ届いていない）では替わらない。任意の欄を書かなくても、前の値は消えない。
+    // 小さい deliveries が来ても、大きい方を保つ。
+    for change in [
+        json!({ "state": "expired" }),
+        json!({ "state": "undeliverable", "via": "stop" }),
+        json!({ "state": "waiting", "deliveries": 1 }),
+        json!({ "state": "carried" }),
+    ] {
+        let third = append(&app, "p", "m-1", with(waiting(), change.clone())).await;
+        assert_eq!(third["state"], "delivered", "{change}");
+        assert_eq!(third["deliveredAt"], "2026-11-24T00:00:05Z", "{change}");
+        assert_eq!(third["via"], "prompt", "{change}");
+        assert_eq!(third["deliveries"], 2, "{change}");
+    }
+}
+
+/// 状態は waiting → expired → delivered と前へ進む。同じ強さ（waiting と carried・expired と undeliverable）では替わらない。
+/// `via` は、状態を替えた時か、今が空の時だけ入る。
+#[tokio::test]
+async fn the_state_only_moves_forward() {
+    let app = App::start().await;
+    place(&app, "p", "m-1", waiting()).await;
+    let same = append(
         &app,
         "p",
         "m-1",
-        with(waiting(), json!({ "state": "expired" })),
+        with(waiting(), json!({ "state": "carried", "via": "hand" })),
     )
     .await;
-    assert_eq!(third["state"], "expired");
-    assert_eq!(third["deliveredAt"], "2026-11-24T00:00:05Z");
-    assert_eq!(third["via"], "stop");
-    assert_eq!(third["deliveries"], 2);
+    assert_eq!(same["state"], "waiting");
+    // 状態は替わらないが、空だった via は入る。
+    assert_eq!(same["via"], "hand");
+    let expired = append(
+        &app,
+        "p",
+        "m-1",
+        with(waiting(), json!({ "state": "expired", "via": "sweep" })),
+    )
+    .await;
+    assert_eq!(expired["state"], "expired");
+    assert_eq!(expired["via"], "sweep");
+    let same = append(
+        &app,
+        "p",
+        "m-1",
+        with(
+            waiting(),
+            json!({ "state": "undeliverable", "via": "other" }),
+        ),
+    )
+    .await;
+    assert_eq!(same["state"], "expired");
+    assert_eq!(same["via"], "sweep");
+    let delivered = append(
+        &app,
+        "p",
+        "m-1",
+        with(waiting(), json!({ "state": "delivered", "via": "prompt" })),
+    )
+    .await;
+    assert_eq!(delivered["state"], "delivered");
+    assert_eq!(delivered["via"], "prompt");
+    // 初めて置く時は、来た状態のまま（carried も）。carried の後の waiting では替わらない。
+    let made = place(
+        &app,
+        "p",
+        "m-2",
+        with(waiting(), json!({ "state": "carried" })),
+    )
+    .await;
+    assert_eq!(made["state"], "carried");
+    let again = append(&app, "p", "m-2", waiting()).await;
+    assert_eq!(again["state"], "carried");
+}
+
+/// 「渡した」の記録（受け手の process が写す）が、「送った」の記録（送り手の process が写す）より先に届いても、同じ記録になる:
+/// 状態は delivered のまま・届いた時刻と渡した回数は残り・送り手は、後から来た送った側の物。castlist に聞くのは送った側の時だけ。
+/// 「まだ届いていない n 件」も増えない。
+#[tokio::test]
+async fn a_delivery_that_arrives_before_the_send_keeps_its_state_and_gets_the_sender_later() {
+    let fake = Fake::start().await;
+    let app = App::with_castlist(&fake.url).await;
+    // 渡した側（受け手 pm）が先。付随する id が付いていても、castlist に聞かず、送り手として残さない。
+    let (status, _, first) = put(
+        &app,
+        "p",
+        "m-1",
+        AS_PM,
+        with(
+            waiting(),
+            json!({
+                "state": "delivered",
+                "deliveredAt": "2026-11-24T00:00:05Z",
+                "via": "prompt",
+                "deliveries": 2,
+            }),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED, "{first}");
+    assert!(first.get("sender").is_none(), "{first}");
+    assert!(
+        fake.requests().is_empty(),
+        "渡した側の書き込みで castlist に聞いた"
+    );
+    assert_eq!(app.count("senders").await, 0);
+
+    // 送った側（送り手 a）が後。状態は戻らず、送り手が入る。
+    let (status, _, second) = put(
+        &app,
+        "p",
+        "m-1",
+        AS_A,
+        with(waiting(), json!({ "deliveries": 1 })),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{second}");
+    assert_eq!(second["state"], "delivered");
+    assert_eq!(second["deliveredAt"], "2026-11-24T00:00:05Z");
+    assert_eq!(second["via"], "prompt");
+    assert_eq!(second["deliveries"], 2);
+    assert_eq!(second["sender"]["ref"], "claude.session:a");
+    assert_eq!(second["sender"]["actor"]["id"], ACTOR_A);
+    assert_eq!(fake.requests().len(), 1);
+    assert_eq!(app.count("senders").await, 1);
+    // まだ届いていない数は、順が入れ替わっても増えない。
+    assert!(listed(&app, "state=waiting").await.is_empty());
+    let page = text(&app, "/messages").await;
+    assert!(page.contains("<title>メッセージの記録</title>"), "{page}");
+    assert!(page.contains("hidden>まだ届いていない 0 件</a>"), "{page}");
 }
 
 /// `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` は、初めに置いた値を保つ（違う値が来ても変えず、誤りにもしない）。
@@ -770,7 +889,7 @@ async fn a_message_from_a_known_sender_keeps_the_first_answer() {
     );
     assert_eq!(list(&app, "").await["messages"][0]["sender"], sender);
 
-    // ほかの送り手が書き足しても（castlist には確かめる）、記録の送り手は初めの物。送り手の行も増えない。
+    // 渡した側（ほかの状態）の書き足しは、付随する id が付いていても castlist に聞かず、送り手を替えない。
     let (status, _, again) = put(
         &app,
         "p",
@@ -783,17 +902,23 @@ async fn a_message_from_a_known_sender_keeps_the_first_answer() {
     assert_eq!(again["state"], "delivered");
     assert_eq!(again["sender"], sender);
     assert_eq!(app.count("senders").await, 1);
+    assert_eq!(fake.requests().len(), 1);
+    // ほかの送り手が送った側として書き足しても（castlist には確かめる）、もう入っている送り手は替えない。行も増えない。
+    let (status, _, again) = put(&app, "p", "m-1", AS_PM, waiting()).await;
+    assert_eq!(status, StatusCode::OK, "{again}");
+    assert_eq!(again["sender"], sender);
+    assert_eq!(app.count("senders").await, 1);
     assert_eq!(fake.requests().len(), 2);
     // 付随する id を書かずに書き足しても、送り手は残る。
     let (status, _, again) = put(&app, "p", "m-1", "", waiting()).await;
     assert_eq!(status, StatusCode::OK, "{again}");
     assert_eq!(again["sender"], sender);
-    // 送り手を書かずに置いた記録には、後から送り手を入れない。
+    // 送り手が空の記録は、後から来た送った側の書き込みの送り手で埋める。
     place(&app, "p", "m-2", waiting()).await;
     let (status, _, again) = put(&app, "p", "m-2", AS_A, waiting()).await;
     assert_eq!(status, StatusCode::OK, "{again}");
-    assert!(again.get("sender").is_none(), "{again}");
-    assert_eq!(app.count("senders").await, 1);
+    assert_eq!(again["sender"], sender);
+    assert_eq!(app.count("senders").await, 2);
 }
 
 /// castlist に登録の無い送り手は 400（`fieldList` の path は `/actorRef`）、聞けなければ 503。どちらも何も残さず、
@@ -814,18 +939,20 @@ async fn an_unknown_or_unreachable_sender_stores_nothing() {
     );
     assert_eq!(json["fieldList"][0]["path"], "/actorRef", "{json}");
     nothing_stored(&app).await;
-    // 書き足しでも、知らない送り手は断る（状態は替わらない）。
+    // 送った側の書き足しでも、知らない送り手は断る（何も替わらない）。
     place(&app, "p", "m-1", waiting()).await;
     let (status, _, _) = put(
         &app,
         "p",
         "m-1",
         NOBODY,
-        with(waiting(), json!({ "state": "delivered" })),
+        with(waiting(), json!({ "via": "hand", "deliveries": 3 })),
     )
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
-    assert_eq!(list(&app, "").await["messages"][0]["state"], "waiting");
+    let kept = &list(&app, "").await["messages"][0];
+    assert!(kept.get("via").is_none(), "{kept}");
+    assert!(kept.get("deliveries").is_none(), "{kept}");
 
     let app = App::with_castlist(&closed_url()).await;
     let (status, headers, json) = put(&app, "p", "m-1", AS_A, waiting()).await;
@@ -842,6 +969,24 @@ async fn an_unknown_or_unreachable_sender_stores_nothing() {
     // 付随する id を書かなければ、castlist に聞かずに置ける（送り手は残さない）。
     let made = place(&app, "p", "m-1", waiting()).await;
     assert!(made.get("sender").is_none(), "{made}");
+    // castlist が止まっていても、渡した側の書き足し（付随する id つき）は通る。初めて置く時も。
+    for id in ["m-1", "m-2"] {
+        let (status, _, json) = put(
+            &app,
+            "p",
+            id,
+            AS_PM,
+            with(
+                waiting(),
+                json!({ "state": "delivered", "deliveredAt": "2026-11-24T00:00:05Z" }),
+            ),
+        )
+        .await;
+        assert!(status.is_success(), "{id}: {status} {json}");
+        assert_eq!(json["state"], "delivered", "{id}");
+        assert_eq!(json["deliveredAt"], "2026-11-24T00:00:05Z", "{id}");
+        assert!(json.get("sender").is_none(), "{id}: {json}");
+    }
     assert_eq!(app.count("senders").await, 0);
 }
 
@@ -890,6 +1035,21 @@ async fn actor_params_must_come_together_and_in_shape() {
         json["message"].as_str().unwrap_or("").contains("両方"),
         "{json}"
     );
+    // 渡した側の書き込み（castlist に聞かない）でも、組と形は見る。
+    for actor in [
+        "actorIssuer=tpm",
+        "actorIssuer=TPM&actorRef=claude.session%3Aa",
+    ] {
+        let (status, _, json) = put(
+            &app,
+            "p",
+            "m-1",
+            actor,
+            with(waiting(), json!({ "state": "delivered" })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{actor}: {json}");
+    }
     for (project, change) in [
         ("p", json!({ "text": "" })),
         ("p", json!({ "sentAt": "2026-11-24T00:00:00.1234Z" })),
@@ -1123,7 +1283,7 @@ async fn a_row_shows_the_record_with_the_state_in_words() {
     for (id, state, label) in [
         ("p/m-1", "waiting", "まだ届いていない"),
         ("p/m-3", "expired", "期限切れ"),
-        ("q/m-4", "carried", "cmux で運んだ"),
+        ("q/m-4", "carried", "ほかの道具で運んだ"),
         ("q/m-5", "undeliverable", "渡せない"),
     ] {
         assert!(
@@ -1232,11 +1392,11 @@ async fn a_long_text_shows_its_head_and_opens_to_the_whole() {
         line.contains(&format!("<pre>{long}</pre></details>")),
         "{line}"
     );
-    // 行の多い本文も、頭だけ。
+    // 行の多い本文も、頭だけ（切っていないので「…」は付かない）。
     let line = row(&page, "p/lines");
     assert!(
         line.contains(
-            "<details><summary>1 2 3 4 5 6 7…</summary><pre>1\n2\n3\n4\n5\n6\n7</pre></details>"
+            "<details><summary>1 2 3 4 5 6 7</summary><pre>1\n2\n3\n4\n5\n6\n7</pre></details>"
         ),
         "{line}"
     );
@@ -1264,7 +1424,7 @@ async fn filters_narrow_the_list_and_the_undelivered_count_stays() {
     for choice in [
         r#"<h2>状態</h2>"#,
         r#"<a href="/messages?state=waiting"><span>まだ届いていない</span><span class="n">2</span></a>"#,
-        r#"<a href="/messages?state=carried"><span>cmux で運んだ</span><span class="n">1</span></a>"#,
+        r#"<a href="/messages?state=carried"><span>ほかの道具で運んだ</span><span class="n">1</span></a>"#,
         r#"<h2>受け手</h2>"#,
         r#"<a href="/messages?to=tpm"><span>tpm</span><span class="n">3</span></a>"#,
         r#"<h2>送り手</h2>"#,
@@ -1337,6 +1497,64 @@ async fn filters_narrow_the_list_and_the_undelivered_count_stays() {
     let (status, headers, body) = app.get("/messages?to=a&to=b").await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     refused(&headers, &body, "ValidationException");
+}
+
+/// 今絞っている受け手・送り手・Key は、候補の 100 件の外でも候補に入る（押して外せる）。置き場に無い値でも。
+#[tokio::test]
+async fn the_picked_value_is_always_among_the_choices() {
+    let app = App::start().await;
+    for i in 0..101 {
+        place(
+            &app,
+            "p",
+            &format!("m-{i}"),
+            with(
+                waiting(),
+                json!({
+                    "to": format!("to-{i:03}"),
+                    "from": format!("from-{i:03}"),
+                    "key": format!("K-{i}"),
+                    "sentAt": format!("2026-11-01T00:{:02}:{:02}Z", i / 60, i % 60),
+                }),
+            ),
+        )
+        .await;
+    }
+    // 候補は 100 件まで（受け手・送り手は件数の多い順で、同じ件数なら名の順。Key は新しく送られた順）。
+    let page = text(&app, "/messages").await;
+    assert!(page.contains(r#"<a href="/messages?to=to-099">"#), "{page}");
+    assert!(
+        !page.contains(r#"<a href="/messages?to=to-100">"#),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<a href="/messages?from=from-099">"#),
+        "{page}"
+    );
+    assert!(
+        !page.contains(r#"<a href="/messages?from=from-100">"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"<a href="/messages?key=K-1">"#), "{page}");
+    assert!(!page.contains(r#"<a href="/messages?key=K-0">"#), "{page}");
+    let page = text(&app, "/messages?to=to-100&from=from-100&key=K-0").await;
+    for (href, label) in [
+        ("/messages?key=K-0&#38;from=from-100", "to-100"),
+        ("/messages?key=K-0&#38;to=to-100", "from-100"),
+        ("/messages?to=to-100&#38;from=from-100", "K-0"),
+    ] {
+        assert!(
+            page.contains(&format!(
+                r#"<a href="{href}" class="on" aria-current="true"><span>{label}</span><span class="n">1</span></a>"#
+            )),
+            "{label}: {page}"
+        );
+    }
+    let page = text(&app, "/messages?to=nobody").await;
+    assert!(
+        page.contains(r#"<a href="/messages" class="on" aria-current="true"><span>nobody</span><span class="n">0</span></a>"#),
+        "{page}"
+    );
 }
 
 /// 1 度に 200 件。続きは link で出す（同じ時刻の行が境に並んでも抜けない）。

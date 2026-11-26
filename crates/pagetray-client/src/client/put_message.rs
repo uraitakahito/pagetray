@@ -13,10 +13,10 @@ impl super::Client {
     ///   - [`to(impl Into<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::to) / [`set_to(Option<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_to):<br>required: **true**<br>受け手の名。<br>
     ///   - [`text(impl Into<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::text) / [`set_text(Option<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_text):<br>required: **true**<br>本文。字のまま持つ（HTML として解釈しない）。<br>
     ///   - [`sent_at(DateTime)`](crate::operation::put_message::builders::PutMessageFluentBuilder::sent_at) / [`set_sent_at(Option<DateTime>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_sent_at):<br>required: **true**<br>送った時刻（UTC・ミリ秒まで）。<br>
-    ///   - [`state(impl Into<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::state) / [`set_state(Option<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_state):<br>required: **true**<br>状態。<br>
+    ///   - [`state(impl Into<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::state) / [`set_state(Option<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_state):<br>required: **true**<br>状態。書き足す時は、今の状態より強い時だけ替わる。<br>
     ///   - [`delivered_at(DateTime)`](crate::operation::put_message::builders::PutMessageFluentBuilder::delivered_at) / [`set_delivered_at(Option<DateTime>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_delivered_at):<br>required: **false**<br>届いた時刻（UTC・ミリ秒まで）。まだ無い時だけ入る。<br>
     ///   - [`via(impl Into<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::via) / [`set_via(Option<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_via):<br>required: **false**<br>どの時に渡したかの名。<br>
-    ///   - [`deliveries(i32)`](crate::operation::put_message::builders::PutMessageFluentBuilder::deliveries) / [`set_deliveries(Option<i32>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_deliveries):<br>required: **false**<br>渡した回数。<br>
+    ///   - [`deliveries(i32)`](crate::operation::put_message::builders::PutMessageFluentBuilder::deliveries) / [`set_deliveries(Option<i32>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_deliveries):<br>required: **false**<br>受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。<br>
     ///   - [`reply_to(impl Into<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::reply_to) / [`set_reply_to(Option<String>)`](crate::operation::put_message::builders::PutMessageFluentBuilder::set_reply_to):<br>required: **false**<br>返事の先のメッセージの id。<br>
     /// - On success, responds with [`PutMessageOutput`](crate::operation::put_message::PutMessageOutput) with field(s):
     ///   - [`project(String)`](crate::operation::put_message::PutMessageOutput::project): URL の 1 段になる字（project・key）: 英数字と `.`・`_`・`-` で 255 字まで。
@@ -27,14 +27,14 @@ impl super::Client {
     ///   - [`to(String)`](crate::operation::put_message::PutMessageOutput::to): 受け手の名。
     ///   - [`text(String)`](crate::operation::put_message::PutMessageOutput::text): 本文（字のまま）。
     ///   - [`sent_at(DateTime)`](crate::operation::put_message::PutMessageOutput::sent_at): 送った時刻。
-    ///   - [`state(String)`](crate::operation::put_message::PutMessageOutput::state): メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    ///   - [`state(String)`](crate::operation::put_message::PutMessageOutput::state): メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     ///   - [`delivered_at(Option<DateTime>)`](crate::operation::put_message::PutMessageOutput::delivered_at): 届いた時刻（初めに書かれた物）。まだ無ければ無い。
     ///   - [`via(Option<String>)`](crate::operation::put_message::PutMessageOutput::via): どの時に渡したかの名。書いていなければ無い。
-    ///   - [`deliveries(Option<i32>)`](crate::operation::put_message::PutMessageOutput::deliveries): 渡した回数。書いていなければ無い。
+    ///   - [`deliveries(Option<i32>)`](crate::operation::put_message::PutMessageOutput::deliveries): 受け手に本文を出した回数（呼ぶ側が数えて書く）。書いていなければ無い。
     ///   - [`reply_to(Option<String>)`](crate::operation::put_message::PutMessageOutput::reply_to): 返事の先のメッセージの id。書いて置いた時だけ。
     ///   - [`created_at(DateTime)`](crate::operation::put_message::PutMessageOutput::created_at): pagetray が初めて受けた時刻。
     ///   - [`updated_at(DateTime)`](crate::operation::put_message::PutMessageOutput::updated_at): 最後に書き足された時刻（置いただけなら `createdAt` と同じ）。
-    ///   - [`sender(Option<Sender>)`](crate::operation::put_message::PutMessageOutput::sender): 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+    ///   - [`sender(Option<Sender>)`](crate::operation::put_message::PutMessageOutput::sender): 送り手（castlist で確かめた物）。「送った側」の書き込み（`waiting`・`carried`）に、付随する id を書いた時だけ。
     ///   - [`status(i32)`](crate::operation::put_message::PutMessageOutput::status): 新しく作れば 201、もうある id に書き足せば 200。
     /// - On failure, responds with [`SdkError<PutMessageError>`](crate::operation::put_message::PutMessageError)
     pub fn put_message(&self) -> crate::operation::put_message::builders::PutMessageFluentBuilder {

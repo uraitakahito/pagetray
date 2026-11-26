@@ -17,7 +17,7 @@ use serde::Deserialize;
 use super::{Choice, Counter, FilterGroup, PAGE_SIZE, Ui, encode, screen, short_time, unreadable};
 use crate::db::MessageRow;
 use crate::errors::Failure;
-use crate::facets::Count;
+use crate::facets::{Count, MessagePicked};
 use crate::messages::{TOKEN_KIND, sort_name};
 use crate::search::MessageQuery;
 use crate::token;
@@ -28,7 +28,7 @@ const STATES: [(&str, &str); 5] = [
     ("delivered", "届いた"),
     ("undeliverable", "渡せない"),
     ("expired", "期限切れ"),
-    ("carried", "cmux で運んだ"),
+    ("carried", "ほかの道具で運んだ"),
 ];
 
 /// 本文をそのまま出す長さ（字の数と行の数）。超えれば、頭だけ見せて、開くと全部。
@@ -99,7 +99,7 @@ struct Row {
     to_name: String,
     /// 本文（字のまま。template が逃がす）。
     text: String,
-    /// 長い本文の頭（改行を空白にした、初めの [`HEAD_CHARS`] 字）。短い本文には無い。
+    /// 長い本文の頭（改行を空白にした、初めの [`HEAD_CHARS`] 字。切った時は後ろに「…」）。短い本文には無い。
     head: Option<String>,
     sent_at: String,
     /// script が動かない時に出す時刻（UTC）。
@@ -186,8 +186,14 @@ async fn page(ui: &Ui, mut view: View) -> Result<String, Failure> {
         limit: PAGE_SIZE,
         ..MessageQuery::default()
     };
-    let (found, facets) = tokio::try_join!(ui.db.list_messages(&query), ui.db.message_facets())
-        .map_err(|e| Failure::db("ui", e))?;
+    let picked = MessagePicked {
+        to: view.to.as_deref(),
+        from: view.from.as_deref(),
+        key: view.key.as_deref(),
+    };
+    let (found, facets) =
+        tokio::try_join!(ui.db.list_messages(&query), ui.db.message_facets(&picked))
+            .map_err(|e| Failure::db("ui", e))?;
 
     let more_href = found.more.then(|| found.rows.last()).flatten().map(|last| {
         let at = token::next_by(TOKEN_KIND, sort_name(false), &last.sent_at, last.id);
@@ -222,7 +228,7 @@ async fn page(ui: &Ui, mut view: View) -> Result<String, Failure> {
             })
             .collect(),
     };
-    // 状態の候補は、決まった順（まだ届いていない・届いた・渡せない・期限切れ・cmux で運んだ）。件数が 0 の候補は出さない。
+    // 状態の候補は、決まった順（まだ届いていない・届いた・渡せない・期限切れ・ほかの道具で運んだ）。件数が 0 の候補は出さない。
     let mut states = facets.states;
     states.sort_by_key(|c| STATES.iter().position(|(name, _)| *name == c.value));
     let messages = Messages {
@@ -268,14 +274,20 @@ async fn page(ui: &Ui, mut view: View) -> Result<String, Failure> {
     messages.render().map_err(|e| Failure::data("ui", &e))
 }
 
-/// 長い本文（字か行が多い）なら、頭として見せる字。
+/// 長い本文（字か行が多い）なら、頭として見せる字。改行（`\n`・`\r`）は空白にし、切った時だけ後ろに「…」を付ける。
 fn head(text: &str) -> Option<String> {
-    let long = text.chars().count() > TEXT_CHARS || text.lines().count() > TEXT_LINES;
+    let chars = text.chars().count();
+    let long = chars > TEXT_CHARS || text.lines().count() > TEXT_LINES;
     long.then(|| {
-        text.chars()
+        let mut head: String = text
+            .chars()
             .take(HEAD_CHARS)
-            .map(|c| if c == '\n' { ' ' } else { c })
-            .collect()
+            .map(|c| if matches!(c, '\n' | '\r') { ' ' } else { c })
+            .collect();
+        if chars > HEAD_CHARS {
+            head.push('…');
+        }
+        head
     })
 }
 
@@ -328,10 +340,12 @@ mod tests {
     fn only_long_texts_get_a_head() {
         assert_eq!(head("短い\n2 行目"), None);
         assert_eq!(head(&"あ".repeat(200)), None);
+        // 切った時だけ「…」が付く（120 字 + 1）。
         assert_eq!(
             head(&"あ".repeat(201)).map(|h| h.chars().count()),
-            Some(120)
+            Some(121)
         );
+        assert_eq!(head("1\r\n2\n3\n4\n5\n6"), Some("1  2 3 4 5 6".to_owned()));
         assert_eq!(head("1\n2\n3\n4\n5"), None);
         assert_eq!(head("1\n2\n3\n4\n5\n6"), Some("1 2 3 4 5 6".to_owned()));
     }

@@ -22,7 +22,7 @@ impl crate::operation::put_message::builders::PutMessageInputBuilder {
 }
 /// Fluent builder constructing a request to `PutMessage`.
 ///
-/// メッセージの記録を 1 件置く・書き足す（同じ project と id に、何度打ってもよい）。pagetray は、ほかの道具（roster）が配った メッセージの記録を写して見せるだけで、配らず、状態を自分で決めず、期限を持たない。 - 初めての id なら作る（201）。もうある id なら書き足す（200）: `state` は新しい値にし、`via`・`deliveries` は書けば新しい値に する（書かなければ前のまま）。`deliveredAt` は、まだ無い時だけ入れる（初めの時刻を保つ）。 - `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` と送り手は、初めに置いた値を保つ（違う値が来ても変えず、 誤りにもしない）。形は、書き足す時も見る。 - 送り手は CreatePage と同じ: 付随する id（`actorIssuer`・`actorRef`）を書けば castlist に聞き（置く時も書き足す時も）、 登録の無い送り手は 400、聞けなければ 503（どちらも何も替えない）。残すのは、初めに置いた時の送り手だけ。 - 時刻（`sentAt`・`deliveredAt`）は UTC・ミリ秒まで（細かい時刻は 400）。
+/// メッセージの記録を 1 件置く・書き足す（同じ project と id に、何度打ってもよい）。pagetray は、ほかの道具（roster）が配った メッセージの記録を写して見せるだけで、配らず、状態を自分で決めず、期限を持たない。 - 初めての id なら作る（201。状態は来たまま）。もうある id なら書き足す（200）。書き足しは、届く順に依らない （「渡した」の記録が「送った」の記録より先に届いても、同じ記録になる）: - `state` は前へだけ進む。強さは `waiting`＝`carried` ＜ `expired`＝`undeliverable` ＜ `delivered` で、今より強い時だけ替える。 - `deliveries` は大きい方を保つ。`via` は、`state` を替えた時か、今が空の時だけ入れる（どちらも、書かなければ前のまま）。 - `deliveredAt` は、まだ無い時だけ入れる（初めの時刻を保つ）。 - `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` は、初めに置いた値を保つ（違う値が来ても変えず、 誤りにもしない）。形は、書き足す時も見る。 - 送り手として残すのは、「送った側」の書き込み（`state` が `waiting` か `carried`）の物だけ。その書き込みに付随する id （`actorIssuer`・`actorRef`）があれば、CreatePage と同じく castlist に聞き、登録の無い送り手は 400、聞けなければ 503 （どちらも何も替えない）。記録の送り手がまだ空なら入れ、もう入っていれば替えない。ほかの `state` の書き込みは、 付随する id が付いていても castlist に聞かず、送り手として残さない（組と形は見る。片方だけは 400）。 - 時刻（`sentAt`・`deliveredAt`）は UTC・ミリ秒まで（細かい時刻は 400）。
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutMessageFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -257,17 +257,17 @@ impl PutMessageFluentBuilder {
     pub fn get_sent_at(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
         self.inner.get_sent_at()
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub fn state(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.state(input.into());
         self
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub fn set_state(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_state(input);
         self
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub fn get_state(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_state()
     }
@@ -302,17 +302,17 @@ impl PutMessageFluentBuilder {
     pub fn get_via(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_via()
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn deliveries(mut self, input: i32) -> Self {
         self.inner = self.inner.deliveries(input);
         self
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn set_deliveries(mut self, input: ::std::option::Option<i32>) -> Self {
         self.inner = self.inner.set_deliveries(input);
         self
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn get_deliveries(&self) -> &::std::option::Option<i32> {
         self.inner.get_deliveries()
     }

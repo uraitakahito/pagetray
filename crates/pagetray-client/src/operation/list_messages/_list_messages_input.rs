@@ -11,7 +11,7 @@ pub struct ListMessagesInput {
     pub to: ::std::option::Option<::std::string::String>,
     /// 送り手の名（同じ値の物）。
     pub from: ::std::option::Option<::std::string::String>,
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub state: ::std::option::Option<::std::string::String>,
     /// メッセージの見出しの名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで（名の一覧は持たない）。
     pub heading: ::std::option::Option<::std::string::String>,
@@ -41,7 +41,7 @@ impl ListMessagesInput {
     pub fn from(&self) -> ::std::option::Option<&str> {
         self.from.as_deref()
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn state(&self) -> ::std::option::Option<&str> {
         self.state.as_deref()
     }
@@ -147,17 +147,17 @@ impl ListMessagesInputBuilder {
     pub fn get_from(&self) -> &::std::option::Option<::std::string::String> {
         &self.from
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn state(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.state = ::std::option::Option::Some(input.into());
         self
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn set_state(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.state = input;
         self
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn get_state(&self) -> &::std::option::Option<::std::string::String> {
         &self.state
     }

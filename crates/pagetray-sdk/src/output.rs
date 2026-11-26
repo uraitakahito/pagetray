@@ -733,13 +733,13 @@ pub struct PutMessageOutput {
     pub text: ::std::string::String,
     /// 送った時刻。
     pub sent_at: ::aws_smithy_types::DateTime,
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub state: ::std::string::String,
     /// 届いた時刻（初めに書かれた物）。まだ無ければ無い。
     pub delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
     /// どの時に渡したかの名。書いていなければ無い。
     pub via: ::std::option::Option<::std::string::String>,
-    /// 渡した回数。書いていなければ無い。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書いていなければ無い。
     pub deliveries: ::std::option::Option<i32>,
     /// 返事の先のメッセージの id。書いて置いた時だけ。
     pub reply_to: ::std::option::Option<::std::string::String>,
@@ -747,7 +747,7 @@ pub struct PutMessageOutput {
     pub created_at: ::aws_smithy_types::DateTime,
     /// 最後に書き足された時刻（置いただけなら `createdAt` と同じ）。
     pub updated_at: ::aws_smithy_types::DateTime,
-    /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+    /// 送り手（castlist で確かめた物）。「送った側」の書き込み（`waiting`・`carried`）に、付随する id を書いた時だけ。
     pub sender: ::std::option::Option<crate::model::Sender>,
     /// 新しく作れば 201、もうある id に書き足せば 200。
     pub status: i32,
@@ -791,7 +791,7 @@ impl PutMessageOutput {
     pub fn sent_at(&self) -> &::aws_smithy_types::DateTime {
         &self.sent_at
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn state(&self) -> &str {
         use std::ops::Deref;
         self.state.deref()
@@ -804,7 +804,7 @@ impl PutMessageOutput {
     pub fn via(&self) -> ::std::option::Option<&str> {
         self.via.as_deref()
     }
-    /// 渡した回数。書いていなければ無い。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書いていなければ無い。
     pub fn deliveries(&self) -> ::std::option::Option<i32> {
         self.deliveries
     }
@@ -820,7 +820,7 @@ impl PutMessageOutput {
     pub fn updated_at(&self) -> &::aws_smithy_types::DateTime {
         &self.updated_at
     }
-    /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+    /// 送り手（castlist で確かめた物）。「送った側」の書き込み（`waiting`・`carried`）に、付随する id を書いた時だけ。
     pub fn sender(&self) -> ::std::option::Option<&crate::model::Sender> {
         self.sender.as_ref()
     }
@@ -2099,7 +2099,7 @@ pub mod put_message_output {
             self.sent_at = Some(input);
             self
         }
-        /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+        /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
         pub fn state(mut self, input: ::std::string::String) -> Self {
             self.state = Some(input);
             self
@@ -2117,7 +2117,7 @@ pub mod put_message_output {
             self.via = input;
             self
         }
-        /// 渡した回数。書いていなければ無い。
+        /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書いていなければ無い。
         pub fn deliveries(mut self, input: ::std::option::Option<i32>) -> Self {
             self.deliveries = input;
             self
@@ -2137,7 +2137,7 @@ pub mod put_message_output {
             self.updated_at = Some(input);
             self
         }
-        /// 送り手（castlist で確かめた物）。初めに置いた時に、付随する id を書いた時だけ。
+        /// 送り手（castlist で確かめた物）。「送った側」の書き込み（`waiting`・`carried`）に、付随する id を書いた時だけ。
         pub fn sender(mut self, input: ::std::option::Option<crate::model::Sender>) -> Self {
             self.sender = input;
             self

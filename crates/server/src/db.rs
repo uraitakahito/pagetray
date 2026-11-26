@@ -203,7 +203,7 @@ pub struct NewMessage<'a> {
     pub via: Option<&'a str>,
     pub deliveries: Option<i64>,
     pub reply_to: Option<&'a str>,
-    /// 送り手。初めて置く時だけ、senders に 1 行足して記録から指す（同じ取引）。書き足す時は使わない。
+    /// 送り手（「送った側」の書き込みの物だけを渡す）。記録の送り手がまだ空なら、senders に 1 行足して記録から指す（同じ取引）。
     pub sender: Option<&'a NewSender>,
 }
 
@@ -241,6 +241,21 @@ pub const MESSAGE_ROW: &str = "select m.id, m.project, m.message_id, m.key, m.he
         m.sent_at, m.state, m.delivered_at, m.via, m.deliveries, m.reply_to, m.created_at, m.updated_at,
         s.actor_issuer, s.actor_ref, s.actor_id, s.actor_name, s.actor_kind, s.resolved_at
  from messages m left join senders s on s.id = m.sender_id";
+
+/// メッセージの状態の強さ。書き足しは、今より強い状態の時だけ替える（状態は前へだけ進む）:
+/// `waiting`・`carried`（送った側が書く。0）＜ `expired`・`undeliverable`（1）＜ `delivered`（2）。
+pub fn message_rank(state: &str) -> u8 {
+    match state {
+        "delivered" => 2,
+        "expired" | "undeliverable" => 1,
+        _ => 0,
+    }
+}
+
+/// 「送った側」の書き込みか（状態が `waiting` か `carried`）。送り手を castlist に聞いて残すのは、この書き込みだけ。
+pub fn message_from_sender(state: &str) -> bool {
+    matches!(state, "waiting" | "carried")
+}
 
 /// 返事の状態。
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -882,34 +897,52 @@ impl Db {
     }
 
     /// メッセージの記録を 1 件置く・書き足す（1 つの transaction）。置いた（true）か書き足した（false）かと、書いた後の記録を返す。
-    /// - 初めての project と id なら置く（送り手があれば、senders に 1 行足して指す）。
-    /// - もうあれば書き足す: 状態は新しい値に、渡した時と渡した回数は書けば新しい値に（書かなければ前のまま）、届いた時刻は
-    ///   まだ無い時だけ入れる（初めの時刻を保つ）。ほかの欄と送り手は、初めに置いた値を保つ（送り手の行も足さない）。
+    /// 書き足しは、届く順に依らない（「渡した」の記録が「送った」の記録より先に届いても、同じ記録になる）:
+    /// - 初めての project と id なら置く（状態は来たまま。送り手があれば、senders に 1 行足して指す）。
+    /// - もうあれば書き足す: 状態は前へだけ進む（[`message_rank`] が今より強い時だけ替える）。渡した回数は大きい方を保つ。
+    ///   渡した時は、状態を替えた時か、今が空の時だけ入れる。届いた時刻は、まだ無い時だけ入れる（初めの時刻を保つ）。
+    ///   送り手は、まだ空の時だけ入れる（呼ぶ側は、「送った側」の書き込みの送り手だけを渡す）。ほかの欄は、初めに置いた値を保つ。
     pub async fn put_message(
         &self,
         message: &NewMessage<'_>,
     ) -> Result<(bool, MessageRow), WriteError> {
         let mut tx = self.write.begin().await?;
         let now = now();
-        let existing: Option<i64> =
-            sqlx::query_scalar("select id from messages where project = ?1 and message_id = ?2")
-                .bind(message.project)
-                .bind(message.id)
-                .fetch_optional(&mut *tx)
-                .await?;
+        let existing: Option<(i64, String, Option<i64>)> = sqlx::query_as(
+            "select id, state, sender_id from messages where project = ?1 and message_id = ?2",
+        )
+        .bind(message.project)
+        .bind(message.id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let created = existing.is_none();
         let id = match existing {
-            Some(id) => {
+            Some((id, state, sender_id)) => {
+                let advance = message_rank(message.state) > message_rank(&state);
+                // 送り手の行を足すのは、記録の送り手がまだ空の時だけ（足すだけの表に、指されない行を残さない）。
+                let sender_id = match (sender_id, message.sender) {
+                    (None, Some(sender)) => Some(add_sender(&mut tx, sender).await?),
+                    _ => None,
+                };
                 sqlx::query(
                     "update messages
-                     set state = ?2, via = coalesce(?3, via), deliveries = coalesce(?4, deliveries),
-                         delivered_at = coalesce(delivered_at, ?5), updated_at = ?6
+                     set state = case when ?2 then ?3 else state end,
+                         via = case when ?4 is not null and (?2 or via is null) then ?4 else via end,
+                         deliveries = case when ?5 is null then deliveries
+                                           when deliveries is null then ?5
+                                           else max(deliveries, ?5) end,
+                         delivered_at = coalesce(delivered_at, ?6),
+                         sender_id = coalesce(sender_id, ?7),
+                         updated_at = ?8
                      where id = ?1",
                 )
                 .bind(id)
+                .bind(advance)
                 .bind(message.state)
                 .bind(message.via)
                 .bind(message.deliveries)
                 .bind(message.delivered_at)
+                .bind(sender_id)
                 .bind(&now)
                 .execute(&mut *tx)
                 .await?;
@@ -952,7 +985,7 @@ impl Db {
         .fetch_one(&mut *tx)
         .await?;
         tx.commit().await?;
-        Ok((existing.is_none(), row))
+        Ok((created, row))
     }
 
     /// file の Content-Type と中身。無ければ None。

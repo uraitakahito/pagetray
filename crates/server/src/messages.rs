@@ -11,7 +11,7 @@ use pagetray_sdk::input::{ListMessagesInput, PutMessageInput};
 use pagetray_sdk::output::{ListMessagesOutput, PutMessageOutput};
 
 use crate::castlist::Castlist;
-use crate::db::{Db, NewMessage};
+use crate::db::{Db, NewMessage, message_from_sender};
 use crate::errors::{Failure, PutFailure, internal, invalid};
 use crate::events::{Events, Note};
 use crate::pages::{Checked, ask, check, is_dot, stamp_of};
@@ -28,8 +28,10 @@ pub(crate) fn sort_name(oldest: bool) -> &'static str {
 }
 
 /// メッセージの記録を 1 件置く・書き足す。
-/// 検査の順: 引数と本文（400）→ 付随する id（400）→ castlist（400・503）→ DB。
-/// castlist には、書き足す時も聞く（書いた者を確かめる）。残す送り手は、初めに置いた時の物だけ。
+/// 検査の順: 引数と本文（400）→ 付随する id（400）→ castlist（400・503。「送った側」の書き込みだけ）→ DB。
+/// 「送った」の記録と「渡した」の記録は、別の process が、別々に・順を問わずに写す。だから、送り手として残すのは
+/// 「送った側」の書き込み（状態が `waiting` か `carried`）の物だけで、castlist に聞くのも、その時だけ（ほかの状態の書き込みは、
+/// 付随する id が付いていても聞かず、残さない。castlist が止まっていても、渡した時刻の書き足しは通る）。
 pub async fn put_message(
     db: Arc<Db>,
     castlist: Option<Castlist>,
@@ -56,6 +58,7 @@ pub async fn put_message(
         .map(|t| stamp_of("deliveredAt", t))
         .transpose()
         .map_err(PutFailure::Invalid)?;
+    let actor = actor.filter(|_| message_from_sender(&input.state));
     let sender = ask(castlist.as_ref(), actor).await?;
     let (created, row) = db
         .put_message(&NewMessage {

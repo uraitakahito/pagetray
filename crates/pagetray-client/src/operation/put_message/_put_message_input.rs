@@ -23,13 +23,13 @@ pub struct PutMessageInput {
     pub text: ::std::option::Option<::std::string::String>,
     /// 送った時刻（UTC・ミリ秒まで）。
     pub sent_at: ::std::option::Option<::aws_smithy_types::DateTime>,
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub state: ::std::option::Option<::std::string::String>,
     /// 届いた時刻（UTC・ミリ秒まで）。まだ無い時だけ入る。
     pub delivered_at: ::std::option::Option<::aws_smithy_types::DateTime>,
     /// どの時に渡したかの名。
     pub via: ::std::option::Option<::std::string::String>,
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub deliveries: ::std::option::Option<i32>,
     /// 返事の先のメッセージの id。
     pub reply_to: ::std::option::Option<::std::string::String>,
@@ -75,7 +75,7 @@ impl PutMessageInput {
     pub fn sent_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
         self.sent_at.as_ref()
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub fn state(&self) -> ::std::option::Option<&str> {
         self.state.as_deref()
     }
@@ -87,7 +87,7 @@ impl PutMessageInput {
     pub fn via(&self) -> ::std::option::Option<&str> {
         self.via.as_deref()
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn deliveries(&self) -> ::std::option::Option<i32> {
         self.deliveries
     }
@@ -276,18 +276,18 @@ impl PutMessageInputBuilder {
     pub fn get_sent_at(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
         &self.sent_at
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     /// This field is required.
     pub fn state(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.state = ::std::option::Option::Some(input.into());
         self
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub fn set_state(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.state = input;
         self
     }
-    /// 状態。
+    /// 状態。書き足す時は、今の状態より強い時だけ替わる。
     pub fn get_state(&self) -> &::std::option::Option<::std::string::String> {
         &self.state
     }
@@ -322,17 +322,17 @@ impl PutMessageInputBuilder {
     pub fn get_via(&self) -> &::std::option::Option<::std::string::String> {
         &self.via
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn deliveries(mut self, input: i32) -> Self {
         self.deliveries = ::std::option::Option::Some(input);
         self
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn set_deliveries(mut self, input: ::std::option::Option<i32>) -> Self {
         self.deliveries = input;
         self
     }
-    /// 渡した回数。
+    /// 受け手に本文を出した回数（呼ぶ側が数えて書く）。書き足す時は、大きい方を保つ。
     pub fn get_deliveries(&self) -> &::std::option::Option<i32> {
         &self.deliveries
     }

@@ -182,17 +182,17 @@ impl ListMessagesFluentBuilder {
     pub fn get_from(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_from()
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn state(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.state(input.into());
         self
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn set_state(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_state(input);
         self
     }
-    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具（cmux）で運んだ）。
+    /// メッセージの状態: `waiting`（まだ届いていない）・`delivered`（届いた）・`undeliverable`（渡せない）・`expired`（期限切れ）・ `carried`（ほかの道具で運んだ）。
     pub fn get_state(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_state()
     }

@@ -227,7 +227,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 |---|---|
 | `project`（道） | ページと同じ（`.`・`..`・`api` は 400） |
 | `id`（道） | 英数字と `.` `_` `-` で 1〜128 字。呼ぶ側が付ける（project の中で 1 つ）。`.`・`..` は 400（server） |
-| `actorIssuer`・`actorRef`（引数） | ページを置く時と同じ（上の「送り手」）。両方書くか、両方書かない（片方だけは 400） |
+| `actorIssuer`・`actorRef`（引数） | 形はページを置く時と同じ（上の「送り手」）。両方書くか、両方書かない（片方だけは 400）。castlist に聞いて残すのは、「送った側」の書き込みの時だけ（下の「書き足しの決まり」） |
 | `key` | 任意。ページの Key と同じ形（`.`・`..` は 400） |
 | `heading` | 要る。メッセージの見出しの名。英小文字で始まり、英小文字・数字・`-` で 1〜32 字（名の一覧は server が持たない） |
 | `from`・`to` | 要る。送り手・受け手の名。1〜200 字 |
@@ -236,11 +236,11 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 | `state` | 要る。下の「状態」のどれか |
 | `deliveredAt` | 任意。届いた時刻（`sentAt` と同じ形） |
 | `via` | 任意。どの時に渡したかの名（`heading` と同じ形） |
-| `deliveries` | 任意。渡した回数。1 以上 |
+| `deliveries` | 任意。受け手に本文を出した回数（呼ぶ側が数えて書く）。1 以上 |
 | `replyTo` | 任意。返事の先のメッセージの id（`id` と同じ形。その記録が在るかは見ない） |
 
 - 字の長さは、byte でなく字（Unicode の符号位置）で数える。長さと形の違いは、生成した層が 400 `ValidationException`（`fieldList` に欄の path）。読めない時刻（時差の付いた物・数）と JSON でない本文は 400 `SerializationException`。
-- 検査の順: 引数と本文の形（400）→ `.`・`..`・`api`・時刻の細かさ・付随する id の組（400）→ castlist（400・503）→ DB（503・500）。前で断れば、後は見ない（castlist に聞かない・何も替えない）。
+- 検査の順: 引数と本文の形（400）→ `.`・`..`・`api`・時刻の細かさ・付随する id の組（400）→ castlist（400・503。「送った側」の書き込みの時だけ）→ DB（503・500）。前で断れば、後は見ない（castlist に聞かない・何も替えない）。
 - 混んでいて書く接続を 2 秒待っても取れなければ 503 `Unavailable`。409 は無い（同じ id は書き足す）。
 - だれが置いてよいかは、呼ぶ側が持つ。browser の中のページからは書けない（守りの層が `Origin` の付いた要求を 403）。
 
@@ -252,22 +252,25 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 | `delivered` | 届いた | 届いた |
 | `undeliverable` | 渡せない | 渡せない |
 | `expired` | 期限切れ | 期限切れ |
-| `carried` | ほかの道具（cmux）で運んだ | cmux で運んだ |
+| `carried` | ほかの道具で運んだ | ほかの道具で運んだ |
 
-状態の移り（`delivered` の後に `waiting` を書く など）は見ない。呼ぶ側が書いた、最後の値が残る。
+置き場は、時刻を比べて状態を決めない。ただし、書き足しでは、状態は前へだけ進む（下の「書き足しの決まり」）。
 
 ### 書き足しの決まり
 
+「送った」の記録は送り手の process が、「渡した」の記録は受け手の process が、別々に・後からまとめて写すことがある。だから「渡した」が「送った」より先に届くことが、ふつうにある。書き足しは、届く順に依らず、同じ記録になるようにする。
+
 | 欄 | もうある id に打った時 |
 |---|---|
-| `state` | 新しい値にする |
-| `via`・`deliveries` | 書けば新しい値にする。書かなければ前のまま（消す道は無い） |
+| `state` | 前へだけ進む。強さは `waiting`＝`carried`（0）＜ `expired`＝`undeliverable`（1）＜ `delivered`（2）で、今より強い時だけ替える（同じ強さ・弱い時は今のまま）。初めて置く時は、来た `state` のまま |
+| `deliveries` | 大きい方を保つ。書かなければ前のまま |
+| `via` | `state` を替えた時か、今が空の時だけ入れる。書かなければ前のまま（消す道は無い） |
 | `deliveredAt` | まだ無い時だけ入れる。もうあれば、違う時刻が来ても初めの時刻を保つ（返事の状態の `askedAt`・`answeredAt` と同じ考え） |
 | `key`・`heading`・`from`・`to`・`text`・`sentAt`・`replyTo` | 初めに置いた値を保つ。違う値が来ても変えず、誤りにもしない（形は、書き足す時も見る）。初めに書かなかった `key`・`replyTo` を、後から入れることもしない |
-| `sender` | 初めに置いた時の送り手を保つ。初めに付随する id を書かなかった記録に、後から送り手を入れない |
+| `sender` | 「送った側」の書き込み（`state` が `waiting` か `carried` の書き込み）の送り手だけを残す。まだ空なら入れ、もう入っていれば替えない |
 | `createdAt`・`updatedAt` | `createdAt` は初めて受けた時刻のまま。`updatedAt` は、書き足すたびに今にする（値が替わらなくても） |
 
-- 送り手は、書き足す時も castlist に聞く（付随する id を書いた時。登録の無い送り手は 400、聞けなければ 503 で、何も替えない）。送り手の行（`senders`）を足すのは、初めて置く時だけ。
+- **送り手と castlist**: castlist に聞くのは、「送った側」の書き込み（`waiting`・`carried`）に付随する id を書いた時だけ（置く時も書き足す時も。登録の無い送り手は 400、聞けなければ 503 で、何も替えない）。ほかの `state` の書き込みは、付随する id が付いていても castlist に聞かず、送り手として残さない（castlist が止まっていても、渡した時刻の書き足しは通る）。初めて行を作った書き込みが「渡した側」なら、送り手は空のままで、後から来た「送った側」の書き込みの送り手で埋まる。送り手の行（`senders`）を足すのは、記録の送り手を入れる時だけ。
 - 見る・書く・答えの記録を読むは、書く接続の 1 つの取引。
 
 ### 記録
@@ -305,6 +308,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 - 断った書き込み（400・404・409 など）と、消した時（`DeletePages`・`DeleteFiles`）は送らない。答えの記録に直せてから送る（直せずに 500 を返す書き込みは知らせない）。
 - 記録の形は API の答えと同じ camelCase（`createdAt`・`askedAt`・`waitsOn`・`sender.resolvedAt` など。時刻は答えと同じ字）。
 - メッセージの記録の event の名は `message-record`（`message` は、`EventSource` の既定の event の型と同じ名なので使わない）。
+- メッセージの記録の知らせは、ページの知らせと同じ流れ（聞き手ごとに 64 件）を使う（channel は分けない）。記録をまとめて写し直した時は、遅い聞き手が、ページの新着の知らせを落としうる（画面は、一覧を読み直せば出る）。
 - broadcast の channel（容量 64）。聞き手が無くても失敗にしない。遅れて取りこぼした聞き手は、捨てた分を飛ばして続ける（画面は一覧を読み直せば出る）。keep-alive は axum の既定（15 秒ごとの注釈の行）。
 - 守りの層は、ほかの道と同じ（`Host` を見る。時間切れは答えの頭までなので、流し続ける本文には掛からない）。
 
@@ -319,7 +323,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 - 送り手は、castlist の名に castlist のアクターの画面への link（`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`。castlist を設定していて、答えのある送り手だけ）と、その下に小さく付随する id。答えの無い送り手は「未確認」。絞り込みの「送り手」は、答えのある送り手を、ページの多い順に 100 まで。
 - 字はみな HTML として逃がし、URL の引数に入れる値は、英数字と `-` `.` `_` `~` のほかを %XX にする（`actorRef` は castlist と同じ広い形で、空白・`?`・`&`・`#`・`/` も通る）。
 - Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出す（project が `api` なら出さない）。本文の枠の iframe は `sandbox="allow-scripts"`。
-- メッセージの一覧（`/messages`。template は `templates/messages.html`）: ページの一覧の操作の帯の link「メッセージ」で開き、link「ページ」で戻る。引数は `project`・`key`・`to`・`from`・`state`・`at`（空は書かないのと同じ。知らない `state` は無視。読めない引数は 400）。送った時刻の新しい順に、1 度に 200 件（続きの印 `at` は、`ListMessages` の `nextToken` と同じ形）。1 行に、送った時刻・Key・見出し・「送り手 → 受け手」・状態（上の「状態」の画面の字）・届いた時刻・渡した時・渡し直しの数（渡した回数が 2 以上の時に、回数 − 1 を「渡し直し n 度」）・本文。本文は、200 字か 5 行を超えると、頭の 120 字だけを見せ、開くと全部（`<details>`）。本文は HTML として出さない（字として逃がす）。「まだ届いていない n 件」（tab の題にも）と絞り込みの候補（状態・受け手・送り手・Key・project）は、絞りに関わらず置き場の全部。新着の知らせ（`message-record`）を受けると、ページの一覧と同じやり方で、一覧の列と絞り込みの列を読み直す。
+- メッセージの一覧（`/messages`。template は `templates/messages.html`）: ページの一覧の操作の帯の link「メッセージ」で開き、link「ページ」で戻る。引数は `project`・`key`・`to`・`from`・`state`・`at`（空は書かないのと同じ。知らない `state` は無視。読めない引数は 400）。送った時刻の新しい順に、1 度に 200 件（続きの印 `at` は、`ListMessages` の `nextToken` と同じ形）。1 行に、送った時刻・Key・見出し・「送り手 → 受け手」・状態（上の「状態」の画面の字）・届いた時刻・渡した時・渡し直しの数（`deliveries` が 2 以上の時に、回数 − 1 を「渡し直し n 度」）・本文。本文は、200 字か 5 行を超えると、頭の 120 字だけを見せ（改行は空白にし、切った時は後ろに「…」）、開くと全部（`<details>`）。本文は HTML として出さない（字として逃がす）。「まだ届いていない n 件」（tab の題にも）と絞り込みの候補（状態・受け手・送り手・Key・project）は、絞りに関わらず置き場の全部（受け手・送り手・Key は 100 件まで。今絞っている値は、その外でも候補に入る）。新着の知らせ（`message-record`）を受けると、ページの一覧と同じやり方で、一覧の列と絞り込みの列を読み直す。
 - 答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と script は template の物の hash だけを許す（hash は、画面ごとに、その template から作る）。図は置き場の file と、上げる前の見本（`blob:`）と favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠の送り先は置き場だけ。
 
 ## 起こし方

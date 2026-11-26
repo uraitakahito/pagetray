@@ -39,7 +39,7 @@ test('行: 送った時刻・Key・見出し・送り手と受け手・状態の
 
   await openLive(page, '/messages?project=msg-rows');
   await expect(messageRows(page)).toHaveCount(3);
-  await expect(messageRows(page).locator('.state')).toHaveText(['cmux で運んだ', '期限切れ', '届いた']);
+  await expect(messageRows(page).locator('.state')).toHaveText(['ほかの道具で運んだ', '期限切れ', '届いた']);
   const row = messageRow(page, 'msg-rows', 'm-1');
   // UTC の 00:00 は、日本の時刻で 09:00。
   await expect(row.locator('.top time')).toHaveText('11-01 09:00');
