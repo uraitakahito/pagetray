@@ -2,6 +2,8 @@
 mod common;
 
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
+use std::time::{Duration, Instant};
 
 use common::{remove_db, temp_db};
 use pagetray_server::db::{Db, OpenError};
@@ -168,5 +170,61 @@ async fn a_database_with_a_modified_migration_is_refused_as_a_migration_failure(
     );
     assert!(e.to_string().starts_with("DB の移行に落ちた"), "{e}");
     assert!(!e.to_string().contains("新しい版"), "{e}");
+    remove_db(&path);
+}
+
+/// binary も、後の版が書いた DB（この server の移行をみな当てた後に、後の版の移行を 1 つ当てた物）では起きずに 1 で終わり、
+/// 後の版の訳を stdout と記録の置き場（DB の隣の logs/ の server.log と、終わり方の印の runs.log）に残す。
+#[tokio::test]
+async fn the_binary_refuses_a_database_from_a_later_version() {
+    let path = temp_db("refuse-later-binary");
+    let db = Db::open(&path).await.expect("この server の DB を作る");
+    let newest: i64 = sqlx::query_scalar("select max(version) from _sqlx_migrations")
+        .fetch_one(db.write())
+        .await
+        .unwrap();
+    let later = newest + 1;
+    sqlx::query(sqlx::AssertSqlSafe(format!(
+        "insert into _sqlx_migrations (version, description, success, checksum, execution_time) \
+         values ({later}, 'later', true, x'{}', 1)",
+        "00".repeat(48)
+    )))
+    .execute(db.write())
+    .await
+    .unwrap();
+    db.close().await;
+
+    let mut child = common::server::command(&path, "127.0.0.1:0")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("binary を起こす");
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() > deadline {
+            child.kill().unwrap();
+            panic!("後の版の DB で起きたまま");
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    };
+    let out = child.wait_with_output().unwrap();
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert_eq!(status.code(), Some(1), "{stdout}{stderr}");
+    let reason = format!(
+        "この server より新しい版の DB（この server の migrations に無い移行 {later} を当ててある）"
+    );
+    assert!(
+        stdout.contains(&reason),
+        "stdout: {stdout}\nstderr: {stderr}"
+    );
+    let logs = path.with_file_name("logs");
+    for file in ["server.log", "runs.log"] {
+        let text = std::fs::read_to_string(logs.join(file)).unwrap_or_default();
+        assert!(text.contains(&reason), "{file}: {text}");
+    }
     remove_db(&path);
 }
