@@ -6,12 +6,13 @@
 
 mod client;
 mod file;
+mod names;
 mod output;
 mod page;
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use client::{Failure, REFUSED, Route, Store, TIMEOUT};
-use pagetray_api::is_segment;
+use names::is_segment;
 use serde_json::json;
 use std::io::{Read, Write};
 use std::path::PathBuf;
