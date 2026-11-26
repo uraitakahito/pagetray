@@ -7,7 +7,7 @@
 #                       castlist には取りに行かない（入れてある物を digest で見る）
 #   ci/gen.sh --diff    定義を、定義の入った最新の release の tag（v*。版の後ろに - の付く物（rc など）は除く）と比べ、壊す変わり（DANGER 以上）があれば exit 1（CI が流す）。
 #                       定義の入った tag がまだ無ければ、比べずに通す。pre-release の間は、まだ誰も使っていない形なので比べない
-# 要る物: curl・unzip・shasum か sha256sum・rustfmt（rustup。rust-toolchain.toml の版）。Smithy の CLI は JRE を同梱しているので、Java は要らない。
+# 要る物: curl・unzip・jq・shasum か sha256sum・rustfmt（rustup。rust-toolchain.toml の版）。Smithy の CLI は JRE を同梱しているので、Java は要らない。
 # 生成器の版は model/smithy-build.json に書く。そこに名指した Maven の物は、公開から 2 日たっていなければ使わない
 # （crate と pnpm の待ちに合わせた物。名指した物だけを見て、それが引く物は見ない）。
 # 作るのは repo の中（model/build。git は無視）。字の並びは rust-toolchain.toml の版の rustfmt で整える（下の 5）。
@@ -93,23 +93,32 @@ platform="$os-$arch"
 want=$(sha_for "$platform") || ng "Smithy の CLI の無い機械: $platform"
 cache="${XDG_CACHE_HOME:-$HOME/.cache}/pagetray-smithy/$SMITHY_VERSION-$platform"
 smithy="$cache/smithy-cli-$platform/bin/smithy"
-# digest は取りに行った時に見る。cache（CI の actions/cache。key は ci/gen.sh の hash なので、版と digest を替えれば取り直す）から
-# 戻した CLI は、そのまま使う。
-if [ ! -x "$smithy" ]; then
+# cache（手元の folder と、CI の actions/cache）には、取った zip を残す。毎回 zip の digest を見てから、zip から開き直す
+# （開いた物を cache から戻してそのまま使うと、digest を見ないまま走らせることになるため）。
+zip="$cache/cli.zip"
+if [ ! -f "$zip" ] || [ "$(sha256 "$zip")" != "$want" ]; then
+  rm -rf "$cache"
   mkdir -p "$cache"
-  zip="$cache/cli.zip"
   curl -fsSL $CURL_RETRY -o "$zip" "https://github.com/smithy-lang/smithy/releases/download/$SMITHY_VERSION/smithy-cli-$platform.zip"
   got=$(sha256 "$zip")
   [ "$got" = "$want" ] || ng "Smithy の CLI の digest が違う（${got}。$want のはず）"
-  unzip -q -o "$zip" -d "$cache"
-  rm -f "$zip"
 fi
+rm -rf "$cache/smithy-cli-$platform"
+unzip -q -o "$zip" -d "$cache"
+[ -x "$smithy" ] || ng "Smithy の CLI の zip に bin/smithy が無い"
 
 # 3. 生成器（Maven の物）が、公開から 2 日たっているか。
+# 依存は JSON として読む（.maven.dependencies）。どれも group:artifact:版 の形でなければ断る。
+# 公開の時刻は増えないので、一度 2 日を越えたと見た物は、cache に印を置き、次からは Maven Central に聞かない
+# （CI で何度も流すと、Maven Central が 429 で断ることがあった）。
 now=$(date -u +%s)
-deps=$(sed -n 's/^ *"\([a-zA-Z0-9._-]*:[a-zA-Z0-9._-]*:[0-9][a-zA-Z0-9._-]*\)",\{0,1\}$/\1/p' "$root/model/smithy-build.json")
+deps=$(jq -r '.maven.dependencies // [] | .[]' "$root/model/smithy-build.json") || ng "model/smithy-build.json を JSON として読めない"
 [ -n "$deps" ] || ng "model/smithy-build.json に Maven の依存が無い"
+aged="$cache/maven-aged"
+mkdir -p "$aged"
 for dep in $deps; do
+  echo "$dep" | grep -Eqx '[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+:[0-9][a-zA-Z0-9._-]*' || ng "Maven の依存の形が違う: $dep"
+  [ -f "$aged/$dep" ] && continue
   group=${dep%%:*}
   rest=${dep#*:}
   artifact=${rest%%:*}
@@ -123,6 +132,7 @@ for dep in $deps; do
     published=$(LC_ALL=C date -u -j -f '%a, %d %b %Y %H:%M:%S GMT' "$modified" +%s)
   fi
   [ $((now - published)) -ge $MIN_AGE_SECONDS ] || ng "$dep は公開から 2 日たっていない（${modified}）"
+  : >"$aged/$dep"
 done
 
 # 4. 壊す変わりを見る（--diff）。
