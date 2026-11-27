@@ -104,7 +104,7 @@ curl -fsS "$url/api/logs" >"$tmp/logs.txt"
 grep -q ' start version=' "$tmp/logs.txt"
 grep -q 'uri=/api/files' "$tmp/logs.txt"
 curl -fsS "$url/ci/K-1/result-1.html" | grep -q 'image の中で動く'
-curl -fsS "$url/?q=image" | grep -q 'result-1'
+curl -fsS "$url/api/pages?q=image" | jq -e '[.pages[].path] == ["/ci/K-1/result-1.html"]' >/dev/null
 rm -f "$tmp/got.png"
 curl -fsS -o "$tmp/got.png" "$url/ci/K-1/files/dot-1.png"
 cmp "$tmp/dot.png" "$tmp/got.png"
