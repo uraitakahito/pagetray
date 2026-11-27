@@ -143,15 +143,21 @@ mod delete_files;
 
 mod delete_pages;
 
+mod get_file_rules;
+
 mod get_health;
 
 mod get_message_facets;
+
+mod get_page_facets;
 
 mod list_files;
 
 mod list_messages;
 
 mod list_pages;
+
+mod list_reviews;
 
 mod put_message;
 

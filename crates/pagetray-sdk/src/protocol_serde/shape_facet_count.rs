@@ -12,5 +12,8 @@ pub fn ser_facet_count(
             ::aws_smithy_types::Number::NegInt((input.count).into()),
         );
     }
+    if let Some(var_1) = &input.note {
+        object.key("note").string(var_1.as_str());
+    }
     Ok(())
 }

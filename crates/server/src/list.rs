@@ -78,3 +78,57 @@ fn query(input: ListPagesInput) -> Result<PageQuery, ListPagesError> {
         limit: input.max_results.map_or(LIMIT, i64::from),
     })
 }
+
+/// ページの、絞り込みの候補と件数・待ちの数（置き場の全部。絞らない）。画面（[`crate::ui`]）と同じ物を読む。
+pub async fn get_page_facets(
+    db: Arc<Db>,
+    _input: pagetray_sdk::input::GetPageFacetsInput,
+) -> Result<pagetray_sdk::output::GetPageFacetsOutput, pagetray_sdk::error::GetPageFacetsError> {
+    let facets = db
+        .facets()
+        .await
+        .map_err(|e| Failure::db("GetPageFacets", e))?;
+    // 添える字（送り手の名・workspace の Key）は、ある時だけ。
+    let counts = |list: Vec<crate::facets::Count>| {
+        list.into_iter()
+            .map(|c| pagetray_sdk::model::FacetCount {
+                value: c.value,
+                count: c.count,
+                note: Some(c.note).filter(|note| !note.is_empty()),
+            })
+            .collect()
+    };
+    Ok(pagetray_sdk::output::GetPageFacetsOutput {
+        waiting: facets.waiting,
+        answered: facets.answered,
+        review_waiting: facets.review_waiting,
+        escalated: facets.escalated,
+        senders: counts(facets.senders),
+        roles: counts(facets.roles),
+        workspaces: counts(facets.workspaces),
+        kinds: counts(facets.kinds),
+        keys: counts(facets.keys),
+        projects: counts(facets.projects),
+        verdicts: counts(facets.verdicts),
+    })
+}
+
+/// 名指したページを見たレビューのページ（古い順）。画面（[`crate::ui`]）と同じ物を読む。
+pub async fn list_reviews(
+    db: Arc<Db>,
+    input: pagetray_sdk::input::ListReviewsInput,
+) -> Result<pagetray_sdk::output::ListReviewsOutput, pagetray_sdk::error::ListReviewsError> {
+    // 数（1〜200）は定義が見てある。
+    let reviews = db
+        .reviews_of(&input.target)
+        .await
+        .map_err(|e| Failure::db("ListReviews", e))?
+        .into_iter()
+        .map(|r| pagetray_sdk::model::ReviewOf {
+            path: crate::pages::page_path(&r.project, &r.key, "review", r.n),
+            target: r.target,
+            verdict: r.verdict,
+        })
+        .collect();
+    Ok(pagetray_sdk::output::ListReviewsOutput { reviews })
+}

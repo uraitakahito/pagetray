@@ -346,6 +346,54 @@ impl From<crate::operation::delete_pages::DeletePagesError> for Error {
 impl<R>
     From<
         ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::get_file_rules::GetFileRulesError,
+            R,
+        >,
+    > for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::get_file_rules::GetFileRulesError,
+            R,
+        >,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => {
+                Self::from(context.into_err())
+            }
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::get_file_rules::GetFileRulesError> for Error {
+    fn from(err: crate::operation::get_file_rules::GetFileRulesError) -> Self {
+        match err {
+            crate::operation::get_file_rules::GetFileRulesError::Unavailable(inner) => {
+                Error::Unavailable(inner)
+            }
+            crate::operation::get_file_rules::GetFileRulesError::InternalError(inner) => {
+                Error::InternalError(inner)
+            }
+            crate::operation::get_file_rules::GetFileRulesError::Forbidden(inner) => {
+                Error::Forbidden(inner)
+            }
+            crate::operation::get_file_rules::GetFileRulesError::PayloadTooLarge(inner) => {
+                Error::PayloadTooLarge(inner)
+            }
+            crate::operation::get_file_rules::GetFileRulesError::Unhandled(inner) => {
+                Error::Unhandled(inner)
+            }
+        }
+    }
+}
+impl<R>
+    From<
+        ::aws_smithy_runtime_api::client::result::SdkError<
             crate::operation::get_health::GetHealthError,
             R,
         >,
@@ -434,6 +482,54 @@ impl From<crate::operation::get_message_facets::GetMessageFacetsError> for Error
                 Error::PayloadTooLarge(inner)
             }
             crate::operation::get_message_facets::GetMessageFacetsError::Unhandled(inner) => {
+                Error::Unhandled(inner)
+            }
+        }
+    }
+}
+impl<R>
+    From<
+        ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::get_page_facets::GetPageFacetsError,
+            R,
+        >,
+    > for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::get_page_facets::GetPageFacetsError,
+            R,
+        >,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => {
+                Self::from(context.into_err())
+            }
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::get_page_facets::GetPageFacetsError> for Error {
+    fn from(err: crate::operation::get_page_facets::GetPageFacetsError) -> Self {
+        match err {
+            crate::operation::get_page_facets::GetPageFacetsError::Unavailable(inner) => {
+                Error::Unavailable(inner)
+            }
+            crate::operation::get_page_facets::GetPageFacetsError::InternalError(inner) => {
+                Error::InternalError(inner)
+            }
+            crate::operation::get_page_facets::GetPageFacetsError::Forbidden(inner) => {
+                Error::Forbidden(inner)
+            }
+            crate::operation::get_page_facets::GetPageFacetsError::PayloadTooLarge(inner) => {
+                Error::PayloadTooLarge(inner)
+            }
+            crate::operation::get_page_facets::GetPageFacetsError::Unhandled(inner) => {
                 Error::Unhandled(inner)
             }
         }
@@ -587,6 +683,57 @@ impl From<crate::operation::list_pages::ListPagesError> for Error {
                 Error::PayloadTooLarge(inner)
             }
             crate::operation::list_pages::ListPagesError::Unhandled(inner) => {
+                Error::Unhandled(inner)
+            }
+        }
+    }
+}
+impl<R>
+    From<
+        ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::list_reviews::ListReviewsError,
+            R,
+        >,
+    > for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::list_reviews::ListReviewsError,
+            R,
+        >,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => {
+                Self::from(context.into_err())
+            }
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::list_reviews::ListReviewsError> for Error {
+    fn from(err: crate::operation::list_reviews::ListReviewsError) -> Self {
+        match err {
+            crate::operation::list_reviews::ListReviewsError::ValidationError(inner) => {
+                Error::ValidationError(inner)
+            }
+            crate::operation::list_reviews::ListReviewsError::Unavailable(inner) => {
+                Error::Unavailable(inner)
+            }
+            crate::operation::list_reviews::ListReviewsError::InternalError(inner) => {
+                Error::InternalError(inner)
+            }
+            crate::operation::list_reviews::ListReviewsError::Forbidden(inner) => {
+                Error::Forbidden(inner)
+            }
+            crate::operation::list_reviews::ListReviewsError::PayloadTooLarge(inner) => {
+                Error::PayloadTooLarge(inner)
+            }
+            crate::operation::list_reviews::ListReviewsError::Unhandled(inner) => {
                 Error::Unhandled(inner)
             }
         }

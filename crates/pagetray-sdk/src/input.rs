@@ -783,6 +783,83 @@ impl GetMessageFacetsInput {
         crate::input::get_message_facets_input::Builder::default()
     }
 }
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct GetPageFacetsInput {}
+impl crate::constrained::Constrained for crate::input::GetPageFacetsInput {
+    type Unconstrained = crate::input::get_page_facets_input_internal::Builder;
+}
+impl GetPageFacetsInput {
+    /// Creates a new builder-style object to manufacture [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+    pub fn builder() -> crate::input::get_page_facets_input::Builder {
+        crate::input::get_page_facets_input::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ListReviewsInput {
+    /// 見られたページの path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub target: ::std::vec::Vec<::std::string::String>,
+}
+impl ListReviewsInput {
+    /// 見られたページの path（`/<project>
+    /// /
+    /// <key>
+    /// /
+    /// <kind>
+    /// -
+    /// <n>
+    /// .html`）。
+    /// </n>
+    /// </kind>
+    /// </key>
+    /// </project>
+    pub fn target(&self) -> &[::std::string::String] {
+        use std::ops::Deref;
+        self.target.deref()
+    }
+}
+impl crate::constrained::Constrained for crate::input::ListReviewsInput {
+    type Unconstrained = crate::input::list_reviews_input_internal::Builder;
+}
+impl ListReviewsInput {
+    /// Creates a new builder-style object to manufacture [`ListReviewsInput`](crate::input::ListReviewsInput).
+    pub fn builder() -> crate::input::list_reviews_input::Builder {
+        crate::input::list_reviews_input::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct GetFileRulesInput {}
+impl crate::constrained::Constrained for crate::input::GetFileRulesInput {
+    type Unconstrained = crate::input::get_file_rules_input_internal::Builder;
+}
+impl GetFileRulesInput {
+    /// Creates a new builder-style object to manufacture [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+    pub fn builder() -> crate::input::get_file_rules_input::Builder {
+        crate::input::get_file_rules_input::Builder::default()
+    }
+}
 /// See [`GetHealthInput`](crate::input::GetHealthInput).
 pub(crate) mod get_health_input_internal {
 
@@ -5361,6 +5438,281 @@ pub mod get_message_facets_input {
                 from: self.from,
                 key: self.key,
             }
+        }
+    }
+}
+/// See [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+pub(crate) mod get_page_facets_input_internal {
+
+    impl ::std::convert::From<Builder> for crate::input::GetPageFacetsInput {
+        fn from(builder: Builder) -> Self {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {}
+    impl Builder {
+        /// Consumes the builder and constructs a [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+        pub fn build(self) -> crate::input::GetPageFacetsInput {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(self) -> crate::input::GetPageFacetsInput {
+            crate::input::GetPageFacetsInput {}
+        }
+    }
+}
+/// See [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+pub mod get_page_facets_input {
+
+    impl ::std::convert::From<Builder> for crate::input::GetPageFacetsInput {
+        fn from(builder: Builder) -> Self {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {}
+    impl Builder {
+        /// Consumes the builder and constructs a [`GetPageFacetsInput`](crate::input::GetPageFacetsInput).
+        pub fn build(self) -> crate::input::GetPageFacetsInput {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(self) -> crate::input::GetPageFacetsInput {
+            crate::input::GetPageFacetsInput {}
+        }
+    }
+}
+/// See [`ListReviewsInput`](crate::input::ListReviewsInput).
+pub(crate) mod list_reviews_input_internal {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[non_exhaustive]
+    #[allow(clippy::enum_variant_names)]
+    pub(crate) enum ConstraintViolation {
+        /// `target` was not provided but it is required when building `ListReviewsInput`.
+        MissingTarget,
+        /// Constraint violation occurred building member `target` when building `ListReviewsInput`.
+        #[doc(hidden)]
+        Target(crate::model::review_targets_internal::ConstraintViolation),
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingTarget => write!(f, "`target` was not provided but it is required when building `ListReviewsInput`"),
+                ConstraintViolation::Target(_) => write!(f, "constraint violation occurred building member `target` when building `ListReviewsInput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+            ConstraintViolation::MissingTarget => crate::model::ValidationExceptionField {
+                                                message: format!("Value at '{}/target' failed to satisfy constraint: Member must not be null", path),
+                                                path: path + "/target",
+                                            },
+            ConstraintViolation::Target(inner) => inner.as_validation_exception_field(path + "/target"),
+        }
+        }
+    }
+    impl ::std::convert::From<ConstraintViolation>
+        for ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection
+    {
+        fn from(constraint_violation: ConstraintViolation) -> Self {
+            let first_validation_exception_field =
+                constraint_violation.as_validation_exception_field("".to_owned());
+            let validation_exception = crate::error::ValidationException {
+                message: format!(
+                    "1 validation error detected. {}",
+                    &first_validation_exception_field.message
+                ),
+                field_list: Some(vec![first_validation_exception_field]),
+            };
+            Self::ConstraintViolation(
+                                crate::protocol_serde::shape_validation_exception::ser_validation_exception_error(&validation_exception)
+                                    .expect("validation exceptions should never fail to serialize; please file a bug report under https://github.com/smithy-lang/smithy-rs/issues")
+                            )
+        }
+    }
+    impl ::std::convert::From<Builder>
+        for crate::constrained::MaybeConstrained<crate::input::ListReviewsInput>
+    {
+        fn from(builder: Builder) -> Self {
+            Self::Unconstrained(builder)
+        }
+    }
+    impl ::std::convert::TryFrom<Builder> for crate::input::ListReviewsInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListReviewsInput`](crate::input::ListReviewsInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {
+        pub(crate) target: ::std::option::Option<
+            crate::constrained::MaybeConstrained<crate::model::ReviewTargets>,
+        >,
+    }
+    impl Builder {
+        /// 見られたページの path（`/<project>
+        /// /
+        /// <key>
+        /// /
+        /// <kind>
+        /// -
+        /// <n>
+        /// .html`）。
+        /// </n>
+        /// </kind>
+        /// </key>
+        /// </project>
+        pub(crate) fn set_target(
+            mut self,
+            input: impl ::std::convert::Into<
+                crate::constrained::MaybeConstrained<crate::model::ReviewTargets>,
+            >,
+        ) -> Self {
+            self.target = Some(input.into());
+            self
+        }
+        /// Consumes the builder and constructs a [`ListReviewsInput`](crate::input::ListReviewsInput).
+        ///
+        /// The builder fails to construct a [`ListReviewsInput`](crate::input::ListReviewsInput) if a [`ConstraintViolation`] occurs.
+        ///
+        /// If the builder fails, it will return the _first_ encountered [`ConstraintViolation`].
+        pub fn build(self) -> Result<crate::input::ListReviewsInput, ConstraintViolation> {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(
+            self,
+        ) -> Result<crate::input::ListReviewsInput, ConstraintViolation> {
+            Ok(crate::input::ListReviewsInput {
+                target: self
+                    .target
+                    .map(|v| match v {
+                        crate::constrained::MaybeConstrained::Constrained(x) => Ok(x),
+                        crate::constrained::MaybeConstrained::Unconstrained(x) => x.try_into(),
+                    })
+                    .map(|res| res.map_err(ConstraintViolation::Target))
+                    .transpose()?
+                    .map(|v: crate::model::ReviewTargets| v.into())
+                    .ok_or(ConstraintViolation::MissingTarget)?,
+            })
+        }
+    }
+}
+/// See [`ListReviewsInput`](crate::input::ListReviewsInput).
+pub mod list_reviews_input {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `target` was not provided but it is required when building `ListReviewsInput`.
+        MissingTarget,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingTarget => write!(
+                    f,
+                    "`target` was not provided but it is required when building `ListReviewsInput`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::input::ListReviewsInput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListReviewsInput`](crate::input::ListReviewsInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) target: ::std::option::Option<::std::vec::Vec<::std::string::String>>,
+    }
+    impl Builder {
+        /// 見られたページの path（`/<project>
+        /// /
+        /// <key>
+        /// /
+        /// <kind>
+        /// -
+        /// <n>
+        /// .html`）。
+        /// </n>
+        /// </kind>
+        /// </key>
+        /// </project>
+        pub fn target(mut self, input: ::std::vec::Vec<::std::string::String>) -> Self {
+            self.target = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`ListReviewsInput`](crate::input::ListReviewsInput).
+        ///
+        /// The builder fails to construct a [`ListReviewsInput`](crate::input::ListReviewsInput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::input::ListReviewsInput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::input::ListReviewsInput, ConstraintViolation> {
+            Ok(crate::input::ListReviewsInput {
+                target: self.target.ok_or(ConstraintViolation::MissingTarget)?,
+            })
+        }
+    }
+}
+/// See [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+pub(crate) mod get_file_rules_input_internal {
+
+    impl ::std::convert::From<Builder> for crate::input::GetFileRulesInput {
+        fn from(builder: Builder) -> Self {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub(crate) struct Builder {}
+    impl Builder {
+        /// Consumes the builder and constructs a [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+        pub fn build(self) -> crate::input::GetFileRulesInput {
+            self.build_enforcing_all_constraints()
+        }
+        fn build_enforcing_all_constraints(self) -> crate::input::GetFileRulesInput {
+            crate::input::GetFileRulesInput {}
+        }
+    }
+}
+/// See [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+pub mod get_file_rules_input {
+
+    impl ::std::convert::From<Builder> for crate::input::GetFileRulesInput {
+        fn from(builder: Builder) -> Self {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {}
+    impl Builder {
+        /// Consumes the builder and constructs a [`GetFileRulesInput`](crate::input::GetFileRulesInput).
+        pub fn build(self) -> crate::input::GetFileRulesInput {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(self) -> crate::input::GetFileRulesInput {
+            crate::input::GetFileRulesInput {}
         }
     }
 }

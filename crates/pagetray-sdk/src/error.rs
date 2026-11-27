@@ -1197,6 +1197,263 @@ impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::GetMe
     }
 }
 
+/// Error type for the `GetPageFacets` operation.
+/// Each variant represents an error that can occur for the `GetPageFacets` operation.
+#[derive(::std::fmt::Debug)]
+pub enum GetPageFacetsError {
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for GetPageFacetsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            GetPageFacetsError::Unavailable(_inner) => _inner.fmt(f),
+            GetPageFacetsError::InternalError(_inner) => _inner.fmt(f),
+            GetPageFacetsError::Forbidden(_inner) => _inner.fmt(f),
+            GetPageFacetsError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl GetPageFacetsError {
+    /// Returns `true` if the error kind is `GetPageFacetsError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, GetPageFacetsError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `GetPageFacetsError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, GetPageFacetsError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `GetPageFacetsError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, GetPageFacetsError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `GetPageFacetsError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, GetPageFacetsError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            GetPageFacetsError::Unavailable(_inner) => _inner.name(),
+            GetPageFacetsError::InternalError(_inner) => _inner.name(),
+            GetPageFacetsError::Forbidden(_inner) => _inner.name(),
+            GetPageFacetsError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for GetPageFacetsError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            GetPageFacetsError::Unavailable(_inner) => Some(_inner),
+            GetPageFacetsError::InternalError(_inner) => Some(_inner),
+            GetPageFacetsError::Forbidden(_inner) => Some(_inner),
+            GetPageFacetsError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::GetPageFacetsError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::GetPageFacetsError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::GetPageFacetsError {
+    fn from(variant: crate::error::InternalError) -> crate::error::GetPageFacetsError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::GetPageFacetsError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::GetPageFacetsError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::GetPageFacetsError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::GetPageFacetsError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `ListReviews` operation.
+/// Each variant represents an error that can occur for the `ListReviews` operation.
+#[derive(::std::fmt::Debug)]
+pub enum ListReviewsError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for ListReviewsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            ListReviewsError::ValidationException(_inner) => _inner.fmt(f),
+            ListReviewsError::Unavailable(_inner) => _inner.fmt(f),
+            ListReviewsError::InternalError(_inner) => _inner.fmt(f),
+            ListReviewsError::Forbidden(_inner) => _inner.fmt(f),
+            ListReviewsError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl ListReviewsError {
+    /// Returns `true` if the error kind is `ListReviewsError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, ListReviewsError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `ListReviewsError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, ListReviewsError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `ListReviewsError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, ListReviewsError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `ListReviewsError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, ListReviewsError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `ListReviewsError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, ListReviewsError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            ListReviewsError::ValidationException(_inner) => _inner.name(),
+            ListReviewsError::Unavailable(_inner) => _inner.name(),
+            ListReviewsError::InternalError(_inner) => _inner.name(),
+            ListReviewsError::Forbidden(_inner) => _inner.name(),
+            ListReviewsError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for ListReviewsError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            ListReviewsError::ValidationException(_inner) => Some(_inner),
+            ListReviewsError::Unavailable(_inner) => Some(_inner),
+            ListReviewsError::InternalError(_inner) => Some(_inner),
+            ListReviewsError::Forbidden(_inner) => Some(_inner),
+            ListReviewsError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException> for crate::error::ListReviewsError {
+    fn from(variant: crate::error::ValidationException) -> crate::error::ListReviewsError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::ListReviewsError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::ListReviewsError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::ListReviewsError {
+    fn from(variant: crate::error::InternalError) -> crate::error::ListReviewsError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::ListReviewsError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::ListReviewsError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::ListReviewsError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::ListReviewsError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
+/// Error type for the `GetFileRules` operation.
+/// Each variant represents an error that can occur for the `GetFileRules` operation.
+#[derive(::std::fmt::Debug)]
+pub enum GetFileRulesError {
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for GetFileRulesError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            GetFileRulesError::Unavailable(_inner) => _inner.fmt(f),
+            GetFileRulesError::InternalError(_inner) => _inner.fmt(f),
+            GetFileRulesError::Forbidden(_inner) => _inner.fmt(f),
+            GetFileRulesError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl GetFileRulesError {
+    /// Returns `true` if the error kind is `GetFileRulesError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, GetFileRulesError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `GetFileRulesError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, GetFileRulesError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `GetFileRulesError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, GetFileRulesError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `GetFileRulesError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, GetFileRulesError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            GetFileRulesError::Unavailable(_inner) => _inner.name(),
+            GetFileRulesError::InternalError(_inner) => _inner.name(),
+            GetFileRulesError::Forbidden(_inner) => _inner.name(),
+            GetFileRulesError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for GetFileRulesError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            GetFileRulesError::Unavailable(_inner) => Some(_inner),
+            GetFileRulesError::InternalError(_inner) => Some(_inner),
+            GetFileRulesError::Forbidden(_inner) => Some(_inner),
+            GetFileRulesError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::GetFileRulesError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::GetFileRulesError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::GetFileRulesError {
+    fn from(variant: crate::error::InternalError) -> crate::error::GetFileRulesError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::GetFileRulesError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::GetFileRulesError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::GetFileRulesError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::GetFileRulesError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
 /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,

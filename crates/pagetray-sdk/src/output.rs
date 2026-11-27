@@ -913,6 +913,144 @@ impl GetMessageFacetsOutput {
         crate::output::get_message_facets_output::Builder::default()
     }
 }
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct GetPageFacetsOutput {
+    /// Product Manager の返事待ちのページの数。
+    pub waiting: i64,
+    /// Product Manager が答えたページの数。
+    pub answered: i64,
+    /// レビュー待ちのページ（レビューの依頼書）の数。
+    pub review_waiting: i64,
+    /// TPM 担当に上げて、まだ決まっていないページ（レビューのページ）の数。
+    pub escalated: i64,
+    /// 送り手（castlist のアクター）ごとの数。
+    pub senders: ::std::vec::Vec<crate::model::FacetCount>,
+    /// 役割ごとの数。
+    pub roles: ::std::vec::Vec<crate::model::FacetCount>,
+    /// workspace の ID ごとの数。
+    pub workspaces: ::std::vec::Vec<crate::model::FacetCount>,
+    /// 種類ごとの数。
+    pub kinds: ::std::vec::Vec<crate::model::FacetCount>,
+    /// Key ごとの数。
+    pub keys: ::std::vec::Vec<crate::model::FacetCount>,
+    /// project ごとの数。
+    pub projects: ::std::vec::Vec<crate::model::FacetCount>,
+    /// レビューの判定ごとの数。
+    pub verdicts: ::std::vec::Vec<crate::model::FacetCount>,
+}
+impl GetPageFacetsOutput {
+    /// Product Manager の返事待ちのページの数。
+    pub fn waiting(&self) -> i64 {
+        self.waiting
+    }
+    /// Product Manager が答えたページの数。
+    pub fn answered(&self) -> i64 {
+        self.answered
+    }
+    /// レビュー待ちのページ（レビューの依頼書）の数。
+    pub fn review_waiting(&self) -> i64 {
+        self.review_waiting
+    }
+    /// TPM 担当に上げて、まだ決まっていないページ（レビューのページ）の数。
+    pub fn escalated(&self) -> i64 {
+        self.escalated
+    }
+    /// 送り手（castlist のアクター）ごとの数。
+    pub fn senders(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.senders.deref()
+    }
+    /// 役割ごとの数。
+    pub fn roles(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.roles.deref()
+    }
+    /// workspace の ID ごとの数。
+    pub fn workspaces(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.workspaces.deref()
+    }
+    /// 種類ごとの数。
+    pub fn kinds(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.kinds.deref()
+    }
+    /// Key ごとの数。
+    pub fn keys(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.keys.deref()
+    }
+    /// project ごとの数。
+    pub fn projects(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.projects.deref()
+    }
+    /// レビューの判定ごとの数。
+    pub fn verdicts(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.verdicts.deref()
+    }
+}
+impl GetPageFacetsOutput {
+    /// Creates a new builder-style object to manufacture [`GetPageFacetsOutput`](crate::output::GetPageFacetsOutput).
+    pub fn builder() -> crate::output::get_page_facets_output::Builder {
+        crate::output::get_page_facets_output::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ListReviewsOutput {
+    #[allow(missing_docs)] // documentation missing in model
+    pub reviews: ::std::vec::Vec<crate::model::ReviewOf>,
+}
+impl ListReviewsOutput {
+    #[allow(missing_docs)] // documentation missing in model
+    pub fn reviews(&self) -> &[crate::model::ReviewOf] {
+        use std::ops::Deref;
+        self.reviews.deref()
+    }
+}
+impl ListReviewsOutput {
+    /// Creates a new builder-style object to manufacture [`ListReviewsOutput`](crate::output::ListReviewsOutput).
+    pub fn builder() -> crate::output::list_reviews_output::Builder {
+        crate::output::list_reviews_output::Builder::default()
+    }
+}
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct GetFileRulesOutput {
+    /// 受ける拡張子と、その file を返す時の `Content-Type`。
+    pub types: ::std::vec::Vec<crate::model::FileType>,
+    /// file 1 つの大きさの上限（byte）。
+    pub max_bytes: i64,
+}
+impl GetFileRulesOutput {
+    /// 受ける拡張子と、その file を返す時の `Content-Type`。
+    pub fn types(&self) -> &[crate::model::FileType] {
+        use std::ops::Deref;
+        self.types.deref()
+    }
+    /// file 1 つの大きさの上限（byte）。
+    pub fn max_bytes(&self) -> i64 {
+        self.max_bytes
+    }
+}
+impl GetFileRulesOutput {
+    /// Creates a new builder-style object to manufacture [`GetFileRulesOutput`](crate::output::GetFileRulesOutput).
+    pub fn builder() -> crate::output::get_file_rules_output::Builder {
+        crate::output::get_file_rules_output::Builder::default()
+    }
+}
 /// See [`GetHealthOutput`](crate::output::GetHealthOutput).
 pub mod get_health_output {
 
@@ -2380,6 +2518,278 @@ pub mod get_message_facets_output {
                 from: self.from.ok_or(ConstraintViolation::MissingFrom)?,
                 keys: self.keys.ok_or(ConstraintViolation::MissingKeys)?,
                 projects: self.projects.ok_or(ConstraintViolation::MissingProjects)?,
+            })
+        }
+    }
+}
+/// See [`GetPageFacetsOutput`](crate::output::GetPageFacetsOutput).
+pub mod get_page_facets_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `waiting` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingWaiting,
+        /// `answered` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingAnswered,
+        /// `review_waiting` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingReviewWaiting,
+        /// `escalated` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingEscalated,
+        /// `senders` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingSenders,
+        /// `roles` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingRoles,
+        /// `workspaces` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingWorkspaces,
+        /// `kinds` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingKinds,
+        /// `keys` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingKeys,
+        /// `projects` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingProjects,
+        /// `verdicts` was not provided but it is required when building `GetPageFacetsOutput`.
+        MissingVerdicts,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingWaiting => write!(f, "`waiting` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingAnswered => write!(f, "`answered` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingReviewWaiting => write!(f, "`review_waiting` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingEscalated => write!(f, "`escalated` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingSenders => write!(f, "`senders` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingRoles => write!(f, "`roles` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingWorkspaces => write!(f, "`workspaces` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingKinds => write!(f, "`kinds` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingKeys => write!(f, "`keys` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingProjects => write!(f, "`projects` was not provided but it is required when building `GetPageFacetsOutput`"),
+                ConstraintViolation::MissingVerdicts => write!(f, "`verdicts` was not provided but it is required when building `GetPageFacetsOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::GetPageFacetsOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetPageFacetsOutput`](crate::output::GetPageFacetsOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) waiting: ::std::option::Option<i64>,
+        pub(crate) answered: ::std::option::Option<i64>,
+        pub(crate) review_waiting: ::std::option::Option<i64>,
+        pub(crate) escalated: ::std::option::Option<i64>,
+        pub(crate) senders: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) roles: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) workspaces: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) kinds: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) keys: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) projects: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) verdicts: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+    }
+    impl Builder {
+        /// Product Manager の返事待ちのページの数。
+        pub fn waiting(mut self, input: i64) -> Self {
+            self.waiting = Some(input);
+            self
+        }
+        /// Product Manager が答えたページの数。
+        pub fn answered(mut self, input: i64) -> Self {
+            self.answered = Some(input);
+            self
+        }
+        /// レビュー待ちのページ（レビューの依頼書）の数。
+        pub fn review_waiting(mut self, input: i64) -> Self {
+            self.review_waiting = Some(input);
+            self
+        }
+        /// TPM 担当に上げて、まだ決まっていないページ（レビューのページ）の数。
+        pub fn escalated(mut self, input: i64) -> Self {
+            self.escalated = Some(input);
+            self
+        }
+        /// 送り手（castlist のアクター）ごとの数。
+        pub fn senders(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.senders = Some(input);
+            self
+        }
+        /// 役割ごとの数。
+        pub fn roles(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.roles = Some(input);
+            self
+        }
+        /// workspace の ID ごとの数。
+        pub fn workspaces(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.workspaces = Some(input);
+            self
+        }
+        /// 種類ごとの数。
+        pub fn kinds(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.kinds = Some(input);
+            self
+        }
+        /// Key ごとの数。
+        pub fn keys(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.keys = Some(input);
+            self
+        }
+        /// project ごとの数。
+        pub fn projects(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.projects = Some(input);
+            self
+        }
+        /// レビューの判定ごとの数。
+        pub fn verdicts(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.verdicts = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`GetPageFacetsOutput`](crate::output::GetPageFacetsOutput).
+        ///
+        /// The builder fails to construct a [`GetPageFacetsOutput`](crate::output::GetPageFacetsOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::GetPageFacetsOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::GetPageFacetsOutput, ConstraintViolation> {
+            Ok(crate::output::GetPageFacetsOutput {
+                waiting: self.waiting.ok_or(ConstraintViolation::MissingWaiting)?,
+                answered: self.answered.ok_or(ConstraintViolation::MissingAnswered)?,
+                review_waiting: self
+                    .review_waiting
+                    .ok_or(ConstraintViolation::MissingReviewWaiting)?,
+                escalated: self
+                    .escalated
+                    .ok_or(ConstraintViolation::MissingEscalated)?,
+                senders: self.senders.ok_or(ConstraintViolation::MissingSenders)?,
+                roles: self.roles.ok_or(ConstraintViolation::MissingRoles)?,
+                workspaces: self
+                    .workspaces
+                    .ok_or(ConstraintViolation::MissingWorkspaces)?,
+                kinds: self.kinds.ok_or(ConstraintViolation::MissingKinds)?,
+                keys: self.keys.ok_or(ConstraintViolation::MissingKeys)?,
+                projects: self.projects.ok_or(ConstraintViolation::MissingProjects)?,
+                verdicts: self.verdicts.ok_or(ConstraintViolation::MissingVerdicts)?,
+            })
+        }
+    }
+}
+/// See [`ListReviewsOutput`](crate::output::ListReviewsOutput).
+pub mod list_reviews_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `reviews` was not provided but it is required when building `ListReviewsOutput`.
+        MissingReviews,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingReviews => write!(f, "`reviews` was not provided but it is required when building `ListReviewsOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::ListReviewsOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ListReviewsOutput`](crate::output::ListReviewsOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) reviews: ::std::option::Option<::std::vec::Vec<crate::model::ReviewOf>>,
+    }
+    impl Builder {
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn reviews(mut self, input: ::std::vec::Vec<crate::model::ReviewOf>) -> Self {
+            self.reviews = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`ListReviewsOutput`](crate::output::ListReviewsOutput).
+        ///
+        /// The builder fails to construct a [`ListReviewsOutput`](crate::output::ListReviewsOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::ListReviewsOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::ListReviewsOutput, ConstraintViolation> {
+            Ok(crate::output::ListReviewsOutput {
+                reviews: self.reviews.ok_or(ConstraintViolation::MissingReviews)?,
+            })
+        }
+    }
+}
+/// See [`GetFileRulesOutput`](crate::output::GetFileRulesOutput).
+pub mod get_file_rules_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `types` was not provided but it is required when building `GetFileRulesOutput`.
+        MissingTypes,
+        /// `max_bytes` was not provided but it is required when building `GetFileRulesOutput`.
+        MissingMaxBytes,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingTypes => write!(f, "`types` was not provided but it is required when building `GetFileRulesOutput`"),
+                ConstraintViolation::MissingMaxBytes => write!(f, "`max_bytes` was not provided but it is required when building `GetFileRulesOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::GetFileRulesOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetFileRulesOutput`](crate::output::GetFileRulesOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) types: ::std::option::Option<::std::vec::Vec<crate::model::FileType>>,
+        pub(crate) max_bytes: ::std::option::Option<i64>,
+    }
+    impl Builder {
+        /// 受ける拡張子と、その file を返す時の `Content-Type`。
+        pub fn types(mut self, input: ::std::vec::Vec<crate::model::FileType>) -> Self {
+            self.types = Some(input);
+            self
+        }
+        /// file 1 つの大きさの上限（byte）。
+        pub fn max_bytes(mut self, input: i64) -> Self {
+            self.max_bytes = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`GetFileRulesOutput`](crate::output::GetFileRulesOutput).
+        ///
+        /// The builder fails to construct a [`GetFileRulesOutput`](crate::output::GetFileRulesOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::GetFileRulesOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::GetFileRulesOutput, ConstraintViolation> {
+            Ok(crate::output::GetFileRulesOutput {
+                types: self.types.ok_or(ConstraintViolation::MissingTypes)?,
+                max_bytes: self.max_bytes.ok_or(ConstraintViolation::MissingMaxBytes)?,
             })
         }
     }
