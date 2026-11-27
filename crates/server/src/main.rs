@@ -1,5 +1,5 @@
 //! pagetray の server を起こす binary（`pagetray-server`）。release の image（Containerfile）に /pagetray-server の名で入る。
-//! e2e の試験と、手で動かして見るのにも使う。
+//! 手で動かして見るのにも使う（本物の binary を起こす試験は tests/server.rs など）。
 //!
 //! - `PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。
 //! - castlist の設定（`PAGETRAY_CASTLIST_URL`）の形が違う時は、記録の置き場も DB も作らずに、

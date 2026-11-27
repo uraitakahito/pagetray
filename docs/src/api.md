@@ -409,7 +409,7 @@ pagetray は画面を持たない（2.0.0 で外した）。ページの一覧�
 |---|---|---|
 | 1 | 頭の印 | どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-referrer`。CSP は、本文の道が自分で付ける（上の「ページの本文」「file の中身」） |
 | 2 | 問い合わせの記録 | 1 つにつき 1 行（method・uri・status・latency。tower-http の TraceLayer）。記録の file にだけ書き、stdout には出さない。断った物も残る |
-| 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほかの要求に `Origin` が付いていれば、403 `Forbidden`。例外は無い（`Origin` が置き場自身の `http://<Host>` でも、`Origin: null` でも 403。画面の form が file を上げる要求だけを通す例外は、2.0.0 で画面と一緒に無くした） |
+| 3 | Host と Origin | `Host`（port を外して）が 127.0.0.1・localhost でない要求と、`GET`・`HEAD` のほかで `Origin` の付いた要求は、403 `Forbidden`。例外は無い（`Origin` が置き場自身の `http://<Host>` でも、`Origin: null` でも 403。画面の form が file を上げる要求だけを通す例外は、2.0.0 で画面と一緒に無くした） |
 | 3 | HEAD | `GET` にして通し、本文を捨てる（生成した骨の道は GET だけなので、ここで揃える） |
 | 4 | 時間切れ | 答えの頭まで 5 秒（`REQUEST_TIMEOUT`）を過ぎれば 503 `Unavailable`（待っている物は捨てる）。本文を送る間は数えないので、大きな backup の file や新着の知らせの流れを途中で切らない。試験は `Config` で短くする。接続を待つ長さ（書く `WRITE_WAIT` 2 秒・読む `READ_WAIT` 3 秒）は、これより短くする（混んでいる時に「混んでいる」の 503 が先に答える。`crates/server/tests/guard.rs` で止めている） |
 | 5 | 本文の上限 | 16 MiB（`MAX_BODY`。ページも file も）。`Content-Length` で超えると言う要求は読まずに、大きさを言わずに流す要求は 16 MiB まで読んで、413 `PayloadTooLarge`（何も置かない）。ちょうど 16 MiB は通る。生成した層は本文をみな読んでから引数にするので、ここで読んでおく（smithy-rs の生成した層にも本文の上限の設定があるが、既定は上限無しで、超えた時の答えが 413 にならない）。本文を読む間も、外の層の 5 秒の時間切れに数える（送り手は同じ機械の中の roster・CLI・callboard なので、16 MiB でも 5 秒よりずっと短く届く。遅い送り手に書く接続を握らせない利点もある） |

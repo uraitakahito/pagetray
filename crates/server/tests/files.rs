@@ -282,7 +282,7 @@ async fn bad_file_arguments_are_refused() {
         ("p", "k", "role=tpm&name=a.p%2Fg".to_owned()),
         ("p", "k", format!("role=tpm&name={stem_65}.png")),
         ("p", "k", "role=tpm&name=a.abcdefghijklmnopq".to_owned()),
-        // role: 英小文字で始まり、英小文字・数字・- で 32 字まで。一覧の UI のほかは要る。
+        // role: 英小文字で始まり、英小文字・数字・- で 32 字まで。いつも要る。
         ("p", "k", "name=a.png".to_owned()),
         ("p", "k", "role=T&name=a.png".to_owned()),
         ("p", "k", "role=&name=a.png".to_owned()),

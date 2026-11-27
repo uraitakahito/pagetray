@@ -1,5 +1,5 @@
-//! 起こす binary（`pagetray-server`）。`PAGETRAY_DB`・`PAGETRAY_LISTEN` で起き、castlist の設定（`PAGETRAY_CASTLIST_URL`・
-//! `PAGETRAY_CASTLIST_LINK_URL`）の形が違えば、DB を開く前に断って止まる。記録・止め方・起きた行・backup は
+//! 起こす binary（`pagetray-server`）。`PAGETRAY_DB`・`PAGETRAY_LISTEN` で起き、castlist の聞く先（`PAGETRAY_CASTLIST_URL`）の
+//! 形が違えば、DB を開く前に断って止まる（`PAGETRAY_CASTLIST_LINK_URL` は 2.0.0 から読まない）。記録・止め方・起きた行・backup は
 //! tests/server.rs と tests/runlog.rs（本物の binary を起こす道具は tests/common/server.rs）。
 
 mod common;

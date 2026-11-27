@@ -81,7 +81,7 @@ async fn a_write_with_an_origin_is_refused_even_from_the_same_origin() {
         refused(&headers, &body, "Forbidden");
     }
     assert_eq!(app.count("pages").await, 0);
-    // 読む要求は、Origin が付いていても通す（一覧の UI が本文を枠に出す）。
+    // 読む要求は、Origin が付いていても通す（callboard の画面が、本文を枠に出す）。
     app.place("p", "k", "plan", "role=tpm", "<p>1</p>").await;
     let request = Request::get("/p/k/plan-1.html")
         .header(header::HOST, HOST)
