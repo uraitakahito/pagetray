@@ -20,7 +20,7 @@ Apple Container（`container` CLI）で、release の image を動かす。`<ver
 
 ```sh
 container volume create pagetray-data-v1    # 初めての時だけ
-container run -d --name pagetray \
+container run -d --name pagetray.box \
   -p 127.0.0.1:8801:8080 \
   -p 127.0.0.1:8800:8080 \
   -v pagetray-data-v1:/data \

@@ -1100,6 +1100,103 @@ impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::ListM
     }
 }
 
+/// Error type for the `GetMessageFacets` operation.
+/// Each variant represents an error that can occur for the `GetMessageFacets` operation.
+#[derive(::std::fmt::Debug)]
+pub enum GetMessageFacetsError {
+    /// A standard error for input validation failures. This should be thrown by services when a member of the input structure falls outside of the modeled or documented constraints.
+    ValidationException(crate::error::ValidationException),
+    /// 混んでいる・時間がかかりすぎた・呼ぶ先が答えない。少し待って送り直す。 時間切れは、どの操作の前でも効く（server の守りの層）。
+    Unavailable(crate::error::Unavailable),
+    /// server の中で失敗した（DB の誤りなど）。送り直しても直らない見込みなので、@retryable は付けない。 訳は server の記録に書き、答えの `message` は決まった字にする（中の誤りの字を外に出さない）。
+    InternalError(crate::error::InternalError),
+    /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
+    Forbidden(crate::error::Forbidden),
+    /// 本文が上限より大きい。どの操作の前でも効く（server の守りの層。上限は server が決める）。
+    PayloadTooLarge(crate::error::PayloadTooLarge),
+}
+impl ::std::fmt::Display for GetMessageFacetsError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            GetMessageFacetsError::ValidationException(_inner) => _inner.fmt(f),
+            GetMessageFacetsError::Unavailable(_inner) => _inner.fmt(f),
+            GetMessageFacetsError::InternalError(_inner) => _inner.fmt(f),
+            GetMessageFacetsError::Forbidden(_inner) => _inner.fmt(f),
+            GetMessageFacetsError::PayloadTooLarge(_inner) => _inner.fmt(f),
+        }
+    }
+}
+impl GetMessageFacetsError {
+    /// Returns `true` if the error kind is `GetMessageFacetsError::ValidationException`.
+    pub fn is_validation_exception(&self) -> bool {
+        matches!(&self, GetMessageFacetsError::ValidationException(_))
+    }
+    /// Returns `true` if the error kind is `GetMessageFacetsError::Unavailable`.
+    pub fn is_unavailable(&self) -> bool {
+        matches!(&self, GetMessageFacetsError::Unavailable(_))
+    }
+    /// Returns `true` if the error kind is `GetMessageFacetsError::InternalError`.
+    pub fn is_internal_error(&self) -> bool {
+        matches!(&self, GetMessageFacetsError::InternalError(_))
+    }
+    /// Returns `true` if the error kind is `GetMessageFacetsError::Forbidden`.
+    pub fn is_forbidden(&self) -> bool {
+        matches!(&self, GetMessageFacetsError::Forbidden(_))
+    }
+    /// Returns `true` if the error kind is `GetMessageFacetsError::PayloadTooLarge`.
+    pub fn is_payload_too_large(&self) -> bool {
+        matches!(&self, GetMessageFacetsError::PayloadTooLarge(_))
+    }
+    /// Returns the error name string by matching the correct variant.
+    pub fn name(&self) -> &'static str {
+        match &self {
+            GetMessageFacetsError::ValidationException(_inner) => _inner.name(),
+            GetMessageFacetsError::Unavailable(_inner) => _inner.name(),
+            GetMessageFacetsError::InternalError(_inner) => _inner.name(),
+            GetMessageFacetsError::Forbidden(_inner) => _inner.name(),
+            GetMessageFacetsError::PayloadTooLarge(_inner) => _inner.name(),
+        }
+    }
+}
+impl ::std::error::Error for GetMessageFacetsError {
+    fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
+        match &self {
+            GetMessageFacetsError::ValidationException(_inner) => Some(_inner),
+            GetMessageFacetsError::Unavailable(_inner) => Some(_inner),
+            GetMessageFacetsError::InternalError(_inner) => Some(_inner),
+            GetMessageFacetsError::Forbidden(_inner) => Some(_inner),
+            GetMessageFacetsError::PayloadTooLarge(_inner) => Some(_inner),
+        }
+    }
+}
+impl ::std::convert::From<crate::error::ValidationException>
+    for crate::error::GetMessageFacetsError
+{
+    fn from(variant: crate::error::ValidationException) -> crate::error::GetMessageFacetsError {
+        Self::ValidationException(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Unavailable> for crate::error::GetMessageFacetsError {
+    fn from(variant: crate::error::Unavailable) -> crate::error::GetMessageFacetsError {
+        Self::Unavailable(variant)
+    }
+}
+impl ::std::convert::From<crate::error::InternalError> for crate::error::GetMessageFacetsError {
+    fn from(variant: crate::error::InternalError) -> crate::error::GetMessageFacetsError {
+        Self::InternalError(variant)
+    }
+}
+impl ::std::convert::From<crate::error::Forbidden> for crate::error::GetMessageFacetsError {
+    fn from(variant: crate::error::Forbidden) -> crate::error::GetMessageFacetsError {
+        Self::Forbidden(variant)
+    }
+}
+impl ::std::convert::From<crate::error::PayloadTooLarge> for crate::error::GetMessageFacetsError {
+    fn from(variant: crate::error::PayloadTooLarge) -> crate::error::GetMessageFacetsError {
+        Self::PayloadTooLarge(variant)
+    }
+}
+
 /// 受けない要求。castlist を動かす機械の外からの名（`Host`）と、browser の中のページからの書く要求（`Origin` の付いた `GET`・`HEAD` のほか）を断る。どの操作の前でも効く（server の守りの層）。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,

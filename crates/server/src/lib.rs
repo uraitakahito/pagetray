@@ -145,6 +145,10 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             let db = db.clone();
             move |input| messages::list_messages(db.clone(), input)
         })
+        .get_message_facets({
+            let db = db.clone();
+            move |input| messages::get_message_facets(db.clone(), input)
+        })
         .build()
         .expect("どの操作にも handler がある");
     let generated = Generated::new(generated);

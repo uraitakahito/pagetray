@@ -18,6 +18,9 @@ pub mod delete_pages;
 /// Types for the `GetHealth` operation.
 pub mod get_health;
 
+/// Types for the `GetMessageFacets` operation.
+pub mod get_message_facets;
+
 /// Types for the `ListFiles` operation.
 pub mod list_files;
 

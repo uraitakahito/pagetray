@@ -863,6 +863,56 @@ impl ListMessagesOutput {
         crate::output::list_messages_output::Builder::default()
     }
 }
+
+#[allow(missing_docs)] // documentation missing in model
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct GetMessageFacetsOutput {
+    /// 状態（`MessageState` の字）ごとの数。
+    pub states: ::std::vec::Vec<crate::model::FacetCount>,
+    /// 受け手の名ごとの数。
+    pub to: ::std::vec::Vec<crate::model::FacetCount>,
+    /// 送り手の名ごとの数。
+    pub from: ::std::vec::Vec<crate::model::FacetCount>,
+    /// Key ごとの数。
+    pub keys: ::std::vec::Vec<crate::model::FacetCount>,
+    /// project ごとの数。
+    pub projects: ::std::vec::Vec<crate::model::FacetCount>,
+}
+impl GetMessageFacetsOutput {
+    /// 状態（`MessageState` の字）ごとの数。
+    pub fn states(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.states.deref()
+    }
+    /// 受け手の名ごとの数。
+    pub fn to(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.to.deref()
+    }
+    /// 送り手の名ごとの数。
+    pub fn from(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.from.deref()
+    }
+    /// Key ごとの数。
+    pub fn keys(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.keys.deref()
+    }
+    /// project ごとの数。
+    pub fn projects(&self) -> &[crate::model::FacetCount] {
+        use std::ops::Deref;
+        self.projects.deref()
+    }
+}
+impl GetMessageFacetsOutput {
+    /// Creates a new builder-style object to manufacture [`GetMessageFacetsOutput`](crate::output::GetMessageFacetsOutput).
+    pub fn builder() -> crate::output::get_message_facets_output::Builder {
+        crate::output::get_message_facets_output::Builder::default()
+    }
+}
 /// See [`GetHealthOutput`](crate::output::GetHealthOutput).
 pub mod get_health_output {
 
@@ -2238,6 +2288,98 @@ pub mod list_messages_output {
             Ok(crate::output::ListMessagesOutput {
                 messages: self.messages.ok_or(ConstraintViolation::MissingMessages)?,
                 next_token: self.next_token,
+            })
+        }
+    }
+}
+/// See [`GetMessageFacetsOutput`](crate::output::GetMessageFacetsOutput).
+pub mod get_message_facets_output {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `states` was not provided but it is required when building `GetMessageFacetsOutput`.
+        MissingStates,
+        /// `to` was not provided but it is required when building `GetMessageFacetsOutput`.
+        MissingTo,
+        /// `from` was not provided but it is required when building `GetMessageFacetsOutput`.
+        MissingFrom,
+        /// `keys` was not provided but it is required when building `GetMessageFacetsOutput`.
+        MissingKeys,
+        /// `projects` was not provided but it is required when building `GetMessageFacetsOutput`.
+        MissingProjects,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingStates => write!(f, "`states` was not provided but it is required when building `GetMessageFacetsOutput`"),
+                ConstraintViolation::MissingTo => write!(f, "`to` was not provided but it is required when building `GetMessageFacetsOutput`"),
+                ConstraintViolation::MissingFrom => write!(f, "`from` was not provided but it is required when building `GetMessageFacetsOutput`"),
+                ConstraintViolation::MissingKeys => write!(f, "`keys` was not provided but it is required when building `GetMessageFacetsOutput`"),
+                ConstraintViolation::MissingProjects => write!(f, "`projects` was not provided but it is required when building `GetMessageFacetsOutput`"),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::output::GetMessageFacetsOutput {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`GetMessageFacetsOutput`](crate::output::GetMessageFacetsOutput).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) states: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) to: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) from: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) keys: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+        pub(crate) projects: ::std::option::Option<::std::vec::Vec<crate::model::FacetCount>>,
+    }
+    impl Builder {
+        /// 状態（`MessageState` の字）ごとの数。
+        pub fn states(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.states = Some(input);
+            self
+        }
+        /// 受け手の名ごとの数。
+        pub fn to(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.to = Some(input);
+            self
+        }
+        /// 送り手の名ごとの数。
+        pub fn from(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.from = Some(input);
+            self
+        }
+        /// Key ごとの数。
+        pub fn keys(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.keys = Some(input);
+            self
+        }
+        /// project ごとの数。
+        pub fn projects(mut self, input: ::std::vec::Vec<crate::model::FacetCount>) -> Self {
+            self.projects = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`GetMessageFacetsOutput`](crate::output::GetMessageFacetsOutput).
+        ///
+        /// The builder fails to construct a [`GetMessageFacetsOutput`](crate::output::GetMessageFacetsOutput) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::output::GetMessageFacetsOutput, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::output::GetMessageFacetsOutput, ConstraintViolation> {
+            Ok(crate::output::GetMessageFacetsOutput {
+                states: self.states.ok_or(ConstraintViolation::MissingStates)?,
+                to: self.to.ok_or(ConstraintViolation::MissingTo)?,
+                from: self.from.ok_or(ConstraintViolation::MissingFrom)?,
+                keys: self.keys.ok_or(ConstraintViolation::MissingKeys)?,
+                projects: self.projects.ok_or(ConstraintViolation::MissingProjects)?,
             })
         }
     }

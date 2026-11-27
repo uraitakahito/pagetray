@@ -11,7 +11,11 @@ pub use crate::types::_file::File;
 
 pub use crate::types::_message::Message;
 
+pub use crate::types::_facet_count::FacetCount;
+
 mod _actor_summary;
+
+mod _facet_count;
 
 mod _file;
 

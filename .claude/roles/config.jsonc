@@ -7,7 +7,15 @@
     // volume を消すと置かれたページの記録が消える。起こし方は docs の「動かす」（docs/src/run.md。https://uraitakahito.github.io/pagetray/run.html）。
     "pagetray": {
       "guard": "tpm",
+      // container の名は pagetray.box（1.2.0 から。同じ network の container（callboard）が DNS の domain box で名で引く）。
+      // 前の名 pagetray の match も残す（前の名で動かしている間と、前の名で起こし直す試みを止めるため）。
       "match": [
+        "--name pagetray.box",
+        "container start pagetray.box",
+        "container stop pagetray.box",
+        "container kill pagetray.box",
+        "container delete pagetray.box",
+        "container rm pagetray.box",
         "--name pagetray",
         "container start pagetray",
         "container stop pagetray",

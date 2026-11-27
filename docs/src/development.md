@@ -7,7 +7,7 @@
 | `crates/server/src/lib.rs`・`guard.rs` | 道筋（生成した骨と手の道を 1 つの Router に並べる）と、この Mac の中からの要求だけを受ける守りの層 |
 | `crates/server/src/db.rs` | 接続・移行・SQL。ほかの版の server の DB を断る所も |
 | `crates/server/src/pages.rs`・`files.rs`・`list.rs`・`search.rs`・`marks.rs`・`remove.rs` | ページと file を置く・探す・印を書く・消す（生成した操作の handler）と、ページの本文・file の中身を返す道 |
-| `crates/server/src/messages.rs` | メッセージの記録を置く・書き足す・探す（生成した操作の handler） |
+| `crates/server/src/messages.rs` | メッセージの記録を置く・書き足す・探す・絞り込みの候補を数える（生成した操作の handler） |
 | `crates/server/src/castlist.rs` | 置かれる時に、送り手を castlist に聞く（castlist の定義から作った client で。1 秒まで待つ）。聞く先と、画面の link の頭の設定を読む |
 | `crates/server/src/hand.rs` | 手の道の DB の写し（`GET /api/backup`）と記録（`GET /api/logs`） |
 | `crates/server/src/ui.rs`・`ui/messages.rs`・`facets.rs`・`templates/index.html`・`templates/messages.html` | 一覧の UI と、メッセージの一覧（askama の template。build の時に検査される） |

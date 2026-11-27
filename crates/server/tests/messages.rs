@@ -1,5 +1,6 @@
 //! メッセージの記録（処理より先に書く）: 置く・書き足す PutMessage（`PUT /api/projects/{project}/messages/{id}`）と、
-//! 探す ListMessages（`GET /api/messages`）と、新着の知らせ（`event: message-record`）と、メッセージの一覧の画面（`/messages`）。
+//! 探す ListMessages（`GET /api/messages`）と、絞り込みの候補と件数 GetMessageFacets
+//! （`GET /api/messages/facets`）と、新着の知らせ（`event: message-record`）と、メッセージの一覧の画面（`/messages`）。
 //! pagetray は、roster が配ったメッセージの記録を写して見せるだけ（配らない・状態を自分で決めない）。
 //! 決まりは docs/src/api.md の「メッセージの記録」。
 mod common;
@@ -858,6 +859,160 @@ async fn the_list_sql_reads_messages_by_an_index() {
             );
         }
     }
+}
+
+// --- 絞り込みの候補と件数（GetMessageFacets） ---
+
+/// 候補の答え（200 を見る）。
+async fn facets(app: &App, query: &str) -> Value {
+    let (status, _, json) = app.json(&format!("/api/messages/facets?{query}")).await;
+    assert_eq!(status, StatusCode::OK, "{query}: {json}");
+    json
+}
+
+/// 候補の並び 1 つを、(値, 件数) の並びにする。
+fn counts(json: &Value, name: &str) -> Vec<(String, i64)> {
+    json[name]
+        .as_array()
+        .unwrap_or_else(|| panic!("{name}: {json}"))
+        .iter()
+        .map(|c| {
+            (
+                c["value"]
+                    .as_str()
+                    .unwrap_or_else(|| panic!("{c}"))
+                    .to_owned(),
+                c["count"].as_i64().unwrap_or_else(|| panic!("{c}")),
+            )
+        })
+        .collect()
+}
+
+fn pairs<const N: usize>(pairs: [(&str, i64); N]) -> Vec<(String, i64)> {
+    pairs.into_iter().map(|(v, n)| (v.to_owned(), n)).collect()
+}
+
+/// 候補と件数は、置き場の全部（絞らない）。状態は決まった順で、件数が 0 の状態は出さない。受け手・送り手は件数の多い順
+/// （同じなら名の順）、Key は新しく送られた順（Key の無い記録は数えない）、project は件数の多い順。
+#[tokio::test]
+async fn the_facets_count_the_whole_store() {
+    let app = App::start().await;
+    // 空の置き場は、どの並びも空。
+    let empty = facets(&app, "").await;
+    for name in ["states", "to", "from", "keys", "projects"] {
+        assert_eq!(counts(&empty, name), [], "{name}");
+    }
+    five(&app).await;
+    place(&app, "p", "m-6", with(waiting(), json!({ "key": "A-1" }))).await;
+    let json = facets(&app, "").await;
+    assert_eq!(
+        counts(&json, "states"),
+        pairs([
+            ("waiting", 2),
+            ("delivered", 1),
+            ("undeliverable", 1),
+            ("expired", 1),
+            ("carried", 1),
+        ])
+    );
+    assert_eq!(
+        counts(&json, "to"),
+        pairs([("tpm", 3), ("pm.1", 1), ("t-1.swe.1", 1), ("t-9.qa.1", 1)])
+    );
+    assert_eq!(
+        counts(&json, "from"),
+        pairs([("pm.1", 2), ("t-1.swe.1", 2), ("t-2.swe.1", 1), ("tpm", 1)])
+    );
+    assert_eq!(counts(&json, "keys"), pairs([("A-1", 4), ("B-2", 1)]));
+    assert_eq!(counts(&json, "projects"), pairs([("p", 4), ("q", 2)]));
+    // 欄は value と count だけ。
+    assert_eq!(json["states"][0], json!({ "value": "waiting", "count": 2 }));
+    // 件数が 0 の状態は出さない。
+    let quiet = App::start().await;
+    place(
+        &quiet,
+        "p",
+        "m-1",
+        with(waiting(), json!({ "state": "delivered" })),
+    )
+    .await;
+    assert_eq!(
+        counts(&facets(&quiet, "").await, "states"),
+        pairs([("delivered", 1)])
+    );
+}
+
+/// 受け手・送り手・Key の候補は 100 件まで。引数に書いた値（今絞っている値）は、100 件の外でも・置き場に無くても、
+/// 後ろに足す（画面が、押して外せるように）。もう候補にある値は、2 度出さない。
+#[tokio::test]
+async fn the_facets_keep_the_picked_values() {
+    let app = App::start().await;
+    for i in 0..101 {
+        place(
+            &app,
+            "p",
+            &format!("m-{i}"),
+            with(
+                waiting(),
+                json!({
+                    "to": format!("to-{i:03}"),
+                    "from": format!("from-{i:03}"),
+                    "key": format!("K-{i}"),
+                    "sentAt": format!("2026-11-01T00:{:02}:{:02}Z", i / 60, i % 60),
+                }),
+            ),
+        )
+        .await;
+    }
+    let json = facets(&app, "").await;
+    for name in ["to", "from", "keys"] {
+        assert_eq!(counts(&json, name).len(), 100, "{name}");
+    }
+    assert_eq!(counts(&json, "to")[99], ("to-099".to_owned(), 1));
+    assert_eq!(counts(&json, "from")[99], ("from-099".to_owned(), 1));
+    assert_eq!(counts(&json, "keys")[0], ("K-100".to_owned(), 1));
+    assert_eq!(counts(&json, "keys")[99], ("K-1".to_owned(), 1));
+
+    let json = facets(&app, "to=to-100&from=from-100&key=K-0").await;
+    for (name, value) in [("to", "to-100"), ("from", "from-100"), ("keys", "K-0")] {
+        let list = counts(&json, name);
+        assert_eq!(list.len(), 101, "{name}");
+        assert_eq!(list[100], (value.to_owned(), 1), "{name}");
+    }
+    // 置き場に無い値は、件数 0 で足す。
+    let json = facets(&app, "to=nobody").await;
+    assert_eq!(counts(&json, "to")[100], ("nobody".to_owned(), 0));
+    assert_eq!(counts(&json, "from").len(), 100);
+    // もう候補にある値は、足さない。
+    let json = facets(&app, "to=to-000&from=from-000&key=K-100").await;
+    for name in ["to", "from", "keys"] {
+        assert_eq!(counts(&json, name).len(), 100, "{name}");
+    }
+}
+
+/// 引数の形が違えば 400（ListMessages と同じ形の決まり）。知らない引数は読まない。
+#[tokio::test]
+async fn bad_facet_arguments_are_refused() {
+    let app = App::start().await;
+    for query in [
+        format!("to={}", "a".repeat(201)),
+        format!("from={}", "a".repeat(201)),
+        "to=".to_owned(),
+        "key=a%2Fb".to_owned(),
+    ] {
+        let (status, headers, body) = app.get(&format!("/api/messages/facets?{query}")).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{query}");
+        refused(&headers, &body, "ValidationException");
+    }
+    // 書く method は無い。
+    let (status, _, _) = app
+        .send_json(json_request(
+            "POST",
+            "/api/messages/facets",
+            Some(json!({})),
+        ))
+        .await;
+    assert_ne!(status, StatusCode::OK);
 }
 
 // --- 送り手 ---

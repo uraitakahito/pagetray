@@ -3,8 +3,8 @@ use axum::http::{HeaderName, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use pagetray_sdk::error::{
     AddReviewMarksError, Conflict, CreateFileError, CreatePageError, DeleteFilesError,
-    DeletePagesError, InternalError, ListFilesError, ListMessagesError, ListPagesError,
-    PutMessageError, SetReplyStateError, Unavailable, ValidationException,
+    DeletePagesError, GetMessageFacetsError, InternalError, ListFilesError, ListMessagesError,
+    ListPagesError, PutMessageError, SetReplyStateError, Unavailable, ValidationException,
 };
 
 use pagetray_sdk::model::ValidationExceptionField;
@@ -115,7 +115,8 @@ from_failure!(
     DeletePagesError,
     ListFilesError,
     DeleteFilesError,
-    ListMessagesError
+    ListMessagesError,
+    GetMessageFacetsError
 );
 
 /// 書いて足す操作（CreatePage・CreateFile）の失敗: 中身の誤り（400）・castlist に登録の無い送り手（400）・番号が使われている（409）・

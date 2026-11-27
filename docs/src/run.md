@@ -5,24 +5,24 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 | 物 | 値 |
 |---|---|
 | image | `ghcr.io/uraitakahito/pagetray:v<version>`（[release](https://github.com/uraitakahito/pagetray/releases) に digest がある。arm64） |
-| container | `pagetray`（`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
+| container | `pagetray.box`（1.2.0 から。前の名は `pagetray`。`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
 | URL | `http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
 | DB | 名前つきの volume `pagetray-data-v1`（中の `/data/pages.db`。1.0.0 から。0.8.x の DB は、切り替えの時に移した: [release を出す](release.md) の「切り替え（済み）」）。Mac の folder は mount しない |
 | 記録 | 同じ volume の `/data/logs/`（0.7.0 から。合わせて 4 MiB と 64 KiB まで）。下の「落ちた後に調べる」 |
-| 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://127.0.0.1:8802`）は下の「送り手を castlist に聞く」 |
+| 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://127.0.0.1:8802`。本番では callboard の `http://127.0.0.1:8803` を書く）は下の「送り手を castlist に聞く」 |
 
 `roster` を使う Mac では、container と volume に触る命令を `roster infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
 
 ## 送り手を castlist に聞く
 
-castlist の居場所は、2 つの環境変数で書く（どちらも `http://<host>:<port>` の形だけ。後ろの `/` は無くてよい）。pagetray は container の中から castlist に聞き、一覧の UI の link は Product Manager が host（pagetray を動かす機械）の browser で開くので、同じ castlist でも届く所が違う。
+castlist の居場所は、2 つの環境変数で書く（どちらも `http://<host>:<port>` の形だけ。後ろの `/` は無くてよい）。pagetray は container の中から castlist に聞き、一覧の UI の link は Product Manager が host（pagetray を動かす機械）の browser で開くので、聞く先と link の頭は別に書く。アクターの画面は、castlist 2.0.0 から callboard（castlist と pagetray の画面を出す server）にある（castlist は画面を持たない）ので、link の頭は callboard を指す。
 
 | 環境変数 | 使う所 | 本番の値 |
 |---|---|---|
 | `PAGETRAY_CASTLIST_URL` | pagetray が、container の中から castlist に送り手を聞く先。container の中の `127.0.0.1` は container 自身なので、host の port には届かない | `http://castlist.box:8080`。castlist の container `castlist.box` の port 8080 に、名でつなぐ（既定の network では、Apple Container の DNS が domain `box` の名を答える） |
-| `PAGETRAY_CASTLIST_LINK_URL` | 一覧の UI の、送り手の名の link（`<値>/actors/<アクターの id>`）の頭。Product Manager が host の browser で開く | `http://127.0.0.1:8802`（既定のまま。castlist は host の `127.0.0.1:8802` で待ち受ける） |
+| `PAGETRAY_CASTLIST_LINK_URL` | 一覧の UI の、送り手の名の link（`<値>/actors/<アクターの id>`）の頭。Product Manager が host の browser で開く | `http://127.0.0.1:8803`（callboard。host の `127.0.0.1:8803` で待ち受ける）。既定は `http://127.0.0.1:8802`（castlist）で、castlist 2.0.0 からは開かない（404）ので、必ず書く |
 
-`PAGETRAY_CASTLIST_URL` を書くと、付随する id を付けて置かれたページと file の送り手を、受けたその時に castlist に聞いて残す（[API の仕様](api.md) の「送り手」）。本番では、下の「起こす」の `container run` に `-e PAGETRAY_CASTLIST_URL=http://castlist.box:8080` を足す。
+`PAGETRAY_CASTLIST_URL` を書くと、付随する id を付けて置かれたページと file の送り手を、受けたその時に castlist に聞いて残す（[API の仕様](api.md) の「送り手」）。本番では、下の「起こす」の `container run` に `-e PAGETRAY_CASTLIST_URL=http://castlist.box:8080` と `-e PAGETRAY_CASTLIST_LINK_URL=http://127.0.0.1:8803` を足す。
 
 - 書かなければ、castlist に聞かず、付随する id だけを残す（一覧の UI では「未確認」で、link も出ない）。
 - 書いた時は、castlist が止まっている・1 秒で答えない間、付随する id を付けた置く要求は `503` で断られる（何も置かない）。付けない要求は前のまま置ける。
@@ -36,7 +36,7 @@ castlist の居場所は、2 つの環境変数で書く（どちらも `http://
 container image pull ghcr.io/uraitakahito/pagetray:v<version>
 container image inspect ghcr.io/uraitakahito/pagetray:v<version> | grep -o '"digest" *: *"sha256:[0-9a-f]*"'   # release の digest がこの中にあるか
 container volume create pagetray-data-v1                        # 初めての時だけ
-container run -d --name pagetray \
+container run -d --name pagetray.box \
   -p 127.0.0.1:8801:8080 \
   -p 127.0.0.1:8800:8080 \
   -v pagetray-data-v1:/data \
@@ -44,6 +44,7 @@ container run -d --name pagetray \
   ghcr.io/uraitakahito/pagetray:v<version>
 ```
 
+- container の名は `pagetray.box`（1.2.0 から、この本はこの名で書く）。同じ network の container（画面を出す callboard）が、名 `pagetray.box` で pagetray に届く（Apple Container の DNS は、domain `box` の付いた名だけを答える。`pagetray` の名では引けない）。host からの URL（`http://127.0.0.1:8801`）は変わらない。前の名 `pagetray` で動かしている container は、下の「版を上げる」の時に、前の名で止めて消してから、この名で起こす（volume はそのまま付く）。
 - digest の見方: `container image list` に出る digest は、Apple Container が付ける別の値。release の digest は、`container image inspect` の `variants` の中の `digest` に出る。
 
 > [!WARNING]
@@ -54,11 +55,11 @@ container run -d --name pagetray \
 
 ## 確かめる
 
-1. `container list` で `pagetray` が `running`。
+1. `container list` で `pagetray.box` が `running`。
 2. `lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と `127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。
 3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `{"status":"ok","version":"<version>"}` を返す（`version` が起こした版）。
-4. `container logs pagetray` の頭の 2 行が、前回の終わり方（`previous: …`。下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8802`）。
-5. `container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
+4. `container logs pagetray.box` の頭の 2 行が、前回の終わり方（`previous: …`。下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8803`）。
+5. `container stats --no-stream pagetray.box` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
 6. 一覧の UI を、読むだけの試験で見る（試験のある 0.3.2 から）。本物の browser（この Mac の Chrome）で開き、一覧が出て API の答えと合うこと・新着の知らせにつながること・絞れること・選んだページが本文の枠に出ること・console に誤りが無いことを見る。置き場には何も書かない。pagetray の checkout のある folder で、起こした版の試験を取り出して流す（Node と pnpm が要る。[開発](development.md) の「一覧の UI の試験」）。checkout が無ければ、browser で `http://127.0.0.1:8801/` を開き、一覧が出るのを見る。
 
    ```sh
@@ -103,12 +104,12 @@ sqlite3 ~/pagetray-<timestamp>.db 'select count(*) from pages'    # 開けて、
 volume を失った・DB が壊れた時。戻す間、ページは置けない。
 
 ```sh
-container stop pagetray
+container stop pagetray.box
 container run --rm \
   -v pagetray-data-v1:/data -v "<backup-dir>:/in:ro" \
   docker.io/library/rust:1.100.0-alpine \
   sh -c 'rm -f /data/pages.db-wal /data/pages.db-shm && cp /in/<backup-file> /data/pages.db'
-container start pagetray
+container start pagetray.box
 ```
 
 - 動かす image は空で `cp` も無いので、file を volume に入れる時だけ、shell のある image を借りる（上は `Containerfile` の build の段と同じ物。何でもよい）。
@@ -132,7 +133,7 @@ container run --rm -v pagetray-data-v1:/data docker.io/library/rust:1.100.0-alpi
   sh -c 'cat /data/logs/runs.log; tail -n 200 /data/logs/server.log'
 ```
 
-起きるたびに、前回の終わり方を 1 行で出す（`container logs pagetray` の頭と、`server.log`）。
+起きるたびに、前回の終わり方を 1 行で出す（`container logs pagetray.box` の頭と、`server.log`）。
 
 | 行 | 前回に起きたこと | 次に見る所 |
 |---|---|---|
@@ -149,8 +150,8 @@ container run --rm -v pagetray-data-v1:/data docker.io/library/rust:1.100.0-alpi
 
 ## 止める・Mac を起こし直した後
 
-- 止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるため）。止めるのは `container stop pagetray`。DB は volume に残る。
-- Mac を起こし直すと止まったままになる。`container system start` の後に `container start pagetray` を打ち、「確かめる」をする。
+- 止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるため）。止めるのは `container stop pagetray.box`。DB は volume に残る。
+- Mac を起こし直すと止まったままになる。`container system start` の後に `container start pagetray.box` を打ち、「確かめる」をする。
 - volume（`pagetray-data-v1`）は消さない。
 
 ## 版を上げる
@@ -158,6 +159,6 @@ container run --rm -v pagetray-data-v1:/data docker.io/library/rust:1.100.0-alpi
 1. [CHANGELOG.md](https://github.com/uraitakahito/pagetray/blob/main/CHANGELOG.md) で、API の形が替わるか・移行の SQL が足されるかを見る（移行が足された版は、当てた後に前の版へ戻せない。1.0.0 から後の server は、自分より新しい版が移行を足した DB では起きない）。
 2. 新しい版の image を pull し、digest を release の値と見比べる。
 3. 「DB の写しを取る」をする。
-4. `container stop pagetray`・`container delete pagetray` の後、新しい版で「起こす」の `container run` を打ち、「確かめる」をする（volume はそのまま付く）。
-5. 駄目なら、`container delete pagetray` の後、前の版で `container run` を打つ（移行が足されていなければ、同じ volume で起きる。足されていたら、3 の写しから戻す）。
+4. `container stop pagetray.box`・`container delete pagetray.box` の後、新しい版で「起こす」の `container run` を打ち、「確かめる」をする（volume はそのまま付く）。前の名 `pagetray` で動かしている時は、止める・消すを前の名で打つ（起こすのは、新しい名 `pagetray.box`）。
+5. 駄目なら、`container delete pagetray.box` の後、前の版で `container run` を打つ（移行が足されていなければ、同じ volume で起きる。足されていたら、3 の写しから戻す）。
 6. 古い image は `container image delete` で消す。

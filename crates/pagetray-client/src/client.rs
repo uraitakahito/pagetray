@@ -145,6 +145,8 @@ mod delete_pages;
 
 mod get_health;
 
+mod get_message_facets;
+
 mod list_files;
 
 mod list_messages;

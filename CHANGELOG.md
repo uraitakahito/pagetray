@@ -2,6 +2,17 @@
 
 版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
+## 1.2.0
+
+API の版: 無い（1.1.x に、操作を 1 つ足した。前からある操作・型・欄は替えていない。定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）は、壊す変わり無しで通る）
+
+メッセージの一覧の画面を callboard（castlist と pagetray の画面を出す server）に移すために、画面が DB から直に読んでいた数を、API で読めるようにした版（AI-32）。DB の移行の SQL・image の中身・環境変数・port は 1.1.1 と同じで、1.1.x の volume でそのまま起きる（1.1.1 の image に戻しても起きる）。pagetray の画面（`/`・`/messages`）は、替えていない。
+
+- **API に操作を 1 つ足した**: `GetMessageFacets`（`GET /api/messages/facets`。形は [API の仕様](https://uraitakahito.github.io/pagetray/api.html) の「絞り込みの候補と件数」）。メッセージの記録の、状態・受け手・送り手・Key・project ごとの数（置き場の全部。絞らない）。引数 `to`・`from`・`key` に書いた値は、候補の 100 件の外でも並びに入る。画面（`/messages`）の絞り込みの列と同じ SQL を読む。
+- **docs の container の名を `pagetray.box` にした**（[動かす](https://uraitakahito.github.io/pagetray/run.html)）: 同じ network の container（callboard）が、名で pagetray に届くようにする（Apple Container の DNS は、domain `box` の付いた名だけを答える）。server は名を見ないので、前の名 `pagetray` のままでも動く。名を付け直す時は、版を上げる時に、前の名で止めて消してから、新しい名で起こす（volume はそのまま付く。host からの URL は変わらない）。`.claude/roles/config.jsonc` の環境の宣言に、新しい名の命令を足した（前の名の命令も残す）。
+- docs: 一覧の UI の送り手の名の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）の本番の値を、callboard の `http://127.0.0.1:8803` にした（castlist は 2.0.0 から画面を持たないので、既定の `http://127.0.0.1:8802` の先は 404 になる）。「起こす」の行に足す `-e` を 2 つ書いた。既定の値そのものは替えていない。
+- CLI（`pagetray`）: 命令は足していない（版の字だけが 1.2.0 になる）。
+
 ## 1.1.1
 
 API の版: 無い（1.1.0 と同じ。操作・型・欄は替えていない）

@@ -227,6 +227,27 @@ pub(crate) fn get_health_output_output_correct_errors(
     builder
 }
 
+pub(crate) fn get_message_facets_output_output_correct_errors(
+    mut builder: crate::operation::get_message_facets::builders::GetMessageFacetsOutputBuilder,
+) -> crate::operation::get_message_facets::builders::GetMessageFacetsOutputBuilder {
+    if builder.states.is_none() {
+        builder.states = Some(Default::default())
+    }
+    if builder.to.is_none() {
+        builder.to = Some(Default::default())
+    }
+    if builder.from.is_none() {
+        builder.from = Some(Default::default())
+    }
+    if builder.keys.is_none() {
+        builder.keys = Some(Default::default())
+    }
+    if builder.projects.is_none() {
+        builder.projects = Some(Default::default())
+    }
+    builder
+}
+
 pub(crate) fn list_files_output_output_correct_errors(
     mut builder: crate::operation::list_files::builders::ListFilesOutputBuilder,
 ) -> crate::operation::list_files::builders::ListFilesOutputBuilder {
@@ -352,6 +373,18 @@ pub(crate) fn actor_summary_correct_errors(
     }
     if builder.kind.is_none() {
         builder.kind = Some(Default::default())
+    }
+    builder
+}
+
+pub(crate) fn facet_count_correct_errors(
+    mut builder: crate::types::builders::FacetCountBuilder,
+) -> crate::types::builders::FacetCountBuilder {
+    if builder.value.is_none() {
+        builder.value = Some(Default::default())
+    }
+    if builder.count.is_none() {
+        builder.count = Some(Default::default())
     }
     builder
 }
