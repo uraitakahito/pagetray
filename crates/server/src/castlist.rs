@@ -17,17 +17,11 @@ use castlist_client::error::SdkError;
 /// 1 度に待つ長さ（つなぐ・送る・答えを読み終えるまでの全部）。過ぎれば聞けなかったとする。
 pub const TIMEOUT: Duration = Duration::from_secs(1);
 
-/// 画面の link の頭の既定。本番の castlist を、host の browser から開く所。
-pub const DEFAULT_LINK: &str = "http://127.0.0.1:8802";
-
-/// castlist の居場所と、聞く client。聞く先（`PAGETRAY_CASTLIST_URL`）と、画面の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）は別。
-/// pagetray は container の中から castlist に聞き、link は Product Manager が host の browser で開くので、届く所が違う。
+/// castlist の居場所と、聞く client（聞く先は `PAGETRAY_CASTLIST_URL`）。
 #[derive(Clone, Debug)]
 pub struct Castlist {
     /// 聞く先の `http://<host>:<port>`。
     api: String,
-    /// 画面から castlist のアクターを開く URL の頭（`http://<host>:<port>`）。
-    link: String,
     client: Client,
 }
 
@@ -48,24 +42,15 @@ pub struct Answer {
 }
 
 impl Castlist {
-    /// 環境変数（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）から作る（[`Castlist::configure`]）。
+    /// 環境変数（`PAGETRAY_CASTLIST_URL`）から作る（[`Castlist::configure`]）。画面の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）は、
+    /// 2.0.0 で画面と一緒に無くした（書いてあっても読まない）。
     pub fn from_env() -> Result<Option<Self>, String> {
-        Self::configure(
-            std::env::var("PAGETRAY_CASTLIST_URL").ok().as_deref(),
-            std::env::var("PAGETRAY_CASTLIST_LINK_URL").ok().as_deref(),
-        )
+        Self::configure(std::env::var("PAGETRAY_CASTLIST_URL").ok().as_deref())
     }
 
     /// 環境変数の値から作る。`api`（`PAGETRAY_CASTLIST_URL`）が無い・空なら、castlist に聞かない（`None`）。
-    /// `link`（`PAGETRAY_CASTLIST_LINK_URL`）が無い・空なら [`DEFAULT_LINK`]。
-    /// どちらも `http://<host>:<port>` の形でなければ断る（`api` が無くても、書いた `link` は見る）。
-    pub fn configure(api: Option<&str>, link: Option<&str>) -> Result<Option<Self>, String> {
-        let link = match link.filter(|v| !v.is_empty()) {
-            Some(url) => parse_base(url)
-                .map(|addr| format!("http://{addr}"))
-                .map_err(|rule| format!("PAGETRAY_CASTLIST_LINK_URL は {rule}"))?,
-            None => DEFAULT_LINK.to_owned(),
-        };
+    /// `http://<host>:<port>` の形でなければ断る。
+    pub fn configure(api: Option<&str>) -> Result<Option<Self>, String> {
         let Some(api) = api.filter(|v| !v.is_empty()) else {
             return Ok(None);
         };
@@ -83,7 +68,6 @@ impl Castlist {
             .build();
         Ok(Some(Self {
             api,
-            link,
             client: Client::from_conf(config),
         }))
     }
@@ -91,11 +75,6 @@ impl Castlist {
     /// 聞く先（`http://<host>:<port>`）。
     pub fn api(&self) -> &str {
         &self.api
-    }
-
-    /// 画面から castlist のアクターを開く URL の頭（`http://<host>:<port>`）。
-    pub fn link(&self) -> &str {
-        &self.link
     }
 
     /// 付随する id の送り手を聞く。登録が無ければ `None`。聞けなければ（つながらない・1 秒で答えない・2xx でない・
@@ -169,7 +148,7 @@ fn as_of(t: &aws_smithy_types::DateTime) -> Option<String> {
         .map(crate::db::stamp)
 }
 
-/// castlist のアクターの id の形（`ai.common#ActorId`: 小文字の 16 進の UUID の字）。画面の link の path に入るので見る。
+/// castlist のアクターの id の形（`ai.common#ActorId`: 小文字の 16 進の UUID の字）。答えに入れて返すので見る。
 pub(crate) fn is_actor_id(s: &str) -> bool {
     let groups: Vec<&str> = s.split('-').collect();
     groups.len() == 5

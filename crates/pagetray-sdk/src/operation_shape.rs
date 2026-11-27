@@ -242,7 +242,7 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Del
     }
 }
 
-/// file を 1 つ置く。本文は中身をそのまま（`Content-Type` は拡張子の種類と同じ。`;` の後ろと大小は問わない）。答えに中身は入らない。 受ける拡張子は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。ほかの拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（字の file は UTF-8 で NUL の無い物）は 415。 番号（`n`）を書かなければ、同じ project・key・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。 送り手は CreatePage と同じ（castlist には、ほかの検査（400・415）の後に聞く）。 一覧の UI の form から上げた物（守りの層が `Origin` の例外として通した物）は、役割 `product-manager`・workspace 空で残し、 `n`・`createdAt`・`actorIssuer`・`actorRef` を読まない（`role` も書かなくてよい）。ほかの要求は `role` が要る（無ければ 400）。
+/// file を 1 つ置く。本文は中身をそのまま（`Content-Type` は拡張子の種類と同じ。`;` の後ろと大小は問わない）。答えに中身は入らない。 受ける拡張子は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。ほかの拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（字の file は UTF-8 で NUL の無い物）は 415。 番号（`n`）を書かなければ、同じ project・key・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。 送り手は CreatePage と同じ（castlist には、ほかの検査（400・415）の後に聞く）。 `role` は、いつも要る（無ければ 400）。browser の中のページからは置けない（守りの層が `Origin` の付いた要求を断る）。 画面（callboard）の form から上げた file は、callboard が `Origin` を付けずに、役割 `product-manager` で置く。
 pub struct CreateFile;
 
 impl ::aws_smithy_http_server::operation::OperationShape for CreateFile {
@@ -432,7 +432,7 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Lis
     }
 }
 
-/// メッセージの記録の、絞り込みの候補と件数（メッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う）。 どの並びも、置き場の全部を数える（絞らない）。件数が 0 の値は出さない（下の、引数に書いた値を除く）。 - `states`: 状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` の順。 - `to`・`from`: 受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで。 - `keys`: Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない）。 - `projects`: project ごとの数。件数の多い順（同じなら名の順）。 - 引数の `to`・`from`・`key` は絞らない。書いた値が、その並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を 並びの後ろに足す（画面が、今絞っている値を候補に出して、押して外せるように）。
+/// メッセージの記録の、絞り込みの候補と件数（callboard のメッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う）。 どの並びも、置き場の全部を数える（絞らない）。件数が 0 の値は出さない（下の、引数に書いた値を除く）。 - `states`: 状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` の順。 - `to`・`from`: 受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで。 - `keys`: Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない）。 - `projects`: project ごとの数。件数の多い順（同じなら名の順）。 - 引数の `to`・`from`・`key` は絞らない。書いた値が、その並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を 並びの後ろに足す（画面が、今絞っている値を候補に出して、押して外せるように）。
 pub struct GetMessageFacets;
 
 impl ::aws_smithy_http_server::operation::OperationShape for GetMessageFacets {
@@ -470,7 +470,7 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Get
     }
 }
 
-/// ページの、絞り込みの候補と件数・待ちの数（ページの一覧の画面が、絞り込みの列と操作の帯の数に使う）。 どれも、置き場の全部を数える（絞らない）。引数は無い。件数が 0 の値は出さない。 - `waiting`・`answered`: Product Manager の返事待ち・答えたページの数。`reviewWaiting`: レビュー待ちのページの数。 `escalated`: TPM 担当に上げて、まだ決まっていないページの数。 - `senders`: 送り手ごとの数。castlist の答えのある送り手だけ。`value` はアクターの id、`note` はその名。多い順に 100 まで。 - `roles`・`kinds`・`projects`・`verdicts`: 役割・種類・project・レビューの判定ごとの数。件数の多い順（同じなら名の順）。 - `workspaces`: workspace の ID ごとの数（書かずに置いた物は空の値）。新しく置かれた順に 100 まで。`note` は、その ID で 置かれた Key（`, ` で繋ぐ。空の値には無い）。 - `keys`: Key ごとの数。新しく置かれた順に 100 まで。
+/// ページの、絞り込みの候補と件数・待ちの数（callboard のページの一覧の画面が、絞り込みの列と操作の帯の数に使う）。 どれも、置き場の全部を数える（絞らない）。引数は無い。件数が 0 の値は出さない。 - `waiting`・`answered`: Product Manager の返事待ち・答えたページの数。`reviewWaiting`: レビュー待ちのページの数。 `escalated`: TPM 担当に上げて、まだ決まっていないページの数。 - `senders`: 送り手ごとの数。castlist の答えのある送り手だけ。`value` はアクターの id、`note` はその名。多い順に 100 まで。 - `roles`・`kinds`・`projects`・`verdicts`: 役割・種類・project・レビューの判定ごとの数。件数の多い順（同じなら名の順）。 - `workspaces`: workspace の ID ごとの数（書かずに置いた物は空の値）。新しく置かれた順に 100 まで。`note` は、その ID で 置かれた Key（`, ` で繋ぐ。空の値には無い）。 - `keys`: Key ごとの数。新しく置かれた順に 100 まで。
 pub struct GetPageFacets;
 
 impl ::aws_smithy_http_server::operation::OperationShape for GetPageFacets {
@@ -508,7 +508,7 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Get
     }
 }
 
-/// 名指したページ（`target`。ページの path）を見たレビューのページ（種類が `review` で、見た物にその path を書いた物）。 置いた古い順。ページの一覧の画面が、行の下に「レビュー」の link と判定を出すのに使う。 - `target` は 1 つから 200 まで（無ければ・超えれば 400）。path の形は見ない（置き場に無い path には、何も返さない）。
+/// 名指したページ（`target`。ページの path）を見たレビューのページ（種類が `review` で、見た物にその path を書いた物）。 置いた古い順。callboard のページの一覧の画面が、行の下に「レビュー」の link と判定を出すのに使う。 - `target` は 1 つから 200 まで（無ければ・超えれば 400）。path の形は見ない（置き場に無い path には、何も返さない）。
 pub struct ListReviews;
 
 impl ::aws_smithy_http_server::operation::OperationShape for ListReviews {
@@ -546,7 +546,7 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Lis
     }
 }
 
-/// 受ける file の種類と、1 つの大きさの上限（ページの一覧の画面の、file を上げる枠が、送る前に見る）。 並びは、置き場が種類を断る時の文と同じ。
+/// 受ける file の種類と、1 つの大きさの上限（callboard のページの一覧の画面の、file を上げる枠が、送る前に見る）。 並びは、置き場が種類を断る時の文と同じ。
 pub struct GetFileRules;
 
 impl ::aws_smithy_http_server::operation::OperationShape for GetFileRules {

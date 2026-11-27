@@ -27,18 +27,6 @@ async fn list(app: &App, query: &str) -> Value {
     json
 }
 
-/// 一覧の UI の form が上げる要求（`Origin` は `http://<Host>`。`site` は `Sec-Fetch-Site`）。
-fn from_ui(uri: &str, host: &str, origin: &str, site: Option<&str>) -> Request<Body> {
-    let mut builder = Request::post(uri)
-        .header(header::HOST, host)
-        .header(header::ORIGIN, origin)
-        .header(header::CONTENT_TYPE, "image/png");
-    if let Some(site) = site {
-        builder = builder.header("sec-fetch-site", site);
-    }
-    builder.body(Body::from(PNG)).unwrap()
-}
-
 #[tokio::test]
 async fn a_file_comes_back_byte_for_byte_with_its_type() {
     let app = App::start().await;
@@ -982,11 +970,11 @@ async fn paths_under_api_never_reach_the_file_route() {
     assert_eq!(body, b"{}");
 }
 
-/// browser から来た書く要求（`Origin` 付き）の、通す・断るの組み合わせ（docs/src/api.md の「守りの層」）。
-/// 通すのは、一覧の UI の form が file を上げる 1 つの形（CreateFile の道・同じ Host と port の http の Origin・
-/// Sec-Fetch-Site が無いか same-origin）だけ。
+/// browser から来た書く要求（`Origin` 付き）は、どれも断る（docs/src/api.md の「守りの層」）。前は、一覧の UI の form が
+/// file を上げる 1 つの形（CreateFile の道・同じ Host と port の http の Origin・Sec-Fetch-Site が無いか same-origin）を
+/// 通していたが、2.0.0 で画面と一緒に無くした（画面の form からの上げは、callboard が受けて、Origin を付けずに置く）。
 #[tokio::test]
-async fn only_the_list_ui_may_put_files_from_a_browser() {
+async fn no_page_in_a_browser_may_write() {
     let app = App::start().await;
     app.place("p", "SKILLS-14", "plan", SE, "<p>x</p>").await;
     app.place_file("p", "SKILLS-14", &named("old.png"), "image/png", PNG)
@@ -994,14 +982,14 @@ async fn only_the_list_ui_may_put_files_from_a_browser() {
     let ui = format!("http://{HOST}");
     let put = files_uri("p", "SKILLS-14", &named("a.png"));
     let cases: Vec<(&str, String, &str, Option<&str>, StatusCode)> = vec![
-        // 一覧の UI の form（同じ Host・port の Origin）。
-        ("POST", put.clone(), &ui, None, StatusCode::CREATED),
+        // 前の一覧の UI の form の形（同じ Host・port の Origin）も、もう通さない。
+        ("POST", put.clone(), &ui, None, StatusCode::FORBIDDEN),
         (
             "POST",
             put.clone(),
             &ui,
             Some("same-origin"),
-            StatusCode::CREATED,
+            StatusCode::FORBIDDEN,
         ),
         // 本文の枠の中のページ（sandbox なので null）・ほかの port・ほかの名・https。
         ("POST", put.clone(), "null", None, StatusCode::FORBIDDEN),
@@ -1141,73 +1129,13 @@ async fn only_the_list_ui_may_put_files_from_a_browser() {
     }
     // 断った物は、何も置かず、何も消していない。
     assert_eq!(app.paths("").await, ["/p/SKILLS-14/plan-1.html"]);
-    assert_eq!(
-        app.file_paths("").await,
-        [
-            "/p/SKILLS-14/files/a-2.png",
-            "/p/SKILLS-14/files/a-1.png",
-            "/p/SKILLS-14/files/old-1.png"
-        ]
-    );
+    assert_eq!(app.file_paths("").await, ["/p/SKILLS-14/files/old-1.png"]);
 }
 
-/// 一覧の UI から上げた file は、引数に何が書いてあっても、役割 product-manager・workspace 空で記録する。
-/// 番号と時刻も、置き場が決める（browser から取り込みはできない）。`Origin` の無い要求（CLI・roster）は前のまま。
+/// `Origin` の無い要求（CLI・roster・callboard）は、引数の役割・workspace・番号・時刻のまま記録する。役割は、いつも要る。
 #[tokio::test]
-async fn files_from_the_list_ui_are_recorded_as_the_product_manager() {
+async fn files_are_recorded_with_the_role_that_was_given() {
     let app = App::start().await;
-    let uri = files_uri(
-        "p",
-        "SKILLS-14",
-        &format!("{}&n=7&createdAt=2020-01-01T00%3A00%3A00Z", named("a.png")),
-    );
-    let (status, _, json) = app
-        .send_json(from_ui(
-            &uri,
-            HOST,
-            &format!("http://{HOST}"),
-            Some("same-origin"),
-        ))
-        .await;
-    assert_eq!(status, StatusCode::CREATED, "{json}");
-    assert_eq!(json["role"], "product-manager");
-    assert_eq!(json["workspace"], "");
-    assert_eq!(json["n"], "1");
-    assert_ne!(json["createdAt"], "2020-01-01T00:00:00Z");
-    let stored: String = scalar(&app, "select created_at from files").await;
-    assert!(
-        stored.starts_with("20") && !stored.starts_with("2020-"),
-        "{stored}"
-    );
-    // 役割を書かなくても上げられる（UI は書かない）。ほかの Host と port でも、同じ Origin なら同じ。
-    let uri = files_uri("p", "SKILLS-14", "name=b.png");
-    let (status, _, json) = app
-        .send_json(from_ui(
-            &uri,
-            "localhost:18801",
-            "http://localhost:18801",
-            None,
-        ))
-        .await;
-    assert_eq!(status, StatusCode::CREATED, "{json}");
-    assert_eq!(json["role"], "product-manager");
-    assert_eq!(json["workspace"], "");
-    assert_eq!(
-        json["url"],
-        "http://localhost:18801/p/SKILLS-14/files/b-1.png"
-    );
-    // UI から上げた物も、種類と中身は見る（415）。
-    let request = Request::post(files_uri("p", "SKILLS-14", "name=c.png"))
-        .header(header::HOST, HOST)
-        .header(header::ORIGIN, format!("http://{HOST}"))
-        .header(header::CONTENT_TYPE, "image/png")
-        .body(Body::from("not a png"))
-        .unwrap();
-    let (status, headers, _) = app.send_json(request).await;
-    assert_eq!(status, StatusCode::UNSUPPORTED_MEDIA_TYPE);
-    assert_eq!(error_type(&headers), "UnsupportedMediaType");
-
-    // Origin の無い要求は、引数の役割・workspace・番号・時刻のまま。役割が無ければ断る。
     let (status, _, json) = app
         .put_file(
             "p",
@@ -1222,13 +1150,26 @@ async fn files_from_the_list_ui_are_recorded_as_the_product_manager() {
     assert_eq!(json["workspace"], "workspace:1");
     assert_eq!(json["n"], "7");
     assert_eq!(json["createdAt"], "2026-11-01T00:00:00Z");
+    // 画面（callboard）からの上げは、役割 product-manager を書いて置く。
+    let (status, _, json) = app
+        .put_file(
+            "p",
+            "SKILLS-14",
+            "name=b.png&role=product-manager",
+            Some("image/png"),
+            PNG,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{json}");
+    assert_eq!(json["role"], "product-manager");
+    assert_eq!(json["workspace"], "");
     let (status, headers, json) = app
         .put_file("p", "SKILLS-14", "name=c.png", Some("image/png"), PNG)
         .await;
     assert_eq!(status, StatusCode::BAD_REQUEST, "{json}");
     assert_eq!(error_type(&headers), "ValidationException");
     assert!(json["message"].as_str().unwrap().contains("role"), "{json}");
-    assert_eq!(app.count("files").await, 3);
+    assert_eq!(app.count("files").await, 2);
 }
 
 // --- 索引 ---

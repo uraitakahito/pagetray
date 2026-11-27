@@ -6,28 +6,29 @@ Apple Container（`container` CLI）で、release の image を動かす。`127.
 |---|---|
 | image | `ghcr.io/uraitakahito/pagetray:v<version>`（[release](https://github.com/uraitakahito/pagetray/releases) に digest がある。arm64） |
 | container | `pagetray.box`（1.2.0 から。前の名は `pagetray`。`127.0.0.1:8801` と `127.0.0.1:8800` → 中の 8080。メモリは Apple Container の下限の 200 MiB、CPU は 1） |
-| URL | `http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
+| URL | `http://127.0.0.1:8801`（API とページの本文。ページは `/<project>/<key>/<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたページの URL を同じ path で開けるように、同じ container が待ち受ける |
 | DB | 名前つきの volume `pagetray-data-v1`（中の `/data/pages.db`。1.0.0 から。0.8.x の DB は、切り替えの時に移した: [release を出す](release.md) の「切り替え（済み）」）。Mac の folder は mount しない |
 | 記録 | 同じ volume の `/data/logs/`（0.7.0 から。合わせて 4 MiB と 64 KiB まで）。下の「落ちた後に調べる」 |
-| 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://127.0.0.1:8802`。本番では callboard の `http://127.0.0.1:8803` を書く）は下の「送り手を castlist に聞く」 |
+| 設定 | 環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 から。既定は無し）は下の「送り手を castlist に聞く」 |
+
+画面（ページの一覧とメッセージの一覧）は、2.0.0 から callboard の `http://127.0.0.1:8803/pages/`・`/messages` にある（前の画面の道 `http://127.0.0.1:8801/` などは `404`）。Product Manager が file を上げるのも、callboard のページの一覧の Key の画面から。
 
 `roster` を使う Mac では、container と volume に触る命令を `roster infra run pagetray -- <命令>` で打つ（この repo の `.claude/roles/config.jsonc` と、roster の設定が、環境 `pagetray` を「TPM に相談」の手続きで宣言している）。下の命令は、その頭を省いて書いてある。使う版は、roster の `.pagetray-version`（roster の cli と合わせてある版）。
 
 ## 送り手を castlist に聞く
 
-castlist の居場所は、2 つの環境変数で書く（どちらも `http://<host>:<port>` の形だけ。後ろの `/` は無くてよい）。pagetray は container の中から castlist に聞き、一覧の UI の link は Product Manager が host（pagetray を動かす機械）の browser で開くので、聞く先と link の頭は別に書く。アクターの画面は、castlist 2.0.0 から callboard（castlist と pagetray の画面を出す server）にある（castlist は画面を持たない）ので、link の頭は callboard を指す。
+castlist の居場所は、環境変数 `PAGETRAY_CASTLIST_URL` で書く（`http://<host>:<port>` の形だけ。後ろの `/` は無くてよい）。pagetray は、container の中から castlist に聞く。
 
 | 環境変数 | 使う所 | 本番の値 |
 |---|---|---|
 | `PAGETRAY_CASTLIST_URL` | pagetray が、container の中から castlist に送り手を聞く先。container の中の `127.0.0.1` は container 自身なので、host の port には届かない | `http://castlist.box:8080`。castlist の container `castlist.box` の port 8080 に、名でつなぐ（既定の network では、Apple Container の DNS が domain `box` の名を答える） |
-| `PAGETRAY_CASTLIST_LINK_URL` | 一覧の UI の、送り手の名の link（`<値>/actors/<アクターの id>`）の頭。Product Manager が host の browser で開く | `http://127.0.0.1:8803`（callboard。host の `127.0.0.1:8803` で待ち受ける）。既定は `http://127.0.0.1:8802`（castlist）で、castlist 2.0.0 からは開かない（404）ので、必ず書く |
 
-`PAGETRAY_CASTLIST_URL` を書くと、付随する id を付けて置かれたページと file の送り手を、受けたその時に castlist に聞いて残す（[API の仕様](api.md) の「送り手」）。本番では、下の「起こす」の `container run` に `-e PAGETRAY_CASTLIST_URL=http://castlist.box:8080` と `-e PAGETRAY_CASTLIST_LINK_URL=http://127.0.0.1:8803` を足す。
+`PAGETRAY_CASTLIST_URL` を書くと、付随する id を付けて置かれたページと file の送り手を、受けたその時に castlist に聞いて残す（[API の仕様](api.md) の「送り手」）。本番では、下の「起こす」の `container run` に `-e PAGETRAY_CASTLIST_URL=http://castlist.box:8080` を足す。
 
-- 書かなければ、castlist に聞かず、付随する id だけを残す（一覧の UI では「未確認」で、link も出ない）。
+- 書かなければ、castlist に聞かず、付随する id だけを残す（ページの記録の `sender` は `issuer`・`ref` だけ）。
 - 書いた時は、castlist が止まっている・1 秒で答えない間、付随する id を付けた置く要求は `503` で断られる（何も置かない）。付けない要求は前のまま置ける。
-- 一覧の UI の送り手の名は、`PAGETRAY_CASTLIST_LINK_URL`（無ければ `http://127.0.0.1:8802`）の `/actors/<アクターの id>` への link になる。聞く先の `PAGETRAY_CASTLIST_URL` からは作らない（聞く先は container の中から届く所で、host の browser から開けるとは限らない）。
-- どちらかの形が `http://<host>:<port>` でなければ、サーバーは起きない（`PAGETRAY_CASTLIST_URL` が無くても、書いた `PAGETRAY_CASTLIST_LINK_URL` は見る）。起きた時の log の頭の行の後ろに ` castlist=<聞く先> castlist_link=<link の頭>` が付く。
+- 形が `http://<host>:<port>` でなければ、サーバーは起きない。起きた時の log の頭の行の後ろに ` castlist=<聞く先>` が付く。
+- 1.x で足していた `-e PAGETRAY_CASTLIST_LINK_URL=…` は、2.0.0 から読まない（残しても、形の違う値でも起きる）。起こす命令から外してよい。
 - castlist へは、つなぐ先に関わらず `Host: 127.0.0.1` で送る（castlist は `Host` が `127.0.0.1`・`localhost` でない要求を断るので、`castlist.box` の名でつないでも、`Host` は変えない）。
 
 ## 起こす
@@ -58,29 +59,8 @@ container run -d --name pagetray.box \
 1. `container list` で `pagetray.box` が `running`。
 2. `lsof -nP -iTCP:8801 -iTCP:8800 -sTCP:LISTEN` が `127.0.0.1:8801` と `127.0.0.1:8800` だけを出す（`*:` で始まる行があれば LAN に開いている）。
 3. `curl -s http://127.0.0.1:8801/healthz` と `curl -s http://127.0.0.1:8800/healthz` が `{"status":"ok","version":"<version>"}` を返す（`version` が起こした版）。
-4. `container logs pagetray.box` の頭の 2 行が、前回の終わり方（`previous: …`。下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 castlist_link=http://127.0.0.1:8803`）。
+4. `container logs pagetray.box` の頭の 2 行が、前回の終わり方（`previous: …`。下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080`）。
 5. `container stats --no-stream pagetray.box` のメモリが数 MiB〜20 MiB ほど（初めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超えることがある。起こし直すと戻る）。
-6. 一覧の UI を、読むだけの試験で見る（試験のある 0.3.2 から）。本物の browser（この Mac の Chrome）で開き、一覧が出て API の答えと合うこと・新着の知らせにつながること・絞れること・選んだページが本文の枠に出ること・console に誤りが無いことを見る。置き場には何も書かない。pagetray の checkout のある folder で、起こした版の試験を取り出して流す（Node と pnpm が要る。[開発](development.md) の「一覧の UI の試験」）。checkout が無ければ、browser で `http://127.0.0.1:8801/` を開き、一覧が出るのを見る。
-
-   ```sh
-   git -C pagetray fetch --tags
-   git -C pagetray worktree add --detach "$PWD/pagetray-smoke" v<version>
-   (cd pagetray-smoke/e2e && pnpm install --frozen-lockfile && PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test)
-   git -C pagetray worktree remove "$PWD/pagetray-smoke"
-   ```
-
-## 一覧の UI から file を上げる
-
-人（Product Manager）が、画面の絵などを担当に渡す道。担当は `roster file put` で上げる。
-
-1. browser で Key の画面（`http://127.0.0.1:8801/<project>/<key>/`。一覧で project と Key の候補を 1 つずつ押してもよい）を開く。一覧の列の下に、file の枠（その Key の file）と上げる枠が出る。
-2. 上げる枠で file を選ぶか、枠に落とす。受けるのは png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json で、1 つ 16 MiB まで（ほかは送る前に断る）。名は、元の名から CLI と同じ作り方で付く（`Screen Shot 1.PNG` → `screen-shot-1.png`）。
-3. 見本を見る（図はその図、字の file は頭の 20 行、PDF は名と大きさ）。token・鍵・個人の情報・ほかの人の画面が写っていないかを見て、「秘密（token・鍵・個人の情報・ほかの人の画面）が写っていないか見た」に印を付ける。印を付けるまで「送る」は押せない。
-4. 「送る」を押すと、ページから参照する path（`files/screen-shot-1-1.png` など）が出て、file の枠に足される。この path を担当に伝える。
-
-- 一覧の UI から上げた file は、役割 `product-manager` で記録される（[API の仕様](api.md) の「共通」）。
-- 画面から消すことはできない。消すのは TPM 担当に頼む。
-- 上げるのには script が要る。script が無くても、file の枠は読める。
 
 ## DB の写しを取る
 
@@ -150,7 +130,7 @@ container run --rm -v pagetray-data-v1:/data docker.io/library/rust:1.100.0-alpi
 
 ## 止める・Mac を起こし直した後
 
-- 止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるため）。止めるのは `container stop pagetray.box`。DB は volume に残る。
+- 止めている間、ページは置けず（番号をサーバーが決めるため）、本文も開けない。止めるのは `container stop pagetray.box`。DB は volume に残る。
 - Mac を起こし直すと止まったままになる。`container system start` の後に `container start pagetray.box` を打ち、「確かめる」をする。
 - volume（`pagetray-data-v1`）は消さない。
 

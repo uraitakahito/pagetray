@@ -162,17 +162,17 @@ impl ListFilesFluentBuilder {
     pub fn get_role(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_role()
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn workspace(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.workspace(input.into());
         self
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn set_workspace(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_workspace(input);
         self
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn get_workspace(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_workspace()
     }

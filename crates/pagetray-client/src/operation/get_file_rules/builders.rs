@@ -22,7 +22,7 @@ impl crate::operation::get_file_rules::builders::GetFileRulesInputBuilder {
 }
 /// Fluent builder constructing a request to `GetFileRules`.
 ///
-/// 受ける file の種類と、1 つの大きさの上限（ページの一覧の画面の、file を上げる枠が、送る前に見る）。 並びは、置き場が種類を断る時の文と同じ。
+/// 受ける file の種類と、1 つの大きさの上限（callboard のページの一覧の画面の、file を上げる枠が、送る前に見る）。 並びは、置き場が種類を断る時の文と同じ。
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetFileRulesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,

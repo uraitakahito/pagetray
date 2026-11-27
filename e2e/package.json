@@ -1,14 +1,13 @@
 {
   "name": "pagetray-e2e",
   "private": true,
-  "description": "一覧の UI を、本物の browser で見る試験（Playwright）。image にも CLI にも入らない。",
+  "description": "この本（docs/book）を、本物の browser で見る試験（Playwright）。image にも CLI にも入らない。",
   "type": "module",
   "packageManager": "pnpm@11.26.0",
   "engines": {
     "node": ">=26"
   },
   "scripts": {
-    "test": "playwright test",
     "test:docs": "playwright test --config playwright.docs.config.ts"
   },
   "devDependencies": {

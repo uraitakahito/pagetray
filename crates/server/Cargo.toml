@@ -17,8 +17,6 @@ castlist_client = { path = "../castlist-client" }
 aws-smithy-http-client = { version = "1.5.3", default-features = false, features = ["default-client"] }
 # query は画面の引数を読むため。
 axum = { version = "0.8.9", default-features = false, features = ["http1", "query", "tokio"] }
-# 画面の HTML（repo の templates/。askama.toml）。
-askama = "0.16.1"
 aws-smithy-types = "1.9.4"
 bytes = "1"
 # 新着の知らせの流れを、止める合図で閉じる（take_until。tokio-stream には無い）。lock に前からある版（axum が使う物）。

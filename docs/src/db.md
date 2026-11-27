@@ -108,7 +108,7 @@ erDiagram
 | `workspace` | text | 不可 | 置いた人の workspace の ID（わからなければ空の字） |
 | `created_at` | text | 不可 | 置いた時刻 |
 | `body` | blob | 不可 | 中身をそのまま |
-| `sender_id` | integer | 可 | 送り手（`senders.id`）。付随する id を書かずに置いた file・一覧の UI から上げた file・0.6.0 より前に置かれた file は空 |
+| `sender_id` | integer | 可 | 送り手（`senders.id`）。付随する id を書かずに置いた file・2.0.0 より前に pagetray の画面から上げた file・0.6.0 より前に置かれた file は空 |
 
 - 主キー: `(id)`
 - 一意: `(project, key, name, ext, n)`
@@ -151,7 +151,7 @@ erDiagram
 - 索引: `senders_actor` `(actor_id)`
 - 書く所: `Db::put_page`・`Db::put_file`・`Db::put_message`（ページ・file・メッセージの記録と同じ取引）。読む所: `Db::list`・`Db::list_files`・`Db::list_messages`・`Db::set_reply`（記録に添える）・`Db::facets`（絞り込みの候補）。
 - **足すだけ**: trigger `senders_no_update`・`senders_no_delete` が、書き換えと消しを `append-only: senders` で断る。前からある表（`pages`・`files` など）には trigger を付けていない（返事の状態の書き換え・消すは前のまま）。
-- **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の「送り手」）。
+- **聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・`resolved_at` が空の行は、castlist に聞かなかった送り手（「未確認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も送り手の行も、何も残さない（[API の仕様](api.md) の「送り手」）。
 - `actor_id` に外部キーは無い（アクターは castlist の DB にある）。
 
 ## `page_targets` — 見た物
@@ -165,8 +165,8 @@ erDiagram
 
 - 主キー: `(page_id, target)`
 - 索引: `page_targets_target` `(target)`
-- 書く所: `Db::add_marks`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
-- 見られたページを消しても、その path を見た物に持つ行は残る（一覧の UI の「見た物:」の link は、消したページの `410` を開く）。消すのは TPM 担当だけで数も少ないので、そのままにしている。
+- 書く所: `Db::add_marks`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのページを見たレビューを引く。`ListReviews`）。消す所: ページを消すと、外部キーの `on delete cascade` で一緒に消える。
+- 見られたページを消しても、その path を見た物に持つ行は残る（その path の本文は `410` を返す）。消すのは TPM 担当だけで数も少ないので、そのままにしている。
 
 ## `messages` — メッセージの記録
 
@@ -195,7 +195,7 @@ erDiagram
 - 主キー: `(id)`
 - 一意: `(project, message_id)`
 - 索引: `messages_sent` `(sent_at)`
-- 書く所: `Db::put_message`（置く・書き足す）。読む所: `Db::list_messages`・`Db::message_facets`（一覧の UI の絞り込みの候補と「まだ届いていない n 件」）。消す所は無い。
+- 書く所: `Db::put_message`（置く・書き足す）。読む所: `Db::list_messages`・`Db::message_facets`（`GetMessageFacets`）。消す所は無い。
 - **書き足しで替わる列**: `state`（今より強い状態の時だけ。前へだけ進む）・`deliveries`（大きい方）・`via`（状態を替えた時か、空の時だけ）・`delivered_at`・`sender_id`（どちらも、空の時だけ入る）・`updated_at`。ほかの列は、初めに置いた値のまま（[API の仕様](api.md) の「書き足しの決まり」）。
 - `state` は、SQL の `check` で上の名だけを受ける。
 

@@ -247,8 +247,10 @@ fn 起きた行は版と待ち受ける所と_db_を出す() {
     remove_db(&db);
 }
 
+/// castlist を設定すると、起きた行に聞く先が出る。画面の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）は、2.0.0 で画面と
+/// 一緒に無くしたので、書いてあっても読まず、出さない。
 #[test]
-fn castlist_を設定すると_起きた行に聞く先と_link_の頭が出る() {
+fn castlist_を設定すると_起きた行に聞く先が出る() {
     let db = temp_db("start-castlist");
     let mut server = Server::start_with(
         &db,
@@ -264,7 +266,7 @@ fn castlist_を設定すると_起きた行に聞く先と_link_の頭が出る(
         .unwrap_or_else(|| panic!("{out}"));
     assert!(
         line.ends_with(&format!(
-            "db={} castlist=http://127.0.0.1:8802 castlist_link=http://localhost:8802",
+            "db={} castlist=http://127.0.0.1:8802",
             db.display()
         )),
         "{line}"

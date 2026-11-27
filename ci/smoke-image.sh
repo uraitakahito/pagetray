@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# image が、空の image の中で起き、ページと file を置いて読めて、browser から来た書く要求を決めたとおりに断り・通し、
+# image が、空の image の中で起き、ページと file を置いて読めて、browser から来た書く要求を断り、画面の道は 404 で、
 # 止める合図で終わり、起こし直しても残るか、前回の終わり方を次の起動で出すかを見る。終わりに、出した版（v1.0.0）が書いた
 # volume を開いて読めるかも見る（ghcr.io の v1.0.0 の image を digest で取る）。
 # 使い方: ci/smoke-image.sh <image>
@@ -53,7 +53,7 @@ curl -fsS -o "$tmp/got.png" "$url/ci/K-1/files/dot-1.png"
 cmp "$tmp/dot.png" "$tmp/got.png"
 # 版は GetHealth の答え。
 curl -fsS "$url/healthz" | jq -e '.status == "ok" and (.version | length > 0)' >/dev/null
-# browser から来た書く要求（Origin 付き）は断る。通すのは、一覧の UI の form が file を上げる形だけ。
+# browser から来た書く要求（Origin 付き）は、どれも断る（画面の form の例外は、2.0.0 で画面と一緒に無くした）。
 code() { curl -s -D "$tmp/answer-head.txt" -o "$tmp/answer.json" -w '%{http_code}' "$@"; }
 png=(-H 'Content-Type: image/png' --data-binary "@$tmp/dot.png")
 put="$url/${put_file}name=ui.png&role=tpm&workspace=w:1"
@@ -67,16 +67,23 @@ test "$(code -X POST -H "Origin: $url" -H 'Sec-Fetch-Site: cross-site' "${png[@]
 test "$(code -X POST -H "Origin: $url" "${html[@]}" --data-binary '<p>x</p>' "$url/$put_page")" = 403
 test "$(code -X DELETE -H "Origin: $url" "$url/api/files?project=ci")" = 403
 test "$(code -X DELETE -H "Origin: $url" "$url/api/pages?project=ci")" = 403
-# 一覧の UI の form は通り、引数の役割でなく product-manager で記録される。
-test "$(code -X POST -H "Origin: $url" -H 'Sec-Fetch-Site: same-origin' "${png[@]}" "$put")" = 201
-jq -e '.role == "product-manager" and .workspace == ""' "$tmp/answer.json" >/dev/null
-# Origin の無い要求（CLI・roster）は、前のまま引数の役割で記録される。
+# 前の一覧の UI の form の形（自分の Origin・same-origin）も、断る。
+test "$(code -X POST -H "Origin: $url" -H 'Sec-Fetch-Site: same-origin' "${png[@]}" "$put")" = 403
+# 画面は無い（2.0.0 で外した。画面は callboard が持つ）。前の画面の道は 404 で、画面（HTML）を返さない。
+for path in / '/?project=ci' /ci/ /ci/K-1/ /messages; do
+  test "$(curl -s -D "$tmp/answer-head.txt" -o "$tmp/answer.json" -w '%{http_code}' "$url$path")" = 404
+  if tr -d '\r' <"$tmp/answer-head.txt" | grep -qi '^content-type: text/html'; then
+    echo "NG: $path が画面を返した" >&2
+    exit 1
+  fi
+done
+# Origin の無い要求（CLI・roster・callboard）は、引数の役割で記録される。
 test "$(code -X POST "${png[@]}" "$put")" = 201
 jq -e '.role == "tpm" and .workspace == "w:1"' "$tmp/answer.json" >/dev/null
 # 断った物は、何も置かず、何も消していない。
 test "$(curl -fsS "$url/api/pages?project=ci" | jq -r '[.pages[].path] | join(" ")')" = '/ci/K-1/result-1.html'
 test "$(curl -fsS "$url/api/files?project=ci&sort=createdAt" | jq -r '[.files[].path] | join(" ")')" \
-  = '/ci/K-1/files/dot-1.png /ci/K-1/files/ui-1.png /ci/K-1/files/ui-2.png'
+  = '/ci/K-1/files/dot-1.png /ci/K-1/files/ui-1.png'
 # 止める合図（SIGTERM）で、自分から終わるか（PID 1 は受け口が無いと合図を無視する）。
 docker stop "$name"
 test "$(docker inspect -f '{{.State.ExitCode}}' "$name")" = 0

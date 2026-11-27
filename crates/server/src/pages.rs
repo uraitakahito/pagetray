@@ -51,7 +51,7 @@ pub(crate) fn parse_file(file: &str) -> Option<(&str, i64)> {
 }
 
 /// ページの path（`/<project>/<key>/<kind>-<n>.html`）を、project・Key・種類・番号に分ける。形が違えば None
-/// （レビューの見た物と、画面の本文の枠に出すページで見る）。
+/// （レビューの見た物で見る）。
 pub(crate) fn parse_page_path(path: &str) -> Option<(&str, &str, &str, i64)> {
     let mut parts = path.strip_prefix('/')?.split('/');
     match (parts.next(), parts.next(), parts.next(), parts.next()) {

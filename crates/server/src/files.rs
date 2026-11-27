@@ -4,8 +4,8 @@
 //! - 受ける種類（拡張子・返す時の Content-Type・中身の見方）は [`FILE_TYPES`]。
 //! - 置く時の検査の順: 引数の形（生成した層の 400）→ 引数の決まり（400）→ 種類・Content-Type・中身（415）→
 //!   castlist（400・503）→ DB（409・503）。前で断れば、後は見ない（castlist に聞かない・何も残さない）。
-//! - 一覧の UI の form から上げた物（守りの層の印 [`FromUi`]）は、役割 [`UI_ROLE`]・workspace 空で残し、番号・時刻・
-//!   付随する id を読まない（browser から担当を名乗らせない・取り込ませない）。
+//! - 役割（`role`）は、いつも要る（browser の画面からの上げは、2.0.0 で画面と一緒に無くした。画面を出す callboard は、
+//!   役割 `product-manager` を書いて置く）。
 use std::sync::Arc;
 
 use axum::extract::{Path, State};
@@ -23,14 +23,11 @@ use crate::castlist::Castlist;
 use crate::db::{Db, FileKey, FileTarget, NewFile};
 use crate::errors::{Failure, PutFailure, internal, invalid, reply};
 use crate::events::{Events, Note};
-use crate::guard::{FromUi, RequestHost};
+use crate::guard::RequestHost;
 use crate::pages::{self, Checked, is_dot, is_segment};
 use crate::record::FileRecord;
 use crate::search::{FileQuery, LIMIT};
 use crate::token;
-
-/// 一覧の UI から上げた file の役割。
-pub const UI_ROLE: &str = "product-manager";
 
 /// 頁の印の頭（ページの検索の印と分ける）。
 const TOKEN_KIND: &str = "files";
@@ -136,41 +133,31 @@ fn split_name(name: &str) -> (&str, &str) {
     name.split_once('.').unwrap_or((name, ""))
 }
 
-/// file を 1 つ置く。一覧の UI から上げた物（`ui`）は、役割・workspace・番号・時刻・送り手を置き場が決める。
+/// file を 1 つ置く。
 pub async fn create_file(
     db: Arc<Db>,
     castlist: Option<Castlist>,
     events: Events,
     input: CreateFileInput,
     Extension(RequestHost(host)): Extension<RequestHost>,
-    ui: Option<Extension<FromUi>>,
 ) -> Result<CreateFileOutput, CreateFileError> {
-    let ui = ui.is_some();
-    let (role, workspace) = if ui {
-        (UI_ROLE, "")
-    } else {
-        let role = input.role.as_deref().ok_or_else(|| {
-            PutFailure::Invalid(
-                "role が要る（英小文字で始まり、英小文字・数字・- で 32 字まで）".to_owned(),
-            )
-        })?;
-        (role, input.workspace.as_deref().unwrap_or(""))
-    };
+    let role = input.role.as_deref().ok_or_else(|| {
+        PutFailure::Invalid(
+            "role が要る（英小文字で始まり、英小文字・数字・- で 32 字まで）".to_owned(),
+        )
+    })?;
+    let workspace = input.workspace.as_deref().unwrap_or("");
     let Checked {
         n,
         created_at,
         actor,
-    } = if ui {
-        pages::check(&input.project, &input.key, None, None, (None, None))
-    } else {
-        pages::check(
-            &input.project,
-            &input.key,
-            input.n.as_deref(),
-            input.created_at.as_ref(),
-            (input.actor_issuer.as_ref(), input.actor_ref.as_ref()),
-        )
-    }
+    } = pages::check(
+        &input.project,
+        &input.key,
+        input.n.as_deref(),
+        input.created_at.as_ref(),
+        (input.actor_issuer.as_ref(), input.actor_ref.as_ref()),
+    )
     .map_err(PutFailure::Invalid)?;
     let (name, ext) = split_name(&input.name);
     let body = input.body.as_ref();

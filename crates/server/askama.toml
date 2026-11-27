@@ -1,3 +1,0 @@
-# 画面の template は、repo の templates/ の物を使う。
-[general]
-dirs = ["../../templates"]

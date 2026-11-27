@@ -12,7 +12,6 @@ mod page;
 
 use clap::{Args, CommandFactory, Parser, Subcommand};
 use client::{Failure, REFUSED, Route, Store, TIMEOUT};
-use names::is_segment;
 use serde_json::json;
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -42,8 +41,6 @@ enum Command {
     /// file（画像・PDF・字の file）を探す・読む・置く・消す
     #[command(subcommand)]
     File(file::FileCommand),
-    /// 一覧の UI を browser で開く
-    Browse(BrowseArgs),
     /// DB の写し（SQLite の file 1 つ）を取る
     Backup(BackupArgs),
     /// 置き場の API を直に呼ぶ（命令がまだ無い操作にも届く）
@@ -60,16 +57,6 @@ struct StatusArgs {
     /// JSON で出す
     #[arg(long)]
     json: bool,
-}
-
-#[derive(Args)]
-struct BrowseArgs {
-    /// 絞る先: `<project>` か `<project>/<key>`
-    #[arg(allow_hyphen_values = true)]
-    target: Option<String>,
-    /// 開かずに、URL だけを出す
-    #[arg(short = 'n', long)]
-    no_browser: bool,
 }
 
 #[derive(Args)]
@@ -137,7 +124,6 @@ async fn run(cli: Cli) -> Result<Vec<u8>, Failure> {
         Command::File(command) => file::run(&store, command).await,
         Command::Api(args) => api(&store, &args).await,
         Command::Backup(args) => backup(&store, &args).await,
-        Command::Browse(args) => browse(&store, &args),
         Command::Completion { .. } => unreachable!("上で返した"),
     }
 }
@@ -328,27 +314,6 @@ async fn api(store: &Store, args: &ApiArgs) -> Result<Vec<u8>, Failure> {
         REFUSED,
         format!("置き場が {status} {kind} を返した: {method} {}", args.path),
     ))
-}
-
-fn browse(store: &Store, args: &BrowseArgs) -> Result<Vec<u8>, Failure> {
-    let mut url = format!("{}/", store.base);
-    if let Some(target) = &args.target {
-        let parts: Vec<&str> = target.trim_matches('/').split('/').collect();
-        if parts.len() > 2 || !parts.iter().all(|part| is_segment(part)) {
-            return Err(Failure::usage(format!(
-                "<project> か <project>/<key> を書く: {target}"
-            )));
-        }
-        for part in parts {
-            url.push_str(part);
-            url.push('/');
-        }
-    }
-    if args.no_browser {
-        return Ok(format!("{url}\n").into_bytes());
-    }
-    open_in_browser(&url)?;
-    Ok(Vec::new())
 }
 
 /// `PAGETRAY_NO_DELETE` が付いていれば（空と `0` のほか）、消す命令（page delete・file delete・api の DELETE）は

@@ -22,7 +22,7 @@ impl crate::operation::create_file::builders::CreateFileInputBuilder {
 }
 /// Fluent builder constructing a request to `CreateFile`.
 ///
-/// file を 1 つ置く。本文は中身をそのまま（`Content-Type` は拡張子の種類と同じ。`;` の後ろと大小は問わない）。答えに中身は入らない。 受ける拡張子は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。ほかの拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（字の file は UTF-8 で NUL の無い物）は 415。 番号（`n`）を書かなければ、同じ project・key・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。 送り手は CreatePage と同じ（castlist には、ほかの検査（400・415）の後に聞く）。 一覧の UI の form から上げた物（守りの層が `Origin` の例外として通した物）は、役割 `product-manager`・workspace 空で残し、 `n`・`createdAt`・`actorIssuer`・`actorRef` を読まない（`role` も書かなくてよい）。ほかの要求は `role` が要る（無ければ 400）。
+/// file を 1 つ置く。本文は中身をそのまま（`Content-Type` は拡張子の種類と同じ。`;` の後ろと大小は問わない）。答えに中身は入らない。 受ける拡張子は png・jpg・jpeg・gif・webp・pdf・txt・log・md・csv・json。ほかの拡張子・拡張子と合わない `Content-Type`・頭が拡張子の形でない中身（字の file は UTF-8 で NUL の無い物）は 415。 番号（`n`）を書かなければ、同じ project・key・語・拡張子の置いた番号と消した番号の最大 + 1（初めは 1）。 書けば（取り込み）その番号で置き、置いた・消した番号なら 409（何も替えない）。 送り手は CreatePage と同じ（castlist には、ほかの検査（400・415）の後に聞く）。 `role` は、いつも要る（無ければ 400）。browser の中のページからは置けない（守りの層が `Origin` の付いた要求を断る）。 画面（callboard）の form から上げた file は、callboard が `Origin` を付けずに、役割 `product-manager` で置く。
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct CreateFileFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -156,17 +156,17 @@ impl CreateFileFluentBuilder {
     pub fn get_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_name()
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn role(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.role(input.into());
         self
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn set_role(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_role(input);
         self
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn get_role(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_role()
     }
