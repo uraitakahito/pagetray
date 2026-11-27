@@ -5,15 +5,18 @@
   "infra": {
     // ページの置き場（pagetray の container と、DB を置く volume）。止めると担当はページを置けず、
     // volume を消すと置かれたページの記録が消える。起こし方は docs の「動かす」（docs/src/run.md。https://uraitakahito.github.io/pagetray/run.html）。
+    // roster の guard の当て方（roster の docs-site の設定のページの「環境の手続き」）のうち、要るところだけ:
+    // - 項目は命令の語で当て、末尾に * の語は前方一致（pagetray-data* は volume の pagetray-data-v1 と、-v の値 pagetray-data-v1:/data に当たる）。
+    //   container の命令の旗はそろえてから当てるので、--name=…・--volume …・--mount …,source=… も、--name …・-v … の項目で当たる。
+    //   語で当たらなくても、命令の字に項目の字（--name=… と --volume … の書き方も）が含まれれば止める。
+    // - 名を宣言した container（--name の項目）と volume（-v の項目）を的にする container の命令は、ここに書いていない動詞
+    //   （exec・cp・commit・export など）でも止まる。読むだけの logs・inspect・stats・ls（volume は inspect・ls）は通る（roster の t-d37r）。
     "pagetray": {
       "guard": "tpm",
       // container の名は pagetray.box（1.2.0 から。同じ network の container（callboard）が DNS の domain box で名で引く）。
-      // 前の名 pagetray の match も残す（前の名で動かしている間と、前の名で起こし直す試みを止めるため）。
+      // 前の名 pagetray の項目も残す（前の名で動かしている間と、前の名で起こし直す試みを止めるため）。
       "match": [
         "--name pagetray.box",
-        // 名を = で繋ぐ形（--name=…）。語も字も、空白で繋ぐ形の項目とは別なので、並べて置く（roster の宣言と同じ形。roster の t-vp6r・台帳 #291）。
-        "--name=pagetray.box",
-        "--name=pagetray",
         "container start pagetray.box",
         "container stop pagetray.box",
         "container kill pagetray.box",
@@ -25,19 +28,11 @@
         "container kill pagetray",
         "container delete pagetray",
         "container rm pagetray",
-        "container volume delete pagetray-data",
-        "container volume rm pagetray-data",
-        // volume を付ける命令（写しから戻すもこれに当たる）。上の volume を消す命令と同じく、字の一部で当たるので、動く pagetray-data-v1 を守る。
-        "-v pagetray-data",
-        // 末尾に * の項目は、命令の語で当てる roster の guard（t-7j37）の物で、* の語は前方一致（pagetray-data* は pagetray-data-v1:/data に当たる）。
-        // 字の含みで見る前の guard では * の項目は当たらず、上の * の無い項目が当たる。どちらの guard でも守りに穴が空かないよう、両方を並べて置く。
         "container volume delete pagetray-data*",
         "container volume rm pagetray-data*",
+        // volume を付ける命令（写しから戻すもこれに当たる）。動く pagetray-data-v1 を守る。
         "-v pagetray-data*",
-        // volume を付ける旗の、長い形（--volume …）。
-        "--volume pagetray-data",
-        "--volume pagetray-data*",
-        // volume の略の v（container v rm …）。字も語も volume と違うので、略の形も並べる（roster の t-9tac）。
+        // volume の略の v（container v rm …）。語が volume と違うので、略の形も並べる（roster の t-9tac）。
         "container v delete pagetray-data*",
         "container v rm pagetray-data*",
       ],
