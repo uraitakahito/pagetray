@@ -311,7 +311,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
   const upload = document.getElementById("upload");
   const shelf = document.getElementById("files");
   if (!upload || !shelf) return;
-  // 送る先の道は、置き場が決めて渡す（今の server と新しい server で違う）。名は name の引数で足す。
+  // 送る先の道は、置き場が data-upload で渡す。名は name の引数で足す。
   const { project, key } = upload.dataset;
   const target = new URL(upload.dataset.upload, location.href);
   const types = new Map(JSON.parse(upload.dataset.types));
@@ -432,7 +432,7 @@ code{font:.75rem/1.4 ui-monospace,Menlo,monospace;user-select:all;overflow-wrap:
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) {
-        // 断った訳は、新しい server は message、今の server は error に入る。
+        // 断った訳は message に入る。
         tell(`上げられなかった（${response.status}）: ${json.message || json.error || response.statusText}`, true);
         send.disabled = false;
         return;
