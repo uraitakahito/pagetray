@@ -10,6 +10,7 @@ API の版: 無い（1.1.x に、操作を 1 つ足した。前からある操�
 
 - **API に操作を 1 つ足した**: `GetMessageFacets`（`GET /api/messages/facets`。形は [API の仕様](https://uraitakahito.github.io/pagetray/api.html) の「絞り込みの候補と件数」）。メッセージの記録の、状態・受け手・送り手・Key・project ごとの数（置き場の全部。絞らない）。引数 `to`・`from`・`key` に書いた値は、候補の 100 件の外でも並びに入る。画面（`/messages`）の絞り込みの列と同じ SQL を読む。
 - **docs の container の名を `pagetray.box` にした**（[動かす](https://uraitakahito.github.io/pagetray/run.html)）: 同じ network の container（callboard）が、名で pagetray に届くようにする（Apple Container の DNS は、domain `box` の付いた名だけを答える）。server は名を見ないので、前の名 `pagetray` のままでも動く。名を付け直す時は、版を上げる時に、前の名で止めて消してから、新しい名で起こす（volume はそのまま付く。host からの URL は変わらない）。`.claude/roles/config.jsonc` の環境の宣言に、新しい名の命令を足した（前の名の命令も残す）。
+- docs: 一覧の UI の送り手の名の link の頭（`PAGETRAY_CASTLIST_LINK_URL`）の本番の値を、callboard の `http://127.0.0.1:8803` にした（castlist は 2.0.0 から画面を持たないので、既定の `http://127.0.0.1:8802` の先は 404 になる）。「起こす」の行に足す `-e` を 2 つ書いた。既定の値そのものは替えていない。
 - CLI（`pagetray`）: 命令は足していない（版の字だけが 1.2.0 になる）。
 
 ## 1.1.1

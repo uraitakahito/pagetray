@@ -18,18 +18,21 @@ use super::{Choice, Counter, FilterGroup, PAGE_SIZE, Ui, encode, screen, short_t
 use crate::db::MessageRow;
 use crate::errors::Failure;
 use crate::facets::{Count, MessagePicked};
-use crate::messages::{TOKEN_KIND, sort_name, sort_states};
+use crate::messages::{STATES, TOKEN_KIND, sort_name, sort_states};
 use crate::search::MessageQuery;
 use crate::token;
 
-/// 状態の字（定義の `MessageState` と同じ）と、画面に出す字。絞り込みの候補も、この順に出す。
-const STATES: [(&str, &str); 5] = [
-    ("waiting", "まだ届いていない"),
-    ("delivered", "届いた"),
-    ("undeliverable", "渡せない"),
-    ("expired", "期限切れ"),
-    ("carried", "ほかの道具で運んだ"),
-];
+/// 状態の字（定義の `MessageState`。並びは [`STATES`] の 1 つだけ）の、画面に出す字。知らない字なら None。
+fn state_label(state: &str) -> Option<&'static str> {
+    Some(match state {
+        "waiting" => "まだ届いていない",
+        "delivered" => "届いた",
+        "undeliverable" => "渡せない",
+        "expired" => "期限切れ",
+        "carried" => "ほかの道具で運んだ",
+        _ => return None,
+    })
+}
 
 /// 渡した時の名（呼ぶ側が `via` に書く字）と、画面に出す字。ここに無い名は、書かれた字のまま出す。
 const VIAS: [(&str, &str); 6] = [
@@ -161,7 +164,8 @@ pub(super) async fn index(
 
 /// 状態の名（DB の字を 'static にする）と、画面に出す字。知らない字なら None。
 fn state_view(state: &str) -> Option<(&'static str, &'static str)> {
-    STATES.into_iter().find(|(name, _)| *name == state)
+    let name = STATES.into_iter().find(|name| *name == state)?;
+    Some((name, state_label(name)?))
 }
 
 /// 渡した時の名の、画面に出す字。決めていない名は、書かれた字のまま（隠さない）。
@@ -356,6 +360,15 @@ mod tests {
         );
         assert_eq!(view.with(|v| v.to = None), "/messages?state=waiting");
         assert_eq!(View::default().href(), "/messages");
+    }
+
+    /// 状態の並びは 1 つ（[`STATES`]）。どの状態にも、画面の字がある（足した状態の字を書き忘れると落ちる）。
+    #[test]
+    fn every_state_has_its_words() {
+        for state in STATES {
+            assert!(state_view(state).is_some(), "{state}");
+        }
+        assert_eq!(state_view("done"), None);
     }
 
     #[test]
