@@ -9,7 +9,7 @@ pub struct ListFilesInput {
     pub key: ::std::option::Option<::std::string::String>,
     /// 種類と役割の名: 英小文字で始まり、英小文字・数字・`-` で 32 字まで。
     pub role: ::std::option::Option<::std::string::String>,
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub workspace: ::std::option::Option<::std::string::String>,
     /// 名（`&lt;語&gt;.&lt;拡張子&gt;`）に含まれる字（大小を問わない）。
     pub q: ::std::option::Option<::std::string::String>,
@@ -35,7 +35,7 @@ impl ListFilesInput {
     pub fn role(&self) -> ::std::option::Option<&str> {
         self.role.as_deref()
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn workspace(&self) -> ::std::option::Option<&str> {
         self.workspace.as_deref()
     }
@@ -126,17 +126,17 @@ impl ListFilesInputBuilder {
     pub fn get_role(&self) -> &::std::option::Option<::std::string::String> {
         &self.role
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn workspace(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.workspace = ::std::option::Option::Some(input.into());
         self
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn set_workspace(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.workspace = input;
         self
     }
-    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（一覧の UI から上げた物も）。
+    /// 空（`workspace=`）も条件: workspace を書かずに置いた file（画面から上げた物も）。
     pub fn get_workspace(&self) -> &::std::option::Option<::std::string::String> {
         &self.workspace
     }

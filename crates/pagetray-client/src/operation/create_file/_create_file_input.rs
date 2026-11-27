@@ -9,7 +9,7 @@ pub struct CreateFileInput {
     pub key: ::std::option::Option<::std::string::String>,
     /// `&lt;語&gt;.&lt;拡張子&gt;`。番号は server が付ける。受ける拡張子かは server が見る（ほかは 415）。
     pub name: ::std::option::Option<::std::string::String>,
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub role: ::std::option::Option<::std::string::String>,
     /// 置いた担当の workspace の ID（無ければ空）。
     pub workspace: ::std::option::Option<::std::string::String>,
@@ -39,7 +39,7 @@ impl CreateFileInput {
     pub fn name(&self) -> ::std::option::Option<&str> {
         self.name.as_deref()
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn role(&self) -> ::std::option::Option<&str> {
         self.role.as_deref()
     }
@@ -143,17 +143,17 @@ impl CreateFileInputBuilder {
     pub fn get_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.name
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn role(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.role = ::std::option::Option::Some(input.into());
         self
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn set_role(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.role = input;
         self
     }
-    /// 置いた担当の役割。一覧の UI から上げる時のほかは要る（無ければ server が 400）。
+    /// 置いた担当の役割。要る（無ければ server が 400）。
     pub fn get_role(&self) -> &::std::option::Option<::std::string::String> {
         &self.role
     }

@@ -1,8 +1,8 @@
 //! pagetray の server を起こす binary（`pagetray-server`）。release の image（Containerfile）に /pagetray-server の名で入る。
-//! e2e の試験と、手で動かして見るのにも使う。
+//! 手で動かして見るのにも使う（本物の binary を起こす試験は tests/server.rs など）。
 //!
 //! - `PAGETRAY_DB`（既定 `/data/pages.db`）を開き、`PAGETRAY_LISTEN`（既定 `0.0.0.0:8080`）で待ち受ける。
-//! - castlist の設定（`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`）の形が違う時は、記録の置き場も DB も作らずに、
+//! - castlist の設定（`PAGETRAY_CASTLIST_URL`）の形が違う時は、記録の置き場も DB も作らずに、
 //!   stderr に訳を書いて 1 で終わる。
 //! - 記録の置き場は DB の隣の `logs/`（[`pagetray_server::runlog`]）。起きたら初めに、前の回の終わり方の行（`previous: …`）を出す。
 //! - 止める合図（SIGTERM・SIGINT）で新しい問い合わせを断り、新着の知らせの流れを閉じ、走っている物を終えてから閉じる
@@ -76,11 +76,9 @@ async fn serve(
         "pagetray {} listen={listen} db={}{}",
         env!("CARGO_PKG_VERSION"),
         path.display(),
-        castlist.as_ref().map_or(String::new(), |c| format!(
-            " castlist={} castlist_link={}",
-            c.api(),
-            c.link()
-        ))
+        castlist
+            .as_ref()
+            .map_or(String::new(), |c| format!(" castlist={}", c.api()))
     );
     tokio::spawn(runlog::keep_alive(log.clone()));
 

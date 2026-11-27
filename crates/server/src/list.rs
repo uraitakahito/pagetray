@@ -79,7 +79,7 @@ fn query(input: ListPagesInput) -> Result<PageQuery, ListPagesError> {
     })
 }
 
-/// ページの、絞り込みの候補と件数・待ちの数（置き場の全部。絞らない）。画面（[`crate::ui`]）と同じ物を読む。
+/// ページの、絞り込みの候補と件数・待ちの数（置き場の全部。絞らない）。画面（callboard のページの一覧）が使う。
 pub async fn get_page_facets(
     db: Arc<Db>,
     _input: pagetray_sdk::input::GetPageFacetsInput,
@@ -113,7 +113,7 @@ pub async fn get_page_facets(
     })
 }
 
-/// 名指したページを見たレビューのページ（古い順）。画面（[`crate::ui`]）と同じ物を読む。
+/// 名指したページを見たレビューのページ（古い順）。画面（callboard のページの一覧）が使う。
 pub async fn list_reviews(
     db: Arc<Db>,
     input: pagetray_sdk::input::ListReviewsInput,

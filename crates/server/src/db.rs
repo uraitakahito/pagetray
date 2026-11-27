@@ -275,14 +275,6 @@ impl Reply {
             _ => None,
         }
     }
-
-    /// 定義の字。
-    pub fn name(self) -> &'static str {
-        match self {
-            Reply::Waiting => "waiting",
-            Reply::Answered => "answered",
-        }
-    }
 }
 
 /// 返事の待ちの相手。DB では Product Manager を空で持つ（0.8.x の server と同じ）。
@@ -311,15 +303,6 @@ impl Party {
             Party::Pm => None,
             Party::Review => Some("review"),
             Party::Tpm => Some("tpm"),
-        }
-    }
-
-    /// 定義の字。
-    pub fn name(self) -> &'static str {
-        match self {
-            Party::Pm => "pm",
-            Party::Review => "review",
-            Party::Tpm => "tpm",
         }
     }
 

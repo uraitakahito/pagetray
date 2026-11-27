@@ -75,7 +75,7 @@ impl App {
 
     /// 送り手を `url`（`PAGETRAY_CASTLIST_URL` の値）の castlist に聞いて起こす。
     pub async fn with_castlist(url: &str) -> Self {
-        let castlist = pagetray_server::castlist::Castlist::configure(Some(url), None)
+        let castlist = pagetray_server::castlist::Castlist::configure(Some(url))
             .expect("castlist の URL")
             .expect("castlist がある");
         Self::start_with(pagetray_server::Config {

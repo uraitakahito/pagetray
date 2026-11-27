@@ -2,6 +2,24 @@
 
 版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
+## 2.0.0
+
+API の版: 無い（API の操作・型・欄は 1.3.0 と同じ。定義（`model/model/pagetray.smithy`）は、注だけを直した。形・欄・trait は替えていない（`ci/gen.sh --diff` は v1.3.0 から壊す変わり無し）が、file の digest は替わる）。**壊す変わり**は、画面（API の外の手の道）を外したことと、browser の画面からの書き込みの例外を無くしたこと。
+
+画面を外した版（AI-32）。pagetray の画面（ページの一覧とメッセージの一覧）は、callboard（castlist と pagetray の画面を出すサーバー。0.4.0 から）が、pagetray の API を通して出す。DB の移行の SQL・port・置いたページと file の URL は 1.3.0 と同じで、1.x の volume でそのまま起きる（1.3.0 の image に戻しても起きる）。
+
+- **画面を外した**: 前の画面の道（`/`・`/{project}/`・`/{project}/{key}/`・`/messages`）は 404（画面（HTML）を返さない。callboard へ送る redirect も無い。Product Manager の決め「古い URL は閉じる」）。同じ画面は callboard の `http://127.0.0.1:8803/pages/`・`/messages` にある。template 2 つ・画面の code・askama の依存・画面の試験（Rust の試験と browser の試験）・CI の job `ui` を消した。
+- **browser の画面からの書き込みの例外を無くした**: `Origin` の付いた書く要求は、どれも 403（前は、一覧の UI の form が file を上げる 1 つの形だけを通し、役割を `product-manager` に決めていた）。CreateFile の `role` は、いつも要る。callboard は、画面の form から受けた file を、`Origin` を付けずに `role=product-manager` で置く。
+- **設定 `PAGETRAY_CASTLIST_LINK_URL` を無くした**（画面の送り手の名の link の頭）。書いてあっても読まない（形の違う値でも、起きる）。起きた時の記録の行の ` castlist_link=…` も無くした。
+- **CLI の `pagetray browse` を無くした**（一覧の UI を開く命令）。`pagetray page view --web`（ページの本文を開く）は、前のまま。
+- 変わらない物: ページの本文（`/{project}/{key}/{kind}-{n}.html`）・file の中身・API の操作（1.3.0 で足した GetPageFacets・ListReviews・GetFileRules も）・新着の知らせ（`GET /api/events`）・`GET /api/backup`・`GET /api/logs`・`/healthz`・port 8800。
+- **上げる前に**（どれも、pagetray 2.0.0 を起こす前に済ませる）:
+  - callboard を 0.4.0 から（ページの一覧とメッセージの一覧がある版）にする。
+  - roster の docs と skill の「一覧の UI（8801）」を、callboard の物に直す。roster の運用の確かめから、この版で無くなった読むだけの画面の試験（`PAGETRAY_E2E_URL`）を外す。起こす行から `-e PAGETRAY_CASTLIST_LINK_URL=…` を外す（残しても起きる）。
+  - callboard の、pagetray の画面と比べる browser の試験を外す（比べる相手が無くなる）。
+  - 8801 の一覧を開いていた browser の tab と bookmark を、callboard の `http://127.0.0.1:8803/pages/`・`/messages` に替える。
+- 一覧の UI の template の、file を上げる script が `json.error` を受けていた所（roster の t-4gt4 の残り）は、template ごと無くなった。
+
 ## 1.3.0
 
 API の版: 無い（1.2.0 に、操作を 3 つと、任意の欄を 1 つ足した。前からある操作・型・欄は替えていない。定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）は、壊す変わり無しで通る）

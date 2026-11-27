@@ -12,7 +12,7 @@ use common::castlist::{
 };
 use common::{App, PNG, error_type, html, pages_uri, put_page, scalar};
 use http_body_util::BodyExt;
-use pagetray_server::castlist::{Castlist, DEFAULT_LINK};
+use pagetray_server::castlist::Castlist;
 use serde_json::{Value, json};
 use tower::ServiceExt;
 
@@ -583,9 +583,10 @@ async fn a_file_conflict_after_asking_keeps_no_sender() {
     assert_eq!(app.count("files").await, 1);
 }
 
-/// 一覧の UI から上げた file は、付随する id を読まない（browser から送り手を名乗らせない）。castlist にも聞かない。
+/// browser の中のページからの上げ（`Origin` 付き）は、付随する id を付けても断る（2.0.0 で画面の form の例外を無くした）。
+/// 何も残さず、castlist にも聞かない。
 #[tokio::test]
-async fn the_list_ui_upload_ignores_actor_params() {
+async fn a_browser_upload_with_actor_params_is_refused() {
     let app = App::with_castlist(&closed_url()).await;
     let request =
         axum::http::Request::post(common::files_uri("p", "K-1", &format!("name=a.png&{AS_A}")))
@@ -599,12 +600,9 @@ async fn the_list_ui_upload_ignores_actor_params() {
             .body(Body::from(PNG))
             .unwrap();
     let (status, _, json) = app.send_json(request).await;
-    assert_eq!(status, StatusCode::CREATED, "{json}");
-    assert_eq!(json["role"], "product-manager");
-    assert!(json.get("sender").is_none(), "{json}");
+    assert_eq!(status, StatusCode::FORBIDDEN, "{json}");
+    assert_eq!(app.count("files").await, 0);
     assert_eq!(app.count("senders").await, 0);
-    let sender_id: Option<i64> = scalar(&app, "select sender_id from files").await;
-    assert_eq!(sender_id, None);
 }
 
 /// `actor=<castlist のアクターの id>` で、その送り手の file だけ（castlist の答えの無い送り手は当たらない）。
@@ -653,7 +651,7 @@ async fn removing_a_file_keeps_its_sender() {
     assert_eq!(app.foreign_key_violations().await, 0);
 }
 
-// --- castlist の居場所（PAGETRAY_CASTLIST_URL・PAGETRAY_CASTLIST_LINK_URL）---
+// --- castlist の居場所（PAGETRAY_CASTLIST_URL）---
 
 const API: &str = "http://castlist.box:8080";
 
@@ -666,12 +664,10 @@ fn only_http_host_and_port_is_taken() {
         "http://localhost:8802",
         "http://castlist.box:8080",
     ] {
-        // castlist の URL も、画面の link の頭も、同じ決まりで受ける。
-        let c = Castlist::configure(Some(ok), Some(ok))
+        let c = Castlist::configure(Some(ok))
             .unwrap_or_else(|e| panic!("{ok}: {e}"))
             .unwrap();
         assert_eq!(c.api(), ok.trim_end_matches('/'));
-        assert_eq!(c.link(), ok.trim_end_matches('/'));
     }
     for ng in [
         "127.0.0.1:8802",
@@ -686,39 +682,12 @@ fn only_http_host_and_port_is_taken() {
         "http://127.0.0.1:0",
         "http://:8802",
     ] {
-        let api = Castlist::configure(Some(ng), None).map(|_| ());
+        let api = Castlist::configure(Some(ng)).map(|_| ());
         assert!(
             api.as_ref()
                 .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_URL") && e.contains(ng)),
             "{ng}: {api:?}"
         );
-        let link = Castlist::configure(Some(API), Some(ng)).map(|_| ());
-        assert!(
-            link.as_ref()
-                .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_LINK_URL") && e.contains(ng)),
-            "{ng}: {link:?}"
-        );
-    }
-}
-
-/// 聞く先（container の中から届く所）と、画面の link の頭（Product Manager の browser から開く所）は別に決める。
-#[test]
-fn the_link_base_is_separate_from_the_api() {
-    let c = Castlist::configure(Some(API), Some("http://localhost:18802/"))
-        .unwrap()
-        .unwrap();
-    assert_eq!(c.api(), API);
-    assert_eq!(c.link(), "http://localhost:18802");
-}
-
-/// 画面の link の頭を書かなければ（空でも）、本番の castlist を host から開く `http://127.0.0.1:8802`。
-#[test]
-fn the_link_base_defaults_to_127_0_0_1_8802() {
-    assert_eq!(DEFAULT_LINK, "http://127.0.0.1:8802");
-    for link in [None, Some("")] {
-        let c = Castlist::configure(Some(API), link).unwrap().unwrap();
-        assert_eq!(c.api(), API);
-        assert_eq!(c.link(), DEFAULT_LINK, "{link:?}");
     }
 }
 
@@ -726,16 +695,7 @@ fn the_link_base_defaults_to_127_0_0_1_8802() {
 #[test]
 fn without_the_api_url_there_is_no_castlist() {
     for api in [None, Some("")] {
-        for link in [None, Some("http://localhost:18802")] {
-            assert!(
-                Castlist::configure(api, link).unwrap().is_none(),
-                "{api:?} {link:?}"
-            );
-        }
+        assert!(Castlist::configure(api).unwrap().is_none(), "{api:?}");
     }
-    // 形の違う link の頭は、castlist の URL が無くても、起きる前に断る（書き間違いを黙って捨てない）。
-    assert!(
-        Castlist::configure(None, Some("https://127.0.0.1:8802"))
-            .is_err_and(|e| e.contains("PAGETRAY_CASTLIST_LINK_URL"))
-    );
+    assert_eq!(Castlist::configure(Some(API)).unwrap().unwrap().api(), API);
 }

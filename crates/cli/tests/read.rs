@@ -1,4 +1,4 @@
-//! 読む命令（status・page list・page view・file list・file view・browse・completion）を、同じ commit の新しい server に向けて打つ。
+//! 読む命令（status・page list・page view・file list・file view・completion）を、同じ commit の新しい server に向けて打つ。
 
 mod common;
 
@@ -339,24 +339,13 @@ fn missing_and_removed_pages_exit_1_with_the_stores_reason() {
     assert_eq!(ran.stdout, "");
 }
 
+/// `page view --web` は、ページの本文の URL を browser の命令に渡す（`$BROWSER` の echo が、渡された URL を出す）。
+/// 一覧の UI を開く `browse` は、2.0.0 で画面と一緒に無くした（画面は callboard が持つ）。
 #[test]
-fn browse_and_web_hand_the_url_to_the_browser_command() {
+fn web_hands_the_page_url_to_the_browser_command() {
     let s = Server::start();
-    assert_eq!(s.run(&["browse", "-n"]).stdout, format!("{}/\n", s.url));
-    assert_eq!(
-        s.run(&["browse", "--no-browser", "-srv-me-x"]).stdout,
-        format!("{}/-srv-me-x/\n", s.url)
-    );
-    assert_eq!(
-        s.run(&["browse", "-n", "p/AI-22"]).stdout,
-        format!("{}/p/AI-22/\n", s.url)
-    );
-    assert_eq!(s.run(&["browse", "-n", "p/AI-22/plan-1"]).code, 2);
-
-    // $BROWSER の命令に URL が渡る（echo が、渡された URL を出す）。
+    assert_eq!(s.run(&["browse", "-n"]).code, 2);
     let echo = [("BROWSER", "echo"), ("PATH", "/bin:/usr/bin")];
-    let ran = run_with(&s.url, &["browse", "p"], &echo, None);
-    assert_eq!((ran.code, ran.stdout), (0, format!("{}/p/\n", s.url)));
     let ran = run_with(
         &s.url,
         &["page", "view", "--web", "p/AI-22/plan-1"],

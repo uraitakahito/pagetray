@@ -2,7 +2,7 @@
 //!
 //! 定義（model/）から作った骨（crates/pagetray-sdk/）に処理（handler）を入れ、守りの層（[`guard`]）を前に掛ける。
 //! 手の道（Smithy の定義の外）のページの本文（[`pages::show`]）と file の中身（[`files::show`]）と新着の知らせ
-//! （[`events::stream`]）と画面（[`ui`]）と backup・logs（[`hand`]）は、同じ Router に並べる。
+//! （[`events::stream`]）と backup・logs（[`hand`]）は、同じ Router に並べる。画面は無い（2.0.0 で外した。画面は callboard が持つ）。
 //! 起こす binary（src/main.rs）は、記録の file（[`runlog`]）を DB の隣の `logs/` に残す。
 //! 操作: 置く（[`pages`]）・探す（[`list`]。SQL は [`search`]）・返事とレビューの印（[`marks`]）・消す（[`remove`]）・
 //! file を置く・探す・消す（[`files`]）・メッセージの記録を置く・書き足す・探す（[`messages`]）。
@@ -26,7 +26,6 @@ pub mod runlog;
 pub mod search;
 mod text;
 mod token;
-mod ui;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -116,15 +115,8 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             let db = db.clone();
             let castlist = config.castlist.clone();
             let events = events.clone();
-            move |input, host, ui| {
-                files::create_file(
-                    db.clone(),
-                    castlist.clone(),
-                    events.clone(),
-                    input,
-                    host,
-                    ui,
-                )
+            move |input, host| {
+                files::create_file(db.clone(), castlist.clone(), events.clone(), input, host)
             }
         })
         .list_files({
@@ -170,8 +162,6 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
         .with_state(db.clone())
         // 新着の知らせ（SSE。名指した道が、生成した層の `/api/…` より先に当たる）。
         .route("/api/events", get(events::stream).with_state(events))
-        // 画面（`/`・`/{project}/`・`/{project}/{key}/` と、メッセージの一覧 `/messages`）。
-        .merge(ui::routes(db.clone(), config.castlist))
         // backup と logs。
         .merge(hand::routes(db, config.runlog))
         .route_service("/api/{*rest}", generated.clone())

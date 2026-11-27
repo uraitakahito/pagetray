@@ -33,7 +33,6 @@ pagetray status
 | `pagetray file view <file>` | file の中身を出す（手の道）。`-o <file>` で file に |
 | `pagetray file put <file>` | file を置く（`CreateFile`）。置いた file の URL と、ページからの参照を出す |
 | `pagetray file delete <file>…` | file を消す（`DeleteFiles`。戻せない。`--yes` の時だけ） |
-| `pagetray browse [<project>[/<key>]]` | 一覧の UI を browser で開く。`-n` は URL を出すだけ |
 | `pagetray backup -o <file>` | DB の写し（SQLite の file 1 つ）を取る（`GET /api/backup`。手の道） |
 | `pagetray api <path>` | API を直に呼ぶ（手の道）。`-X <method>`・`-f <name>=<value>`・`--input <file>`・`--content-type <type>` |
 | `pagetray completion <shell>` | shell の補完の script を出す（`bash`・`zsh`・`fish` など） |
@@ -65,7 +64,7 @@ pagetray backup -o ~/pagetray-$(date +%Y%m%d-%H%M).db
 
 ### 返事の状態を書く（`page reply`）
 
-- Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答えたにする（`--answered`）。どちらか 1 つが要る。一覧の UI は、この状態で印と件数を出す（[API の仕様](api.md) の「返事」）。
+- Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答えたにする（`--answered`）。どちらか 1 つが要る。callboard のページの一覧の画面は、この状態で印と件数を出す（[API の仕様](api.md) の「返事」）。
 - 出すのは、状態と URL の 1 行（tab 区切り）。`--json` で、ページの記録。
 - `--on review|tpm` で、待ちの相手（レビューの席・TPM 担当）を名指す（書かなければ Product Manager）。答えたにする時は、その相手を待っているページだけが替わり、違えば何も替えずに code 1（置き場の訳のまま）。
 - 無いページ・消したページは code 1。
@@ -124,7 +123,7 @@ file は、ページから参照する画像・PDF・字の file。置ける種�
 | `--project` | `PAGETRAY_PROJECT` | 無し | `page list`・`page put`・`file list`・`file put` の project |
 | `--role` | `PAGETRAY_ROLE` | `human` | `page put`・`file put` で置く人の役割 |
 | — | `PAGETRAY_NO_DELETE` | 無し | 付いていれば、消す命令を止める |
-| — | `BROWSER` | macOS の `open` | browser を開く命令 |
+| — | `BROWSER` | macOS の `open` | `page view --web` で browser を開く命令 |
 
 環境変数の proxy（`HTTP_PROXY` など）は使わない。
 

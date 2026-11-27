@@ -153,7 +153,7 @@ pub(crate) const STATES: [&str; 5] = [
     "carried",
 ];
 
-/// メッセージの記録の、絞り込みの候補と件数（置き場の全部。絞らない）。画面（[`crate::ui::messages`]）と同じ物を読む。
+/// メッセージの記録の、絞り込みの候補と件数（置き場の全部。絞らない）。画面（callboard のメッセージの一覧）が使う。
 pub async fn get_message_facets(
     db: Arc<Db>,
     input: GetMessageFacetsInput,

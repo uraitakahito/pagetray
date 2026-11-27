@@ -22,7 +22,7 @@ impl crate::operation::get_page_facets::builders::GetPageFacetsInputBuilder {
 }
 /// Fluent builder constructing a request to `GetPageFacets`.
 ///
-/// ページの、絞り込みの候補と件数・待ちの数（ページの一覧の画面が、絞り込みの列と操作の帯の数に使う）。 どれも、置き場の全部を数える（絞らない）。引数は無い。件数が 0 の値は出さない。 - `waiting`・`answered`: Product Manager の返事待ち・答えたページの数。`reviewWaiting`: レビュー待ちのページの数。 `escalated`: TPM 担当に上げて、まだ決まっていないページの数。 - `senders`: 送り手ごとの数。castlist の答えのある送り手だけ。`value` はアクターの id、`note` はその名。多い順に 100 まで。 - `roles`・`kinds`・`projects`・`verdicts`: 役割・種類・project・レビューの判定ごとの数。件数の多い順（同じなら名の順）。 - `workspaces`: workspace の ID ごとの数（書かずに置いた物は空の値）。新しく置かれた順に 100 まで。`note` は、その ID で 置かれた Key（`, ` で繋ぐ。空の値には無い）。 - `keys`: Key ごとの数。新しく置かれた順に 100 まで。
+/// ページの、絞り込みの候補と件数・待ちの数（callboard のページの一覧の画面が、絞り込みの列と操作の帯の数に使う）。 どれも、置き場の全部を数える（絞らない）。引数は無い。件数が 0 の値は出さない。 - `waiting`・`answered`: Product Manager の返事待ち・答えたページの数。`reviewWaiting`: レビュー待ちのページの数。 `escalated`: TPM 担当に上げて、まだ決まっていないページの数。 - `senders`: 送り手ごとの数。castlist の答えのある送り手だけ。`value` はアクターの id、`note` はその名。多い順に 100 まで。 - `roles`・`kinds`・`projects`・`verdicts`: 役割・種類・project・レビューの判定ごとの数。件数の多い順（同じなら名の順）。 - `workspaces`: workspace の ID ごとの数（書かずに置いた物は空の値）。新しく置かれた順に 100 まで。`note` は、その ID で 置かれた Key（`, ` で繋ぐ。空の値には無い）。 - `keys`: Key ごとの数。新しく置かれた順に 100 まで。
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetPageFacetsFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,

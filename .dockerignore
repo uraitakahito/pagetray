@@ -2,8 +2,6 @@
 # 履歴（.git）・CI の設定・試験・覚え書き・手元にだけある file を、build の段にも入れないため。
 # 足す時は、ci/image-contents.txt（出す image に入ってよい物）も見直す。
 *
-# 画面の template（crates/server が askama.toml と include_str! で読む）。
-!templates
 !.cargo
 !Cargo.toml
 !Cargo.lock

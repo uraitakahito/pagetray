@@ -22,7 +22,7 @@ impl crate::operation::get_message_facets::builders::GetMessageFacetsInputBuilde
 }
 /// Fluent builder constructing a request to `GetMessageFacets`.
 ///
-/// メッセージの記録の、絞り込みの候補と件数（メッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う）。 どの並びも、置き場の全部を数える（絞らない）。件数が 0 の値は出さない（下の、引数に書いた値を除く）。 - `states`: 状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` の順。 - `to`・`from`: 受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで。 - `keys`: Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない）。 - `projects`: project ごとの数。件数の多い順（同じなら名の順）。 - 引数の `to`・`from`・`key` は絞らない。書いた値が、その並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を 並びの後ろに足す（画面が、今絞っている値を候補に出して、押して外せるように）。
+/// メッセージの記録の、絞り込みの候補と件数（callboard のメッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う）。 どの並びも、置き場の全部を数える（絞らない）。件数が 0 の値は出さない（下の、引数に書いた値を除く）。 - `states`: 状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` の順。 - `to`・`from`: 受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで。 - `keys`: Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない）。 - `projects`: project ごとの数。件数の多い順（同じなら名の順）。 - 引数の `to`・`from`・`key` は絞らない。書いた値が、その並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を 並びの後ろに足す（画面が、今絞っている値を候補に出して、押して外せるように）。
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetMessageFacetsFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,

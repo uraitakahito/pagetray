@@ -1,5 +1,5 @@
-//! 起こす binary（`pagetray-server`）。`PAGETRAY_DB`・`PAGETRAY_LISTEN` で起き、castlist の設定（`PAGETRAY_CASTLIST_URL`・
-//! `PAGETRAY_CASTLIST_LINK_URL`）の形が違えば、DB を開く前に断って止まる。記録・止め方・起きた行・backup は
+//! 起こす binary（`pagetray-server`）。`PAGETRAY_DB`・`PAGETRAY_LISTEN` で起き、castlist の聞く先（`PAGETRAY_CASTLIST_URL`）の
+//! 形が違えば、DB を開く前に断って止まる（`PAGETRAY_CASTLIST_LINK_URL` は 2.0.0 から読まない）。記録・止め方・起きた行・backup は
 //! tests/server.rs と tests/runlog.rs（本物の binary を起こす道具は tests/common/server.rs）。
 
 mod common;
@@ -31,14 +31,15 @@ async fn fetch(port: u16, path: &str) -> Option<String> {
 }
 
 #[tokio::test]
-async fn it_serves_the_api_and_the_screens_from_the_env_settings() {
+async fn it_serves_the_api_from_the_env_settings_and_no_screen() {
     let db = common::temp_db("bin");
     let port = free_port();
     let mut child = Command::new(BIN)
         .env("PAGETRAY_DB", &db)
         .env("PAGETRAY_LISTEN", format!("127.0.0.1:{port}"))
         .env_remove("PAGETRAY_CASTLIST_URL")
-        .env_remove("PAGETRAY_CASTLIST_LINK_URL")
+        // 画面の link の頭は、2.0.0 で画面と一緒に無くした。形の違う値が書いてあっても、読まずに起きる。
+        .env("PAGETRAY_CASTLIST_LINK_URL", "not a url")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
@@ -60,8 +61,9 @@ async fn it_serves_the_api_and_the_screens_from_the_env_settings() {
     common::remove_db(&db);
     assert!(health.starts_with("HTTP/1.1 200"), "{health}");
     assert!(health.contains(r#""status":"ok""#), "{health}");
-    assert!(screen.starts_with("HTTP/1.1 200"), "{screen}");
-    assert!(screen.contains("<title>ページの置き場</title>"), "{screen}");
+    // 画面は無い（2.0.0 で外した。画面は callboard が持つ）。
+    assert!(screen.starts_with("HTTP/1.1 404"), "{screen}");
+    assert!(!screen.contains("<title>"), "{screen}");
 }
 
 #[test]
@@ -69,7 +71,6 @@ fn a_bad_castlist_url_stops_it_before_the_db_is_opened() {
     for (name, value) in [
         ("PAGETRAY_CASTLIST_URL", "https://127.0.0.1:8802"),
         ("PAGETRAY_CASTLIST_URL", "http://127.0.0.1:8802/api"),
-        ("PAGETRAY_CASTLIST_LINK_URL", "http://127.0.0.1"),
     ] {
         let db = common::temp_db("bin-bad");
         let out = Command::new(BIN)

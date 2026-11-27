@@ -1,9 +1,9 @@
 # pagetray
 
-ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を付け、絞って探せる一覧の UI を出す。
+ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を付け、API で絞って探せるようにする。一覧の画面は、callboard（castlist と pagetray の画面を出すサーバー）が出す（2.0.0 から。pagetray は画面を持たない）。
 この Mac の中（`127.0.0.1`）だけで使う物で、`roster page` の命令（[roster](https://github.com/uraitakahito/roster)）が、ここの API を `curl` で呼ぶ。
 
-A local-only server that stores HTML pages in SQLite, numbers them, and serves a searchable list UI.
+A local-only server that stores HTML pages in SQLite, numbers them, and makes them searchable through its API. The list screens are served by callboard (since 2.0.0).
 
 ## ドキュメント
 

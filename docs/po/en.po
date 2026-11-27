@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-27T23:27:43+09:00\n"
+"POT-Creation-Date: 2026-11-28T01:27:33+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -61,14 +61,18 @@ msgstr "pagetray"
 #: src/index.md
 msgid ""
 "ページ（HTML）の置き場のサーバー。置かれたページを DB（SQLite）に持ち、番号を"
-"付け、絞って探せる一覧の UI を出す。 この Mac の中（`127.0.0.1`）だけで使う物"
-"で、`roster page` の命令（[roster](https://github.com/uraitakahito/roster)）"
-"が、ここの API を `curl` で呼ぶ。"
+"付け、API で絞って探せるようにする。一覧の画面は、callboard（castlist と "
+"pagetray の画面を出すサーバー）が出す（2.0.0 から。pagetray は画面を持たな"
+"い）。 この Mac の中（`127.0.0.1`）だけで使う物で、`roster page` の命令"
+"（[roster](https://github.com/uraitakahito/roster)）が、ここの API を `curl` "
+"で呼ぶ。"
 msgstr ""
 "A page store server for pages (HTML). It keeps the pages put into it in a DB "
-"(SQLite), assigns them numbers, and serves a list UI that can be filtered "
-"and searched. It is used only from this Mac (`127.0.0.1`), and the `roster "
-"page` command of [roster](https://github.com/uraitakahito/roster) calls its "
+"(SQLite), assigns them numbers, and makes them filterable and searchable "
+"through its API. The list screens are served by callboard (the server that "
+"serves the screens of castlist and pagetray; since 2.0.0, pagetray has no "
+"screens). It is used only from this Mac (`127.0.0.1`), and the `roster page` "
+"command of [roster](https://github.com/uraitakahito/roster) calls its "
 "endpoints with `curl`."
 
 #: src/index.md
@@ -76,7 +80,8 @@ msgid ""
 "```mermaid\n"
 "flowchart LR\n"
 "  roster[\"roster page<br>（curl）\"] -->|\"/api/…（restJson1）\"| srv\n"
-"  browser[\"browser\"] -->|\"一覧の UI・ページの本文\"| srv\n"
+"  callboard[\"callboard<br>（画面）\"] -->|\"/api/…\"| srv\n"
+"  browser[\"browser\"] -->|\"ページの本文・file の中身\"| srv\n"
 "  subgraph mac[\"この Mac（127.0.0.1 だけ）\"]\n"
 "    srv[\"pagetray<br>（container）\"] --> db[(\"SQLite<br>volume pagetray-"
 "data-v1\")]\n"
@@ -86,7 +91,8 @@ msgstr ""
 "```mermaid\n"
 "flowchart LR\n"
 "  roster[\"roster page<br>(curl)\"] -->|\"/api/… (restJson1)\"| srv\n"
-"  browser[\"browser\"] -->|\"list UI, page bodies\"| srv\n"
+"  callboard[\"callboard<br>(screens)\"] -->|\"/api/…\"| srv\n"
+"  browser[\"browser\"] -->|\"page bodies, file contents\"| srv\n"
 "  subgraph mac[\"This Mac (127.0.0.1 only)\"]\n"
 "    srv[\"pagetray<br>(container)\"] --> db[(\"SQLite<br>volume pagetray-"
 "data-v1\")]\n"
@@ -161,9 +167,8 @@ msgid "[用語集](glossary.md)"
 msgstr "[Glossary](glossary.md)"
 
 #: src/index.md
-msgid "文書・画面・code で使う語と、使わない言い方"
-msgstr ""
-"Terms used in the docs, the UI, and the code, and the wording not to use"
+msgid "文書と code で使う語と、使わない言い方"
+msgstr "Terms used in the docs and the code, and the wording not to use"
 
 #: src/index.md
 msgid "API の早見"
@@ -327,22 +332,6 @@ msgstr ""
 "`to`, `from`, `state`, `heading`, `q`, and `sort`. `{\"messages\":[…]}`"
 
 #: src/index.md
-msgid "`GET /`・`/<project>/`・`/<project>/<key>/`"
-msgstr "`GET /`, `/<project>/`, `/<project>/<key>/`"
-
-#: src/index.md
-msgid "一覧の UI（絞った一覧）"
-msgstr "List UI (filtered list)"
-
-#: src/index.md
-msgid "`GET /messages`"
-msgstr "`GET /messages`"
-
-#: src/index.md
-msgid "メッセージの一覧（メッセージの記録を見る画面）"
-msgstr "The message list (the screen that shows message records)"
-
-#: src/index.md
 msgid "`GET /api/events`"
 msgstr "`GET /api/events`"
 
@@ -387,15 +376,12 @@ msgstr ""
 #: src/index.md
 msgid ""
 "**この Mac の中からだけ**: `Host` が `127.0.0.1`・`localhost` でない要求と、"
-"`Origin` の付いた書く要求は断る。例外は、一覧の UI が同じ `Origin` から file "
-"を上げる `POST /api/projects/<project>/keys/<key>/files` だけ（役割は "
-"`product-manager` で記録する。[API の仕様](api.md) の「守りの層」）。"
+"`Origin` の付いた書く要求は断る（例外は無い。[API の仕様](api.md) の「守りの"
+"層」）。"
 msgstr ""
 "**Only from this Mac**: requests whose `Host` is not `127.0.0.1` or "
-"`localhost`, and write requests that carry an `Origin`, are rejected. The "
-"one exception is `POST /api/projects/<project>/keys/<key>/files` from the "
-"list UI at the same `Origin`, to upload a file (recorded with the role "
-"`product-manager`; see \"Guard layer\" in the [API specification](api.md))."
+"`localhost`, and write requests that carry an `Origin`, are rejected (there "
+"is no exception; see \"Guard layer\" in the [API specification](api.md))."
 
 #: src/index.md
 msgid ""
@@ -408,30 +394,15 @@ msgstr ""
 
 #: src/index.md
 msgid ""
-"**一覧の UI**: サーバーが HTML を組んで返す。絞り込み・並べ替え・検索は link "
-"と form で、条件は URL に出る（script が無くても動く）。script がするのは、"
-"ページが置かれた時と、返事の状態・レビューの印が書かれた時に、一覧の列と絞り"
-"込みの列をサーバーが組んだ HTML に差し替えること（本文の枠は読み込み直さな"
-"い）と、新着の印・未読の印（browser が覚える）・時刻をこの Mac の時刻で出すこ"
-"とと、file を上げることだけ。画面は 4 つの区画（操作の帯・絞り込みの列・一覧"
-"の列・本文の枠）でできていて、選んだページは、本文の枠（`sandbox` を付けた "
-"iframe）に 1 枚だけ出す。Key の画面（project と Key を 1 つずつ選んだ時）に"
-"は、file の枠と上げる枠が足される（[動かす](run.md) の「一覧の UI から file "
-"を上げる」）。語の意味は [用語集](glossary.md)。"
+"**画面**: pagetray は画面を持たない（2.0.0 から）。ページの一覧とメッセージの"
+"一覧は callboard の `http://127.0.0.1:8803/pages/`・`/messages` にあり、前の"
+"画面の道（`/`・`/<project>/`・`/<project>/<key>/`・`/messages`）は `404` を返"
+"す。"
 msgstr ""
-"**List UI**: the server builds the HTML and returns it. Filtering, sorting, "
-"and search use links and forms, and the conditions appear in the URL (it "
-"works without script). The script only replaces the list column and the "
-"filter column with HTML built by the server when a page is put or when a "
-"reply state or review marks are written (it does not reload the viewer), and "
-"handles the new-arrival marks, the unread marks (remembered by the browser), "
-"showing times in this Mac's time, and uploading files. The screen is made of "
-"four regions (the toolbar, the filter column, the list column, and the "
-"viewer), and the selected page is shown, one at a time, in the viewer (an "
-"iframe with `sandbox`). The Key view (one project and one Key chosen) adds "
-"the file box and the upload box (see \"Uploading a file from the list UI\" "
-"in [Running](run.md)). For what the terms mean, see the [Glossary]"
-"(glossary.md)."
+"**Screens**: pagetray has no screens (since 2.0.0). The page list and the "
+"message list are in callboard at `http://127.0.0.1:8803/pages/` and `/"
+"messages`, and the former screen paths (`/`, `/<project>/`, `/<project>/"
+"<key>/`, `/messages`) return `404`."
 
 #: src/index.md
 msgid ""
@@ -504,14 +475,14 @@ msgstr "URL"
 
 #: src/run.md
 msgid ""
-"`http://127.0.0.1:8801/`（一覧の UI。ページは `/<project>/<key>/<kind>-"
-"<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置いたペー"
-"ジの URL を同じ path で開けるように、同じ container が待ち受ける"
+"`http://127.0.0.1:8801`（API とページの本文。ページは `/<project>/<key>/"
+"<kind>-<n>.html`）。`8800` は、前の置き場（Nginx。今は無い）の port。前に置い"
+"たページの URL を同じ path で開けるように、同じ container が待ち受ける"
 msgstr ""
-"`http://127.0.0.1:8801/` (the list UI. Pages are at `/<project>/<key>/<kind>-"
-"<n>.html`). `8800` is the port of the previous page store (Nginx; now gone). "
-"The same container listens on it so that URLs of pages stored earlier open "
-"at the same path"
+"`http://127.0.0.1:8801` (the API and page bodies. Pages are at `/<project>/"
+"<key>/<kind>-<n>.html`). `8800` is the port of the previous page store "
+"(Nginx; now gone). The same container listens on it so that URLs of pages "
+"stored earlier open at the same path"
 
 #: src/run.md
 msgid "DB"
@@ -547,16 +518,24 @@ msgstr "Settings"
 msgid ""
 "環境変数 `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 "
 "`0.0.0.0:8080`）。image の既定のままでよい。`PAGETRAY_CASTLIST_URL`（0.6.0 か"
-"ら。既定は無し）と `PAGETRAY_CASTLIST_LINK_URL`（0.6.0 から。既定 `http://"
-"127.0.0.1:8802`。本番では callboard の `http://127.0.0.1:8803` を書く）は下の"
-"「送り手を castlist に聞く」"
+"ら。既定は無し）は下の「送り手を castlist に聞く」"
 msgstr ""
 "Environment variables `PAGETRAY_DB` (default `/data/pages.db`) and "
 "`PAGETRAY_LISTEN` (default `0.0.0.0:8080`). The image defaults are fine as "
-"is. For `PAGETRAY_CASTLIST_URL` (since 0.6.0; no default) and "
-"`PAGETRAY_CASTLIST_LINK_URL` (since 0.6.0; default `http://127.0.0.1:8802`; "
-"in production, set it to callboard's `http://127.0.0.1:8803`), see \"Asking "
+"is. For `PAGETRAY_CASTLIST_URL` (since 0.6.0; no default), see \"Asking "
 "castlist for the sender\" below"
+
+#: src/run.md
+msgid ""
+"画面（ページの一覧とメッセージの一覧）は、2.0.0 から callboard の `http://"
+"127.0.0.1:8803/pages/`・`/messages` にある（前の画面の道 `http://"
+"127.0.0.1:8801/` などは `404`）。Product Manager が file を上げるのも、"
+"callboard のページの一覧の Key の画面から。"
+msgstr ""
+"The screens (the page list and the message list) are in callboard at `http://"
+"127.0.0.1:8803/pages/` and `/messages` since 2.0.0 (the former screen paths "
+"such as `http://127.0.0.1:8801/` return `404`). The Product Manager also "
+"uploads files from the Key view of callboard's page list."
 
 #: src/run.md
 msgid ""
@@ -579,21 +558,13 @@ msgstr "Asking castlist for the sender"
 
 #: src/run.md
 msgid ""
-"castlist の居場所は、2 つの環境変数で書く（どちらも `http://<host>:<port>` の"
-"形だけ。後ろの `/` は無くてよい）。pagetray は container の中から castlist に"
-"聞き、一覧の UI の link は Product Manager が host（pagetray を動かす機械）"
-"の browser で開くので、聞く先と link の頭は別に書く。アクターの画面は、"
-"castlist 2.0.0 から callboard（castlist と pagetray の画面を出す server）にあ"
-"る（castlist は画面を持たない）ので、link の頭は callboard を指す。"
+"castlist の居場所は、環境変数 `PAGETRAY_CASTLIST_URL` で書く（`http://<host>:"
+"<port>` の形だけ。後ろの `/` は無くてよい）。pagetray は、container の中から "
+"castlist に聞く。"
 msgstr ""
-"Where castlist is is set with two environment variables (both only in the "
-"form `http://<host>:<port>`; a trailing `/` is optional). pagetray asks "
-"castlist from inside its container, while the Product Manager opens the "
-"links in the list UI in a browser on the host (the machine that runs "
-"pagetray), so the address to ask and the base of the links are set "
-"separately. Since castlist 2.0.0 the actor screens live in callboard (the "
-"server that serves the screens of castlist and pagetray; castlist has no "
-"screens), so the base of the links points at callboard."
+"castlist's location is written in the environment variable "
+"`PAGETRAY_CASTLIST_URL` (only the form `http://<host>:<port>`; a trailing `/"
+"` is optional). pagetray asks castlist from inside the container."
 
 #: src/run.md src/cli.md
 msgid "環境変数"
@@ -607,7 +578,7 @@ msgstr "Used for"
 msgid "本番の値"
 msgstr "Production value"
 
-#: src/run.md
+#: src/run.md src/glossary.md
 msgid "`PAGETRAY_CASTLIST_URL`"
 msgstr "`PAGETRAY_CASTLIST_URL`"
 
@@ -631,49 +602,25 @@ msgstr ""
 "answers names in the domain `box`)"
 
 #: src/run.md
-msgid "`PAGETRAY_CASTLIST_LINK_URL`"
-msgstr "`PAGETRAY_CASTLIST_LINK_URL`"
-
-#: src/run.md
-msgid ""
-"一覧の UI の、送り手の名の link（`<値>/actors/<アクターの id>`）の頭。"
-"Product Manager が host の browser で開く"
-msgstr ""
-"The base of the link on the sender's name in the list UI (`<value>/actors/"
-"<actor id>`). The Product Manager opens it in a browser on the host"
-
-#: src/run.md
-msgid ""
-"`http://127.0.0.1:8803`（callboard。host の `127.0.0.1:8803` で待ち受ける）。"
-"既定は `http://127.0.0.1:8802`（castlist）で、castlist 2.0.0 からは開かない"
-"（404）ので、必ず書く"
-msgstr ""
-"`http://127.0.0.1:8803` (callboard, which listens on `127.0.0.1:8803` on the "
-"host). The default is `http://127.0.0.1:8802` (castlist), which no longer "
-"opens from castlist 2.0.0 on (404), so always set it"
-
-#: src/run.md
 msgid ""
 "`PAGETRAY_CASTLIST_URL` を書くと、付随する id を付けて置かれたページと file "
 "の送り手を、受けたその時に castlist に聞いて残す（[API の仕様](api.md) の「送"
 "り手」）。本番では、下の「起こす」の `container run` に `-e "
-"PAGETRAY_CASTLIST_URL=http://castlist.box:8080` と `-e "
-"PAGETRAY_CASTLIST_LINK_URL=http://127.0.0.1:8803` を足す。"
+"PAGETRAY_CASTLIST_URL=http://castlist.box:8080` を足す。"
 msgstr ""
 "When `PAGETRAY_CASTLIST_URL` is set, the store asks castlist for the sender "
 "of each page and file put with an attached id at the moment it receives "
 "them, and records the answer (\"Senders\" in the [API specification]"
 "(api.md)). In production, add `-e PAGETRAY_CASTLIST_URL=http://"
-"castlist.box:8080` and `-e PAGETRAY_CASTLIST_LINK_URL=http://127.0.0.1:8803` "
-"to the `container run` in \"Start\" below."
+"castlist.box:8080` to the `container run` in \"Start\" below."
 
 #: src/run.md
 msgid ""
-"書かなければ、castlist に聞かず、付随する id だけを残す（一覧の UI では「未確"
-"認」で、link も出ない）。"
+"書かなければ、castlist に聞かず、付随する id だけを残す（ページの記録の "
+"`sender` は `issuer`・`ref` だけ）。"
 msgstr ""
 "If it is not set, castlist is not asked and only the attached id is recorded "
-"(shown as \"unconfirmed\" in the list UI, with no link)."
+"(the page record's `sender` has only `issuer` and `ref`)."
 
 #: src/run.md
 msgid ""
@@ -686,28 +633,21 @@ msgstr ""
 
 #: src/run.md
 msgid ""
-"一覧の UI の送り手の名は、`PAGETRAY_CASTLIST_LINK_URL`（無ければ `http://"
-"127.0.0.1:8802`）の `/actors/<アクターの id>` への link になる。聞く先の "
-"`PAGETRAY_CASTLIST_URL` からは作らない（聞く先は container の中から届く所で、"
-"host の browser から開けるとは限らない）。"
+"形が `http://<host>:<port>` でなければ、サーバーは起きない。起きた時の log の"
+"頭の行の後ろに ` castlist=<聞く先>` が付く。"
 msgstr ""
-"In the list UI, the sender's name is a link to `/actors/<actor id>` on "
-"`PAGETRAY_CASTLIST_LINK_URL` (`http://127.0.0.1:8802` if not set). It is not "
-"built from `PAGETRAY_CASTLIST_URL`, the address castlist is asked at (that "
-"address is reachable from inside the container, and a browser on the host "
-"may not be able to open it)."
+"If the value is not in the form `http://<host>:<port>`, the server does not "
+"start. On startup, ` castlist=<address asked>` is appended to the first log "
+"line."
 
 #: src/run.md
 msgid ""
-"どちらかの形が `http://<host>:<port>` でなければ、サーバーは起きない"
-"（`PAGETRAY_CASTLIST_URL` が無くても、書いた `PAGETRAY_CASTLIST_LINK_URL` は"
-"見る）。起きた時の log の頭の行の後ろに ` castlist=<聞く先> "
-"castlist_link=<link の頭>` が付く。"
+"1.x で足していた `-e PAGETRAY_CASTLIST_LINK_URL=…` は、2.0.0 から読まない（残"
+"しても、形の違う値でも起きる）。起こす命令から外してよい。"
 msgstr ""
-"If either value is not in the form `http://<host>:<port>`, the server does "
-"not start (a `PAGETRAY_CASTLIST_LINK_URL` that is set is checked even "
-"without `PAGETRAY_CASTLIST_URL`). On startup, ` castlist=<address asked> "
-"castlist_link=<link base>` is appended to the first log line."
+"The `-e PAGETRAY_CASTLIST_LINK_URL=…` added in 1.x is no longer read from "
+"2.0.0 (the server starts even if it is left in, even with a malformed "
+"value). It can be removed from the start command."
 
 #: src/run.md
 msgid ""
@@ -817,15 +757,13 @@ msgid ""
 "`container logs pagetray.box` の頭の 2 行が、前回の終わり方（`previous: …`。"
 "下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/"
 "data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが"
-"付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 "
-"castlist_link=http://127.0.0.1:8803`）。"
+"付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080`）。"
 msgstr ""
 "The first two lines of `container logs pagetray.box` are how the previous "
 "run ended (`previous: …`; see \"Investigating after a crash\" below) and a "
 "line ending with `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` "
 "(since 0.7.0 every line starts with a timestamp and a level such as `INFO`; "
-"when asking castlist, followed by ` castlist=http://castlist.box:8080 "
-"castlist_link=http://127.0.0.1:8803`)."
+"when asking castlist, followed by ` castlist=http://castlist.box:8080`)."
 
 #: src/run.md
 msgid ""
@@ -837,111 +775,6 @@ msgstr ""
 "20 MiB (right after the first start, and right after many pages are put, it "
 "can exceed 50 MiB because of files the OS keeps cached. Restarting brings it "
 "back down)."
-
-#: src/run.md
-msgid ""
-"一覧の UI を、読むだけの試験で見る（試験のある 0.3.2 から）。本物の browser"
-"（この Mac の Chrome）で開き、一覧が出て API の答えと合うこと・新着の知らせに"
-"つながること・絞れること・選んだページが本文の枠に出ること・console に誤りが"
-"無いことを見る。置き場には何も書かない。pagetray の checkout のある folder "
-"で、起こした版の試験を取り出して流す（Node と pnpm が要る。[開発]"
-"(development.md) の「一覧の UI の試験」）。checkout が無ければ、browser で "
-"`http://127.0.0.1:8801/` を開き、一覧が出るのを見る。"
-msgstr ""
-"Check the list UI with the read-only test (available from 0.3.2, the first "
-"version that has the tests). It opens the UI in a real browser (the Chrome "
-"on this Mac) and checks that the list appears and agrees with the API's "
-"answer, that it connects to the new-page notices, that filtering works, that "
-"the selected page appears in the viewer, and that there are no errors in the "
-"console. It writes nothing to the store. In the folder that holds your "
-"pagetray checkout, take out the tests of the version you started and run "
-"them (Node and pnpm are needed; see \"List UI tests\" in [Development]"
-"(development.md)). If you have no checkout, open `http://127.0.0.1:8801/` in "
-"a browser and see that the list appears."
-
-#: src/run.md
-msgid "\"$PWD/pagetray-smoke\""
-msgstr "\"$PWD/pagetray-smoke\""
-
-#: src/run.md
-msgid "http://127.0.0.1:8801"
-msgstr "http://127.0.0.1:8801"
-
-#: src/run.md
-msgid "一覧の UI から file を上げる"
-msgstr "Uploading a file from the list UI"
-
-#: src/run.md
-msgid ""
-"人（Product Manager）が、画面の絵などを担当に渡す道。担当は `roster file "
-"put` で上げる。"
-msgstr ""
-"The way for a person (the Product Manager) to hand screenshots and the like "
-"to the roles. The roles upload with `roster file put`."
-
-#: src/run.md
-msgid ""
-"browser で Key の画面（`http://127.0.0.1:8801/<project>/<key>/`。一覧で "
-"project と Key の候補を 1 つずつ押してもよい）を開く。一覧の列の下に、file の"
-"枠（その Key の file）と上げる枠が出る。"
-msgstr ""
-"Open the Key view in a browser (`http://127.0.0.1:8801/<project>/<key>/`; "
-"you can also click one project choice and one Key choice in the list). Below "
-"the list column, the file box (the files of that Key) and the upload box "
-"appear."
-
-#: src/run.md
-msgid ""
-"上げる枠で file を選ぶか、枠に落とす。受けるのは png・jpg・jpeg・gif・webp・"
-"pdf・txt・log・md・csv・json で、1 つ 16 MiB まで（ほかは送る前に断る）。名"
-"は、元の名から CLI と同じ作り方で付く（`Screen Shot 1.PNG` → `screen-"
-"shot-1.png`）。"
-msgstr ""
-"Choose a file in the upload box, or drop it on the box. Accepted are png, "
-"jpg, jpeg, gif, webp, pdf, txt, log, md, csv, and json, up to 16 MiB each "
-"(anything else is refused before sending). The name is made from the "
-"original name the same way as the CLI does (`Screen Shot 1.PNG` → `screen-"
-"shot-1.png`)."
-
-#: src/run.md
-msgid ""
-"見本を見る（図はその図、字の file は頭の 20 行、PDF は名と大きさ）。token・"
-"鍵・個人の情報・ほかの人の画面が写っていないかを見て、「秘密（token・鍵・個人"
-"の情報・ほかの人の画面）が写っていないか見た」に印を付ける。印を付けるまで"
-"「送る」は押せない。"
-msgstr ""
-"Look at the preview (an image shows itself, a text file its first 20 lines, "
-"a PDF its name and size). Check that no token, key, personal information, or "
-"other people's screens are in it, then tick \"I checked that no secrets "
-"(tokens, keys, personal information, other people's screens) are in it\". "
-"The send button stays disabled until you tick it."
-
-#: src/run.md
-msgid ""
-"「送る」を押すと、ページから参照する path（`files/screen-shot-1-1.png` など）"
-"が出て、file の枠に足される。この path を担当に伝える。"
-msgstr ""
-"Press send. The path a page uses to refer to the file (such as `files/screen-"
-"shot-1-1.png`) is shown, and the file is added to the file box. Tell this "
-"path to the role."
-
-#: src/run.md
-msgid ""
-"一覧の UI から上げた file は、役割 `product-manager` で記録される（[API の仕"
-"様](api.md) の「共通」）。"
-msgstr ""
-"A file uploaded from the list UI is recorded with the role `product-manager` "
-"(see \"Common rules\" in the [API specification](api.md))."
-
-#: src/run.md
-msgid "画面から消すことはできない。消すのは TPM 担当に頼む。"
-msgstr ""
-"Files cannot be removed from the screen. Ask the TPM role to remove them."
-
-#: src/run.md
-msgid "上げるのには script が要る。script が無くても、file の枠は読める。"
-msgstr ""
-"Uploading needs script. Without script, the file box can still be read."
 
 #: src/run.md
 msgid "DB の写しを取る"
@@ -1235,11 +1068,11 @@ msgstr "Stopping, and after restarting the Mac"
 
 #: src/run.md
 msgid ""
-"止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるた"
-"め）。止めるのは `container stop pagetray.box`。DB は volume に残る。"
+"止めている間、ページは置けず（番号をサーバーが決めるため）、本文も開けない。"
+"止めるのは `container stop pagetray.box`。DB は volume に残る。"
 msgstr ""
-"While it is stopped, pages cannot be put and the list UI cannot be opened "
-"(because the server assigns the numbers). To stop it, run `container stop "
+"While it is stopped, pages cannot be put (because the server assigns the "
+"numbers) and bodies cannot be opened. To stop it, run `container stop "
 "pagetray.box`. The DB remains in the volume."
 
 #: src/run.md
@@ -1479,14 +1312,6 @@ msgid "file を消す（`DeleteFiles`。戻せない。`--yes` の時だけ）"
 msgstr "Deletes files (`DeleteFiles`; cannot be undone; only with `--yes`)"
 
 #: src/cli.md
-msgid "`pagetray browse [<project>[/<key>]]`"
-msgstr "`pagetray browse [<project>[/<key>]]`"
-
-#: src/cli.md
-msgid "一覧の UI を browser で開く。`-n` は URL を出すだけ"
-msgstr "Opens the list UI in a browser. `-n` only prints the URL"
-
-#: src/cli.md
 msgid "`pagetray backup -o <file>`"
 msgstr "`pagetray backup -o <file>`"
 
@@ -1641,13 +1466,13 @@ msgstr "Writing the reply state (`page reply`)"
 #: src/cli.md
 msgid ""
 "Product Manager の返事が要るページを返事待ちにし（`--waiting`）、答えたら答え"
-"たにする（`--answered`）。どちらか 1 つが要る。一覧の UI は、この状態で印と件"
-"数を出す（[API の仕様](api.md) の「返事」）。"
+"たにする（`--answered`）。どちらか 1 つが要る。callboard のページの一覧の画面"
+"は、この状態で印と件数を出す（[API の仕様](api.md) の「返事」）。"
 msgstr ""
 "Marks a page that needs a reply from the Product Manager as waiting (`--"
 "waiting`), and as answered once it has been answered (`--answered`). Exactly "
-"one of the two is required. The list UI shows its marks and counts from this "
-"state (\"Replies\" in the [API specification](api.md))."
+"one of the two is required. callboard's page list screen shows its marks and "
+"counts from this state (\"Replies\" in the [API specification](api.md))."
 
 #: src/cli.md
 msgid "出すのは、状態と URL の 1 行（tab 区切り）。`--json` で、ページの記録。"
@@ -2067,8 +1892,8 @@ msgid "macOS の `open`"
 msgstr "`open` on macOS"
 
 #: src/cli.md
-msgid "browser を開く命令"
-msgstr "Command that opens the browser"
+msgid "`page view --web` で browser を開く命令"
+msgstr "Command that opens the browser for `page view --web`"
 
 #: src/cli.md
 msgid "環境変数の proxy（`HTTP_PROXY` など）は使わない。"
@@ -2332,12 +2157,10 @@ msgid "道の頭"
 msgstr "Path prefix"
 
 #: src/api.md
-msgid ""
-"API は `/api/` の下。`/healthz` と、ページと file の本文の URL と、画面だけは"
-"外"
+msgid "API は `/api/` の下。`/healthz` と、ページと file の本文の URL だけは外"
 msgstr ""
-"The API lives under `/api/`. Only `/healthz`, the URLs of page and file "
-"bodies, and the UI are outside it"
+"The API lives under `/api/`. Only `/healthz` and the URLs of page and file "
+"bodies are outside it"
 
 #: src/api.md
 msgid "protocol"
@@ -2660,14 +2483,14 @@ msgstr "`GET /api/files/rules` (no parameters; since 1.3.0)"
 msgid ""
 "手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・"
 "file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`・新着の知らせ "
-"`GET /api/events`（SSE）・`GET /api/backup`・`GET /api/logs`・画面（`/`・`/"
-"{project}/`・`/{project}/{key}/`・`/messages`）。"
+"`GET /api/events`（SSE）・`GET /api/backup`・`GET /api/logs`。画面の道は無い"
+"（2.0.0 で外した。下の「画面」）。"
 msgstr ""
 "Hand-written routes (outside Smithy): page bodies `GET /{project}/{key}/"
 "{kind}-{n}.html`, file contents `GET /{project}/{key}/files/{word}-{n}."
 "{extension}`, new-arrival notices `GET /api/events` (SSE), `GET /api/"
-"backup`, `GET /api/logs`, and the UI (`/`, `/{project}/`, `/{project}/{key}/"
-"`, `/messages`)."
+"backup`, and `GET /api/logs`. There are no screen routes (removed in 2.0.0; "
+"see \"Screens\" below)."
 
 #: src/api.md
 msgid ""
@@ -2912,26 +2735,21 @@ msgstr ""
 msgid ""
 "castlist の居場所は `PAGETRAY_CASTLIST_URL`（聞く先）。`http://<host>:"
 "<port>` の形だけ（後ろの `/` はよい。path・利用者の名・`https://`・port の無"
-"い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。画面の link "
-"の頭 `PAGETRAY_CASTLIST_LINK_URL` は別に決め（container の中から届く所と、"
-"host の browser から開く所は違う）、形は同じ、無いか空なら `http://"
-"127.0.0.1:8802`。形の違う link は、castlist の URL が無くても断る。起こす "
+"い物・port 0 は、起きる前に断る）。空か無ければ castlist は無い。起こす "
 "binary（`pagetray-server`。下の「起こし方」）が、DB を開く前に "
-"`Castlist::from_env` で見て、形が違えば止まる。link を使うのは画面の送り手の"
-"名（下の「画面」）。"
+"`Castlist::from_env` で見て、形が違えば止まる。画面の link の頭 "
+"`PAGETRAY_CASTLIST_LINK_URL` は、2.0.0 で画面と一緒に無くした（書いてあっても"
+"読まない。形の違う値でも起きる）。"
 msgstr ""
 "castlist's location is `PAGETRAY_CASTLIST_URL` (where to ask). Only the "
 "shape `http://<host>:<port>` is accepted (a trailing `/` is fine; a path, a "
 "user name, `https://`, a missing port, or port 0 is refused before "
-"starting). If it is empty or absent, there is no castlist. The link base for "
-"the screens, `PAGETRAY_CASTLIST_LINK_URL`, is set separately (what is "
-"reachable from inside the container differs from what the host's browser "
-"opens), with the same shape, and defaults to `http://127.0.0.1:8802` when "
-"absent or empty. A link in the wrong shape is refused even without a "
-"castlist URL. The startup binary (`pagetray-server`; see \"Starting it\" "
-"below) checks them with `Castlist::from_env` before opening the DB and stops "
-"if a shape is wrong. The link is used for the sender's name on the screens "
-"(see \"Screens\" below)."
+"starting). If it is empty or absent, there is no castlist. The startup "
+"binary (`pagetray-server`; see \"Starting it\" below) checks it with "
+"`Castlist::from_env` before opening the DB and stops if the shape is wrong. "
+"The link base for the screens, `PAGETRAY_CASTLIST_LINK_URL`, was removed in "
+"2.0.0 together with the screens (it is not read even if set; the server "
+"starts even with a malformed value)."
 
 #: src/api.md
 msgid ""
@@ -2987,18 +2805,18 @@ msgstr ""
 msgid ""
 "答えの見方: 聞いた `ref` の答えが無い・`asOf` が無い（生成した client は、答"
 "えに無い `@required` の欄を既定の値で埋めるので、1970 年の初めの時刻は無い物"
-"とする）・アクターの `id` が `ai.common#ActorId` の形でない（画面の link の "
-"path に入る）・`kind` が `ai`・`human` でない・`name` が 1〜128 字でないか制"
-"御字を持つ、のどれかなら読めない答えとする。答えの大きさの上限は持たず、1 秒"
-"の時間切れに任せる。"
+"とする）・アクターの `id` が `ai.common#ActorId` の形でない（答えに入れて返"
+"す）・`kind` が `ai`・`human` でない・`name` が 1〜128 字でないか制御字を持"
+"つ、のどれかなら読めない答えとする。答えの大きさの上限は持たず、1 秒の時間切"
+"れに任せる。"
 msgstr ""
 "Checking the answer: it is treated as unreadable if there is no result for "
 "the asked `ref`, `asOf` is missing (the generated client fills missing "
 "`@required` fields with default values, so the start of 1970 is treated as "
-"missing), the actor's `id` is not in the `ai.common#ActorId` shape (it goes "
-"into the path of the screen link), `kind` is not `ai` or `human`, or `name` "
-"is not 1 to 128 characters or has control characters. There is no limit on "
-"the answer size; the 1-second timeout bounds it instead."
+"missing), the actor's `id` is not in the `ai.common#ActorId` shape (it is "
+"returned in the answer), `kind` is not `ai` or `human`, or `name` is not 1 "
+"to 128 characters or has control characters. There is no limit on the answer "
+"size; the 1-second timeout bounds it instead."
 
 #: src/api.md
 msgid "castlist の答え"
@@ -3229,7 +3047,7 @@ msgstr ""
 "The castlist actor id of the sender (the shape of `ai.common#ActorId`). "
 "Pages whose sender has no castlist answer do not match"
 
-#: src/api.md src/glossary.md
+#: src/api.md
 msgid "`sort`"
 msgstr "`sort`"
 
@@ -3319,14 +3137,14 @@ msgstr "Filter choices and waiting counts (GetPageFacets)"
 
 #: src/api.md
 msgid ""
-"ページの一覧の画面が、絞り込みの列と操作の帯の待ちの数に使う数（1.3.0 か"
-"ら）。`GET /api/pages/facets` に引数は無く、どの数も**置き場の全部を数える**"
-"（絞らない）。件数が 0 の値は出さない。"
+"callboard のページの一覧の画面が、絞り込みの列と操作の帯の待ちの数に使う数"
+"（1.3.0 から）。`GET /api/pages/facets` に引数は無く、どの数も**置き場の全部"
+"を数える**（絞らない）。件数が 0 の値は出さない。"
 msgstr ""
-"The numbers the page list screen uses for its filter column and for the "
-"waiting counts in its toolbar (since 1.3.0). `GET /api/pages/facets` takes "
-"no parameters, and every number **counts the whole store** (nothing narrows "
-"it). Values with a count of 0 are not listed."
+"The numbers callboard's page list screen uses for its filter column and for "
+"the waiting counts in its toolbar (since 1.3.0). `GET /api/pages/facets` "
+"takes no parameters, and every number **counts the whole store** (nothing "
+"narrows it). Values with a count of 0 are not listed."
 
 #: src/api.md
 msgid "欄"
@@ -3432,12 +3250,13 @@ msgstr "Reviews of pages (ListReviews)"
 #: src/api.md
 msgid ""
 "名指したページを見たレビューのページ（種類が `review` で、見た物にその path "
-"を書いた物）を返す（1.3.0 から）。ページの一覧の画面が、行の下に「レビュー」"
-"の link と判定を出すのに使う。"
+"を書いた物）を返す（1.3.0 から）。callboard のページの一覧の画面が、行の下に"
+"「レビュー」の link と判定を出すのに使う。"
 msgstr ""
 "Returns the review pages that reviewed the named pages (pages of kind "
-"`review` whose reviewed targets include that path; since 1.3.0). The page "
-"list screen uses it to show the \"Reviews\" links and verdicts under a row."
+"`review` whose reviewed targets include that path; since 1.3.0). callboard's "
+"page list screen uses it to show the \"Reviews\" links and verdicts under a "
+"row."
 
 #: src/api.md
 msgid ""
@@ -3473,15 +3292,16 @@ msgstr "Replies (SetReplyState)"
 #: src/api.md
 msgid ""
 "ページ 1 枚の返事の状態を書く。`roster ask pm` が返事待ちにし、`roster "
-"answer` が答えたにする。一覧の UI は、この状態で印と件数を出す。本文は JSON "
-"の `{\"state\":\"waiting\"|\"answered\",\"on\":\"pm\"|\"review\"|\"tpm\"}`"
-"（`on` は無ければ `pm`）。答えは 200 で、書いた後のページの記録。"
+"answer` が答えたにする。callboard のページの一覧の画面は、この状態で印と件数"
+"を出す。本文は JSON の `{\"state\":\"waiting\"|\"answered\",\"on\":\"pm\"|"
+"\"review\"|\"tpm\"}`（`on` は無ければ `pm`）。答えは 200 で、書いた後のページ"
+"の記録。"
 msgstr ""
 "Writes the reply state of one page. `roster ask pm` marks it waiting, and "
-"`roster answer` marks it answered. The list UI shows its marks and counts "
-"from this state. The body is the JSON `{\"state\":\"waiting\"|\"answered\","
-"\"on\":\"pm\"|\"review\"|\"tpm\"}` (`on` defaults to `pm`). The answer is "
-"200 with the page record after writing."
+"`roster answer` marks it answered. callboard's page list screen shows its "
+"marks and counts from this state. The body is the JSON `{\"state\":"
+"\"waiting\"|\"answered\",\"on\":\"pm\"|\"review\"|\"tpm\"}` (`on` defaults "
+"to `pm`). The answer is 200 with the page record after writing."
 
 #: src/api.md
 msgid "今のページ"
@@ -3704,10 +3524,10 @@ msgstr ""
 #: src/api.md
 msgid ""
 "だれが消してよいかは見ない（呼ぶ側が決める）。browser の中のページからは消せ"
-"ない（UI と同じ `Origin` でも 403）。"
+"ない（守りの層が `Origin` の付いた要求を 403）。"
 msgstr ""
 "Who may delete is not checked (the caller decides). A page inside a browser "
-"cannot delete (403 even with the same `Origin` as the UI)."
+"cannot delete (the guard layer answers 403 to requests with an `Origin`)."
 
 #: src/api.md
 msgid "file を置く（CreateFile）"
@@ -3748,12 +3568,11 @@ msgstr "`role`"
 
 #: src/api.md
 msgid ""
-"ページと同じ形。一覧の UI から上げる時のほかは要る（無ければ 400「role が要"
-"る」）。定義では `@required` にしない（一覧の UI は書かない）"
+"ページと同じ形。要る（無ければ server が 400「role が要る」。定義では "
+"`@required` にしていない）"
 msgstr ""
-"The same shape as for pages. Required except for uploads from the list UI "
-"(otherwise 400 saying role is required). Not `@required` in the definition "
-"(the list UI does not send it)"
+"The same shape as for pages. Required (otherwise the server answers 400 "
+"saying role is required; it is not `@required` in the definition)"
 
 #: src/api.md
 msgid "`workspace`・`n`・`createdAt`・`actorIssuer`・`actorRef`"
@@ -3958,19 +3777,15 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"一覧の UI の form から上げた物（守りの層が `Origin` の例外として通し、印を付"
-"けた物。下の「守りの層」）は、引数に何が書いてあっても、役割 `product-"
-"manager`・workspace 空で残し、`n`・`createdAt`・`actorIssuer`・`actorRef` を"
-"読まない（browser から担当を名乗らせない・取り込ませない。送り手の行も作らな"
-"い）。引数の形の違いは、例外でも生成した層が 400 で断る。"
+"browser の中のページからは置けない（守りの層が `Origin` の付いた要求を 403。"
+"2.0.0 で、画面の form から上げる例外を無くした）。画面（callboard）は、"
+"Product Manager から受けた file を、`Origin` を付けずに `role=product-"
+"manager` で置く。"
 msgstr ""
-"A file uploaded from the list UI's form (one the guard layer let through as "
-"the `Origin` exception and marked; see \"Guard layer\" below) is stored with "
-"role `product-manager` and an empty workspace whatever the parameters say, "
-"and `n`, `createdAt`, `actorIssuer`, and `actorRef` are not read (a browser "
-"cannot claim to be a role or import; no sender row is made). Parameters of "
-"the wrong shape are still 400 from the generated layer, even for the "
-"exception."
+"A page inside a browser cannot put a file (the guard layer answers 403 to "
+"requests with an `Origin`; the exception for uploads from the screen's form "
+"was removed in 2.0.0). The screens (callboard) put the files they receive "
+"from the Product Manager without an `Origin` and with `role=product-manager`."
 
 #: src/api.md
 msgid "置いた後に、新着の知らせを送る（下の「新着の知らせ」）。"
@@ -4011,16 +3826,6 @@ msgstr ""
 "`ai.pagetray#UnsupportedMediaType` (`@httpError(415)`) is among CreateFile's "
 "errors. Callers tell them apart by the `X-Amzn-Errortype` header (it is not "
 "added to `ai.common`; file types are a pagetray-only rule)."
-
-#: src/api.md
-msgid ""
-"一覧の UI の印: 守りの層が要求の extensions に `FromUi` を入れ、handler は "
-"smithy-rs の `Extension` の取り出し（`Option<Extension<FromUi>>`）で読む"
-"（`Host` を読む `RequestHost` と同じ道）。"
-msgstr ""
-"The list UI mark: the guard layer puts `FromUi` in the request's extensions, "
-"and the handler reads it with smithy-rs's `Extension` extractor "
-"(`Option<Extension<FromUi>>`), the same way `RequestHost` carries `Host`."
 
 #: src/api.md
 msgid "file を探す（ListFiles）"
@@ -4106,11 +3911,12 @@ msgstr "Accepted file types (GetFileRules)"
 #: src/api.md
 msgid ""
 "`GET /api/files/rules` は、受ける file の種類と、1 つの大きさの上限を返す"
-"（1.3.0 から）。ページの一覧の画面の、file を上げる枠が、送る前に見る。"
+"（1.3.0 から）。callboard のページの一覧の画面の、file を上げる枠が、送る前に"
+"見る。"
 msgstr ""
 "`GET /api/files/rules` returns the accepted file types and the size limit of "
-"one file (since 1.3.0). The upload box of the page list screen checks them "
-"before sending."
+"one file (since 1.3.0). The upload box of callboard's page list screen "
+"checks them before sending."
 
 #: src/api.md
 msgid ""
@@ -4172,12 +3978,11 @@ msgstr ""
 
 #: src/api.md
 msgid ""
-"書く接続・誤り・`Origin`（一覧の UI と同じ `Origin` でも 403）はページを消す"
-"時と同じ。消した時は、新着の知らせを送らない。"
+"書く接続・誤り・`Origin` はページを消す時と同じ。消した時は、新着の知らせを送"
+"らない。"
 msgstr ""
-"Write connections, errors, and `Origin` (403 even with the same `Origin` as "
-"the list UI) are the same as for removing pages. No notice is sent on "
-"removal."
+"Write connections, errors, and `Origin` are the same as for removing pages. "
+"No notice is sent on removal."
 
 #: src/api.md
 msgid "メッセージの記録（PutMessage・ListMessages）"
@@ -4391,10 +4196,6 @@ msgstr "States"
 #: src/api.md src/db.md src/glossary.md
 msgid "意味"
 msgstr "Meaning"
-
-#: src/api.md
-msgid "画面の字"
-msgstr "Text on the screen"
 
 #: src/api.md
 msgid "`waiting`"
@@ -4668,16 +4469,16 @@ msgstr "Filter choices and counts (GetMessageFacets)"
 
 #: src/api.md
 msgid ""
-"メッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う数"
-"（1.2.0 から）。`GET /api/messages/facets` の答えは、5 つの並び。どの並びも "
-"`{\"value\":…,\"count\":…}` の並びで、**置き場の全部を数える**（引数では絞ら"
-"ない）。件数が 0 の値は出さない。"
+"callboard のメッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」"
+"に使う数（1.2.0 から）。`GET /api/messages/facets` の答えは、5 つの並び。どの"
+"並びも `{\"value\":…,\"count\":…}` の並びで、**置き場の全部を数える**（引数で"
+"は絞らない）。件数が 0 の値は出さない。"
 msgstr ""
-"The numbers the message list screen uses for its filter column and for \"n "
-"not delivered yet\" (since 1.2.0). The answer of `GET /api/messages/facets` "
-"is five lists. Each is a list of `{\"value\":…,\"count\":…}` and **counts "
-"the whole store** (the parameters do not narrow it). Values with a count of "
-"0 are not listed."
+"The numbers callboard's message list screen uses for its filter column and "
+"for \"n not delivered yet\" (since 1.2.0). The answer of `GET /api/messages/"
+"facets` is five lists. Each is a list of `{\"value\":…,\"count\":…}` and "
+"**counts the whole store** (the parameters do not narrow it). Values with a "
+"count of 0 are not listed."
 
 #: src/api.md
 msgid "`states`"
@@ -4894,180 +4695,38 @@ msgstr ""
 "timeout covers only the response head, so it does not cut off the ongoing "
 "stream)."
 
-#: src/api.md
+#: src/api.md src/glossary.md
 msgid "画面"
 msgstr "Screens"
 
 #: src/api.md
 msgid ""
-"一覧の UI（手の道。`/`・`/{project}/`・`/{project}/{key}/` と、メッセージの一"
-"覧 `/messages`。`crates/server/src/ui.rs`・`crates/server/src/ui/"
-"messages.rs`）。URL が開くことは仕様に入るが、HTML の作り・見た目・文は入らな"
-"い。"
+"pagetray は画面を持たない（2.0.0 で外した）。ページの一覧とメッセージの一覧"
+"は、callboard（castlist と pagetray の画面を出すサーバー。0.4.0 から）が、こ"
+"の API を通して出す（`http://127.0.0.1:8803/pages/`・`/messages`）。"
 msgstr ""
-"The list UI (hand-written routes: `/`, `/{project}/`, `/{project}/{key}/`, "
-"and the message list `/messages`; `crates/server/src/ui.rs`, `crates/server/"
-"src/ui/messages.rs`). That the URLs open is part of the specification; the "
-"HTML structure, the look, and the wording are not."
+"pagetray has no screens (removed in 2.0.0). The page list and the message "
+"list are served by callboard (the server that serves the screens of castlist "
+"and pagetray; since 0.4.0) through this API (`http://127.0.0.1:8803/pages/` "
+"and `/messages`)."
 
 #: src/api.md
 msgid ""
-"template は、repo の `templates/index.html`（askama。`crates/server/"
-"askama.toml` が `../../templates` を指す。castlist と同じ形）。上げる枠の送り"
-"先は、置き場が `data-upload` に渡す（`/api/projects/{project}/keys/{key}/"
-"files`。script が `name` の引数を足し、選んだ file の `Content-Type` で送"
-"る）。断った訳は `message` を読む。"
+"前の画面の道（`/`・`/{project}/`・`/{project}/{key}/`・`/messages`。引数が付"
+"いていても）は 404 で、画面（HTML）を返さない。callboard へ送る redirect も無"
+"い（古い URL は閉じる）。"
 msgstr ""
-"The template is the repo's `templates/index.html` (askama; `crates/server/"
-"askama.toml` points at `../../templates`, the same setup as castlist). The "
-"store passes where the upload box sends to in `data-upload` (`/api/projects/"
-"{project}/keys/{key}/files`; the script adds the `name` parameter and sends "
-"with the chosen file's `Content-Type`). For the reason of a refusal, it "
-"reads `message`."
+"The former screen paths (`/`, `/{project}/`, `/{project}/{key}/`, `/"
+"messages`, with or without parameters) return 404 and no screen (HTML). "
+"There is no redirect to callboard either (the old URLs are closed)."
 
 #: src/api.md
 msgid ""
-"引数: `project`・`key`・`kind`・`role`・`workspace`・`q`・`reply`・`on`・"
-"`verdict`・`actor`・`sort`・`at`・`open`。空は書かないのと同じ（`workspace` "
-"だけは空も条件）。知らない `reply`・`verdict` は無視、`on` は `reply` と組の"
-"時だけ、`sort` は `created_at` だけ、`open` はページの path の形だけ。1 度に "
-"200 件。同じ名の引数を 2 度書いた物など、読めない引数は 400 "
-"`ValidationException`。"
+"置いたページの本文と file の中身の URL は、前のまま開く（下の「ページの本文」"
+"「file の中身」）。"
 msgstr ""
-"Parameters: `project`, `key`, `kind`, `role`, `workspace`, `q`, `reply`, "
-"`on`, `verdict`, `actor`, `sort`, `at`, `open`. An empty value is the same "
-"as leaving it out (only `workspace` treats empty as a condition). Unknown "
-"`reply` and `verdict` values are ignored, `on` counts only together with "
-"`reply`, `sort` accepts only `created_at`, and `open` accepts only the shape "
-"of a page path. 200 rows at a time. Parameters that cannot be read, such as "
-"the same name given twice, get 400 `ValidationException`."
-
-#: src/api.md
-msgid ""
-"続きの印 `at` は、前の頁の最後の行の時刻と id（`nextToken` と同じ形）。同じ時"
-"刻の行が頁の境に並んでも抜けない（`crates/server/tests/ui.rs` が、同じ時刻の "
-"205 枚を抜けずに出すことを見る）。読めない印・ほかの並びの印は、書かないのと"
-"同じ（頭から出す）。"
-msgstr ""
-"The continuation mark `at` is the time and id of the previous page's last "
-"row (the same shape as `nextToken`). Rows with the same time at a page "
-"boundary are not lost (`crates/server/tests/ui.rs` checks that 205 pages "
-"with the same time all show). A mark that cannot be read, or one from the "
-"other sort order, is the same as leaving it out (the list starts from the "
-"top)."
-
-#: src/api.md
-msgid ""
-"待ちの数（返事待ち・レビュー待ち・上げた）と絞り込みの候補は、絞りに関わらず"
-"置き場の全部。tab の題は Product Manager の返事待ちの数（`crates/server/src/"
-"facets.rs`）。"
-msgstr ""
-"The waiting counts (awaiting reply, awaiting review, escalated) and the "
-"filter choices cover the whole store, whatever the filters. The tab title "
-"shows the number of pages awaiting the Product Manager's reply (`crates/"
-"server/src/facets.rs`)."
-
-#: src/api.md
-msgid ""
-"送り手は、castlist の名に castlist のアクターの画面への link"
-"（`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`。castlist を設定していて、答えの"
-"ある送り手だけ）と、その下に小さく付随する id。答えの無い送り手は「未確認」。"
-"絞り込みの「送り手」は、答えのある送り手を、ページの多い順に 100 まで。"
-msgstr ""
-"A sender shows its castlist name, linked to the castlist actor's page "
-"(`<PAGETRAY_CASTLIST_LINK_URL>/actors/<id>`; only when castlist is "
-"configured and the sender has an answer), with the attached id small below "
-"it. A sender without an answer reads \"unconfirmed\". The \"Sender\" filter "
-"lists the senders with an answer, most pages first, up to 100."
-
-#: src/api.md
-msgid ""
-"字はみな HTML として逃がし、URL の引数に入れる値は、英数字と `-` `.` `_` `~` "
-"のほかを %XX にする（`actorRef` は castlist と同じ広い形で、空白・`?`・`&`・"
-"`#`・`/` も通る）。"
-msgstr ""
-"All text is escaped as HTML, and values put into URL parameters have every "
-"character other than letters, digits, `-`, `.`, `_`, and `~` written as %XX "
-"(`actorRef` has the same wide shape as in castlist, so spaces, `?`, `&`, "
-"`#`, and `/` get through)."
-
-#: src/api.md
-msgid ""
-"Key の画面（project と Key を 1 つずつ選んだ時）だけ、file の枠と上げる枠を出"
-"す（project が `api` なら出さない）。本文の枠の iframe は `sandbox=\"allow-"
-"scripts\"`。"
-msgstr ""
-"Only the Key view (one project and one Key chosen) shows the file box and "
-"the upload box (not when the project is `api`). The viewer's iframe has "
-"`sandbox=\"allow-scripts\"`."
-
-#: src/api.md
-msgid ""
-"メッセージの一覧（`/messages`。template は `templates/messages.html`）: ペー"
-"ジの一覧の操作の帯の link「メッセージ」で開き、link「ページ」で戻る。引数は "
-"`project`・`key`・`to`・`from`・`state`・`at`（空は書かないのと同じ。知らな"
-"い `state` は無視。読めない引数は 400）。送った時刻の新しい順に、1 度に 200 "
-"件（続きの印 `at` は、`ListMessages` の `nextToken` と同じ形）。1 行に、送っ"
-"た時刻・Key・見出し・「送り手 → 受け手」・状態（上の「状態」の画面の字）・届"
-"いた時刻・渡した時（`via` の名を画面の字にして「渡した時: …」。`gate` は「検"
-"査が止めた後」、`wake` は「起こした」、`prompt` は「人の入力の時」、`max-"
-"deliveries` は「渡し直しの上限を超えた」、`ttl` は「期限で消えた」、`closed` "
-"は「席を閉じた」。ほかの名は、書かれた字のまま）・渡し直しの数（`deliveries` "
-"が 2 以上の時に、回数 − 1 を「渡し直し n 度」）・本文。本文は、200 字か 5 行"
-"を超えると、頭の 120 字だけを見せ（改行は空白にし、切った時は後ろに「…」）、"
-"開くと全部（`<details>`）。本文は HTML として出さない（字として逃がす）。「ま"
-"だ届いていない n 件」（tab の題にも）と絞り込みの候補（状態・受け手・送り手・"
-"Key・project）は、絞りに関わらず置き場の全部（受け手・送り手・Key は 100 件ま"
-"で。今絞っている値は、その外でも候補に入る）。新着の知らせ（`message-"
-"record`）を受けると、ページの一覧と同じやり方で、一覧の列と絞り込みの列を読み"
-"直す。"
-msgstr ""
-"The message list (`/messages`; the template is `templates/messages.html`): "
-"it opens from the link \"Messages\" in the toolbar of the page list, and the "
-"link \"Pages\" goes back. The parameters are `project`, `key`, `to`, `from`, "
-"`state`, and `at` (empty is the same as not written; an unknown `state` is "
-"ignored; unreadable parameters are 400). It shows 200 records at a time, "
-"newest sent time first (the continuation token `at` has the same shape as "
-"the `nextToken` of `ListMessages`). A row shows the sent time, the Key, the "
-"heading, \"sender → recipient\", the state (the text on the screen in "
-"\"States\" above), the delivered time, the moment it was handed over (the "
-"name in `via` is shown in the words of the screen, after the Japanese label "
-"for \"handed over at\": `gate` as \"after the check stopped it\", `wake` as "
-"\"woken\", `prompt` as \"at a human's input\", `max-deliveries` as \"over "
-"the re-delivery limit\", `ttl` as \"expired and removed\", and `closed` as "
-"\"the seat was closed\", each in Japanese; any other name is shown as "
-"written), the number of re-deliveries (when `deliveries` is 2 or more, the "
-"count − 1), and the body text. A body text longer than 200 characters or 5 "
-"lines shows only its first 120 characters (line breaks become spaces, and \"…"
-"\" follows when it was cut) and opens to the whole (`<details>`). The body "
-"text is never output as HTML (it is escaped as text). The count of records "
-"not delivered yet (also in the tab title) and the filter choices (state, "
-"recipient, sender, Key, project) cover the whole store regardless of filters "
-"(recipients, senders, and Keys are limited to 100; a value being filtered on "
-"is among the choices even outside them). On a new-arrival notice (`message-"
-"record`), the list column and the filter column are reloaded the same way as "
-"in the page list."
-
-#: src/api.md
-msgid ""
-"答えの頭: 守りの層の `nosniff`・`no-referrer` に足して、`Content-Security-"
-"Policy: default-src 'none'; script-src 'sha256-…'; style-src 'sha256-…'; img-"
-"src 'self' data: blob:; connect-src 'self'; frame-src 'self'; frame-"
-"ancestors 'none'; base-uri 'none'; form-action 'self'`。inline の style と "
-"script は template の物の hash だけを許す（hash は、画面ごとに、その "
-"template から作る）。図は置き場の file と、上げる前の見本（`blob:`）と "
-"favicon（`data:`）、本文の枠は置き場のページ、知らせと上げる枠の送り先は置き"
-"場だけ。"
-msgstr ""
-"Response headers: on top of the guard layer's `nosniff` and `no-referrer`, "
-"`Content-Security-Policy: default-src 'none'; script-src 'sha256-…'; style-"
-"src 'sha256-…'; img-src 'self' data: blob:; connect-src 'self'; frame-src "
-"'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'`. Only "
-"the template's own inline style and script are allowed, by hash (the hashes "
-"are made per screen, from its template). Images are the store's files, the "
-"preview before uploading (`blob:`), and the favicon (`data:`); the viewer "
-"shows only the store's pages; the notices and the upload box talk only to "
-"the store."
+"The URLs of stored page bodies and file contents open as before (see \"Page "
+"body\" and \"File contents\" below)."
 
 #: src/api.md
 msgid "起こし方"
@@ -5091,12 +4750,11 @@ msgstr ""
 #: src/api.md
 msgid ""
 "環境変数: `PAGETRAY_DB`（既定 `/data/pages.db`）・`PAGETRAY_LISTEN`（既定 "
-"`0.0.0.0:8080`）・`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`（上の"
-"「送り手」）。"
+"`0.0.0.0:8080`）・`PAGETRAY_CASTLIST_URL`（上の「送り手」）。"
 msgstr ""
 "Environment variables: `PAGETRAY_DB` (default `/data/pages.db`), "
-"`PAGETRAY_LISTEN` (default `0.0.0.0:8080`), `PAGETRAY_CASTLIST_URL`, and "
-"`PAGETRAY_CASTLIST_LINK_URL` (see \"Senders\" above)."
+"`PAGETRAY_LISTEN` (default `0.0.0.0:8080`), and `PAGETRAY_CASTLIST_URL` (see "
+"\"Senders\" above)."
 
 #: src/api.md
 msgid ""
@@ -5114,13 +4772,13 @@ msgid ""
 "記録の置き場は DB の隣の `logs/`（大きさで回す記録の file・終わり方の印・生き"
 "ている印。[動かす](run.md) の「落ちた後に調べる」）。起きて初めに前の回の終わ"
 "り方の行（`previous: …`）、待ち受けたら起きた行（`pagetray <版> listen=… db=…"
-"`。castlist を設定すれば後ろに ` castlist=… castlist_link=…`）。"
+"`。castlist を設定すれば後ろに ` castlist=…`）。"
 msgstr ""
 "The log place is `logs/` next to the DB (size-rotated log files, run marks, "
 "and the alive mark; \"Investigating after a crash\" in [Running](run.md)). "
 "On start, the first line is how the previous run ended (`previous: …`), and "
 "once listening, the start line (`pagetray <version> listen=… db=…`, followed "
-"by ` castlist=… castlist_link=…` when castlist is set)."
+"by ` castlist=…` when castlist is set)."
 
 #: src/api.md
 msgid ""
@@ -5171,14 +4829,6 @@ msgstr ""
 "rotating at the limit). The helper is `crates/server/tests/common/"
 "server.rs`. The contents of backup and logs are checked in `crates/server/"
 "tests/backup.rs` (calling the Router directly)."
-
-#: src/api.md
-msgid ""
-"e2e の試験（`e2e/`）が、この binary を起こして一覧の UI を本物の browser で見"
-"る（[開発](development.md) の「一覧の UI の試験」）。"
-msgstr ""
-"The e2e tests (`e2e/`) start this binary and look at the list UI in a real "
-"browser (\"List UI tests\" in [Development](development.md))."
 
 #: src/api.md
 msgid "ページの本文"
@@ -5298,12 +4948,12 @@ msgstr "Header stamps"
 #: src/api.md
 msgid ""
 "どの答えにも `X-Content-Type-Options: nosniff` と `Referrer-Policy: no-"
-"referrer`。CSP は、本文の道と画面が自分で付ける（上の「ページの本文」「file "
-"の中身」「画面」）"
+"referrer`。CSP は、本文の道が自分で付ける（上の「ページの本文」「file の中"
+"身」）"
 msgstr ""
 "Every response gets `X-Content-Type-Options: nosniff` and `Referrer-Policy: "
-"no-referrer`. The body routes and the screens set their own CSP (see \"Page "
-"body\", \"File contents\", and \"Screens\" above)"
+"no-referrer`. The body routes set their own CSP (see \"Page body\" and "
+"\"File contents\" above)"
 
 #: src/api.md
 msgid "2"
@@ -5332,22 +4982,11 @@ msgstr "Host and Origin"
 
 #: src/api.md
 msgid ""
-"`Host`（port を外して）が 127.0.0.1・localhost でなければ、`GET`・`HEAD` のほ"
-"かの要求に `Origin` が付いていれば、403 `Forbidden`。例外は 1 つだけ: 一覧の "
-"UI の form が file を上げる `POST /api/projects/{project}/keys/{key}/files`"
-"（後ろに何も付かない道）で、`Origin` が `http://<Host（port も）>` とそのまま"
-"同じで、`Sec-Fetch-Site` が無いか `same-origin` の物。印（`FromUi`）を付けて"
-"通す（上の「file を置く」）。ほかの道・本文の枠の中のページ（`Origin: "
-"null`）・ほかの port や名や `https` は 403"
-msgstr ""
-"403 `Forbidden` if `Host` (without the port) is not 127.0.0.1 or localhost, "
-"or if a request other than `GET` or `HEAD` has an `Origin`. There is exactly "
-"one exception: the list UI's form uploading a file with `POST /api/projects/"
-"{project}/keys/{key}/files` (nothing after it in the path), where `Origin` "
-"is exactly `http://<Host (with the port)>` and `Sec-Fetch-Site` is absent or "
-"`same-origin`. It is let through with a mark (`FromUi`) (see \"Putting a "
-"file\" above). Other routes, a page inside the body frame (`Origin: null`), "
-"and other ports, names, or `https` are 403"
+"`Host`（port を外して）が 127.0.0.1・localhost でない要求と、`GET`・`HEAD` の"
+"ほかで `Origin` の付いた要求は、403 `Forbidden`。例外は無い（`Origin` が置き"
+"場自身の `http://<Host>` でも、`Origin: null` でも 403。画面の form が file "
+"を上げる要求だけを通す例外は、2.0.0 で画面と一緒に無くした）"
+msgstr "A request whose `Host` (without its port) is not 127.0.0.1 or localhost, and a request other than `GET` and `HEAD` that carries an `Origin`, get 403 `Forbidden`. There is no exception (403 even when the `Origin` is the store itself, `http://<Host>`, or `Origin: null`; the one exception that let the screen's form upload a file was removed in 2.0.0 together with the screens)"
 
 #: src/api.md
 msgid "HEAD"
@@ -5401,9 +5040,9 @@ msgid ""
 "（何も置かない）。ちょうど 16 MiB は通る。生成した層は本文をみな読んでから引"
 "数にするので、ここで読んでおく（smithy-rs の生成した層にも本文の上限の設定が"
 "あるが、既定は上限無しで、超えた時の答えが 413 にならない）。本文を読む間も、"
-"外の層の 5 秒の時間切れに数える（送り手は同じ機械の中の roster と一覧の UI な"
-"ので、16 MiB でも 5 秒よりずっと短く届く。遅い送り手に書く接続を握らせない利"
-"点もある）"
+"外の層の 5 秒の時間切れに数える（送り手は同じ機械の中の roster・CLI・"
+"callboard なので、16 MiB でも 5 秒よりずっと短く届く。遅い送り手に書く接続を"
+"握らせない利点もある）"
 msgstr ""
 "16 MiB (`MAX_BODY`; pages and files alike). A request whose `Content-Length` "
 "says more is refused without reading, and a request streamed without a size "
@@ -5412,7 +5051,7 @@ msgstr ""
 "building the input, so the body is read here (the generated smithy-rs layer "
 "also has a body limit setting, but its default is no limit and exceeding it "
 "does not answer 413). Reading the body also counts toward the outer layer's "
-"5-second timeout (the senders are roster and the list UI on the same "
+"5-second timeout (the senders are roster, the CLI, and callboard on the same "
 "machine, so even 16 MiB arrives well within 5 seconds; it also keeps a slow "
 "sender from holding the write connection)"
 
@@ -6051,10 +5690,10 @@ msgstr ""
 #: src/development.md
 msgid ""
 "`crates/server/src/pages.rs`・`files.rs`・`list.rs`・`search.rs`・"
-"`marks.rs`・`remove.rs`"
+"`marks.rs`・`remove.rs`・`facets.rs`"
 msgstr ""
 "`crates/server/src/pages.rs`, `files.rs`, `list.rs`, `search.rs`, "
-"`marks.rs`, `remove.rs`"
+"`marks.rs`, `remove.rs`, `facets.rs`"
 
 #: src/development.md
 msgid ""
@@ -6086,11 +5725,11 @@ msgstr "`crates/server/src/castlist.rs`"
 #: src/development.md
 msgid ""
 "置かれる時に、送り手を castlist に聞く（castlist の定義から作った client で。"
-"1 秒まで待つ）。聞く先と、画面の link の頭の設定を読む"
+"1 秒まで待つ）。聞く先の設定を読む"
 msgstr ""
 "Asks castlist for the sender when something is put (with the client built "
-"from castlist's model; waits up to 1 second). Reads the settings for the "
-"address asked and for the base of the links in the UI"
+"from castlist's model; waits up to 1 second). Reads the setting for the "
+"address asked"
 
 #: src/development.md
 msgid "`crates/server/src/hand.rs`"
@@ -6101,20 +5740,6 @@ msgid "手の道の DB の写し（`GET /api/backup`）と記録（`GET /api/log
 msgstr ""
 "The hand-written routes for the DB copy (`GET /api/backup`) and the logs "
 "(`GET /api/logs`)"
-
-#: src/development.md
-msgid ""
-"`crates/server/src/ui.rs`・`ui/messages.rs`・`facets.rs`・`templates/"
-"index.html`・`templates/messages.html`"
-msgstr ""
-"`crates/server/src/ui.rs`, `ui/messages.rs`, `facets.rs`, `templates/"
-"index.html`, `templates/messages.html`"
-
-#: src/development.md
-msgid ""
-"一覧の UI と、メッセージの一覧（askama の template。build の時に検査される）"
-msgstr ""
-"The list UI and the message list (askama templates; checked at build time)"
 
 #: src/development.md
 msgid "`crates/server/src/events.rs`"
@@ -6189,13 +5814,12 @@ msgstr "`e2e/`"
 
 #: src/development.md
 msgid ""
-"一覧の UI と、この本を、本物の browser で見る試験（Playwright・TypeScript）。"
-"image にも CLI にも入らない。流し方は下の「一覧の UI の試験」と「この本を直"
-"す」の「本の試験」"
+"この本を、本物の browser で見る試験（Playwright・TypeScript）。image にも "
+"CLI にも入らない。流し方は下の「この本を直す」の「本の試験」"
 msgstr ""
-"Tests that look at the list UI and this book in a real browser (Playwright, "
-"TypeScript). They go into neither the image nor the CLI. How to run them is "
-"in \"List UI tests\" below and in \"Book tests\" under \"Editing this book\""
+"Tests that look at this book in a real browser (Playwright, TypeScript). "
+"They go into neither the image nor the CLI. How to run them is in \"Book "
+"tests\" under \"Editing this book\" below"
 
 #: src/development.md
 msgid "`Containerfile`・`.dockerignore`"
@@ -6434,8 +6058,7 @@ msgid ""
 "る」選び方が無いので、直の push を通すには bypass になる）。admin は、わざと"
 "選べば（画面の bypass の印・`gh pr merge --admin`）PR も CI を通さずに merge "
 "できてしまうので、使わない。workflow の job の名を変えたら、ruleset の check "
-"の名も合わせて直す（合わないと、PR がいつまでも merge できない）。job `ui` "
-"は、まだ必須の check ではない。"
+"の名も合わせて直す（合わないと、PR がいつまでも merge できない）。"
 msgstr ""
 "**Branch protection for main**: The GitHub ruleset \"main: cannot merge "
 "unless CI passes\" (Settings → Rules → Rulesets) requires that the five CI "
@@ -6446,8 +6069,7 @@ msgstr ""
 "bypass). An admin who deliberately chooses to (the bypass checkbox in the "
 "UI, or `gh pr merge --admin`) can also merge a PR without CI passing, so do "
 "not use it. If you rename a workflow job, also update the check name in the "
-"ruleset to match (otherwise PRs can never be merged). The job `ui` is not a "
-"required check yet."
+"ruleset to match (otherwise PRs can never be merged)."
 
 #: src/development.md
 msgid "定義と生成"
@@ -6529,206 +6151,6 @@ msgstr ""
 "The server's tests are in `crates/server/tests/`, and the CLI's in `crates/"
 "cli/tests/`. Make a test-only commit first, see it fail, then add the "
 "implementation."
-
-#: src/development.md
-msgid "一覧の UI の試験"
-msgstr "List UI tests"
-
-#: src/development.md
-msgid ""
-"一覧の UI は、HTML の字を `crates/server/tests/ui.rs`（メッセージの一覧は "
-"`crates/server/tests/messages.rs`）が見て、browser でしか見えない物（script "
-"の動き・色・幅での並び）を `e2e/` の試験が見る。`e2e/` は [Playwright]"
-"(https://playwright.dev/) の試験（TypeScript）で、同じ commit の `pagetray-"
-"server` を一時の DB で起こし、本物の browser（Chromium）で開く。Node が要るの"
-"はこの folder の中だけで、image にも CLI にも入らない。"
-msgstr ""
-"For the list UI, `crates/server/tests/ui.rs` (for the message list, `crates/"
-"server/tests/messages.rs`) checks the text of the HTML, and the tests in "
-"`e2e/` check what can only be seen in a browser (what the script does, "
-"colors, and the layout at each width). `e2e/` holds [Playwright](https://"
-"playwright.dev/) tests (TypeScript): they start the `pagetray-server` of the "
-"same commit with a temporary DB and open it in a real browser (Chromium). "
-"Node is needed only inside this folder, and it goes into neither the image "
-"nor the CLI."
-
-#: src/development.md
-msgid "# 初めの 1 度だけ。試験用の Chromium を入れる\n"
-msgstr "# Only the first time. Installs the Chromium used by the tests\n"
-
-#: src/development.md
-msgid "chrome"
-msgstr "chrome"
-
-#: src/development.md
-msgid "# この機械の Chrome を使う（Chromium を入れなくてよい）\n"
-msgstr ""
-"# Use the Chrome installed on this machine (no need to install Chromium)\n"
-
-#: src/development.md
-msgid ""
-"**起こす binary**: 既定は `../target/debug/pagetray-server`。ほかの binary に"
-"向ける時は `PAGETRAY_E2E_SERVER=<path>` を付ける。"
-msgstr ""
-"**The binary to start**: the default is `../target/debug/pagetray-server`. "
-"To point at another binary, add `PAGETRAY_E2E_SERVER=<path>`."
-
-#: src/development.md
-msgid ""
-"**CI**: workflow の `ui` が PR ごとに流す。落ちると、画面の絵と操作の記録が "
-"artifact（`ui-report`）に残る。`ui` は、main を守る決まりの必須の check に、"
-"まだ入れていない（時々落ちないことを見てから足す）。"
-msgstr ""
-"**CI**: The workflow's `ui` job runs them on every PR. When a test fails, a "
-"screenshot and a trace of the steps are kept in the artifact (`ui-report`). "
-"`ui` is not yet one of the required checks of the rule protecting main (it "
-"will be added once it has been seen not to fail intermittently)."
-
-#: src/development.md
-msgid ""
-"**読むだけの試験**: 題に `@smoke` が付いた試験（`e2e/tests/smoke.spec.ts`）"
-"は、何も置かず、何が置かれていても通る物だけを見る。`PAGETRAY_E2E_URL=http://"
-"127.0.0.1:8801 pnpm test` と打つと、サーバーを起こさず、動いている置き場に向"
-"けて、この試験だけが流れる（置く試験は、設定が流させない）。版を上げた後の確"
-"かめに使う（[動かす](run.md#確かめる) の「確かめる」）。"
-msgstr ""
-"**Read-only test**: The test with `@smoke` in its title (`e2e/tests/"
-"smoke.spec.ts`) puts nothing and checks only things that hold whatever is in "
-"the store. With `PAGETRAY_E2E_URL=http://127.0.0.1:8801 pnpm test`, no "
-"server is started and only this test runs, against the running store (the "
-"configuration does not let the tests that put pages run). It is used to "
-"verify after raising the version (\"Verify\" in [Running](run.md#verify))."
-
-#: src/development.md
-msgid ""
-"**試験を足す**: `e2e/tests/` に `*.spec.ts` を足す。ページは `helpers.ts` の "
-"`place` で置き、区画（操作の帯・絞り込みの列・一覧の列・本文の枠と、Key の画"
-"面の file の枠・上げる枠）は `helpers.ts` の関数で選ぶ。file は `placeFile` "
-"で置き、上げる枠の試験は `input[type=file]` に `setInputFiles` で file を渡"
-"す。試験は同じ置き場に 1 本ずつ順に流れるので、試験ごとに別の project の名を"
-"使う。新着を見る試験（一覧の列の差し替えと新着の印）は、`openLive` で開いてか"
-"ら置く（知らせにつながる前に置いたページの知らせは届かない）。新着の印は一覧"
-"の列を下へ送っている時に出るので、`scrollList` で送ってから置く。大きな file "
-"は試験の中で作り、repo に置かない。"
-msgstr ""
-"**Adding tests**: Add a `*.spec.ts` under `e2e/tests/`. Put pages with "
-"`place` from `helpers.ts`, and select the regions (toolbar, filters, list, "
-"viewer, and the Key view's file box and upload box) with the functions in "
-"`helpers.ts`. Put files with `placeFile`; a test of the upload box hands a "
-"file to `input[type=file]` with `setInputFiles`. The tests run one at a time "
-"against the same store, so use a different project name in each test. A test "
-"that looks at new arrivals (the list column being replaced and the new-"
-"arrival mark) opens the UI with `openLive` before putting a page (the notice "
-"for a page put before the connection is made never arrives). The new-arrival "
-"mark appears while the list column is scrolled down, so scroll it with "
-"`scrollList` before putting a page. Create large files inside the test; do "
-"not put them in the repo."
-
-#: src/development.md
-msgid ""
-"**返事の状態を見る試験**（`e2e/tests/reply.spec.ts`）: 返事待ちの数は、絞り込"
-"みに関わらず置き場の全部を数え、tab の題にも出る。試験は同じ置き場に順に流れ"
-"るので、返事待ちにしたページは、試験の終わりまでに答えたにする（残すと、後の"
-"試験の tab の題が変わる）。絞り込みの列の見出し「返事」は、状態を書いたページ"
-"が 1 枚でもあると出るので、この file は、見出しの並びを見る `list.spec.ts` よ"
-"り後に流れる名にしてある。"
-msgstr ""
-"**Tests of the reply state** (`e2e/tests/reply.spec.ts`): the waiting count "
-"covers the whole store regardless of filters and also shows in the tab "
-"title. The tests run in order against the same store, so a page marked as "
-"waiting must be marked as answered by the end of its test (leaving it "
-"changes the tab title for later tests). The filter-column heading for the "
-"reply state appears as soon as one page has that state written, so this file "
-"is named to run after `list.spec.ts`, which checks the order of the headings."
-
-#: src/development.md
-msgid ""
-"**レビューの印を見る試験**（`e2e/tests/review.spec.ts`）: 返事の状態を見る試"
-"験と同じく、レビュー待ち・上げたにしたページは、試験の終わりまでに答えたにす"
-"る。絞り込みの列の見出し「判定」は、判定を書いたページが 1 枚でもあると出るの"
-"で、この file も `list.spec.ts` より後に流れる名にしてある。"
-msgstr ""
-"**Tests of the review marks** (`e2e/tests/review.spec.ts`): as in the tests "
-"of the reply state, a page marked as awaiting review or escalated must be "
-"marked as answered by the end of its test. The filter-column heading for the "
-"verdict appears as soon as one page has a verdict written, so this file too "
-"is named to run after `list.spec.ts`."
-
-#: src/development.md
-msgid ""
-"**メッセージの一覧を見る試験**（`e2e/tests/messages.spec.ts`）: メッセージの"
-"記録は `helpers.ts` の `putMessage` で置き、行は `messageRow`・"
-"`messageRows`、まだ届いていない数は `undelivered` で選ぶ。まだ届いていない数"
-"は、絞り込みに関わらず置き場の全部を数え、tab の題にも出るので、まだ届いてい"
-"ない（`waiting`）にした記録は、試験の終わりまでに届いた（`delivered`）にす"
-"る。操作の帯に釦を足す時は、狭い幅（800px）の試験も見る（釦が増えて操作の帯"
-"が 2 段になると、一覧の列が動く。差し替えの script は、操作の帯の替わりも入れ"
-"て、見ている行を同じ所に置く）。"
-msgstr ""
-"**Tests for the message list** (`e2e/tests/messages.spec.ts`): put message "
-"records with `putMessage` in `helpers.ts`, select rows with `messageRow` and "
-"`messageRows`, and the undelivered count with `undelivered`. The undelivered "
-"count covers the whole store regardless of filters and also shows in the tab "
-"title, so a record set to not delivered yet (`waiting`) is set to delivered "
-"(`delivered`) before the test ends. When you add a button to the toolbar, "
-"also look at the narrow-width (800px) tests (when an extra button makes the "
-"toolbar two lines high, the list column moves; the script that swaps the "
-"list includes the toolbar change and keeps the row being read in the same "
-"place)."
-
-#: src/development.md
-msgid ""
-"**送り手を見る試験**（`e2e/tests/list.spec.ts` の終わり）: 試験の置き場は、次"
-"の port の偽の castlist に送り手を聞き、一覧の UI の link の頭"
-"（`PAGETRAY_CASTLIST_LINK_URL`）は、聞く先と別の値（`helpers.ts` の "
-"`CASTLIST_LINK`。開かない）にする（`playwright.config.ts`）。偽の castlist "
-"は `helpers.ts` の `startCastlist` で、送り手を書いて置く間だけ立てる。送り手"
-"のある行が 1 つでもあると、絞り込みの列に見出し「送り手」が出るので、見出しの"
-"並びを見る試験より後に置く。"
-msgstr ""
-"**Tests of senders** (at the end of `e2e/tests/list.spec.ts`): the test "
-"store asks a fake castlist on the next port for senders, and the base of the "
-"links in the list UI (`PAGETRAY_CASTLIST_LINK_URL`) is set to a value "
-"different from that address (`CASTLIST_LINK` in `helpers.ts`; never opened) "
-"(`playwright.config.ts`). The fake castlist is `startCastlist` in "
-"`helpers.ts`, and it runs only while pages with a sender are being put. The "
-"filter-column heading for senders appears as soon as one row has a sender, "
-"so these tests come after the test that checks the order of the headings."
-
-#: src/development.md
-msgid ""
-"**template を変えた時**: `templates/index.html`・`templates/messages.html` を"
-"変えたら、この試験も流す。試験が選ぶ手がかり（区画の id の `toolbar`・"
-"`filters`・`list`・`viewer`・`files`・`upload`、`#fresh`・`#waiting`・"
-"`#review-waiting`・`#escalated`、`li[data-path]`・`.reply`・`.verdict`・"
-"`.links`、絞り込みの列の見出しの字など）を変える時は、同じ PR で "
-"`helpers.ts` も直す。"
-msgstr ""
-"**When you change the template**: After changing `templates/index.html` or "
-"`templates/messages.html`, run these tests too. When you change something "
-"the tests select by (the region ids `toolbar`, `filters`, `list`, `viewer`, "
-"`files`, and `upload`, `#fresh`, `#waiting`, `#review-waiting`, and "
-"`#escalated`, `li[data-path]`, `.reply`, `.verdict`, and `.links`, the "
-"heading text of the filters, and so on), fix `helpers.ts` in the same PR."
-
-#: src/development.md
-msgid ""
-"**Node の依存**: 依存は `@playwright/test` の 1 つで、版は `package.json` に"
-"そのまま書く（`^` を付けない）。`pnpm-lock.yaml` を commit し、CI は `--"
-"frozen-lockfile` で入れる。`pnpm-workspace.yaml` の `minimumReleaseAge` が、"
-"公開から 2 日たっていない版を入れさせない。弱点は、workflow の `advisories` "
-"が `pnpm audit` で、PR ごとと週に 1 度見る。版は手で上げる（Playwright を上げ"
-"ると browser も替わるので、試験が通るのを見る）。`package.json` の版を書き替"
-"え、`pnpm install` → 試験 → PR。"
-msgstr ""
-"**Node dependencies**: There is one dependency, `@playwright/test`, and its "
-"version is written exactly in `package.json` (no `^`). `pnpm-lock.yaml` is "
-"committed, and CI installs with `--frozen-lockfile`. `minimumReleaseAge` in "
-"`pnpm-workspace.yaml` keeps out versions published less than 2 days ago. For "
-"vulnerabilities, the workflow's `advisories` job runs `pnpm audit` on every "
-"PR and once a week. Versions are raised by hand (raising Playwright also "
-"changes the browser, so watch the tests pass): rewrite the version in "
-"`package.json`, then `pnpm install` → tests → PR."
 
 #: src/development.md
 msgid "この本を直す"
@@ -6902,13 +6324,13 @@ msgstr ""
 #: src/development.md
 msgid ""
 "**語を足す・替える**: 先に [用語集](glossary.md) を直し、文書・註・code の名"
-"をそれに合わせる。用語集に書いた id が画面に在るか・「使わない言い方」が戻っ"
-"ていないかは、試験（`crates/server/tests/terms.rs`）が見る。"
+"をそれに合わせる。「使わない言い方」が文書と code に戻っていないかは、試験"
+"（`crates/server/tests/terms.rs`）が見る。"
 msgstr ""
 "**Adding or changing a term**: First fix the [Glossary](glossary.md), then "
 "make the documents, comments, and names in the code match it. A test "
-"(`crates/server/tests/terms.rs`) checks that the ids written in the glossary "
-"exist in the UI and that the \"terms to avoid\" have not come back."
+"(`crates/server/tests/terms.rs`) checks that the \"terms to avoid\" have not "
+"come back into the documents and the code."
 
 #: src/development.md
 msgid ""
@@ -6930,23 +6352,57 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"**本の試験**: `e2e/docs-tests/` の試験（Playwright）が、作った本を本物の "
-"browser で開き、どの章も開いて console に誤りが無いこと・図が描けること・検索"
-"の枠が開いて日本語と英語の語が当たること・言葉の切り替えで同じ章へ移ることを"
-"見る。`ci/docs-build.sh` の後に、`e2e/` で `pnpm test:docs` を打つ（道具の入"
-"れ方は上の「一覧の UI の試験」と同じ）。CI では job `docs` が流す。章を足した"
+"**本の試験**: `e2e/docs-tests/` の試験（[Playwright](https://"
+"playwright.dev/)・TypeScript）が、作った本を本物の browser で開き、どの章も開"
+"いて console に誤りが無いこと・図が描けること・検索の枠が開いて日本語と英語の"
+"語が当たること・言葉の切り替えで同じ章へ移ることを見る。`ci/docs-build.sh` の"
+"後に、`e2e/` で `pnpm test:docs` を打つ（下の塊）。Node が要るのは `e2e/` の"
+"中だけで、image にも CLI にも入らない。CI では job `docs` が流す。章を足した"
 "ら、`e2e/docs-tests/docs.spec.ts` の章の一覧にも足す（目次と合わないと落ち"
 "る）。"
 msgstr ""
-"**Book tests**: The tests in `e2e/docs-tests/` (Playwright) open the built "
-"book in a real browser and check that every chapter opens with no errors in "
-"the console, that the diagrams render, that the search box opens and finds "
-"Japanese and English words, and that the language switcher moves to the same "
-"chapter. After `ci/docs-build.sh`, run `pnpm test:docs` in `e2e/` (the tools "
-"are installed the same way as in \"List UI tests\" above). In CI, the `docs` "
-"job runs them. When you add a chapter, also add it to the chapter list in "
-"`e2e/docs-tests/docs.spec.ts` (the test fails if it does not match the table "
-"of contents)."
+"**Book tests**: The tests in `e2e/docs-tests/` ([Playwright](https://"
+"playwright.dev/), TypeScript) open the built book in a real browser and "
+"check that every chapter opens with no errors in the console, that the "
+"diagrams render, that the search box opens and finds Japanese and English "
+"words, and that the language switcher moves to the same chapter. After `ci/"
+"docs-build.sh`, run `pnpm test:docs` in `e2e/` (the block below). Node is "
+"needed only inside `e2e/`, and goes into neither the image nor the CLI. In "
+"CI, the `docs` job runs them. When you add a chapter, also add it to the "
+"chapter list in `e2e/docs-tests/docs.spec.ts` (the test fails if it does not "
+"match the table of contents)."
+
+#: src/development.md
+msgid "# 初めの 1 度だけ。試験用の Chromium を入れる\n"
+msgstr "# Only the first time. Installs the Chromium used by the tests\n"
+
+#: src/development.md
+msgid "# この機械の Chrome を使う（Chromium を入れなくてよい）\n"
+msgstr ""
+"# Use the Chrome installed on this machine (no need to install Chromium)\n"
+
+#: src/development.md
+msgid "chrome"
+msgstr "chrome"
+
+#: src/development.md
+msgid ""
+"**Node の依存**: 依存は `@playwright/test` の 1 つで、版は `e2e/"
+"package.json` にそのまま書く（`^` を付けない）。`pnpm-lock.yaml` を commit "
+"し、CI は `--frozen-lockfile` で入れる。`pnpm-workspace.yaml` の "
+"`minimumReleaseAge` が、公開から 2 日たっていない版を入れさせない。弱点は、"
+"workflow の `advisories` が `pnpm audit` で、PR ごとと週に 1 度見る。版は手で"
+"上げる（Playwright を上げると browser も替わるので、試験が通るのを見る）。"
+"`package.json` の版を書き替え、`pnpm install` → 試験 → PR。"
+msgstr ""
+"**Node dependencies**: There is one dependency, `@playwright/test`, and its "
+"version is written exactly in `e2e/package.json` (no `^`). `pnpm-lock.yaml` "
+"is committed, and CI installs with `--frozen-lockfile`. `minimumReleaseAge` "
+"in `pnpm-workspace.yaml` keeps out versions published less than 2 days ago. "
+"For vulnerabilities, the workflow's `advisories` job runs `pnpm audit` on "
+"every PR and once a week. Versions are raised by hand (raising Playwright "
+"also changes the browser, so watch the tests pass): rewrite the version in "
+"`package.json`, then `pnpm install` → tests → PR."
 
 #: src/development.md
 msgid ""
@@ -7514,11 +6970,11 @@ msgstr "The contents exactly as put"
 
 #: src/db.md
 msgid ""
-"送り手（`senders.id`）。付随する id を書かずに置いた file・一覧の UI から上げ"
-"た file・0.6.0 より前に置かれた file は空"
+"送り手（`senders.id`）。付随する id を書かずに置いた file・2.0.0 より前に "
+"pagetray の画面から上げた file・0.6.0 より前に置かれた file は空"
 msgstr ""
 "Sender (`senders.id`). Null for files put without an attached id, files "
-"uploaded from the list UI, and files put before 0.6.0"
+"uploaded from pagetray's screens before 2.0.0, and files put before 0.6.0"
 
 #: src/db.md
 msgid "一意: `(project, key, name, ext, n)`"
@@ -7696,15 +7152,15 @@ msgstr ""
 #: src/db.md
 msgid ""
 "**聞けた・聞かなかった**: `actor_id`・`actor_name`・`actor_kind`・"
-"`resolved_at` が空の行は、castlist に聞かなかった送り手（画面では「未確"
-"認」）。castlist に聞けなかった時・castlist が知らない送り手の時は、ページも "
-"file も送り手の行も、何も残さない（[API の仕様](api.md) の「送り手」）。"
+"`resolved_at` が空の行は、castlist に聞かなかった送り手（「未確認」）。"
+"castlist に聞けなかった時・castlist が知らない送り手の時は、ページも file も"
+"送り手の行も、何も残さない（[API の仕様](api.md) の「送り手」）。"
 msgstr ""
 "**Asked or not asked**: a row whose `actor_id`, `actor_name`, `actor_kind`, "
 "and `resolved_at` are null is a sender for which castlist was not asked "
-"(\"unconfirmed\" in the UI). When castlist could not be asked, or castlist "
-"does not know the sender, nothing is kept: no page, no file, and no sender "
-"row (\"Senders\" in the [API specification](api.md))."
+"(\"unconfirmed\"). When castlist could not be asked, or castlist does not "
+"know the sender, nothing is kept: no page, no file, and no sender row "
+"(\"Senders\" in the [API specification](api.md))."
 
 #: src/db.md
 msgid "`actor_id` に外部キーは無い（アクターは castlist の DB にある）。"
@@ -7755,24 +7211,24 @@ msgstr "Index: `page_targets_target` `(target)`"
 msgid ""
 "書く所: `Db::add_marks`（足すだけ。同じ物は 1 つ）。読む所: `Db::list`（記録"
 "の `targets`。足した順）・`Db::reviews_of`（見られたページの側から、そのペー"
-"ジを見たレビューを引く。一覧の UI の「レビュー:」）。消す所: ページを消すと、"
-"外部キーの `on delete cascade` で一緒に消える。"
+"ジを見たレビューを引く。`ListReviews`）。消す所: ページを消すと、外部キーの "
+"`on delete cascade` で一緒に消える。"
 msgstr ""
 "Written by `Db::add_marks` (only added; duplicates are kept once). Read by "
 "`Db::list` (the `targets` of the record, in the order added) and "
 "`Db::reviews_of` (from the side of the reviewed page, finds the reviews that "
-"looked at it: \"Review:\" in the list UI). Deleted together with the page, "
-"through the foreign key's `on delete cascade`."
+"looked at it; `ListReviews`). Deleted together with the page, through the "
+"foreign key's `on delete cascade`."
 
 #: src/db.md
 msgid ""
-"見られたページを消しても、その path を見た物に持つ行は残る（一覧の UI の「見"
-"た物:」の link は、消したページの `410` を開く）。消すのは TPM 担当だけで数も"
-"少ないので、そのままにしている。"
+"見られたページを消しても、その path を見た物に持つ行は残る（その path の本文"
+"は `410` を返す）。消すのは TPM 担当だけで数も少ないので、そのままにしてい"
+"る。"
 msgstr ""
 "Deleting a reviewed page leaves the rows that hold its path as a target (the "
-"list UI's \"Reviewed:\" link then opens the deleted page's `410`). Only the "
-"TPM deletes pages and rarely, so this is left as is."
+"body at that path then returns `410`). Only the TPM deletes pages and "
+"rarely, so this is left as is."
 
 #: src/db.md
 msgid "`messages` — メッセージの記録"
@@ -7914,12 +7370,10 @@ msgstr "Index: `messages_sent` `(sent_at)`"
 #: src/db.md
 msgid ""
 "書く所: `Db::put_message`（置く・書き足す）。読む所: `Db::list_messages`・"
-"`Db::message_facets`（一覧の UI の絞り込みの候補と「まだ届いていない n "
-"件」）。消す所は無い。"
+"`Db::message_facets`（`GetMessageFacets`）。消す所は無い。"
 msgstr ""
 "Written by `Db::put_message` (put and append). Read by `Db::list_messages` "
-"and `Db::message_facets` (the filter choices of the list UI and the count of "
-"records not delivered yet). Nothing deletes it."
+"and `Db::message_facets` (`GetMessageFacets`). Nothing deletes it."
 
 #: src/db.md
 msgid ""
@@ -7962,10 +7416,10 @@ msgstr ""
 
 #: src/glossary.md
 msgid ""
-"pagetray の文書・画面・code で使う語を、1 か所に並べる。語を足す・替える時"
-"は、先にここを直し、文書と code をそれに合わせる。"
+"pagetray の文書と code で使う語を、1 か所に並べる。語を足す・替える時は、先に"
+"ここを直し、文書と code をそれに合わせる。"
 msgstr ""
-"The terms used in pagetray's documents, UI, and code are listed here in one "
+"The terms used in pagetray's documents and code are listed here in one "
 "place. When adding or changing a term, fix this page first, then make the "
 "documents and the code match it."
 
@@ -7974,12 +7428,10 @@ msgid "**語**: 文書で使う語。かっこの中は、英語の本と code �
 msgstr "**Term**: The term used in the documents and in the code."
 
 #: src/glossary.md
-msgid ""
-"**code の名**: HTML の id（`#…`）・class（`.…`）・型・欄・命令など。無ければ"
-"「—」。"
+msgid "**code の名**: 型・欄・表・命令・環境変数など。無ければ「—」。"
 msgstr ""
-"**Name in code**: An HTML id (`#…`), a class (`.…`), a type, a field, a "
-"command, and so on. \"—\" if there is none."
+"**Name in code**: A type, a field, a table, a command, an environment "
+"variable, and so on. \"—\" if there is none."
 
 #: src/glossary.md
 msgid ""
@@ -8251,12 +7703,9 @@ msgid "役割（role）"
 msgstr "role"
 
 #: src/glossary.md
-msgid ""
-"ページを置いた人の役割の名（`tpm`・`human` など）。画面の見出しは「担当者（役"
-"割）」"
+msgid "ページを置いた人の役割の名（`tpm`・`human` など）"
 msgstr ""
-"The name of the role of whoever put the page (such as `tpm` or `human`). The "
-"heading in the UI reads \"Assignee (role)\""
+"The name of the role of whoever put the page (such as `tpm` or `human`)"
 
 #: src/glossary.md
 msgid "workspace"
@@ -8271,23 +7720,16 @@ msgid "castlist"
 msgstr "castlist"
 
 #: src/glossary.md
-msgid "`PAGETRAY_CASTLIST_URL`・`PAGETRAY_CASTLIST_LINK_URL`"
-msgstr "`PAGETRAY_CASTLIST_URL`, `PAGETRAY_CASTLIST_LINK_URL`"
-
-#: src/glossary.md
 msgid ""
 "pagetray を動かす機械で、別の container として動くサーバー。アクター（Claude "
 "Code の session 1 つ・Product Manager）ごとに、本当の id と名を持つ。置き場"
 "は、置かれる時に、送り手が誰かを castlist に聞く（聞く先は "
-"`PAGETRAY_CASTLIST_URL`）。一覧の UI は、送り手の名から castlist のアクターの"
-"画面へ link する（link の頭は `PAGETRAY_CASTLIST_LINK_URL`）"
+"`PAGETRAY_CASTLIST_URL`）"
 msgstr ""
 "A server that runs as another container on the machine that runs pagetray. "
 "It holds the true id and name of each actor (one Claude Code session, or the "
 "Product Manager). When something is put, the store asks castlist who the "
-"sender is (at `PAGETRAY_CASTLIST_URL`). The list UI links the sender's name "
-"to the actor's page in castlist (the link base is "
-"`PAGETRAY_CASTLIST_LINK_URL`)"
+"sender is (at `PAGETRAY_CASTLIST_URL`)"
 
 #: src/glossary.md
 msgid "アクター（actor）"
@@ -8510,424 +7952,25 @@ msgid "クライアント"
 msgstr "client"
 
 #: src/glossary.md
-msgid "一覧の UI"
-msgstr "List UI"
+msgid ""
+"pagetray は、2.0.0 から画面を持たない。ページの一覧とメッセージの一覧は "
+"callboard（`http://127.0.0.1:8803/pages/`・`/messages`）にあり、画面の語（操"
+"作の帯・絞り込みの列・一覧の列・本文の枠・Key の画面・file の枠・上げる枠・候"
+"補・新着の印など）は、callboard の docs にある。pagetray の文書は、API が画面"
+"に渡す物を言う時だけ、その語を使う。"
+msgstr ""
+"Since 2.0.0, pagetray has no screens. The page list and the message list are "
+"in callboard (`http://127.0.0.1:8803/pages/` and `/messages`), and the "
+"screen terms (toolbar, filter column, list column, viewer, Key view, file "
+"box, upload box, choice, new-arrival mark, and so on) are in callboard's "
+"docs. pagetray's documents use those terms only when describing what the API "
+"hands to the screens."
 
 #: src/glossary.md
 msgid ""
-"区画の名は、**働き ＋ 形**（帯・列・枠）で付ける。位置（上・左・右）では呼ば"
-"ない（狭い画面では、区画が縦に積まれるため）。区画を足す時も、同じ形で名を付"
-"け、ここに 1 行足す。"
+"前に使っていた画面の言い方（右の枠・サイドメニュー）は、pagetray の文書にも書"
+"かない（`crates/server/tests/terms.rs` が見る）。"
 msgstr ""
-"The regions are named by **function + shape** (bar, column, frame). They are "
-"not named by position (top, left, right), because on a narrow screen the "
-"regions stack vertically. When adding a region, name it in the same form and "
-"add a row here."
-
-#: src/glossary.md
-msgid "一覧の UI（list UI）"
-msgstr "list UI"
-
-#: src/glossary.md
-msgid "`templates/index.html`"
-msgstr "`templates/index.html`"
-
-#: src/glossary.md
-msgid "browser で開く、置き場の画面の全体"
-msgstr "The whole screen of the store, opened in a browser"
-
-#: src/glossary.md
-msgid "メッセージの一覧（message list）"
-msgstr "message list"
-
-#: src/glossary.md
-msgid "`templates/messages.html`"
-msgstr "`templates/messages.html`"
-
-#: src/glossary.md
-msgid ""
-"メッセージの記録を見る画面（`/messages`）。操作の帯の link で、ページの一覧と"
-"行き来する。区画は、操作の帯・絞り込みの列（状態・受け手・送り手・Key・"
-"project）・一覧の列"
-msgstr ""
-"The screen that shows message records (`/messages`). Links in the toolbar go "
-"back and forth between it and the page list. Its regions are the toolbar, "
-"the filter column (state, recipient, sender, Key, project), and the list "
-"column"
-
-#: src/glossary.md
-msgid "まだ届いていない数（undelivered count）"
-msgstr "undelivered count"
-
-#: src/glossary.md
-msgid "`#undelivered`"
-msgstr "`#undelivered`"
-
-#: src/glossary.md
-msgid ""
-"メッセージの一覧の操作の帯に出る「まだ届いていない N 件」。まだ届いていない"
-"メッセージの記録が 1 件でもあると出て、押すとそれだけに絞る。数は、絞り込みに"
-"関わらず置き場の全部。tab の題にも同じ数が出る"
-msgstr ""
-"The count of records not delivered yet, shown in the toolbar of the message "
-"list. It appears when at least one message record is not delivered yet, and "
-"pressing it narrows the list to those. The count covers the whole store "
-"regardless of filters. The tab title shows the same count"
-
-#: src/glossary.md
-msgid "操作の帯（toolbar）"
-msgstr "toolbar"
-
-#: src/glossary.md
-msgid "`#toolbar`"
-msgstr "`#toolbar`"
-
-#: src/glossary.md
-msgid ""
-"画面のいちばん上の横の帯。題・メッセージの一覧への link・探す欄・並び・返事待"
-"ちの数・レビュー待ちの数・上げた数・絞り込みを外す link（絞った時だけ）・新着"
-"の印がある"
-msgstr ""
-"The horizontal bar at the very top of the screen. It holds the title, the "
-"link to the message list, the search field, the sort order, the waiting "
-"count, the review-waiting count, the escalated count, the link that clears "
-"the filters (only when filtered), and the new-arrival mark"
-
-#: src/glossary.md
-msgid "ヘッダー"
-msgstr "header"
-
-#: src/glossary.md
-msgid "絞り込みの列（filter column）"
-msgstr "filter column"
-
-#: src/glossary.md
-msgid "`#filters`"
-msgstr "`#filters`"
-
-#: src/glossary.md
-msgid ""
-"返事・判定・送り手・役割・workspace・種類・Key・project の候補と件数が並ぶ"
-"列。候補を押すと、一覧の列が絞られる"
-msgstr ""
-"The column listing the choices and counts for reply state, verdict, sender, "
-"role, workspace, kind, Key, and project. Pressing a choice narrows the list "
-"column"
-
-#: src/glossary.md
-msgid "サイドメニュー"
-msgstr "side menu, sidebar"
-
-#: src/glossary.md
-msgid "一覧の列（list column）"
-msgstr "list column"
-
-#: src/glossary.md
-msgid "`#list`"
-msgstr "`#list`"
-
-#: src/glossary.md
-msgid "ページの行が並ぶ列。行を押すと、そのページが本文の枠に出る"
-msgstr ""
-"The column listing the rows of pages. Pressing a row shows that page in the "
-"viewer"
-
-#: src/glossary.md
-msgid "リスト"
-msgstr "—"
-
-#: src/glossary.md
-msgid "本文の枠（viewer）"
-msgstr "viewer"
-
-#: src/glossary.md
-msgid "`#viewer`"
-msgstr "`#viewer`"
-
-#: src/glossary.md
-msgid "選んだページの path と本文を、1 枚だけ出す枠"
-msgstr ""
-"The frame that shows the path and body of the chosen page, one page only"
-
-#: src/glossary.md
-msgid "右の枠"
-msgstr "right frame, preview"
-
-#: src/glossary.md
-msgid "Key の画面（Key view）"
-msgstr "Key view"
-
-#: src/glossary.md
-msgid "`KeyView`"
-msgstr "`KeyView`"
-
-#: src/glossary.md
-msgid ""
-"project と Key を 1 つずつ選んだ一覧の UI（`/<project>/<key>/` など）。file "
-"の枠と上げる枠が足される"
-msgstr ""
-"The list UI with exactly one project and one Key chosen (such as `/<project>/"
-"<key>/`). It adds the file box and the upload box"
-
-#: src/glossary.md
-msgid "file の枠（file box）"
-msgstr "file box"
-
-#: src/glossary.md
-msgid "`#files`"
-msgstr "`#files`"
-
-#: src/glossary.md
-msgid ""
-"Key の画面で、一覧の列の下に出る枠。その Key の file が、図の見本・名・大き"
-"さ・上げた人・時刻・ページから参照する path と並ぶ"
-msgstr ""
-"The box below the list column in the Key view. It lists the files of that "
-"Key with a thumbnail, the name, the size, who uploaded it, the time, and the "
-"path a page uses to refer to it"
-
-#: src/glossary.md
-msgid "上げる枠（upload box）"
-msgstr "upload box"
-
-#: src/glossary.md
-msgid "`#upload`"
-msgstr "`#upload`"
-
-#: src/glossary.md
-msgid ""
-"Key の画面で、file の枠の下に出る枠。file を選ぶか落とし、見本を見て、見た印"
-"を付けてから送る"
-msgstr ""
-"The box below the file box in the Key view. You choose or drop a file, look "
-"at the preview, and send it after ticking the reviewed check"
-
-#: src/glossary.md
-msgid "見た印（reviewed check）"
-msgstr "reviewed check"
-
-#: src/glossary.md
-msgid "`reviewed`"
-msgstr "`reviewed`"
-
-#: src/glossary.md
-msgid "上げる枠の「秘密が写っていないか見た」の check。付けるまで送れない"
-msgstr ""
-"The \"I checked that no secrets are in it\" checkbox in the upload box. "
-"Nothing can be sent until it is ticked"
-
-#: src/glossary.md
-msgid "絞り込み（filter）"
-msgstr "filter"
-
-#: src/glossary.md
-msgid "`FilterGroup`"
-msgstr "`FilterGroup`"
-
-#: src/glossary.md
-msgid "一覧の列に出す行を、条件で減らすこと。条件は URL に出る"
-msgstr ""
-"Reducing the rows shown in the list column by conditions. The conditions "
-"appear in the URL"
-
-#: src/glossary.md
-msgid "フィルター"
-msgstr "—"
-
-#: src/glossary.md
-msgid "候補（choice）"
-msgstr "choice"
-
-#: src/glossary.md
-msgid "`Choice`"
-msgstr "`Choice`"
-
-#: src/glossary.md
-msgid "絞り込みの列に出る、押せる値の 1 つ（値と件数）"
-msgstr "One pressable value shown in the filter column (a value and its count)"
-
-#: src/glossary.md
-msgid "facet"
-msgstr "facet"
-
-#: src/glossary.md
-msgid "行（row）"
-msgstr "row"
-
-#: src/glossary.md
-msgid "`.rows`"
-msgstr "`.rows`"
-
-#: src/glossary.md
-msgid ""
-"一覧の列の中の、ページ 1 枚分（時刻・Key・種類と番号・判定の印・返事の印・"
-"題・役割・workspace。見た物を書いたページには見た物の link、レビューで見られ"
-"たページにはそのレビューの link。送り手を記録したページには、送り手の "
-"castlist の名と付随する id）"
-msgstr ""
-"One page's worth of the list column (time, Key, kind and number, verdict "
-"mark, reply mark, title, role, workspace; on pages where targets were "
-"written, also the target links, and on pages that a review looked at, links "
-"to those reviews; on pages where a sender was recorded, also the sender's "
-"castlist name and attached id)"
-
-#: src/glossary.md
-msgid "並び（sort order）"
-msgstr "sort order"
-
-#: src/glossary.md
-msgid "一覧の列の行の順。新しい順か、古い順"
-msgstr "The order of the rows in the list column: newest first or oldest first"
-
-#: src/glossary.md
-msgid "ソート"
-msgstr "—"
-
-#: src/glossary.md
-msgid "新着の印（new-arrival mark）"
-msgstr "new-arrival mark"
-
-#: src/glossary.md
-msgid "`#fresh`"
-msgstr "`#fresh`"
-
-#: src/glossary.md
-msgid ""
-"開いている間にページが置かれると、一覧の列と絞り込みの列は押さずに新しくな"
-"る。一覧の列を下へ送っている時は、操作の帯にこの印が出て、押すと一覧の列の頭"
-"へ送る。「続きを出す」で古い方を見ている時は、押すと読み直す。数えるのは、今"
-"の絞り込みで一覧の列に入ったページだけ"
-msgstr ""
-"When a page is put while the screen is open, the list column and the filter "
-"column are updated without pressing anything. While the list column is "
-"scrolled down, this mark appears in the toolbar, and pressing it scrolls the "
-"list column to its top. While an older part is shown with \"Show more\", "
-"pressing it reloads. Only pages that entered the list column under the "
-"current filters are counted"
-
-#: src/glossary.md
-msgid "通知"
-msgstr "notification"
-
-#: src/glossary.md
-msgid "返事待ちの数（waiting count）"
-msgstr "Waiting count"
-
-#: src/glossary.md
-msgid "`#waiting`"
-msgstr "`#waiting`"
-
-#: src/glossary.md
-msgid ""
-"操作の帯に出る「返事待ち N 件」。返事待ちのページが置き場に 1 枚でもあると出"
-"て、押すと返事待ちだけに絞る。数は、絞り込みに関わらず置き場の全部。tab の題"
-"にも同じ数が出る"
-msgstr ""
-"The count of waiting pages shown in the toolbar. It appears when at least "
-"one page in the store is waiting for a reply, and pressing it narrows the "
-"list to the waiting pages. The count covers the whole store regardless of "
-"filters. The tab title shows the same count"
-
-#: src/glossary.md
-msgid "レビュー待ちの数（review-waiting count）"
-msgstr "Review-waiting count"
-
-#: src/glossary.md
-msgid "`#review-waiting`"
-msgstr "`#review-waiting`"
-
-#: src/glossary.md
-msgid ""
-"操作の帯に出る「レビュー待ち N 件」。レビュー待ちの依頼書が置き場に 1 枚でも"
-"あると出て、押すとそれだけに絞る。数は、絞り込みに関わらず置き場の全部"
-msgstr ""
-"The \"Awaiting review: N\" count shown in the toolbar. It appears when at "
-"least one brief in the store is awaiting review, and pressing it narrows the "
-"list to those briefs. The count covers the whole store regardless of filters"
-
-#: src/glossary.md
-msgid "上げた数（escalated count）"
-msgstr "Escalated count"
-
-#: src/glossary.md
-msgid "`#escalated`"
-msgstr "`#escalated`"
-
-#: src/glossary.md
-msgid ""
-"操作の帯に出る「上げた N 件」。上げて、まだ決まっていないレビューが 1 つでも"
-"あると出て、押すとそれだけに絞る"
-msgstr ""
-"The \"Escalated: N\" count shown in the toolbar. It appears when at least "
-"one review has been escalated and not decided yet, and pressing it narrows "
-"the list to those reviews"
-
-#: src/glossary.md
-msgid "返事の印（reply mark）"
-msgstr "Reply mark"
-
-#: src/glossary.md
-msgid "`.reply`"
-msgstr "`.reply`"
-
-#: src/glossary.md
-msgid ""
-"返事の状態を書いたページの行に付く印。待ちの相手ごとに「返事待ち」「答え"
-"た」・「レビュー待ち」「レビュー済み」・「上げた」「決まった」。状態が書かれ"
-"ると、押さずに替わる"
-msgstr ""
-"The mark on the row of a page whose reply state has been written. Depending "
-"on the waiting party, it reads \"Waiting for reply\" or \"Answered\", "
-"\"Awaiting review\" or \"Reviewed\", or \"Escalated\" or \"Decided\". It "
-"changes without a click when the state is written"
-
-#: src/glossary.md
-msgid "判定の印（verdict mark）"
-msgstr "Verdict mark"
-
-#: src/glossary.md
-msgid "`.verdict`"
-msgstr "`.verdict`"
-
-#: src/glossary.md
-msgid ""
-"判定を書いたレビューのページの行と、見られたページの行の「レビュー:」に付く"
-"印。「よい」「気になる所あり」「直すべき」「見られなかった」を、字と色で出す"
-msgstr ""
-"The mark on the row of a review page with a verdict, and on \"Review:\" in "
-"the row of a reviewed page. It shows \"Good\", \"Concerns\", \"Fix needed\", "
-"or \"Not assessed\" in text and color"
-
-#: src/glossary.md
-msgid "見た物の link（target links）"
-msgstr "target links"
-
-#: src/glossary.md
-msgid "`.links`"
-msgstr "`.links`"
-
-#: src/glossary.md
-msgid ""
-"行の下に出る link の並び。レビューのページは「見た物:」、依頼書は「見る"
-"物:」、見られたページは「レビュー:」。置き場のページは本文の枠に、PR は別の "
-"tab に開く"
-msgstr ""
-"The row of links shown below a row: \"Reviewed:\" on a review page, \"To "
-"review:\" on a brief, and \"Review:\" on a reviewed page. A page in the "
-"store opens in the viewer, and a PR opens in another tab"
-
-#: src/glossary.md
-msgid "未読の印（unread mark）"
-msgstr "unread mark"
-
-#: src/glossary.md
-msgid "`.unread`"
-msgstr "`.unread`"
-
-#: src/glossary.md
-msgid ""
-"まだ本文の枠に出していない、後から置かれたページの行に付く印。browser が覚え"
-"る"
-msgstr ""
-"The mark on the row of a page that was put later and has not yet been shown "
-"in the viewer. The browser remembers it"
+"The screen wording used before (\"right pane\", \"side menu\") is not "
+"written in pagetray's documents either (`crates/server/tests/terms.rs` "
+"checks this)."
