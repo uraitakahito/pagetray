@@ -18,6 +18,11 @@
         "container volume rm pagetray-data",
         // volume を付ける命令（写しから戻すもこれに当たる）。上の volume を消す命令と同じく、字の一部で当たるので、動く pagetray-data-v1 を守る。
         "-v pagetray-data",
+        // 末尾に * の項目は、命令の語で当てる roster の guard（t-7j37）の物で、* の語は前方一致（pagetray-data* は pagetray-data-v1:/data に当たる）。
+        // 字の含みで見る前の guard では * の項目は当たらず、上の * の無い項目が当たる。どちらの guard でも守りに穴が空かないよう、両方を並べて置く。
+        "container volume delete pagetray-data*",
+        "container volume rm pagetray-data*",
+        "-v pagetray-data*",
       ],
     },
   },
