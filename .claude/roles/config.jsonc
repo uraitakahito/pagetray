@@ -23,6 +23,9 @@
         "container volume delete pagetray-data*",
         "container volume rm pagetray-data*",
         "-v pagetray-data*",
+        // volume の略の v（container v rm …）。字も語も volume と違うので、略の形も並べる（roster の t-9tac）。
+        "container v delete pagetray-data*",
+        "container v rm pagetray-data*",
       ],
     },
   },
