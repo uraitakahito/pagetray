@@ -78,6 +78,25 @@ fn 上限を_1_byte_超える本文は_payload_too_large_で断る() {
     assert!(answer.json()["message"].is_string(), "{answer:?}");
 }
 
+/// ListReviews は、見られたページの path を引数に 200 まで並べる。本物の長さの path（project が状態の folder の名で 30 字ほど。
+/// `/` を `%2F` にして、1 つ 70 字ほど）を 200 並べた 14 KB ほどの URL も、本物の接続で受ける（AI-32 の review-20 の提案）。
+#[test]
+fn 本物の長さの_path_を_200_並べた_listreviews_を受ける() {
+    let server = Server::start();
+    let query: Vec<String> = (1..=200)
+        .map(|n| {
+            format!(
+                "target=%2F-Users-someone-projects-example%2FEXAMPLE-{n:04}%2Fpm-answer-{n}.html"
+            )
+        })
+        .collect();
+    let path = format!("/api/reviews?{}", query.join("&"));
+    assert!(path.len() > 13_000, "{}", path.len());
+    let answer = server.get(&path);
+    assert_eq!(answer.status, 200, "{answer:?}");
+    assert_eq!(answer.body, br#"{"reviews":[]}"#);
+}
+
 #[test]
 fn backup_は_置いたページの入った_sqlite_の_file_を返す() {
     let server = Server::start();
