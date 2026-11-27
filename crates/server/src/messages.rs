@@ -1,19 +1,21 @@
 //! メッセージの記録: 置く・書き足す（PutMessage。`PUT /api/projects/{project}/messages/{id}`）と、探す（ListMessages。
-//! `GET /api/messages`）。
+//! `GET /api/messages`）と、絞り込みの候補と件数（GetMessageFacets。`GET /api/messages/facets`）。
 //!
 //! pagetray は、ほかの道具（roster）が配ったメッセージの「誰が誰に何を送り、いつ届いたか」を写して見せるだけ。
 //! 配らず、時刻を比べて状態を決めず、期限を持たない（状態は、呼ぶ側が書いた字をそのまま残す）。
 //! 値の形（字の長さ・名の形・状態の字）は定義が見てあるので、ここでは定義の形では言えない決まりを見る。
 use std::sync::Arc;
 
-use pagetray_sdk::error::{ListMessagesError, PutMessageError};
-use pagetray_sdk::input::{ListMessagesInput, PutMessageInput};
-use pagetray_sdk::output::{ListMessagesOutput, PutMessageOutput};
+use pagetray_sdk::error::{GetMessageFacetsError, ListMessagesError, PutMessageError};
+use pagetray_sdk::input::{GetMessageFacetsInput, ListMessagesInput, PutMessageInput};
+use pagetray_sdk::model::FacetCount;
+use pagetray_sdk::output::{GetMessageFacetsOutput, ListMessagesOutput, PutMessageOutput};
 
 use crate::castlist::Castlist;
 use crate::db::{Db, NewMessage, message_from_sender};
 use crate::errors::{Failure, PutFailure, internal, invalid};
 use crate::events::{Events, Note};
+use crate::facets::{Count, MessagePicked};
 use crate::pages::{Checked, ask, check, is_dot, stamp_of};
 use crate::record;
 use crate::search::{LIMIT, MessageQuery};
@@ -140,4 +142,51 @@ pub async fn list_messages(
         messages,
         next_token,
     })
+}
+
+/// 状態の字（定義の `MessageState` と同じ）。絞り込みの候補は、この順に出す。
+pub(crate) const STATES: [&str; 5] = [
+    "waiting",
+    "delivered",
+    "undeliverable",
+    "expired",
+    "carried",
+];
+
+/// メッセージの記録の、絞り込みの候補と件数（置き場の全部。絞らない）。画面（[`crate::ui::messages`]）と同じ物を読む。
+pub async fn get_message_facets(
+    db: Arc<Db>,
+    input: GetMessageFacetsInput,
+) -> Result<GetMessageFacetsOutput, GetMessageFacetsError> {
+    const OPERATION: &str = "GetMessageFacets";
+    let picked = MessagePicked {
+        to: input.to.as_deref(),
+        from: input.from.as_deref(),
+        key: input.key.as_deref(),
+    };
+    let mut facets = db
+        .message_facets(&picked)
+        .await
+        .map_err(|e| Failure::db(OPERATION, e))?;
+    sort_states(&mut facets.states);
+    let counts = |list: Vec<Count>| {
+        list.into_iter()
+            .map(|c| FacetCount {
+                value: c.value,
+                count: c.count,
+            })
+            .collect()
+    };
+    Ok(GetMessageFacetsOutput {
+        states: counts(facets.states),
+        to: counts(facets.to),
+        from: counts(facets.from),
+        keys: counts(facets.keys),
+        projects: counts(facets.projects),
+    })
+}
+
+/// 状態の候補を、決まった順（[`STATES`]）に並べる。
+pub(crate) fn sort_states(states: &mut [Count]) {
+    states.sort_by_key(|c| STATES.iter().position(|name| *name == c.value));
 }

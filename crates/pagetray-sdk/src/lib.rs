@@ -183,6 +183,7 @@
 //!        .delete_files(delete_files)
 //!        .delete_pages(delete_pages)
 //!        .get_health(get_health)
+//!        .get_message_facets(get_message_facets)
 //!        .list_files(list_files)
 //!        .list_messages(list_messages)
 //!        .list_pages(list_pages)
@@ -226,6 +227,10 @@
 //! }
 //!
 //! async fn get_health(input: input::GetHealthInput) -> Result<output::GetHealthOutput, error::GetHealthError> {
+//!     todo!()
+//! }
+//!
+//! async fn get_message_facets(input: input::GetMessageFacetsInput) -> Result<output::GetMessageFacetsOutput, error::GetMessageFacetsError> {
 //!     todo!()
 //! }
 //!

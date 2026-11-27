@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-27T19:07:49+09:00\n"
+"POT-Creation-Date: 2026-11-27T22:14:37+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -101,7 +101,7 @@ msgstr "Chapters"
 msgid "章"
 msgstr "Chapter"
 
-#: src/index.md src/run.md src/cli.md src/development.md
+#: src/index.md src/run.md src/cli.md src/api.md src/development.md
 msgid "中身"
 msgstr "Contents"
 
@@ -724,6 +724,25 @@ msgstr "# first time only\n"
 
 #: src/run.md
 msgid ""
+"container の名は `pagetray.box`（1.2.0 から、この本はこの名で書く）。同じ "
+"network の container（画面を出す callboard）が、名 `pagetray.box` で "
+"pagetray に届く（Apple Container の DNS は、domain `box` の付いた名だけを答え"
+"る。`pagetray` の名では引けない）。host からの URL（`http://127.0.0.1:8801`）"
+"は変わらない。前の名 `pagetray` で動かしている container は、下の「版を上げ"
+"る」の時に、前の名で止めて消してから、この名で起こす（volume はそのまま付"
+"く）。"
+msgstr ""
+"The container is named `pagetray.box` (this book uses this name from 1.2.0). "
+"A container on the same network (callboard, which serves the screens) "
+"reaches pagetray by the name `pagetray.box` (the DNS of Apple Container "
+"answers only names that carry the domain `box`; the name `pagetray` does not "
+"resolve). The URL from the host (`http://127.0.0.1:8801`) does not change. "
+"If a container is running under the previous name `pagetray`, stop and "
+"delete it under the previous name during \"Upgrading\" below, then start it "
+"under this name (the volume attaches as is)."
+
+#: src/run.md
+msgid ""
 "digest の見方: `container image list` に出る digest は、Apple Container が付"
 "ける別の値。release の digest は、`container image inspect` の `variants` の"
 "中の `digest` に出る。"
@@ -759,8 +778,8 @@ msgid "確かめる"
 msgstr "Verify"
 
 #: src/run.md
-msgid "`container list` で `pagetray` が `running`。"
-msgstr "`container list` shows `pagetray` as `running`."
+msgid "`container list` で `pagetray.box` が `running`。"
+msgstr "`container list` shows `pagetray.box` as `running`."
 
 #: src/run.md
 msgid ""
@@ -782,28 +801,28 @@ msgstr ""
 
 #: src/run.md
 msgid ""
-"`container logs pagetray` の頭の 2 行が、前回の終わり方（`previous: …`。下の"
-"「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/data/"
-"pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが付"
-"く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 "
+"`container logs pagetray.box` の頭の 2 行が、前回の終わり方（`previous: …`。"
+"下の「落ちた後に調べる」）と、`pagetray <version> listen=0.0.0.0:8080 db=/"
+"data/pages.db` で終わる行（0.7.0 から、どの行も頭に時刻と `INFO` などの重さが"
+"付く。castlist に聞く時は、後ろに ` castlist=http://castlist.box:8080 "
 "castlist_link=http://127.0.0.1:8802`）。"
 msgstr ""
-"The first two lines of `container logs pagetray` are how the previous run "
-"ended (`previous: …`; see \"Investigating after a crash\" below) and a line "
-"ending with `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` "
+"The first two lines of `container logs pagetray.box` are how the previous "
+"run ended (`previous: …`; see \"Investigating after a crash\" below) and a "
+"line ending with `pagetray <version> listen=0.0.0.0:8080 db=/data/pages.db` "
 "(since 0.7.0 every line starts with a timestamp and a level such as `INFO`; "
 "when asking castlist, followed by ` castlist=http://castlist.box:8080 "
 "castlist_link=http://127.0.0.1:8802`)."
 
 #: src/run.md
 msgid ""
-"`container stats --no-stream pagetray` のメモリが数 MiB〜20 MiB ほど（初めて"
-"起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB を超"
-"えることがある。起こし直すと戻る）。"
+"`container stats --no-stream pagetray.box` のメモリが数 MiB〜20 MiB ほど（初"
+"めて起こした直後と、たくさん置いた直後は、OS が file を覚えている分で 50 MiB "
+"を超えることがある。起こし直すと戻る）。"
 msgstr ""
-"Memory in `container stats --no-stream pagetray` is around a few MiB to 20 "
-"MiB (right after the first start, and right after many pages are put, it can "
-"exceed 50 MiB because of files the OS keeps cached. Restarting brings it "
+"Memory in `container stats --no-stream pagetray.box` is around a few MiB to "
+"20 MiB (right after the first start, and right after many pages are put, it "
+"can exceed 50 MiB because of files the OS keeps cached. Restarting brings it "
 "back down)."
 
 #: src/run.md
@@ -1078,11 +1097,11 @@ msgstr ""
 
 #: src/run.md
 msgid ""
-"起きるたびに、前回の終わり方を 1 行で出す（`container logs pagetray` の頭と、"
-"`server.log`）。"
+"起きるたびに、前回の終わり方を 1 行で出す（`container logs pagetray.box` の頭"
+"と、`server.log`）。"
 msgstr ""
 "On every start, pagetray prints one line about how the previous run ended "
-"(at the top of `container logs pagetray`, and in `server.log`)."
+"(at the top of `container logs pagetray.box`, and in `server.log`)."
 
 #: src/run.md
 msgid "行"
@@ -1204,19 +1223,19 @@ msgstr "Stopping, and after restarting the Mac"
 #: src/run.md
 msgid ""
 "止めている間、ページは置けず、一覧の UI も開けない（番号をサーバーが決めるた"
-"め）。止めるのは `container stop pagetray`。DB は volume に残る。"
+"め）。止めるのは `container stop pagetray.box`。DB は volume に残る。"
 msgstr ""
 "While it is stopped, pages cannot be put and the list UI cannot be opened "
 "(because the server assigns the numbers). To stop it, run `container stop "
-"pagetray`. The DB remains in the volume."
+"pagetray.box`. The DB remains in the volume."
 
 #: src/run.md
 msgid ""
 "Mac を起こし直すと止まったままになる。`container system start` の後に "
-"`container start pagetray` を打ち、「確かめる」をする。"
+"`container start pagetray.box` を打ち、「確かめる」をする。"
 msgstr ""
 "After the Mac is restarted, it stays stopped. Run `container system start`, "
-"then `container start pagetray`, and do \"Verify\"."
+"then `container start pagetray.box`, and do \"Verify\"."
 
 #: src/run.md
 msgid "volume（`pagetray-data-v1`）は消さない。"
@@ -1251,22 +1270,26 @@ msgstr "Do \"Back up the DB\"."
 
 #: src/run.md
 msgid ""
-"`container stop pagetray`・`container delete pagetray` の後、新しい版で「起こ"
-"す」の `container run` を打ち、「確かめる」をする（volume はそのまま付く）。"
+"`container stop pagetray.box`・`container delete pagetray.box` の後、新しい版"
+"で「起こす」の `container run` を打ち、「確かめる」をする（volume はそのまま"
+"付く）。前の名 `pagetray` で動かしている時は、止める・消すを前の名で打つ（起"
+"こすのは、新しい名 `pagetray.box`）。"
 msgstr ""
-"After `container stop pagetray` and `container delete pagetray`, run the "
-"`container run` from \"Start\" with the new version and do \"Verify\" (the "
-"volume attaches as is)."
+"After `container stop pagetray.box` and `container delete pagetray.box`, run "
+"the `container run` from \"Start\" with the new version and do \"Verify\" "
+"(the volume attaches as is). If it is running under the previous name "
+"`pagetray`, stop and delete it under the previous name (and start it under "
+"the new name `pagetray.box`)."
 
 #: src/run.md
 msgid ""
-"駄目なら、`container delete pagetray` の後、前の版で `container run` を打つ"
-"（移行が足されていなければ、同じ volume で起きる。足されていたら、3 の写しか"
-"ら戻す）。"
+"駄目なら、`container delete pagetray.box` の後、前の版で `container run` を打"
+"つ（移行が足されていなければ、同じ volume で起きる。足されていたら、3 の写し"
+"から戻す）。"
 msgstr ""
-"If it fails, run `container delete pagetray` and then `container run` with "
-"the previous version (if no migrations were added, it starts with the same "
-"volume. If they were, restore from the backup taken in step 3)."
+"If it fails, run `container delete pagetray.box` and then `container run` "
+"with the previous version (if no migrations were added, it starts with the "
+"same volume. If they were, restore from the backup taken in step 3)."
 
 #: src/run.md
 msgid "古い image は `container image delete` で消す。"
@@ -2586,6 +2609,15 @@ msgid ""
 msgstr ""
 "`GET /api/messages` (parameters `project`, `key`, `to`, `from`, `state`, "
 "`heading`, `q`, `sort`, `maxResults`, `nextToken`)"
+
+#: src/api.md
+msgid "`GetMessageFacets`"
+msgstr "`GetMessageFacets`"
+
+#: src/api.md
+msgid "`GET /api/messages/facets`（引数 `to`・`from`・`key`。1.2.0 から）"
+msgstr ""
+"`GET /api/messages/facets` (parameters `to`, `from`, `key`; since 1.2.0)"
 
 #: src/api.md
 msgid ""
@@ -4412,6 +4444,93 @@ msgstr ""
 "(`messages_sent`)."
 
 #: src/api.md
+msgid "絞り込みの候補と件数（GetMessageFacets）"
+msgstr "Filter choices and counts (GetMessageFacets)"
+
+#: src/api.md
+msgid ""
+"メッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う数"
+"（1.2.0 から）。`GET /api/messages/facets` の答えは、5 つの並び。どの並びも "
+"`{\"value\":…,\"count\":…}` の並びで、**置き場の全部を数える**（引数では絞ら"
+"ない）。件数が 0 の値は出さない。"
+msgstr ""
+"The numbers the message list screen uses for its filter column and for \"n "
+"not delivered yet\" (since 1.2.0). The answer of `GET /api/messages/facets` "
+"is five lists. Each is a list of `{\"value\":…,\"count\":…}` and **counts "
+"the whole store** (the parameters do not narrow it). Values with a count of "
+"0 are not listed."
+
+#: src/api.md
+msgid "`states`"
+msgstr "`states`"
+
+#: src/api.md
+msgid ""
+"状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` "
+"の順"
+msgstr ""
+"The count per state, in the order `waiting`, `delivered`, `undeliverable`, "
+"`expired`, `carried`"
+
+#: src/api.md
+msgid "`to`・`from`"
+msgstr "`to`, `from`"
+
+#: src/api.md
+msgid "受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで"
+msgstr ""
+"The count per recipient name and per sender name. Up to 100, most records "
+"first (by name when equal)"
+
+#: src/api.md
+msgid "`keys`"
+msgstr "`keys`"
+
+#: src/api.md
+msgid ""
+"Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えな"
+"い）"
+msgstr ""
+"The count per Key. Up to 100, most recently sent first (records put without "
+"a Key are not counted)"
+
+#: src/api.md
+msgid "`projects`"
+msgstr "`projects`"
+
+#: src/api.md
+msgid "project ごとの数。件数の多い順（同じなら名の順）"
+msgstr "The count per project, most records first (by name when equal)"
+
+#: src/api.md
+msgid ""
+"引数 `to`・`from`・`key` は、画面が今絞っている値。絞らない。書いた値が、その"
+"並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を並びの後"
+"ろに足す（画面が、その値を候補に出して、押して外せるように）。形は "
+"`ListMessages` の同じ名の引数と同じ（違えば 400）。"
+msgstr ""
+"The parameters `to`, `from`, and `key` are the values the screen is "
+"currently filtering by. They do not narrow the counts. If a given value is "
+"not among the 100 entries of its list, the value and its count (0 if the "
+"store has none) are appended to the list (so that the screen can show the "
+"value as a choice that can be clicked to clear). Their shapes are the same "
+"as the parameters of the same names in `ListMessages` (400 otherwise)."
+
+#: src/api.md
+msgid ""
+"5 つの並びは、読む接続の 1 つの取引で読む（同じ時点の数）。`ListMessages` の"
+"答えとは別の時点なので、間に記録が置かれると、数と行が 1 件ずれることがある。"
+msgstr ""
+"The five lists are read in one transaction on the read connection (counts at "
+"the same instant). That instant differs from the answer of `ListMessages`, "
+"so when a record is put in between, the counts and the rows can differ by "
+"one."
+
+#: src/api.md
+msgid "誤りは `ListMessages` と同じ。"
+msgstr "Errors are the same as `ListMessages`."
+
+#: src/api.md
 msgid "新着の知らせ（SSE）"
 msgstr "Push of new arrivals (SSE)"
 
@@ -5736,10 +5855,12 @@ msgid "`crates/server/src/messages.rs`"
 msgstr "`crates/server/src/messages.rs`"
 
 #: src/development.md
-msgid "メッセージの記録を置く・書き足す・探す（生成した操作の handler）"
+msgid ""
+"メッセージの記録を置く・書き足す・探す・絞り込みの候補を数える（生成した操作"
+"の handler）"
 msgstr ""
-"Putting, appending to, and searching message records (the handlers of the "
-"generated operations)"
+"Putting, appending to, and searching message records, and counting the "
+"filter choices (the handlers of the generated operations)"
 
 #: src/development.md
 msgid "`crates/server/src/castlist.rs`"

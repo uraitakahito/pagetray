@@ -19,6 +19,7 @@ pub(crate) fn service_config() -> &'static ::aws_smithy_http_server::config::Ser
 ("ai.pagetray#DeleteFiles".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#DeletePages".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#GetHealth".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
+("ai.pagetray#GetMessageFacets".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#ListFiles".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#ListMessages".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),
 ("ai.pagetray#ListPages".to_owned(), global.with_read_timeout(::std::option::Option::Some(::aws_smithy_http_server::settings::DEFAULT_NON_PAYLOAD_REQUEST_BODY_READ_TIMEOUT))),

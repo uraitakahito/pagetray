@@ -431,3 +431,41 @@ impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for Lis
         ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
     }
 }
+
+/// メッセージの記録の、絞り込みの候補と件数（メッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う）。 どの並びも、置き場の全部を数える（絞らない）。件数が 0 の値は出さない（下の、引数に書いた値を除く）。 - `states`: 状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` の順。 - `to`・`from`: 受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで。 - `keys`: Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない）。 - `projects`: project ごとの数。件数の多い順（同じなら名の順）。 - 引数の `to`・`from`・`key` は絞らない。書いた値が、その並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を 並びの後ろに足す（画面が、今絞っている値を候補に出して、押して外せるように）。
+pub struct GetMessageFacets;
+
+impl ::aws_smithy_http_server::operation::OperationShape for GetMessageFacets {
+    const ID: ::aws_smithy_http_server::shape_id::ShapeId =
+        ::aws_smithy_http_server::shape_id::ShapeId::new(
+            "ai.pagetray#GetMessageFacets",
+            "ai.pagetray",
+            "GetMessageFacets",
+        );
+
+    type Input = crate::input::GetMessageFacetsInput;
+    type Output = crate::output::GetMessageFacetsOutput;
+    type Error = crate::error::GetMessageFacetsError;
+}
+
+impl ::aws_smithy_http_server::instrumentation::sensitivity::Sensitivity for GetMessageFacets {
+    type RequestFmt = ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::sensitivity::uri::MakeUri<
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+            ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        >,
+    >;
+    type ResponseFmt = ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt<
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+        ::aws_smithy_http_server::instrumentation::MakeIdentity,
+    >;
+
+    fn request_fmt() -> Self::RequestFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::RequestFmt::new()
+    }
+
+    fn response_fmt() -> Self::ResponseFmt {
+        ::aws_smithy_http_server::instrumentation::sensitivity::ResponseFmt::new()
+    }
+}

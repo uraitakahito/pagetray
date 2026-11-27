@@ -9,6 +9,7 @@ pub struct PagetrayBuilder<Body, L, HttpPl, ModelPl> {
     delete_files: Option<::aws_smithy_http_server::routing::Route<Body>>,
     delete_pages: Option<::aws_smithy_http_server::routing::Route<Body>>,
     get_health: Option<::aws_smithy_http_server::routing::Route<Body>>,
+    get_message_facets: Option<::aws_smithy_http_server::routing::Route<Body>>,
     list_files: Option<::aws_smithy_http_server::routing::Route<Body>>,
     list_messages: Option<::aws_smithy_http_server::routing::Route<Body>>,
     list_pages: Option<::aws_smithy_http_server::routing::Route<Body>>,
@@ -1064,6 +1065,180 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
         self
     }
 
+    /// Sets the [`GetMessageFacets`](crate::operation_shape::GetMessageFacets) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::GetMessageFacetsInput) -> Result<output::GetMessageFacetsOutput, error::GetMessageFacetsError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let app = Pagetray::builder(config)
+    ///     .get_message_facets(handler)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn get_message_facets<HandlerType, HandlerExtractors, UpgradeExtractors>(self, handler: HandlerType) -> Self
+                    where
+                        HandlerType: ::aws_smithy_http_server::operation::Handler<crate::operation_shape::GetMessageFacets, HandlerExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::GetMessageFacets,
+                            ::aws_smithy_http_server::operation::IntoService<crate::operation_shape::GetMessageFacets, HandlerType>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::GetMessageFacets,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::GetMessageFacets,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::GetMessageFacets,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::GetMessageFacets::from_handler(handler);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#GetMessageFacets",
+                        "ai.pagetray",
+                        "GetMessageFacets",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#GetMessageFacets",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.get_message_facets_custom(svc)
+    }
+
+    /// Sets the [`GetMessageFacets`](crate::operation_shape::GetMessageFacets) operation.
+    ///
+    /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
+    /// See the [operation module documentation](::aws_smithy_http_server::operation) for more information.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use pagetray_sdk::{Pagetray, PagetrayConfig};
+    ///
+    /// use pagetray_sdk::{input, output, error};
+    ///
+    /// async fn handler(input: input::GetMessageFacetsInput) -> Result<output::GetMessageFacetsOutput, error::GetMessageFacetsError> {
+    ///     todo!()
+    /// }
+    ///
+    /// let config = PagetrayConfig::builder().build();
+    /// let svc = ::tower::util::service_fn(handler);
+    /// let app = Pagetray::builder(config)
+    ///     .get_message_facets_service(svc)
+    ///     /* Set other handlers */
+    ///     .build()
+    ///     .unwrap();
+    /// # let app: Pagetray<::aws_smithy_http_server::routing::RoutingService<::aws_smithy_http_server::protocol::rest::router::RestRouter<::aws_smithy_http_server::routing::Route>, ::aws_smithy_http_server::protocol::rest_json_1::RestJson1>> = app;
+    /// ```
+    ///
+                    pub fn get_message_facets_service<S, ServiceExtractors, UpgradeExtractors>(self, service: S) -> Self
+                    where
+                        S: ::aws_smithy_http_server::operation::OperationService<crate::operation_shape::GetMessageFacets, ServiceExtractors>,
+
+                        ModelPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::GetMessageFacets,
+                            ::aws_smithy_http_server::operation::Normalize<crate::operation_shape::GetMessageFacets, S>
+                        >,
+                        ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::GetMessageFacets,
+                            ModelPl::Output
+                        >,
+                        HttpPl: ::aws_smithy_http_server::plugin::Plugin<
+                            Pagetray<L>,
+                            crate::operation_shape::GetMessageFacets,
+                            <
+                                ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>
+                                as ::aws_smithy_http_server::plugin::Plugin<
+                                    Pagetray<L>,
+                                    crate::operation_shape::GetMessageFacets,
+                                    ModelPl::Output
+                                >
+                            >::Output
+                        >,
+
+                        HttpPl::Output: ::tower::Service<::http_1x::Request<Body>, Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>, Error = ::std::convert::Infallible> + Clone + Send + 'static,
+                        <HttpPl::Output as ::tower::Service<::http_1x::Request<Body>>>::Future: Send + 'static,
+
+{
+        use ::aws_smithy_http_server::operation::OperationShapeExt;
+        use ::aws_smithy_http_server::plugin::Plugin;
+        let svc = crate::operation_shape::GetMessageFacets::from_service(service);
+        let svc = self.model_plugin.apply(svc);
+        let svc = ::aws_smithy_http_server::operation::UpgradePlugin::<UpgradeExtractors>::new()
+            .with_request_body_read_timeout(
+                crate::service_config::service_config()
+                    .request_body
+                    .for_operation(&::aws_smithy_schema::ShapeId::from_parts(
+                        "ai.pagetray#GetMessageFacets",
+                        "ai.pagetray",
+                        "GetMessageFacets",
+                    ))
+                    .read_timeout
+                    .unwrap_or_default(),
+                "ai.pagetray#GetMessageFacets",
+            )
+            .apply(svc);
+        let svc = self.http_plugin.apply(svc);
+        self.get_message_facets_custom(svc)
+    }
+
+    /// Sets the [`GetMessageFacets`](crate::operation_shape::GetMessageFacets) to a custom [`Service`](tower::Service).
+    /// not constrained by the Smithy contract.
+    fn get_message_facets_custom<S>(mut self, svc: S) -> Self
+    where
+        S: ::tower::Service<
+                ::http_1x::Request<Body>,
+                Response = ::http_1x::Response<::aws_smithy_http_server::body::BoxBody>,
+                Error = ::std::convert::Infallible,
+            > + Clone
+            + Send
+            + 'static,
+        S::Future: Send + 'static,
+    {
+        self.get_message_facets = Some(::aws_smithy_http_server::routing::Route::new(svc));
+        self
+    }
+
     /// Sets the [`ListFiles`](crate::operation_shape::ListFiles) operation.
     ///
     /// This should be an async function satisfying the [`Handler`](::aws_smithy_http_server::operation::Handler) trait.
@@ -1985,6 +2160,12 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                 missing_operation_names
                     .insert(crate::operation_shape::GetHealth::ID, ".get_health()");
             }
+            if self.get_message_facets.is_none() {
+                missing_operation_names.insert(
+                    crate::operation_shape::GetMessageFacets::ID,
+                    ".get_message_facets()",
+                );
+            }
             if self.list_files.is_none() {
                 missing_operation_names
                     .insert(crate::operation_shape::ListFiles::ID, ".list_files()");
@@ -2058,6 +2239,10 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
                 (
                     request_specs::get_health(),
                     self.get_health.expect(unexpected_error_msg),
+                ),
+                (
+                    request_specs::get_message_facets(),
+                    self.get_message_facets.expect(unexpected_error_msg),
                 ),
                 (
                     request_specs::list_files(),
@@ -2152,6 +2337,15 @@ impl<Body, L, HttpPl, ModelPl> PagetrayBuilder<Body, L, HttpPl, ModelPl> {
             (
                 request_specs::get_health(),
                 self.get_health.unwrap_or_else(|| {
+                    let svc = ::aws_smithy_http_server::operation::MissingFailure::<
+                        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+                    >::default();
+                    ::aws_smithy_http_server::routing::Route::new(svc)
+                }),
+            ),
+            (
+                request_specs::get_message_facets(),
+                self.get_message_facets.unwrap_or_else(|| {
                     let svc = ::aws_smithy_http_server::operation::MissingFailure::<
                         ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
                     >::default();
@@ -2354,6 +2548,23 @@ mod request_specs {
                     ),
                 )
     }
+    pub(super) fn get_message_facets(
+    ) -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
+        ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
+                    ::http_1x::Method::GET,
+                    ::aws_smithy_http_server::routing::request_spec::UriSpec::new(
+                        ::aws_smithy_http_server::routing::request_spec::PathAndQuerySpec::new(
+                            ::aws_smithy_http_server::routing::request_spec::PathSpec::from_vector_unchecked(vec![
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("api")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("messages")),
+    ::aws_smithy_http_server::routing::request_spec::PathSegment::Literal(String::from("facets")),
+]),
+                            ::aws_smithy_http_server::routing::request_spec::QuerySpec::from_vector_unchecked(vec![
+])
+                        )
+                    ),
+                )
+    }
     pub(super) fn list_files() -> ::aws_smithy_http_server::routing::request_spec::RequestSpec {
         ::aws_smithy_http_server::routing::request_spec::RequestSpec::new(
                     ::http_1x::Method::GET,
@@ -2478,6 +2689,7 @@ impl Pagetray<()> {
             delete_files: None,
             delete_pages: None,
             get_health: None,
+            get_message_facets: None,
             list_files: None,
             list_messages: None,
             list_pages: None,
@@ -2516,6 +2728,7 @@ impl Pagetray<()> {
             delete_files: None,
             delete_pages: None,
             get_health: None,
+            get_message_facets: None,
             list_files: None,
             list_messages: None,
             list_pages: None,
@@ -2649,6 +2862,7 @@ pub enum Operation {
     DeleteFiles,
     DeletePages,
     GetHealth,
+    GetMessageFacets,
     ListFiles,
     ListMessages,
     ListPages,
@@ -2689,6 +2903,11 @@ impl Operation {
                 "ai.pagetray#GetHealth",
                 "ai.pagetray",
                 "GetHealth",
+            ),
+            Operation::GetMessageFacets => ::aws_smithy_http_server::shape_id::ShapeId::new(
+                "ai.pagetray#GetMessageFacets",
+                "ai.pagetray",
+                "GetMessageFacets",
             ),
             Operation::ListFiles => ::aws_smithy_http_server::shape_id::ShapeId::new(
                 "ai.pagetray#ListFiles",
@@ -2747,6 +2966,12 @@ impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_sh
     for Pagetray<L>
 {
     const VALUE: Operation = Operation::GetHealth;
+}
+impl<L>
+    ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::GetMessageFacets>
+    for Pagetray<L>
+{
+    const VALUE: Operation = Operation::GetMessageFacets;
 }
 impl<L> ::aws_smithy_http_server::service::ContainsOperation<crate::operation_shape::ListFiles>
     for Pagetray<L>
@@ -3015,6 +3240,15 @@ macro_rules! scope {
                             scope! { @ $ name, $ contains (GetHealth $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
                         };
 
+                        // GetMessageFacets match found, pop from both `member` and `not_member`
+                        (@ $ name: ident, $ contains: ident (GetMessageFacets $($ member: ident)*) ($($ temp: ident)*) (GetMessageFacets $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
+                        };
+                        // GetMessageFacets match not found, pop from `not_member` into `temp` stack
+                        (@ $ name: ident, $ contains: ident (GetMessageFacets $($ member: ident)*) ($($ temp: ident)*) ($ other: ident $($ not_member: ident)*)) => {
+                            scope! { @ $ name, $ contains (GetMessageFacets $($ member)*) ($ other $($ temp)*) ($($ not_member)*) }
+                        };
+
                         // ListFiles match found, pop from both `member` and `not_member`
                         (@ $ name: ident, $ contains: ident (ListFiles $($ member: ident)*) ($($ temp: ident)*) (ListFiles $($ not_member: ident)*)) => {
                             scope! { @ $ name, $ contains ($($ member)*) ($($ temp)*) ($($ not_member)*) }
@@ -3074,7 +3308,7 @@ macro_rules! scope {
                                 excludes: []
                             }
                         }
-                        scope! { @ $ name, False ($($ include)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListMessages ListPages PutMessage SetReplyState) }
+                        scope! { @ $ name, False ($($ include)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth GetMessageFacets ListFiles ListMessages ListPages PutMessage SetReplyState) }
                     };
                     (
                         $(#[$ attrs:meta])*
@@ -3091,6 +3325,6 @@ macro_rules! scope {
                                 excludes: [$($ exclude),*]
                             }
                         }
-                        scope! { @ $ name, True ($($ exclude)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth ListFiles ListMessages ListPages PutMessage SetReplyState) }
+                        scope! { @ $ name, True ($($ exclude)*) () (AddReviewMarks CreateFile CreatePage DeleteFiles DeletePages GetHealth GetMessageFacets ListFiles ListMessages ListPages PutMessage SetReplyState) }
                     };
                 }

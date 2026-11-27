@@ -391,6 +391,57 @@ impl From<crate::operation::get_health::GetHealthError> for Error {
 impl<R>
     From<
         ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::get_message_facets::GetMessageFacetsError,
+            R,
+        >,
+    > for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<
+            crate::operation::get_message_facets::GetMessageFacetsError,
+            R,
+        >,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => {
+                Self::from(context.into_err())
+            }
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::get_message_facets::GetMessageFacetsError> for Error {
+    fn from(err: crate::operation::get_message_facets::GetMessageFacetsError) -> Self {
+        match err {
+            crate::operation::get_message_facets::GetMessageFacetsError::ValidationError(inner) => {
+                Error::ValidationError(inner)
+            }
+            crate::operation::get_message_facets::GetMessageFacetsError::Unavailable(inner) => {
+                Error::Unavailable(inner)
+            }
+            crate::operation::get_message_facets::GetMessageFacetsError::InternalError(inner) => {
+                Error::InternalError(inner)
+            }
+            crate::operation::get_message_facets::GetMessageFacetsError::Forbidden(inner) => {
+                Error::Forbidden(inner)
+            }
+            crate::operation::get_message_facets::GetMessageFacetsError::PayloadTooLarge(inner) => {
+                Error::PayloadTooLarge(inner)
+            }
+            crate::operation::get_message_facets::GetMessageFacetsError::Unhandled(inner) => {
+                Error::Unhandled(inner)
+            }
+        }
+    }
+}
+impl<R>
+    From<
+        ::aws_smithy_runtime_api::client::result::SdkError<
             crate::operation::list_files::ListFilesError,
             R,
         >,

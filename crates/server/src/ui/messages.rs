@@ -18,7 +18,7 @@ use super::{Choice, Counter, FilterGroup, PAGE_SIZE, Ui, encode, screen, short_t
 use crate::db::MessageRow;
 use crate::errors::Failure;
 use crate::facets::{Count, MessagePicked};
-use crate::messages::{TOKEN_KIND, sort_name};
+use crate::messages::{TOKEN_KIND, sort_name, sort_states};
 use crate::search::MessageQuery;
 use crate::token;
 
@@ -247,7 +247,7 @@ async fn page(ui: &Ui, mut view: View) -> Result<String, Failure> {
     };
     // 状態の候補は、決まった順（まだ届いていない・届いた・渡せない・期限切れ・ほかの道具で運んだ）。件数が 0 の候補は出さない。
     let mut states = facets.states;
-    states.sort_by_key(|c| STATES.iter().position(|(name, _)| *name == c.value));
+    sort_states(&mut states);
     let messages = Messages {
         waiting,
         // 操作の帯の釦は、ほかの絞り込みを外して、まだ届いていない物だけに絞る。

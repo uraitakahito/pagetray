@@ -39,6 +39,7 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 | `DeleteFiles` | `DELETE /api/files?project&key&name&n` |
 | `PutMessage` | `PUT /api/projects/{project}/messages/{id}`（本文は JSON。引数 `actorIssuer`・`actorRef`） |
 | `ListMessages` | `GET /api/messages`（引数 `project`・`key`・`to`・`from`・`state`・`heading`・`q`・`sort`・`maxResults`・`nextToken`） |
+| `GetMessageFacets` | `GET /api/messages/facets`（引数 `to`・`from`・`key`。1.2.0 から） |
 
 手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`・新着の知らせ `GET /api/events`（SSE）・`GET /api/backup`・`GET /api/logs`・画面（`/`・`/{project}/`・`/{project}/{key}/`・`/messages`）。
 
@@ -292,6 +293,21 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 
 - 並びも頁の続きも、置き場が受けた時刻でなく、呼ぶ側が書いた `sentAt` で決める。辿る間に、前の頁より新しい `sentAt` の記録が置かれても、新しい順の続きには出ない。
 - 読む接続・誤りは `ListPages` と同じ。`explain query plan` の試験（`crates/server/tests/messages.rs`）が、messages を索引なしに端から読まないこと、条件の無い一覧と `nextToken` は送った時刻の索引（`messages_sent`）の順に読むことを見る。
+
+### 絞り込みの候補と件数（GetMessageFacets）
+
+メッセージの一覧の画面が、絞り込みの列と「まだ届いていない n 件」に使う数（1.2.0 から）。`GET /api/messages/facets` の答えは、5 つの並び。どの並びも `{"value":…,"count":…}` の並びで、**置き場の全部を数える**（引数では絞らない）。件数が 0 の値は出さない。
+
+| 欄 | 中身 |
+|---|---|
+| `states` | 状態ごとの数。`waiting`・`delivered`・`undeliverable`・`expired`・`carried` の順 |
+| `to`・`from` | 受け手・送り手の名ごとの数。件数の多い順（同じなら名の順）に 100 まで |
+| `keys` | Key ごとの数。新しく送られた順に 100 まで（Key を書かずに置いた記録は数えない） |
+| `projects` | project ごとの数。件数の多い順（同じなら名の順） |
+
+- 引数 `to`・`from`・`key` は、画面が今絞っている値。絞らない。書いた値が、その並びの 100 件に入っていなければ、その値と件数（置き場に無ければ 0）を並びの後ろに足す（画面が、その値を候補に出して、押して外せるように）。形は `ListMessages` の同じ名の引数と同じ（違えば 400）。
+- 5 つの並びは、読む接続の 1 つの取引で読む（同じ時点の数）。`ListMessages` の答えとは別の時点なので、間に記録が置かれると、数と行が 1 件ずれることがある。
+- 誤りは `ListMessages` と同じ。
 
 ## 新着の知らせ（SSE）
 

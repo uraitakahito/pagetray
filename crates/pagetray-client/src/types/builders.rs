@@ -10,3 +10,5 @@ pub use crate::types::_page::PageBuilder;
 pub use crate::types::_file::FileBuilder;
 
 pub use crate::types::_message::MessageBuilder;
+
+pub use crate::types::_facet_count::FacetCountBuilder;

@@ -48,6 +48,8 @@ pub(crate) mod shape_delete_pages;
 
 pub(crate) mod shape_get_health;
 
+pub(crate) mod shape_get_message_facets;
+
 pub(crate) mod shape_list_files;
 
 pub(crate) mod shape_list_messages;
@@ -92,6 +94,8 @@ pub(crate) mod shape_unsupported_media_type;
 
 pub(crate) mod shape_validation_exception;
 
+pub(crate) mod shape_facet_counts;
+
 pub(crate) mod shape_files;
 
 pub(crate) mod shape_messages;
@@ -107,6 +111,8 @@ pub(crate) mod shape_targets;
 pub(crate) mod shape_validation_exception_field_list;
 
 pub(crate) mod shape_actor_summary;
+
+pub(crate) mod shape_facet_count;
 
 pub(crate) mod shape_file;
 

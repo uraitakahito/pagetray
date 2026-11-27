@@ -2582,6 +2582,34 @@ impl Message {
     }
 }
 
+/// 絞り込みの候補 1 つ: 値と、その値の記録の数。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct FacetCount {
+    #[allow(missing_docs)] // documentation missing in model
+    pub value: ::std::string::String,
+    #[allow(missing_docs)] // documentation missing in model
+    pub count: i64,
+}
+impl FacetCount {
+    #[allow(missing_docs)] // documentation missing in model
+    pub fn value(&self) -> &str {
+        use std::ops::Deref;
+        self.value.deref()
+    }
+    #[allow(missing_docs)] // documentation missing in model
+    pub fn count(&self) -> i64 {
+        self.count
+    }
+}
+impl FacetCount {
+    /// Creates a new builder-style object to manufacture [`FacetCount`](crate::model::FacetCount).
+    pub fn builder() -> crate::model::facet_count::Builder {
+        crate::model::facet_count::Builder::default()
+    }
+}
+
 /// アクターの種類: `ai` か `human`。 enum にしないのは、smithy-rs（codegen-server 0.1.40）が、答えに要る enum のある操作の要求の例（`@httpRequestTests`）から、 空の字の enum を作って落ちる試験を作るため。wire の形は enum と同じ字。ただし smithy diff は、string から enum への型の替えを 壊す変わり（ERROR。ChangedShapeType）とする（2026-11-24 に確かめた）ので、enum に替えるなら v1.0.0 を出す前にする。
 ///
 /// This is a constrained type because its corresponding modeled Smithy shape has one or more
@@ -4424,6 +4452,74 @@ pub mod message {
                     .updated_at
                     .ok_or(ConstraintViolation::MissingUpdatedAt)?,
                 sender: self.sender,
+            })
+        }
+    }
+}
+/// See [`FacetCount`](crate::model::FacetCount).
+pub mod facet_count {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `value` was not provided but it is required when building `FacetCount`.
+        MissingValue,
+        /// `count` was not provided but it is required when building `FacetCount`.
+        MissingCount,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingValue => write!(
+                    f,
+                    "`value` was not provided but it is required when building `FacetCount`"
+                ),
+                ConstraintViolation::MissingCount => write!(
+                    f,
+                    "`count` was not provided but it is required when building `FacetCount`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::FacetCount {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`FacetCount`](crate::model::FacetCount).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) value: ::std::option::Option<::std::string::String>,
+        pub(crate) count: ::std::option::Option<i64>,
+    }
+    impl Builder {
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn value(mut self, input: ::std::string::String) -> Self {
+            self.value = Some(input);
+            self
+        }
+        #[allow(missing_docs)] // documentation missing in model
+        pub fn count(mut self, input: i64) -> Self {
+            self.count = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`FacetCount`](crate::model::FacetCount).
+        ///
+        /// The builder fails to construct a [`FacetCount`](crate::model::FacetCount) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::FacetCount, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::FacetCount, ConstraintViolation> {
+            Ok(crate::model::FacetCount {
+                value: self.value.ok_or(ConstraintViolation::MissingValue)?,
+                count: self.count.ok_or(ConstraintViolation::MissingCount)?,
             })
         }
     }
