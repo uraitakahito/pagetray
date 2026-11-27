@@ -8,6 +8,8 @@ pub struct FacetCount {
     pub value: ::std::string::String,
     #[allow(missing_docs)] // documentation missing in model
     pub count: i64,
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub note: ::std::option::Option<::std::string::String>,
 }
 impl FacetCount {
     #[allow(missing_docs)] // documentation missing in model
@@ -18,6 +20,10 @@ impl FacetCount {
     #[allow(missing_docs)] // documentation missing in model
     pub fn count(&self) -> i64 {
         self.count
+    }
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub fn note(&self) -> ::std::option::Option<&str> {
+        self.note.as_deref()
     }
 }
 impl FacetCount {
@@ -35,6 +41,7 @@ impl FacetCount {
 pub struct FacetCountBuilder {
     pub(crate) value: ::std::option::Option<::std::string::String>,
     pub(crate) count: ::std::option::Option<i64>,
+    pub(crate) note: ::std::option::Option<::std::string::String>,
 }
 impl FacetCountBuilder {
     #[allow(missing_docs)] // documentation missing in model
@@ -67,6 +74,20 @@ impl FacetCountBuilder {
     pub fn get_count(&self) -> &::std::option::Option<i64> {
         &self.count
     }
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub fn note(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.note = ::std::option::Option::Some(input.into());
+        self
+    }
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub fn set_note(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.note = input;
+        self
+    }
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub fn get_note(&self) -> &::std::option::Option<::std::string::String> {
+        &self.note
+    }
     /// Consumes the builder and constructs a [`FacetCount`](crate::types::FacetCount).
     /// This method will fail if any of the following fields are not set:
     /// - [`value`](crate::types::builders::FacetCountBuilder::value)
@@ -90,6 +111,7 @@ impl FacetCountBuilder {
                     "count was not specified but it is required when building FacetCount",
                 )
             })?,
+            note: self.note,
         })
     }
 }

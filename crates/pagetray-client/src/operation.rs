@@ -15,11 +15,17 @@ pub mod delete_files;
 /// Types for the `DeletePages` operation.
 pub mod delete_pages;
 
+/// Types for the `GetFileRules` operation.
+pub mod get_file_rules;
+
 /// Types for the `GetHealth` operation.
 pub mod get_health;
 
 /// Types for the `GetMessageFacets` operation.
 pub mod get_message_facets;
+
+/// Types for the `GetPageFacets` operation.
+pub mod get_page_facets;
 
 /// Types for the `ListFiles` operation.
 pub mod list_files;
@@ -29,6 +35,9 @@ pub mod list_messages;
 
 /// Types for the `ListPages` operation.
 pub mod list_pages;
+
+/// Types for the `ListReviews` operation.
+pub mod list_reviews;
 
 /// Types for the `PutMessage` operation.
 pub mod put_message;

@@ -182,11 +182,14 @@
 //!        .create_page(create_page)
 //!        .delete_files(delete_files)
 //!        .delete_pages(delete_pages)
+//!        .get_file_rules(get_file_rules)
 //!        .get_health(get_health)
 //!        .get_message_facets(get_message_facets)
+//!        .get_page_facets(get_page_facets)
 //!        .list_files(list_files)
 //!        .list_messages(list_messages)
 //!        .list_pages(list_pages)
+//!        .list_reviews(list_reviews)
 //!        .put_message(put_message)
 //!        .set_reply_state(set_reply_state)
 //!        .build()
@@ -226,11 +229,19 @@
 //!     todo!()
 //! }
 //!
+//! async fn get_file_rules(input: input::GetFileRulesInput) -> Result<output::GetFileRulesOutput, error::GetFileRulesError> {
+//!     todo!()
+//! }
+//!
 //! async fn get_health(input: input::GetHealthInput) -> Result<output::GetHealthOutput, error::GetHealthError> {
 //!     todo!()
 //! }
 //!
 //! async fn get_message_facets(input: input::GetMessageFacetsInput) -> Result<output::GetMessageFacetsOutput, error::GetMessageFacetsError> {
+//!     todo!()
+//! }
+//!
+//! async fn get_page_facets(input: input::GetPageFacetsInput) -> Result<output::GetPageFacetsOutput, error::GetPageFacetsError> {
 //!     todo!()
 //! }
 //!
@@ -243,6 +254,10 @@
 //! }
 //!
 //! async fn list_pages(input: input::ListPagesInput) -> Result<output::ListPagesOutput, error::ListPagesError> {
+//!     todo!()
+//! }
+//!
+//! async fn list_reviews(input: input::ListReviewsInput) -> Result<output::ListReviewsOutput, error::ListReviewsError> {
 //!     todo!()
 //! }
 //!
@@ -339,6 +354,9 @@ mod service;
 
 /// Data primitives referenced by other data types.
 pub mod types;
+
+/// Unconstrained types for constrained shapes.
+mod unconstrained;
 
 /// Constrained types for constrained shapes.
 mod constrained;

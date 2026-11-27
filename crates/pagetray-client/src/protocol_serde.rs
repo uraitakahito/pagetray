@@ -46,15 +46,21 @@ pub(crate) mod shape_delete_files;
 
 pub(crate) mod shape_delete_pages;
 
+pub(crate) mod shape_get_file_rules;
+
 pub(crate) mod shape_get_health;
 
 pub(crate) mod shape_get_message_facets;
+
+pub(crate) mod shape_get_page_facets;
 
 pub(crate) mod shape_list_files;
 
 pub(crate) mod shape_list_messages;
 
 pub(crate) mod shape_list_pages;
+
+pub(crate) mod shape_list_reviews;
 
 pub(crate) mod shape_put_message;
 
@@ -96,6 +102,8 @@ pub(crate) mod shape_validation_exception;
 
 pub(crate) mod shape_facet_counts;
 
+pub(crate) mod shape_file_types;
+
 pub(crate) mod shape_files;
 
 pub(crate) mod shape_messages;
@@ -103,6 +111,8 @@ pub(crate) mod shape_messages;
 pub(crate) mod shape_pages;
 
 pub(crate) mod shape_paths;
+
+pub(crate) mod shape_reviews_of;
 
 pub(crate) mod shape_sender;
 
@@ -116,8 +126,12 @@ pub(crate) mod shape_facet_count;
 
 pub(crate) mod shape_file;
 
+pub(crate) mod shape_file_type;
+
 pub(crate) mod shape_message;
 
 pub(crate) mod shape_page;
+
+pub(crate) mod shape_review_of;
 
 pub(crate) mod shape_validation_exception_field;

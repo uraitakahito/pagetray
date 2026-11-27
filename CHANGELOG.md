@@ -2,6 +2,20 @@
 
 版ごとに、API の形（[docs/src/api.md](docs/src/api.md)）が替わったかを書く。0.8.x までは、API の版の数も書いた。
 
+## 1.3.0
+
+API の版: 無い（1.2.0 に、操作を 3 つと、任意の欄を 1 つ足した。前からある操作・型・欄は替えていない。定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）は、壊す変わり無しで通る）
+
+ページの一覧の画面を callboard（castlist と pagetray の画面を出す server）に移すために、画面が DB と server の中から直に読んでいた物を、API で読めるようにした版（AI-32）。DB の移行の SQL・image の中身・環境変数・port は 1.2.0 と同じで、1.1.x・1.2.0 の volume でそのまま起きる（前の image に戻しても起きる）。pagetray の画面（`/`・`/messages`）は、替えていない。
+
+- **API に操作を 3 つ足した**（形は [API の仕様](https://uraitakahito.github.io/pagetray/api.html)）:
+  - `GetPageFacets`（`GET /api/pages/facets`）: ページの、絞り込みの候補と件数（送り手・役割・workspace・種類・Key・project・判定）と、待ちの数（返事待ち・答えた・レビュー待ち・上げた）。置き場の全部を数える。
+  - `ListReviews`（`GET /api/reviews?target=…`）: 名指したページ（1 つから 200 まで）を見たレビューのページと、その判定。
+  - `GetFileRules`（`GET /api/files/rules`）: 受ける file の種類（拡張子と `Content-Type`）と、1 つの大きさの上限。
+- **型 `FacetCount` に任意の欄 `note` を足した**（値に添える字: 送り手の名・workspace の Key）。`GetMessageFacets` の答えには付かない（前と同じ）。
+- どれも、画面（`/`）と同じ SQL・同じ表を読む。
+- CLI（`pagetray`）: 命令は足していない（版の字だけが 1.3.0 になる）。
+
 ## 1.2.0
 
 API の版: 無い（1.1.x に、操作を 1 つ足した。前からある操作・型・欄は替えていない。定義の release の tag との `smithy diff`（`ci/gen.sh --diff`）は、壊す変わり無しで通る）

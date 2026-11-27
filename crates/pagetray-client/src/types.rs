@@ -13,15 +13,23 @@ pub use crate::types::_message::Message;
 
 pub use crate::types::_facet_count::FacetCount;
 
+pub use crate::types::_review_of::ReviewOf;
+
+pub use crate::types::_file_type::FileType;
+
 mod _actor_summary;
 
 mod _facet_count;
 
 mod _file;
 
+mod _file_type;
+
 mod _message;
 
 mod _page;
+
+mod _review_of;
 
 mod _sender;
 

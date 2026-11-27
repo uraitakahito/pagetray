@@ -40,6 +40,9 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 | `PutMessage` | `PUT /api/projects/{project}/messages/{id}`（本文は JSON。引数 `actorIssuer`・`actorRef`） |
 | `ListMessages` | `GET /api/messages`（引数 `project`・`key`・`to`・`from`・`state`・`heading`・`q`・`sort`・`maxResults`・`nextToken`） |
 | `GetMessageFacets` | `GET /api/messages/facets`（引数 `to`・`from`・`key`。1.2.0 から） |
+| `GetPageFacets` | `GET /api/pages/facets`（引数なし。1.3.0 から） |
+| `ListReviews` | `GET /api/reviews`（引数 `target`。1.3.0 から） |
+| `GetFileRules` | `GET /api/files/rules`（引数なし。1.3.0 から） |
 
 手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`・新着の知らせ `GET /api/events`（SSE）・`GET /api/backup`・`GET /api/logs`・画面（`/`・`/{project}/`・`/{project}/{key}/`・`/messages`）。
 
@@ -116,6 +119,32 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 - 続きは `nextToken` だけ（時刻の字で切る引数は無い）。
 - 読む接続の 1 つの取引で、1 頁より 1 つ多く読み、次の頁があるかを決める。読む接続を 3 秒（`READ_WAIT`）待っても取れなければ 503 `Unavailable`、DB の誤りは 500 `InternalError`。
 - SQL は、書いた条件の欠片だけを繋ぐ（`crates/server/src/search.rs`。値は bind する）。`explain query plan` の試験（`crates/server/tests/list.rs`）が、pages を索引なしに端から読まないこと、project・key・送り手・返事待ち・`nextToken` の条件は索引で引くこと、条件の無い一覧と `nextToken` は時刻の索引の順に読む（並べ替えの一時の表を作らない）ことを見る。返事待ちは、返事待ちだけの部分の索引（`pages_waiting`）から引く（条件をじかに書くと、planner は時刻の索引の順に端から読む方を選ぶ）。短い語の検索は、索引の表を端から見る。
+
+## 絞り込みの候補と待ちの数（GetPageFacets）
+
+ページの一覧の画面が、絞り込みの列と操作の帯の待ちの数に使う数（1.3.0 から）。`GET /api/pages/facets` に引数は無く、どの数も**置き場の全部を数える**（絞らない）。件数が 0 の値は出さない。
+
+| 欄 | 中身 |
+|---|---|
+| `waiting`・`answered` | Product Manager の返事待ち・答えたページの数 |
+| `reviewWaiting` | レビュー待ちのページ（レビューの依頼書）の数 |
+| `escalated` | TPM 担当に上げて、まだ決まっていないページ（レビューのページ）の数 |
+| `senders` | 送り手ごとの数。castlist の答えのある送り手だけ。`value` はアクターの id、`note` はその名。多い順に 100 まで |
+| `roles`・`kinds`・`projects`・`verdicts` | 役割・種類・project・レビューの判定ごとの数。件数の多い順（同じなら名の順） |
+| `workspaces` | workspace の ID ごとの数（書かずに置いた物は空の値）。新しく置かれた順に 100 まで。`note` は、その ID で置かれた Key（`, ` で繋ぐ） |
+| `keys` | Key ごとの数。新しく置かれた順に 100 まで |
+
+- 並びの 1 つは `{"value":…,"count":…}` で、添える字のある並び（`senders`・`workspaces`）だけ `note` が付く（無ければ欄ごと無い）。`GetMessageFacets` の並びと同じ型。
+- どの数も、読む接続の 1 つの取引で読む（同じ時点の数）。`ListPages` の答えとは別の時点。
+- 誤りは `ListPages` と同じ（引数の誤りは無い）。
+
+## ページを見たレビュー（ListReviews）
+
+名指したページを見たレビューのページ（種類が `review` で、見た物にその path を書いた物）を返す（1.3.0 から）。ページの一覧の画面が、行の下に「レビュー」の link と判定を出すのに使う。
+
+- 引数 `target` に、見られたページの path（`/<project>/<key>/<kind>-<n>.html`）を並べる（`?target=…&target=…`）。1 つから 200 まで。無い・超える物は 400 `ValidationException`。path の形は見ない（置き場に無い path には、何も返さない）。
+- 答えの `reviews` の 1 つは `{"target":…,"path":…,"verdict":…}`: 見られたページの path・レビューのページの path・判定（書いていなければ欄ごと無い）。レビューのページの古い順。1 つのレビューが見た物どうしの順は決めない。
+- 読む接続・誤りは `ListPages` と同じ。
 
 ## 返事（SetReplyState）
 
@@ -207,6 +236,14 @@ castlist の API の「[共通の決まり](https://uraitakahito.github.io/castl
 - 行は file の記録（`ai.pagetray#File`。中身と `url` は入らない）。送り手の欄は、付随する id を書いて置いた時だけ。置いた答えと一覧の行は、`url` のほかは同じ欄・同じ値。
 - `path` は、この server の中の path（`/<project>/<key>/files/<語>-<n>.<拡張子>`）。ページの URL（3 段）と違い 4 段で、3 段目が `files` なので、ぶつからない。ページからは、相対の path で参照する（同じ Key なら `files/screen-1.png`、別の Key なら `../K-2/files/screen-1.png`）。
 - 読む接続・誤りは `ListPages` と同じ。`explain query plan` の試験（`crates/server/tests/files.rs`）が、files を索引なしに端から読まないこと、project・key・送り手・`nextToken` の条件は索引で引くこと、条件の無い一覧と `nextToken` は時刻の索引（`files_created`）の順に読むことを見る。
+
+## 受ける file の種類（GetFileRules）
+
+`GET /api/files/rules` は、受ける file の種類と、1 つの大きさの上限を返す（1.3.0 から）。ページの一覧の画面の、file を上げる枠が、送る前に見る。
+
+- `types`: `{"ext":…,"type":…}` の並び。拡張子（`.` は付けない）と、その file を返す時の `Content-Type`。上の「受ける file の種類」の表と同じ物で、並びは、置き場が種類を断る時の文と同じ。
+- `maxBytes`: file 1 つの大きさの上限（byte。16 MiB）。
+- DB は読まない。誤りは、守りの層の物だけ。
 
 ## file を消す（DeleteFiles）
 

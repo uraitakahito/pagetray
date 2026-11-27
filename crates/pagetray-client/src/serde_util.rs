@@ -215,6 +215,18 @@ pub(crate) fn delete_pages_output_output_correct_errors(
     builder
 }
 
+pub(crate) fn get_file_rules_output_output_correct_errors(
+    mut builder: crate::operation::get_file_rules::builders::GetFileRulesOutputBuilder,
+) -> crate::operation::get_file_rules::builders::GetFileRulesOutputBuilder {
+    if builder.types.is_none() {
+        builder.types = Some(Default::default())
+    }
+    if builder.max_bytes.is_none() {
+        builder.max_bytes = Some(Default::default())
+    }
+    builder
+}
+
 pub(crate) fn get_health_output_output_correct_errors(
     mut builder: crate::operation::get_health::builders::GetHealthOutputBuilder,
 ) -> crate::operation::get_health::builders::GetHealthOutputBuilder {
@@ -248,6 +260,45 @@ pub(crate) fn get_message_facets_output_output_correct_errors(
     builder
 }
 
+pub(crate) fn get_page_facets_output_output_correct_errors(
+    mut builder: crate::operation::get_page_facets::builders::GetPageFacetsOutputBuilder,
+) -> crate::operation::get_page_facets::builders::GetPageFacetsOutputBuilder {
+    if builder.waiting.is_none() {
+        builder.waiting = Some(Default::default())
+    }
+    if builder.answered.is_none() {
+        builder.answered = Some(Default::default())
+    }
+    if builder.review_waiting.is_none() {
+        builder.review_waiting = Some(Default::default())
+    }
+    if builder.escalated.is_none() {
+        builder.escalated = Some(Default::default())
+    }
+    if builder.senders.is_none() {
+        builder.senders = Some(Default::default())
+    }
+    if builder.roles.is_none() {
+        builder.roles = Some(Default::default())
+    }
+    if builder.workspaces.is_none() {
+        builder.workspaces = Some(Default::default())
+    }
+    if builder.kinds.is_none() {
+        builder.kinds = Some(Default::default())
+    }
+    if builder.keys.is_none() {
+        builder.keys = Some(Default::default())
+    }
+    if builder.projects.is_none() {
+        builder.projects = Some(Default::default())
+    }
+    if builder.verdicts.is_none() {
+        builder.verdicts = Some(Default::default())
+    }
+    builder
+}
+
 pub(crate) fn list_files_output_output_correct_errors(
     mut builder: crate::operation::list_files::builders::ListFilesOutputBuilder,
 ) -> crate::operation::list_files::builders::ListFilesOutputBuilder {
@@ -271,6 +322,15 @@ pub(crate) fn list_pages_output_output_correct_errors(
 ) -> crate::operation::list_pages::builders::ListPagesOutputBuilder {
     if builder.pages.is_none() {
         builder.pages = Some(Default::default())
+    }
+    builder
+}
+
+pub(crate) fn list_reviews_output_output_correct_errors(
+    mut builder: crate::operation::list_reviews::builders::ListReviewsOutputBuilder,
+) -> crate::operation::list_reviews::builders::ListReviewsOutputBuilder {
+    if builder.reviews.is_none() {
+        builder.reviews = Some(Default::default())
     }
     builder
 }
@@ -431,6 +491,18 @@ pub(crate) fn file_correct_errors(
     builder
 }
 
+pub(crate) fn file_type_correct_errors(
+    mut builder: crate::types::builders::FileTypeBuilder,
+) -> crate::types::builders::FileTypeBuilder {
+    if builder.ext.is_none() {
+        builder.ext = Some(Default::default())
+    }
+    if builder.r#type.is_none() {
+        builder.r#type = Some(Default::default())
+    }
+    builder
+}
+
 pub(crate) fn message_correct_errors(
     mut builder: crate::types::builders::MessageBuilder,
 ) -> crate::types::builders::MessageBuilder {
@@ -496,6 +568,18 @@ pub(crate) fn page_correct_errors(
     }
     if builder.size.is_none() {
         builder.size = Some(Default::default())
+    }
+    if builder.path.is_none() {
+        builder.path = Some(Default::default())
+    }
+    builder
+}
+
+pub(crate) fn review_of_correct_errors(
+    mut builder: crate::types::builders::ReviewOfBuilder,
+) -> crate::types::builders::ReviewOfBuilder {
+    if builder.target.is_none() {
+        builder.target = Some(Default::default())
     }
     if builder.path.is_none() {
         builder.path = Some(Default::default())

@@ -343,6 +343,22 @@ fn not_found() -> Response {
     reply(StatusCode::NOT_FOUND, "NotFound", "その file は無い")
 }
 
+/// 受ける file の種類（[`FILE_TYPES`]）と、1 つの大きさの上限（[`crate::MAX_BODY`]）。
+pub async fn get_file_rules(
+    _input: pagetray_sdk::input::GetFileRulesInput,
+) -> Result<pagetray_sdk::output::GetFileRulesOutput, pagetray_sdk::error::GetFileRulesError> {
+    Ok(pagetray_sdk::output::GetFileRulesOutput {
+        types: FILE_TYPES
+            .iter()
+            .map(|&(ext, mime, _)| pagetray_sdk::model::FileType {
+                ext: ext.to_owned(),
+                r#type: mime.to_owned(),
+            })
+            .collect(),
+        max_bytes: crate::MAX_BODY as i64,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

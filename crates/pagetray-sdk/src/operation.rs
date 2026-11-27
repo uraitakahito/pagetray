@@ -3138,22 +3138,27 @@ mod get_message_facets_test {
             states: vec![crate::model::FacetCount {
                 value: "waiting".to_owned(),
                 count: 2,
+                note: ::std::option::Option::None,
             }],
             to: vec![crate::model::FacetCount {
                 value: "tpm".to_owned(),
                 count: 3,
+                note: ::std::option::Option::None,
             }],
             from: vec![crate::model::FacetCount {
                 value: "t-1.swe.1".to_owned(),
                 count: 2,
+                note: ::std::option::Option::None,
             }],
             keys: vec![crate::model::FacetCount {
                 value: "AI-25".to_owned(),
                 count: 4,
+                note: ::std::option::Option::None,
             }],
             projects: vec![crate::model::FacetCount {
                 value: "ai".to_owned(),
                 count: 5,
+                note: ::std::option::Option::None,
             }],
         };
         use ::aws_smithy_http_server::response::IntoResponse;
@@ -3177,5 +3182,638 @@ mod get_message_facets_test {
         ::aws_smithy_protocol_test::assert_ok(
         ::aws_smithy_protocol_test::validate_body(&body, "{\"states\":[{\"value\":\"waiting\",\"count\":2}],\"to\":[{\"value\":\"tpm\",\"count\":3}],\"from\":[{\"value\":\"t-1.swe.1\",\"count\":2}],\"keys\":[{\"value\":\"AI-25\",\"count\":4}],\"projects\":[{\"value\":\"ai\",\"count\":5}]}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
         );
+    }
+}
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`GetPageFacetsInput`](crate::input::GetPageFacetsInput) using modelled bindings.
+    pub struct GetPageFacetsInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::GetPageFacetsInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for GetPageFacetsInputFuture {
+    type Output = Result<
+        crate::input::GetPageFacetsInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::GetPageFacetsInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = GetPageFacetsInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_get_page_facets::de_get_page_facets_http_request(request)
+                .await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        GetPageFacetsInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::GetPageFacetsOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_get_page_facets::ser_get_page_facets_http_response(self)
+        {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::GetPageFacetsError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_get_page_facets::ser_get_page_facets_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod get_page_facets_test {
+
+    /// 本文も引数も無い
+    /// Test ID: PagetrayGetPageFacetsRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_get_page_facets_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/pages/facets")
+            .method("GET")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Empty::new(),
+            ))
+            .unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .get_page_facets(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::GetPageFacetsInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::GetPageFacetsInput {};
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::GetPageFacetsOutput {
+                                waiting: 0,
+                                answered: 0,
+                                review_waiting: 0,
+                                escalated: 0,
+                                senders: vec![],
+                                roles: vec![],
+                                workspaces: vec![],
+                                kinds: vec![],
+                                keys: vec![],
+                                projects: vec![],
+                                verdicts: vec![],
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 待ちの数と、値・件数・添える字の並び。添える字は、ある時だけ
+    /// Test ID: PagetrayGetPageFacetsResponse
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_get_page_facets_response_response() {
+        let output = crate::output::GetPageFacetsOutput {
+            waiting: 1,
+            answered: 2,
+            review_waiting: 3,
+            escalated: 4,
+            senders: vec![crate::model::FacetCount {
+                value: "019a0000-0000-7000-8000-00000000000a".to_owned(),
+                count: 2,
+                note: ::std::option::Option::Some("t-1.swe.1".to_owned()),
+            }],
+            roles: vec![crate::model::FacetCount {
+                value: "tpm".to_owned(),
+                count: 5,
+                note: ::std::option::Option::None,
+            }],
+            workspaces: vec![crate::model::FacetCount {
+                value: "workspace:1".to_owned(),
+                count: 3,
+                note: ::std::option::Option::Some("AI-25".to_owned()),
+            }],
+            kinds: vec![crate::model::FacetCount {
+                value: "plan".to_owned(),
+                count: 2,
+                note: ::std::option::Option::None,
+            }],
+            keys: vec![crate::model::FacetCount {
+                value: "AI-25".to_owned(),
+                count: 4,
+                note: ::std::option::Option::None,
+            }],
+            projects: vec![crate::model::FacetCount {
+                value: "ai".to_owned(),
+                count: 5,
+                note: ::std::option::Option::None,
+            }],
+            verdicts: vec![crate::model::FacetCount {
+                value: "approve".to_owned(),
+                count: 1,
+                note: ::std::option::Option::None,
+            }],
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"waiting\":1,\"answered\":2,\"reviewWaiting\":3,\"escalated\":4,\"senders\":[{\"value\":\"019a0000-0000-7000-8000-00000000000a\",\"count\":2,\"note\":\"t-1.swe.1\"}],\"roles\":[{\"value\":\"tpm\",\"count\":5}],\"workspaces\":[{\"value\":\"workspace:1\",\"count\":3,\"note\":\"AI-25\"}],\"kinds\":[{\"value\":\"plan\",\"count\":2}],\"keys\":[{\"value\":\"AI-25\",\"count\":4}],\"projects\":[{\"value\":\"ai\",\"count\":5}],\"verdicts\":[{\"value\":\"approve\",\"count\":1}]}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+}
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`ListReviewsInput`](crate::input::ListReviewsInput) using modelled bindings.
+    pub struct ListReviewsInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::ListReviewsInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for ListReviewsInputFuture {
+    type Output = Result<
+        crate::input::ListReviewsInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::ListReviewsInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = ListReviewsInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_list_reviews::de_list_reviews_http_request(request).await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        ListReviewsInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::ListReviewsOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_list_reviews::ser_list_reviews_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::ListReviewsError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_list_reviews::ser_list_reviews_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod list_reviews_test {
+
+    /// 見られたページの path を、引数に並べる
+    /// Test ID: PagetrayListReviewsRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_list_reviews_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/reviews")
+            .method("GET")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Empty::new(),
+            ))
+            .unwrap();
+        *http_request.uri_mut() =
+            "/api/reviews?target=%2Fai%2FAI-25%2Fplan-1.html&target=%2Fai%2FAI-25%2Fplan-2.html"
+                .parse()
+                .unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .list_reviews(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::ListReviewsInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::ListReviewsInput {
+                                target: vec![
+                                    "/ai/AI-25/plan-1.html".to_owned(),
+                                    "/ai/AI-25/plan-2.html".to_owned(),
+                                ]
+                                .try_into()
+                                .expect("this is only used in tests"),
+                            };
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::ListReviewsOutput { reviews: vec![] };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 見られたページの path・レビューのページの path・判定（ある時だけ）
+    /// Test ID: PagetrayListReviewsResponse
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_list_reviews_response_response() {
+        let output = crate::output::ListReviewsOutput {
+            reviews: vec![
+                crate::model::ReviewOf {
+                    target: "/ai/AI-25/plan-1.html".to_owned(),
+                    path: "/ai/AI-25/review-1.html".to_owned(),
+                    verdict: ::std::option::Option::Some("approve".to_owned()),
+                },
+                crate::model::ReviewOf {
+                    target: "/ai/AI-25/plan-2.html".to_owned(),
+                    path: "/ai/AI-25/review-2.html".to_owned(),
+                    verdict: ::std::option::Option::None,
+                },
+            ],
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(
+        ::aws_smithy_protocol_test::validate_body(&body, "{\"reviews\":[{\"target\":\"/ai/AI-25/plan-1.html\",\"path\":\"/ai/AI-25/review-1.html\",\"verdict\":\"approve\"},{\"target\":\"/ai/AI-25/plan-2.html\",\"path\":\"/ai/AI-25/review-2.html\"}]}", ::aws_smithy_protocol_test::MediaType::from("application/json"))
+        );
+    }
+}
+
+::pin_project_lite::pin_project! {
+    /// A [`Future`](std::future::Future) aggregating the body bytes of a [`Request`] and constructing the
+    /// [`GetFileRulesInput`](crate::input::GetFileRulesInput) using modelled bindings.
+    pub struct GetFileRulesInputFuture {
+        inner: std::pin::Pin<Box<dyn std::future::Future<Output = Result<crate::input::GetFileRulesInput, ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError>> + Send>>
+    }
+}
+
+impl std::future::Future for GetFileRulesInputFuture {
+    type Output = Result<
+        crate::input::GetFileRulesInput,
+        ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError,
+    >;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        this.inner.as_mut().poll(cx)
+    }
+}
+
+impl<B>
+    ::aws_smithy_http_server::request::FromRequest<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+        B,
+    > for crate::input::GetFileRulesInput
+where
+    B: ::aws_smithy_http_server::body::HttpBody + Send,
+    B: 'static,
+
+    B::Data: Send,
+    ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection:
+        From<<B as ::aws_smithy_http_server::body::HttpBody>::Error>,
+{
+    type Rejection = ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError;
+    type Future = GetFileRulesInputFuture;
+
+    fn from_request(request: ::http_1x::Request<B>) -> Self::Future {
+        let fut = async move {
+            if !::aws_smithy_http_server::protocol::accept_header_classifier(
+                request.headers(),
+                &crate::mimes::CONTENT_TYPE_APPLICATION_JSON,
+            ) {
+                return Err(::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection::NotAcceptable);
+            }
+            crate::protocol_serde::shape_get_file_rules::de_get_file_rules_http_request(request)
+                .await
+        };
+        use ::futures_util::future::TryFutureExt;
+        let fut = fut.map_err(
+            |e: ::aws_smithy_http_server::protocol::rest_json_1::rejection::RequestRejection| {
+                ::tracing::debug!(error = %e, "failed to deserialize request");
+                ::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(
+                    e,
+                )
+            },
+        );
+        GetFileRulesInputFuture {
+            inner: Box::pin(fut),
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::output::GetFileRulesOutput
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_get_file_rules::ser_get_file_rules_http_response(self) {
+            Ok(response) => response,
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+impl
+    ::aws_smithy_http_server::response::IntoResponse<
+        ::aws_smithy_http_server::protocol::rest_json_1::RestJson1,
+    > for crate::error::GetFileRulesError
+{
+    fn into_response(self) -> ::aws_smithy_http_server::response::Response {
+        match crate::protocol_serde::shape_get_file_rules::ser_get_file_rules_http_error(&self) {
+            Ok(mut response) => {
+                response.extensions_mut().insert(
+                    ::aws_smithy_http_server::extension::ModeledErrorExtension::new(self.name()),
+                );
+                response
+            }
+            Err(e) => {
+                ::tracing::error!(error = %e, "failed to serialize response");
+                ::aws_smithy_http_server::response::IntoResponse::<::aws_smithy_http_server::protocol::rest_json_1::RestJson1>::into_response(::aws_smithy_http_server::protocol::rest_json_1::runtime_error::RuntimeError::from(e))
+            }
+        }
+    }
+}
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod get_file_rules_test {
+
+    /// 本文も引数も無い
+    /// Test ID: PagetrayGetFileRulesRequest
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_get_file_rules_request_request() {
+        #[allow(unused_mut)]
+        let mut http_request = ::http_1x::Request::builder()
+            .uri("/api/files/rules")
+            .method("GET")
+            .body(::aws_smithy_http_server::body::boxed(
+                ::http_body_util::Empty::new(),
+            ))
+            .unwrap();
+        #[allow(unused_mut)]
+        let (sender, mut receiver) = ::tokio::sync::mpsc::channel(1);
+        let config = crate::service::PagetrayConfig::builder().build();
+        let service =
+            crate::service::Pagetray::builder::<::aws_smithy_http_server::body::BoxBody, _, _, _>(
+                config,
+            )
+            .get_file_rules(
+                // Rust 1.94+ flags the moved `sender` as "value captured is never read"
+                // since `send()` only borrows it.
+                #[allow(unused_assignments)]
+                move |input: crate::input::GetFileRulesInput| {
+                    let sender = sender.clone();
+                    async move {
+                        let result = {
+                            let expected = crate::input::GetFileRulesInput {};
+                            ::pretty_assertions::assert_eq!(input, expected);
+                            let output = crate::output::GetFileRulesOutput {
+                                types: vec![],
+                                max_bytes: 0,
+                            };
+                            Ok(output)
+                        };
+                        sender.send(()).await.expect("receiver dropped early");
+                        result
+                    }
+                },
+            )
+            .build_unchecked();
+        let http_response = ::tower::ServiceExt::oneshot(service, http_request)
+            .await
+            .expect("unable to make an HTTP request");
+        assert!(
+            receiver.recv().await.is_some(),
+            "we expected operation handler to be invoked but it was not entered"
+        );
+    }
+
+    /// 拡張子と Content-Type の並びと、大きさの上限
+    /// Test ID: PagetrayGetFileRulesResponse
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn pagetray_get_file_rules_response_response() {
+        let output = crate::output::GetFileRulesOutput {
+            types: vec![crate::model::FileType {
+                ext: "png".to_owned(),
+                r#type: "image/png".to_owned(),
+            }],
+            max_bytes: 16777216,
+        };
+        use ::aws_smithy_http_server::response::IntoResponse;
+        let http_response = output.into_response();
+        ::pretty_assertions::assert_eq!(
+            ::http_1x::StatusCode::from_u16(200).expect("invalid expected HTTP status code"),
+            http_response.status()
+        );
+        let expected_headers = [("Content-Type", "application/json")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(
+            http_response.headers(),
+            expected_headers,
+        ));
+        use ::http_body_util::BodyExt;
+        let body = http_response
+            .into_body()
+            .collect()
+            .await
+            .expect("unable to collect body")
+            .to_bytes();
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_body(
+            &body,
+            "{\"types\":[{\"ext\":\"png\",\"type\":\"image/png\"}],\"maxBytes\":16777216}",
+            ::aws_smithy_protocol_test::MediaType::from("application/json"),
+        ));
     }
 }

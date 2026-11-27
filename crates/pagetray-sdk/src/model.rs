@@ -2137,6 +2137,56 @@ mod test_message_sort {
     }
 }
 
+/// 見られたページの path の並び: 1 つから 200 まで。
+///
+/// This is a constrained type because its corresponding modeled Smithy shape has one or more
+/// [constraint traits]. Use [`ReviewTargets::try_from`] to construct values of this type.
+///
+/// [constraint traits]: https://smithy.io/2.0/spec/constraint-traits.html
+///
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub(crate) struct ReviewTargets(pub(crate) ::std::vec::Vec<::std::string::String>);
+impl ReviewTargets {
+    /// Consumes the value, returning the underlying [`::std::vec::Vec<::std::string::String>`].
+    pub fn into_inner(self) -> ::std::vec::Vec<::std::string::String> {
+        self.0
+    }
+
+    fn check_length(
+        length: usize,
+    ) -> ::std::result::Result<(), crate::model::review_targets_internal::ConstraintViolation> {
+        if (1..=200).contains(&length) {
+            Ok(())
+        } else {
+            Err(crate::model::review_targets_internal::ConstraintViolation::Length(length))
+        }
+    }
+}
+impl ::std::convert::TryFrom<::std::vec::Vec<::std::string::String>> for ReviewTargets {
+    type Error = crate::model::review_targets_internal::ConstraintViolation;
+
+    /// Constructs a `ReviewTargets` from an [`::std::vec::Vec<::std::string::String>`], failing when the provided value does not satisfy the modeled constraints.
+    fn try_from(
+        value: ::std::vec::Vec<::std::string::String>,
+    ) -> ::std::result::Result<Self, Self::Error> {
+        Self::check_length(value.len())?;
+
+        Ok(Self(value))
+    }
+}
+
+impl ::std::convert::From<ReviewTargets> for ::std::vec::Vec<::std::string::String> {
+    fn from(value: ReviewTargets) -> Self {
+        value.into_inner()
+    }
+}
+impl crate::constrained::Constrained for ReviewTargets {
+    type Unconstrained =
+        crate::unconstrained::review_targets_unconstrained::ReviewTargetsUnconstrained;
+}
+
 /// アクターを指す時の短い形。
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
@@ -2591,6 +2641,8 @@ pub struct FacetCount {
     pub value: ::std::string::String,
     #[allow(missing_docs)] // documentation missing in model
     pub count: i64,
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub note: ::std::option::Option<::std::string::String>,
 }
 impl FacetCount {
     #[allow(missing_docs)] // documentation missing in model
@@ -2602,11 +2654,79 @@ impl FacetCount {
     pub fn count(&self) -> i64 {
         self.count
     }
+    /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+    pub fn note(&self) -> ::std::option::Option<&str> {
+        self.note.as_deref()
+    }
 }
 impl FacetCount {
     /// Creates a new builder-style object to manufacture [`FacetCount`](crate::model::FacetCount).
     pub fn builder() -> crate::model::facet_count::Builder {
         crate::model::facet_count::Builder::default()
+    }
+}
+
+/// 見られたページと、それを見たレビューのページ。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct ReviewOf {
+    /// 見られたページの path。
+    pub target: ::std::string::String,
+    /// レビューのページの path。
+    pub path: ::std::string::String,
+    /// レビューの判定。書いていなければ無い。
+    pub verdict: ::std::option::Option<::std::string::String>,
+}
+impl ReviewOf {
+    /// 見られたページの path。
+    pub fn target(&self) -> &str {
+        use std::ops::Deref;
+        self.target.deref()
+    }
+    /// レビューのページの path。
+    pub fn path(&self) -> &str {
+        use std::ops::Deref;
+        self.path.deref()
+    }
+    /// レビューの判定。書いていなければ無い。
+    pub fn verdict(&self) -> ::std::option::Option<&str> {
+        self.verdict.as_deref()
+    }
+}
+impl ReviewOf {
+    /// Creates a new builder-style object to manufacture [`ReviewOf`](crate::model::ReviewOf).
+    pub fn builder() -> crate::model::review_of::Builder {
+        crate::model::review_of::Builder::default()
+    }
+}
+
+/// 受ける file の種類 1 つ。
+#[derive(
+    ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::PartialEq, ::std::fmt::Debug, ::std::hash::Hash,
+)]
+pub struct FileType {
+    /// 拡張子（`.` は付けない）。
+    pub ext: ::std::string::String,
+    /// その file を返す時の `Content-Type`。
+    pub r#type: ::std::string::String,
+}
+impl FileType {
+    /// 拡張子（`.` は付けない）。
+    pub fn ext(&self) -> &str {
+        use std::ops::Deref;
+        self.ext.deref()
+    }
+    /// その file を返す時の `Content-Type`。
+    pub fn r#type(&self) -> &str {
+        use std::ops::Deref;
+        self.r#type.deref()
+    }
+}
+impl FileType {
+    /// Creates a new builder-style object to manufacture [`FileType`](crate::model::FileType).
+    pub fn builder() -> crate::model::file_type::Builder {
+        crate::model::file_type::Builder::default()
     }
 }
 
@@ -3636,6 +3756,41 @@ pub(crate) mod message_sort_internal {
         }
     }
 }
+pub(crate) mod review_targets_internal {
+
+    #[allow(clippy::enum_variant_names)]
+    #[derive(Debug, PartialEq)]
+    pub(crate) enum ConstraintViolation {
+        /// Constraint violation error when the list doesn't have the required length
+        Length(usize),
+    }
+
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let message = match self {
+                Self::Length(length) => {
+                    format!("Value with length {} provided for 'ai.pagetray#ReviewTargets' failed to satisfy constraint: Member must have length between 1 and 200, inclusive", length)
+                }
+            };
+            write!(f, "{message}")
+        }
+    }
+
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ConstraintViolation {
+        pub(crate) fn as_validation_exception_field(
+            self,
+            path: ::std::string::String,
+        ) -> crate::model::ValidationExceptionField {
+            match self {
+                        Self::Length(length) => crate::model::ValidationExceptionField {
+                                message: format!("Value with length {} at '{}' failed to satisfy constraint: Member must have length between 1 and 200, inclusive", length, &path),
+                                path,
+                            },
+                    }
+        }
+    }
+}
 /// See [`ActorSummary`](crate::model::ActorSummary).
 pub mod actor_summary {
 
@@ -4495,6 +4650,7 @@ pub mod facet_count {
     pub struct Builder {
         pub(crate) value: ::std::option::Option<::std::string::String>,
         pub(crate) count: ::std::option::Option<i64>,
+        pub(crate) note: ::std::option::Option<::std::string::String>,
     }
     impl Builder {
         #[allow(missing_docs)] // documentation missing in model
@@ -4505,6 +4661,11 @@ pub mod facet_count {
         #[allow(missing_docs)] // documentation missing in model
         pub fn count(mut self, input: i64) -> Self {
             self.count = Some(input);
+            self
+        }
+        /// 値に添える字（送り手の名・workspace の Key）。ある時だけ（1.3.0 から）。
+        pub fn note(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.note = input;
             self
         }
         /// Consumes the builder and constructs a [`FacetCount`](crate::model::FacetCount).
@@ -4520,6 +4681,150 @@ pub mod facet_count {
             Ok(crate::model::FacetCount {
                 value: self.value.ok_or(ConstraintViolation::MissingValue)?,
                 count: self.count.ok_or(ConstraintViolation::MissingCount)?,
+                note: self.note,
+            })
+        }
+    }
+}
+/// See [`ReviewOf`](crate::model::ReviewOf).
+pub mod review_of {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `target` was not provided but it is required when building `ReviewOf`.
+        MissingTarget,
+        /// `path` was not provided but it is required when building `ReviewOf`.
+        MissingPath,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingTarget => write!(
+                    f,
+                    "`target` was not provided but it is required when building `ReviewOf`"
+                ),
+                ConstraintViolation::MissingPath => write!(
+                    f,
+                    "`path` was not provided but it is required when building `ReviewOf`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::ReviewOf {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`ReviewOf`](crate::model::ReviewOf).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) target: ::std::option::Option<::std::string::String>,
+        pub(crate) path: ::std::option::Option<::std::string::String>,
+        pub(crate) verdict: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// 見られたページの path。
+        pub fn target(mut self, input: ::std::string::String) -> Self {
+            self.target = Some(input);
+            self
+        }
+        /// レビューのページの path。
+        pub fn path(mut self, input: ::std::string::String) -> Self {
+            self.path = Some(input);
+            self
+        }
+        /// レビューの判定。書いていなければ無い。
+        pub fn verdict(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+            self.verdict = input;
+            self
+        }
+        /// Consumes the builder and constructs a [`ReviewOf`](crate::model::ReviewOf).
+        ///
+        /// The builder fails to construct a [`ReviewOf`](crate::model::ReviewOf) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::ReviewOf, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::ReviewOf, ConstraintViolation> {
+            Ok(crate::model::ReviewOf {
+                target: self.target.ok_or(ConstraintViolation::MissingTarget)?,
+                path: self.path.ok_or(ConstraintViolation::MissingPath)?,
+                verdict: self.verdict,
+            })
+        }
+    }
+}
+/// See [`FileType`](crate::model::FileType).
+pub mod file_type {
+
+    #[derive(::std::cmp::PartialEq, ::std::fmt::Debug)]
+    /// Holds one variant for each of the ways the builder can fail.
+    #[allow(clippy::enum_variant_names)]
+    pub enum ConstraintViolation {
+        /// `ext` was not provided but it is required when building `FileType`.
+        MissingExt,
+        /// `r#type` was not provided but it is required when building `FileType`.
+        MissingType,
+    }
+    impl ::std::fmt::Display for ConstraintViolation {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                ConstraintViolation::MissingExt => write!(
+                    f,
+                    "`ext` was not provided but it is required when building `FileType`"
+                ),
+                ConstraintViolation::MissingType => write!(
+                    f,
+                    "`r#type` was not provided but it is required when building `FileType`"
+                ),
+            }
+        }
+    }
+    impl ::std::error::Error for ConstraintViolation {}
+    impl ::std::convert::TryFrom<Builder> for crate::model::FileType {
+        type Error = ConstraintViolation;
+
+        fn try_from(builder: Builder) -> ::std::result::Result<Self, Self::Error> {
+            builder.build()
+        }
+    }
+    /// A builder for [`FileType`](crate::model::FileType).
+    #[derive(::std::clone::Clone, ::std::default::Default, ::std::fmt::Debug)]
+    pub struct Builder {
+        pub(crate) ext: ::std::option::Option<::std::string::String>,
+        pub(crate) r#type: ::std::option::Option<::std::string::String>,
+    }
+    impl Builder {
+        /// 拡張子（`.` は付けない）。
+        pub fn ext(mut self, input: ::std::string::String) -> Self {
+            self.ext = Some(input);
+            self
+        }
+        /// その file を返す時の `Content-Type`。
+        pub fn r#type(mut self, input: ::std::string::String) -> Self {
+            self.r#type = Some(input);
+            self
+        }
+        /// Consumes the builder and constructs a [`FileType`](crate::model::FileType).
+        ///
+        /// The builder fails to construct a [`FileType`](crate::model::FileType) if you do not provide a value for all non-`Option`al members.
+        ///
+        pub fn build(self) -> Result<crate::model::FileType, ConstraintViolation> {
+            self.build_enforcing_required_and_enum_traits()
+        }
+        fn build_enforcing_required_and_enum_traits(
+            self,
+        ) -> Result<crate::model::FileType, ConstraintViolation> {
+            Ok(crate::model::FileType {
+                ext: self.ext.ok_or(ConstraintViolation::MissingExt)?,
+                r#type: self.r#type.ok_or(ConstraintViolation::MissingType)?,
             })
         }
     }

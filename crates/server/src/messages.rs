@@ -174,6 +174,7 @@ pub async fn get_message_facets(
             .map(|c| FacetCount {
                 value: c.value,
                 count: c.count,
+                note: None,
             })
             .collect()
     };

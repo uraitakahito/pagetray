@@ -149,6 +149,15 @@ pub fn app_with(db: Arc<Db>, config: Config) -> Router {
             let db = db.clone();
             move |input| messages::get_message_facets(db.clone(), input)
         })
+        .get_page_facets({
+            let db = db.clone();
+            move |input| list::get_page_facets(db.clone(), input)
+        })
+        .list_reviews({
+            let db = db.clone();
+            move |input| list::list_reviews(db.clone(), input)
+        })
+        .get_file_rules(files::get_file_rules)
         .build()
         .expect("どの操作にも handler がある");
     let generated = Generated::new(generated);

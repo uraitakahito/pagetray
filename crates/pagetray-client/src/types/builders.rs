@@ -12,3 +12,7 @@ pub use crate::types::_file::FileBuilder;
 pub use crate::types::_message::MessageBuilder;
 
 pub use crate::types::_facet_count::FacetCountBuilder;
+
+pub use crate::types::_review_of::ReviewOfBuilder;
+
+pub use crate::types::_file_type::FileTypeBuilder;

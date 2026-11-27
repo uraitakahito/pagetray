@@ -128,17 +128,20 @@ async fn the_page_facets_count_the_whole_store() {
         triples([("p", 4, ""), ("q", 1, "")])
     );
     assert_eq!(counts(&json, "verdicts"), triples([("concerns", 1, "")]));
-    // Key と workspace は、新しく置かれた順。workspace の空の値（書かずに置いた）も 1 つの候補。
+    // Key と workspace は、新しく置かれた順（ここでは、同じ時刻に置いた物が並ぶので、名の順にして比べる）。
+    // workspace の空の値（書かずに置いた）も 1 つの候補。
+    let sorted = |name| {
+        let mut list = counts(&json, name);
+        list.sort();
+        list
+    };
+    assert_eq!(sorted("keys"), triples([("A-1", 3, ""), ("B-2", 2, "")]));
     assert_eq!(
-        counts(&json, "keys"),
-        triples([("B-2", 2, ""), ("A-1", 3, "")])
-    );
-    assert_eq!(
-        counts(&json, "workspaces"),
+        sorted("workspaces"),
         triples([
             ("", 1, ""),
-            ("workspace:2", 1, "B-2"),
-            ("workspace:1", 3, "A-1")
+            ("workspace:1", 3, "A-1"),
+            ("workspace:2", 1, "B-2")
         ])
     );
     // 送り手の答えの無い置き場では、送り手の候補は無い。
@@ -198,13 +201,19 @@ async fn reviews_are_listed_for_the_named_pages() {
         &format!("/api/reviews?target={plan}&target={other}&target={brief}"),
     )
     .await;
+    // レビューのページの古い順（1 つのレビューが見た物どうしの順は決めないので、そろえて比べる）。
+    let mut reviews = json["reviews"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{json}"))
+        .clone();
+    assert_eq!(reviews[2], json!({ "target": plan, "path": second }));
+    reviews[..2].sort_by_key(|r| r["target"].as_str().map(str::to_owned));
     assert_eq!(
-        json["reviews"],
-        json!([
-            { "target": plan, "path": first, "verdict": "concerns" },
-            { "target": brief, "path": first, "verdict": "concerns" },
-            { "target": plan, "path": second },
-        ])
+        reviews[..2],
+        [
+            json!({ "target": brief, "path": first, "verdict": "concerns" }),
+            json!({ "target": plan, "path": first, "verdict": "concerns" }),
+        ]
     );
     // 見られていないページだけなら、空。
     let json = ok(&app, &format!("/api/reviews?target={other}")).await;

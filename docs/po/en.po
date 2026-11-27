@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: pagetray\n"
-"POT-Creation-Date: 2026-11-27T22:30:03+09:00\n"
+"POT-Creation-Date: 2026-11-27T23:27:43+09:00\n"
 "Last-Translator: pagetray contributors\n"
 "Language-Team: none\n"
 "Language: en\n"
@@ -2633,6 +2633,30 @@ msgstr ""
 "`GET /api/messages/facets` (parameters `to`, `from`, `key`; since 1.2.0)"
 
 #: src/api.md
+msgid "`GetPageFacets`"
+msgstr "`GetPageFacets`"
+
+#: src/api.md
+msgid "`GET /api/pages/facets`（引数なし。1.3.0 から）"
+msgstr "`GET /api/pages/facets` (no parameters; since 1.3.0)"
+
+#: src/api.md
+msgid "`ListReviews`"
+msgstr "`ListReviews`"
+
+#: src/api.md
+msgid "`GET /api/reviews`（引数 `target`。1.3.0 から）"
+msgstr "`GET /api/reviews` (parameter `target`; since 1.3.0)"
+
+#: src/api.md
+msgid "`GetFileRules`"
+msgstr "`GetFileRules`"
+
+#: src/api.md
+msgid "`GET /api/files/rules`（引数なし。1.3.0 から）"
+msgstr "`GET /api/files/rules` (no parameters; since 1.3.0)"
+
+#: src/api.md
 msgid ""
 "手の道（Smithy の外）: ページの本文 `GET /{project}/{key}/{kind}-{n}.html`・"
 "file の中身 `GET /{project}/{key}/files/{語}-{n}.{拡張子}`・新着の知らせ "
@@ -3290,6 +3314,159 @@ msgstr ""
 "reads the index table end to end."
 
 #: src/api.md
+msgid "絞り込みの候補と待ちの数（GetPageFacets）"
+msgstr "Filter choices and waiting counts (GetPageFacets)"
+
+#: src/api.md
+msgid ""
+"ページの一覧の画面が、絞り込みの列と操作の帯の待ちの数に使う数（1.3.0 か"
+"ら）。`GET /api/pages/facets` に引数は無く、どの数も**置き場の全部を数える**"
+"（絞らない）。件数が 0 の値は出さない。"
+msgstr ""
+"The numbers the page list screen uses for its filter column and for the "
+"waiting counts in its toolbar (since 1.3.0). `GET /api/pages/facets` takes "
+"no parameters, and every number **counts the whole store** (nothing narrows "
+"it). Values with a count of 0 are not listed."
+
+#: src/api.md
+msgid "欄"
+msgstr "Field"
+
+#: src/api.md
+msgid "`waiting`・`answered`"
+msgstr "`waiting`, `answered`"
+
+#: src/api.md
+msgid "Product Manager の返事待ち・答えたページの数"
+msgstr ""
+"The number of pages waiting for the Product Manager's reply, and of pages "
+"answered"
+
+#: src/api.md
+msgid "`reviewWaiting`"
+msgstr "`reviewWaiting`"
+
+#: src/api.md
+msgid "レビュー待ちのページ（レビューの依頼書）の数"
+msgstr "The number of pages waiting for a review (review briefs)"
+
+#: src/api.md
+msgid "`escalated`"
+msgstr "`escalated`"
+
+#: src/api.md
+msgid "TPM 担当に上げて、まだ決まっていないページ（レビューのページ）の数"
+msgstr ""
+"The number of pages (review pages) escalated to the TPM and not yet decided"
+
+#: src/api.md src/glossary.md
+msgid "`senders`"
+msgstr "`senders`"
+
+#: src/api.md
+msgid ""
+"送り手ごとの数。castlist の答えのある送り手だけ。`value` はアクターの id、"
+"`note` はその名。多い順に 100 まで"
+msgstr ""
+"The count per sender; only senders castlist answered for. `value` is the "
+"actor id and `note` is its name. Up to 100, most pages first"
+
+#: src/api.md
+msgid "`roles`・`kinds`・`projects`・`verdicts`"
+msgstr "`roles`, `kinds`, `projects`, `verdicts`"
+
+#: src/api.md
+msgid ""
+"役割・種類・project・レビューの判定ごとの数。件数の多い順（同じなら名の順）"
+msgstr ""
+"The count per role, kind, project, and review verdict, most pages first (by "
+"name when equal)"
+
+#: src/api.md
+msgid "`workspaces`"
+msgstr "`workspaces`"
+
+#: src/api.md
+msgid ""
+"workspace の ID ごとの数（書かずに置いた物は空の値）。新しく置かれた順に 100 "
+"まで。`note` は、その ID で置かれた Key（`, ` で繋ぐ）"
+msgstr ""
+"The count per workspace ID (pages put without one have the empty value). Up "
+"to 100, most recently put first. `note` is the Keys put under that ID "
+"(joined with `, `)"
+
+#: src/api.md
+msgid "`keys`"
+msgstr "`keys`"
+
+#: src/api.md
+msgid "Key ごとの数。新しく置かれた順に 100 まで"
+msgstr "The count per Key. Up to 100, most recently put first"
+
+#: src/api.md
+msgid ""
+"並びの 1 つは `{\"value\":…,\"count\":…}` で、添える字のある並び（`senders`・"
+"`workspaces`）だけ `note` が付く（無ければ欄ごと無い）。`GetMessageFacets` の"
+"並びと同じ型。"
+msgstr ""
+"An entry is `{\"value\":…,\"count\":…}`, and only the lists that carry a "
+"note (`senders`, `workspaces`) have `note` (the field is absent when there "
+"is none). It is the same type as the lists of `GetMessageFacets`."
+
+#: src/api.md
+msgid ""
+"どの数も、読む接続の 1 つの取引で読む（同じ時点の数）。`ListPages` の答えとは"
+"別の時点。"
+msgstr ""
+"All numbers are read in one transaction on the read connection (counts at "
+"the same instant). That instant differs from the answer of `ListPages`."
+
+#: src/api.md
+msgid "誤りは `ListPages` と同じ（引数の誤りは無い）。"
+msgstr "Errors are the same as `ListPages` (there are no parameter errors)."
+
+#: src/api.md
+msgid "ページを見たレビュー（ListReviews）"
+msgstr "Reviews of pages (ListReviews)"
+
+#: src/api.md
+msgid ""
+"名指したページを見たレビューのページ（種類が `review` で、見た物にその path "
+"を書いた物）を返す（1.3.0 から）。ページの一覧の画面が、行の下に「レビュー」"
+"の link と判定を出すのに使う。"
+msgstr ""
+"Returns the review pages that reviewed the named pages (pages of kind "
+"`review` whose reviewed targets include that path; since 1.3.0). The page "
+"list screen uses it to show the \"Reviews\" links and verdicts under a row."
+
+#: src/api.md
+msgid ""
+"引数 `target` に、見られたページの path（`/<project>/<key>/<kind>-<n>.html`）"
+"を並べる（`?target=…&target=…`）。1 つから 200 まで。無い・超える物は 400 "
+"`ValidationException`。path の形は見ない（置き場に無い path には、何も返さな"
+"い）。"
+msgstr ""
+"List the paths of the reviewed pages (`/<project>/<key>/<kind>-<n>.html`) in "
+"the parameter `target` (`?target=…&target=…`), from 1 to 200. None, or more "
+"than that, is a 400 `ValidationException`. The shape of a path is not "
+"checked (nothing is returned for a path the store does not have)."
+
+#: src/api.md
+msgid ""
+"答えの `reviews` の 1 つは `{\"target\":…,\"path\":…,\"verdict\":…}`: 見られ"
+"たページの path・レビューのページの path・判定（書いていなければ欄ごと無"
+"い）。レビューのページの古い順。1 つのレビューが見た物どうしの順は決めない。"
+msgstr ""
+"An entry of `reviews` in the answer is `{\"target\":…,\"path\":…,"
+"\"verdict\":…}`: the path of the reviewed page, the path of the review page, "
+"and the verdict (the field is absent when none was written). Oldest review "
+"page first. The order among the targets of one review is not defined."
+
+#: src/api.md
+msgid "読む接続・誤りは `ListPages` と同じ。"
+msgstr "The read connection and the errors are the same as `ListPages`."
+
+#: src/api.md
 msgid "返事（SetReplyState）"
 msgstr "Replies (SetReplyState)"
 
@@ -3923,6 +4100,39 @@ msgstr ""
 "`nextToken` read in the order of the time index (`files_created`)."
 
 #: src/api.md
+msgid "受ける file の種類（GetFileRules）"
+msgstr "Accepted file types (GetFileRules)"
+
+#: src/api.md
+msgid ""
+"`GET /api/files/rules` は、受ける file の種類と、1 つの大きさの上限を返す"
+"（1.3.0 から）。ページの一覧の画面の、file を上げる枠が、送る前に見る。"
+msgstr ""
+"`GET /api/files/rules` returns the accepted file types and the size limit of "
+"one file (since 1.3.0). The upload box of the page list screen checks them "
+"before sending."
+
+#: src/api.md
+msgid ""
+"`types`: `{\"ext\":…,\"type\":…}` の並び。拡張子（`.` は付けない）と、その "
+"file を返す時の `Content-Type`。上の「受ける file の種類」の表と同じ物で、並"
+"びは、置き場が種類を断る時の文と同じ。"
+msgstr ""
+"`types`: a list of `{\"ext\":…,\"type\":…}`: the extension (without the `.`) "
+"and the `Content-Type` used when the file is returned. It is the same as the "
+"table in \"Accepted file types\" above, in the same order as the message the "
+"store gives when it refuses a type."
+
+#: src/api.md
+msgid "`maxBytes`: file 1 つの大きさの上限（byte。16 MiB）。"
+msgstr "`maxBytes`: the size limit of one file (in bytes; 16 MiB)."
+
+#: src/api.md
+msgid "DB は読まない。誤りは、守りの層の物だけ。"
+msgstr ""
+"It does not read the DB. The only errors are those of the guard layers."
+
+#: src/api.md
 msgid "file を消す（DeleteFiles）"
 msgstr "Removing files (DeleteFiles)"
 
@@ -4251,10 +4461,6 @@ msgstr ""
 "the same record regardless of the order of arrival."
 
 #: src/api.md
-msgid "欄"
-msgstr "Field"
-
-#: src/api.md
 msgid "もうある id に打った時"
 msgstr "When sent for an existing id"
 
@@ -4494,10 +4700,6 @@ msgid "受け手・送り手の名ごとの数。件数の多い順（同じな�
 msgstr ""
 "The count per recipient name and per sender name. Up to 100, most records "
 "first (by name when equal)"
-
-#: src/api.md
-msgid "`keys`"
-msgstr "`keys`"
 
 #: src/api.md
 msgid ""
@@ -5856,12 +6058,14 @@ msgstr ""
 
 #: src/development.md
 msgid ""
-"ページと file を置く・探す・印を書く・消す（生成した操作の handler）と、ペー"
-"ジの本文・file の中身を返す道"
+"ページと file を置く・探す・印を書く・消す・絞り込みの候補を数える・ページを"
+"見たレビューを探す・受ける file の種類を返す（生成した操作の handler）と、"
+"ページの本文・file の中身を返す道"
 msgstr ""
-"Putting, searching, marking, and deleting pages and files (the handlers of "
-"the generated operations), and the routes that return page bodies and file "
-"contents"
+"Putting, searching, marking, and deleting pages and files, counting the "
+"filter choices, listing the reviews of pages, and returning the accepted "
+"file types (the handlers of the generated operations), plus the routes that "
+"return a page body and a file's content"
 
 #: src/development.md
 msgid "`crates/server/src/messages.rs`"
@@ -8117,10 +8321,6 @@ msgstr ""
 #: src/glossary.md
 msgid "送り手（sender）"
 msgstr "sender"
-
-#: src/glossary.md
-msgid "`senders`"
-msgstr "`senders`"
 
 #: src/glossary.md
 msgid ""
