@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # この本（docs/）を作る: 日本語を docs/book/ に、英語を docs/book/en/ に、検索の索引を docs/book/pagefind/ に。
 # 要る道具（PATH に）: mdbook・mdbook-mermaid・mdbook-gettext・pagefind_extended か pagefind。
+# --no-index: 検索の索引（pagefind）だけを作らず、その検査も飛ばす（pagefind の無い手元で、roster push が push の前に流すため。CI は付けない）。
 # 版は .github/workflows/docs.yml の env。手元での入れ方は docs/src/development.md の「この本を直す」。
 set -euo pipefail
+index=1
+if [ "${1:-}" = "--no-index" ]; then index=0; fi
 cd "$(dirname "$0")/../docs"
 
 rm -rf book
@@ -11,30 +14,37 @@ mdbook build
 # 訳は /<言葉>/ に出る。po/<言葉>.po に訳の無い所は、原文のまま出る。
 MDBOOK_BOOK__LANGUAGE=en MDBOOK_OUTPUT__HTML__SITE_URL=/pagetray/en/ mdbook build -d book/en
 
-# 日本語を語に切れるのは extended の方（Homebrew と npm の pagefind は extended）。
-# 印刷用のページ（全部の章が 1 枚）・目次だけのページ・404 は、索引に入れない。作る間だけ脇へ除ける。
-pagefind=$(command -v pagefind_extended || command -v pagefind) || {
-  echo "pagefind（pagefind_extended か pagefind）が PATH に無い。入れ方は docs/src/development.md の「この本を直す」（brew install pagefind）。" >&2
-  exit 1
-}
-aside=$(mktemp -d)
-trap 'rm -rf "$aside"' EXIT
-for dir in . en; do
-  mkdir -p "$aside/$dir"
-  mv book/"$dir"/{print,toc,404}.html "$aside/$dir/"
-done
-"$pagefind"
-for dir in . en; do
-  mv "$aside/$dir"/*.html book/"$dir"/
-done
+if [ "$index" = 1 ]; then
+  # 日本語を語に切れるのは extended の方（Homebrew と npm の pagefind は extended）。
+  # 印刷用のページ（全部の章が 1 枚）・目次だけのページ・404 は、索引に入れない。作る間だけ脇へ除ける。
+  pagefind=$(command -v pagefind_extended || command -v pagefind) || {
+    echo "pagefind（pagefind_extended か pagefind）が PATH に無い。入れ方は docs/src/development.md の「この本を直す」（brew install pagefind）。" >&2
+    exit 1
+  }
+  aside=$(mktemp -d)
+  trap 'rm -rf "$aside"' EXIT
+  for dir in . en; do
+    mkdir -p "$aside/$dir"
+    mv book/"$dir"/{print,toc,404}.html "$aside/$dir/"
+  done
+  "$pagefind"
+  for dir in . en; do
+    mv "$aside/$dir"/*.html book/"$dir"/
+  done
+fi
 
 # 出した物に、要る物があるか。
-for f in index.html run.html cli.html api.html glossary.html db.html en/index.html en/run.html en/cli.html en/glossary.html en/db.html pagefind/pagefind.js pagefind/pagefind-ui.js; do
+for f in index.html run.html cli.html api.html glossary.html db.html en/index.html en/run.html en/cli.html en/glossary.html en/db.html; do
   [ -s "book/$f" ] || { echo "docs/book/$f が無い" >&2; exit 1; }
 done
-for lang in ja en; do
-  ls book/pagefind/pagefind."$lang"_*.pf_meta >/dev/null 2>&1 || { echo "検索の索引に $lang が無い" >&2; exit 1; }
-done
+if [ "$index" = 1 ]; then
+  for f in pagefind/pagefind.js pagefind/pagefind-ui.js; do
+    [ -s "book/$f" ] || { echo "docs/book/$f が無い" >&2; exit 1; }
+  done
+  for lang in ja en; do
+    ls book/pagefind/pagefind."$lang"_*.pf_meta >/dev/null 2>&1 || { echo "検索の索引に $lang が無い" >&2; exit 1; }
+  done
+fi
 # 英語の本の本文に、日本語が残っていないか（訳の項に出ない所: コードの塊の中の字など）。
 if perl -CSD -0777 -ne '
     next unless m{<main>(.*?)</main>}s;

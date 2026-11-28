@@ -5,8 +5,8 @@
   // roster push が、push の前に流す確かめ（書き方は roster の docs-site の設定のページの「push の前の確かめ」）。
   // CI（ci.yml の test と docs.yml）の中で手元で速く流せる物。試験・image・e2e・model の検査は CI に任せる。
   // roster push は origin/main のこの欄を読むので、変えた一覧は merge の後から効く。
-  // 長さ（2026-11-28 に一時の worktree で測った）: fmt 2 秒・clippy 24 秒（作ったばかりの worktree）・0 秒（2 回目）・mdbook 1 秒未満。
-  // docs は ci/docs-build.sh でなく mdbook build docs（docs-build.sh は検索の索引に pagefind を要し、手元に無いことがあるため。索引と Playwright の検査は CI の docs.yml）。
+  // 長さ（2026-11-28 に一時の worktree で測った）: fmt 2 秒・clippy 24 秒（作ったばかりの worktree。target は worktree ごと）・0 秒（2 回目）・docs-build 1 秒未満。
+  // docs は ci/docs-build.sh --no-index（日本語と英語の本の build・要る page・英語の本に日本語が残らないかを見る。検索の索引は pagefind を要し、手元に無いことがあるので飛ばす。索引と Playwright の検査は CI の docs.yml）。
   // 訳の検査（ci/docs-po.sh --check。英語の本に日本語が残る・訳の無い段落）は手元でも流す（t-fcp8 の段 2a の PR で、これが CI で落ちた。3 秒ほど）。
   "push": {
     "checks": [
@@ -20,7 +20,7 @@
       },
       {
         "name": "docs-build",
-        "run": ["mdbook", "build", "docs"],
+        "run": ["ci/docs-build.sh", "--no-index"],
       },
       {
         "name": "docs-po",
