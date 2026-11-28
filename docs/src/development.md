@@ -69,7 +69,7 @@ API は Smithy の定義から作る。server は定義から作った骨（`cra
 | `docs/pagefind.yml` | 検索（[Pagefind](https://pagefind.app/)）の索引に入れる物 |
 | `docs/mermaid.min.js`・`mermaid-init.js` | 図（Mermaid）を描く script。`mdbook-mermaid install docs` が置いた物 |
 | `ci/docs-po.sh` | `en.po` を原文に合わせる。`--check` を付けると、合っているかを見るだけ |
-| `ci/docs-build.sh` | 日本語の本を `docs/book/` に、英語の本を `docs/book/en/` に作り、検索の索引を `docs/book/pagefind/` に作る |
+| `ci/docs-build.sh` | 日本語の本を `docs/book/` に、英語の本を `docs/book/en/` に作り、検索の索引を `docs/book/pagefind/` に作る（`--no-index` を付けると索引だけを作らない。pagefind の無い手元で、roster の `roster push` が push の前に流す形） |
 
 道具は、workflow の `env` に書いた版を入れる（上げる時は、workflow の版と checksum を一緒に上げる）。
 

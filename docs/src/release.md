@@ -3,7 +3,7 @@
 image と、release に付ける CLI の binary は public で、だれでも取って中を見られる。**出すのは release の workflow（`.github/workflows/release.yml`）だけ**で、手元から `push` せず、release に file を手で付けない（手元の build には、commit していない file と、自分の home の path が入りうる）。
 
 1. `Cargo.toml` の `[workspace.package]` の `version` を上げ、`CHANGELOG.md` に節を足す PR を merge する。
-2. main のその commit に tag を打って push する: `git tag v<version> && git push origin v<version>`。
+2. main のその commit に tag を打って push する: `git tag v<version>` を打ち、別の回に `roster push --tag v<version>` で push する（roster の担当は素の `git push` を打たない。`roster push --tag` は tag の commit が origin の main に在る時だけ push する）。Product Manager が自分の terminal で打つ時は `git push origin v<version>`。
 3. workflow の `check` が、tag と版が合うか・image の中身の一覧・設定・秘密の走査（下の「image に入る物」）・動くかを見る。`check-cli` が、CLI の binary の形・つながる library・版・秘密の走査（下の「release に付ける CLI に入る物」）・動くかを見る。**1 つでも落ちれば、`push` は動かず、image も CLI も出ない。**
 4. `push` が、確かめたその image（作り直さない）を `ghcr.io/uraitakahito/pagetray:v<version>` に置き、release に digest と中身の一覧を書き、確かめたその CLI の tar と checksum を付ける。同じ tag がもうあれば置かない。
 5. release の中身の一覧が「`pagetray-server` と空の `data` だけ」であることと、付いた file が `pagetray-v<version>-aarch64-apple-darwin.tar.gz` とその `.sha256` の 2 つだけであることを見る（この時、image も CLI ももう public。違っていたら、すぐ下の「機微な物が出てしまった時」をする）。
