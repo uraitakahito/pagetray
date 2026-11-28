@@ -2,6 +2,27 @@
 {
   // 課題の記録は Jira（acli が login している site。今は future-gadget-laboratory.atlassian.net の AI。コンポーネントは pagetray）に書く。
   "tracker": "jira",
+  // roster push が、push の前に流す確かめ（書き方は roster の docs-site の設定のページの「push の前の確かめ」）。
+  // CI（ci.yml の test と docs.yml）の中で手元で速く流せる物。試験・image・e2e・model の検査は CI に任せる。
+  // roster push は origin/main のこの欄を読むので、変えた一覧は merge の後から効く。
+  // 長さ（2026-11-28 に一時の worktree で測った）: fmt 2 秒・clippy 24 秒（作ったばかりの worktree）・0 秒（2 回目）・mdbook 1 秒未満。
+  // docs は ci/docs-build.sh でなく mdbook build docs（docs-build.sh は検索の索引に pagefind を要し、手元に無いことがあるため。訳と索引の検査は CI の docs.yml）。
+  "push": {
+    "checks": [
+      {
+        "name": "fmt",
+        "run": ["cargo", "fmt", "--all", "--check"],
+      },
+      {
+        "name": "clippy",
+        "run": ["cargo", "clippy", "--locked", "--all-targets", "--", "-D", "warnings"],
+      },
+      {
+        "name": "docs-build",
+        "run": ["mdbook", "build", "docs"],
+      },
+    ],
+  },
   "infra": {
     // ページの置き場（pagetray の container と、DB を置く volume）。止めると担当はページを置けず、
     // volume を消すと置かれたページの記録が消える。起こし方は docs の「動かす」（docs/src/run.md。https://uraitakahito.github.io/pagetray/run.html）。
